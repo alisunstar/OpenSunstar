@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=OpenSunstar
+Comment=All-in-One Assistant for Claude Code, Codex & Gemini CLI
+Exec=OpenSunstar
+Icon=com.OpenSunstar.desktop
+Terminal=false
+Categories=Utility;Development;
+StartupNotify=true

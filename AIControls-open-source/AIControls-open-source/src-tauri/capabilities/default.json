@@ -1,0 +1,15 @@
+{
+  "$schema": "https://schema.tauri.app/config/2/capability",
+  "identifier": "default",
+  "description": "Main window",
+  "windows": ["main", "float-ball"],
+  "permissions": [
+    "core:default",
+    "core:window:default",
+    "core:window:allow-set-position",
+    "core:window:allow-set-size",
+    "core:window:allow-start-dragging",
+    "core:webview:default",
+    "dialog:allow-open"
+  ]
+}

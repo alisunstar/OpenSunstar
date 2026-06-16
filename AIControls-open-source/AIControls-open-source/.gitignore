@@ -1,0 +1,13 @@
+node_modules
+.vite
+dist
+src-tauri/target
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+.claude/
+.cursor/
+docs/

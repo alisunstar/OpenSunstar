@@ -1,0 +1,78 @@
+<h2>三种架构方案对比</h2>
+<p class="subtitle">基于需求分析：侧边栏 + 双栏布局 + 5大新模块 + 现有视图迁移</p>
+
+<div class="section">
+  <h3>核心决策：如何从「水平导航 SPA」演进到「侧边栏双栏布局」？</h3>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>渐进式迁移</h3>
+      <p>保留现有 App.tsx 主体结构，新增 Sidebar 组件作为可选覆盖层；通过配置开关逐步将功能从 Settings 中移出；过渡期同时存在新旧两种导航入口</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>风险最低，每步可独立发布</li><li>现有功能零影响</li><li>可随时回滚</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>过渡期 UX 混乱（双导航）</li><li>技术债累积</li><li>最终仍需大重构</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>全新 Shell + 组件复用</h3>
+      <p>新建 AppShell 组件（Sidebar + ContentArea），现有视图组件（UnifiedMcpPanel/PromptPanel 等）封装为 Page 包装器放入新布局；新页面全新建造；Settings 功能按页面迁移</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>架构清晰，一步到位</li><li>复用 80% 现有组件</li><li>不影响 Rust 后端</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>App.tsx 改动较大</li><li>Settings 需拆解迁移</li><li>需完整回归测试</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>全量重写前端 Shell</h3>
+      <p>抛弃现有 App.tsx，从头构建全新的布局系统、路由体系、页面组件；Settings、导航、视图全部重新设计实现</p>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>最干净的代码</li><li>无历史包袱</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>耗时最长（4-8周）</li><li>需重写大量已验证逻辑</li><li>高风险，回归范围巨大</li><li>与 Tauri 后端交互需重新对接</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>📊 决策矩阵</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse;">
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="text-align:left;padding:8px;">维度</th>
+      <th style="text-align:center;padding:8px;">A. 渐进式</th>
+      <th style="text-align:center;padding:8px;">B. 新Shell+复用</th>
+      <th style="text-align:center;padding:8px;">C. 全量重写</th>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">开发周期</td>
+      <td style="text-align:center;padding:8px;">4-6周</td>
+      <td style="text-align:center;padding:8px;background:rgba(59,130,246,0.1);">3-5周</td>
+      <td style="text-align:center;padding:8px;">6-8周</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">组件复用率</td>
+      <td style="text-align:center;padding:8px;">90%</td>
+      <td style="text-align:center;padding:8px;background:rgba(59,130,246,0.1);">80%</td>
+      <td style="text-align:center;padding:8px;">30%</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">架构清晰度</td>
+      <td style="text-align:center;padding:8px;">⭐⭐</td>
+      <td style="text-align:center;padding:8px;background:rgba(59,130,246,0.1);">⭐⭐⭐⭐</td>
+      <td style="text-align:center;padding:8px;">⭐⭐⭐⭐⭐</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">回归风险</td>
+      <td style="text-align:center;padding:8px;">低</td>
+      <td style="text-align:center;padding:8px;background:rgba(59,130,246,0.1);">中</td>
+      <td style="text-align:center;padding:8px;">高</td>
+    </tr>
+  </table>
+</div>

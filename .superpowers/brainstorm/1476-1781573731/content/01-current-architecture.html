@@ -1,0 +1,124 @@
+<h2>OpenSunstar v3.16.2 — 当前架构全景</h2>
+<p class="subtitle">重构前的基线分析：现有布局、导航与技术栈</p>
+
+<div class="section">
+  <h3>🏗️ 技术栈</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div style="background:var(--bg-card);border-radius:8px;padding:16px;">
+      <span class="label">前端</span>
+      <p style="margin:4px 0 0">React 18 + TypeScript + Vite 7<br>TailwindCSS 3.4 + shadcn/ui<br>TanStack Query v5 + Recharts</p>
+    </div>
+    <div style="background:var(--bg-card);border-radius:8px;padding:16px;">
+      <span class="label">桌面壳</span>
+      <p style="margin:4px 0 0">Tauri 2.11 (Rust)<br>SQLite + JSON 双层存储<br>本地代理服务器 (axum)</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>📐 当前布局：单页水平导航</h3>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">当前布局 (Actual)</div>
+    <div class="mockup-body" style="padding:0;">
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+        <!-- Title bar -->
+        <div style="background:#1a1a2e;padding:6px 12px;display:flex;align-items:center;gap:6px;">
+          <div style="width:10px;height:10px;border-radius:50%;background:#ff5f57;"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:#febc2e;"></div>
+          <div style="width:10px;height:10px;border-radius:50%;background:#28c840;"></div>
+          <span style="color:#888;font-size:11px;margin-left:8px;">OpenSunstar</span>
+        </div>
+        <!-- Header nav -->
+        <div style="background:#0f0f23;padding:10px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e1e3a;">
+          <span style="color:#fff;font-weight:600;font-size:12px;">🚀 Ext Manager</span>
+          <div style="display:flex;gap:4px;background:#1a1a35;border-radius:20px;padding:3px;">
+            <span style="padding:4px 10px;background:#3b82f6;color:#fff;border-radius:16px;font-size:10px;">MCP</span>
+            <span style="padding:4px 10px;color:#888;border-radius:16px;font-size:10px;">Prompts</span>
+            <span style="padding:4px 10px;color:#888;border-radius:16px;font-size:10px;">Skills</span>
+            <span style="padding:4px 10px;color:#888;border-radius:16px;font-size:10px;">Sessions</span>
+          </div>
+          <span style="margin-left:auto;color:#888;">⚙️</span>
+        </div>
+        <!-- Content area -->
+        <div style="background:#0a0a1a;padding:40px 20px;min-height:300px;text-align:center;">
+          <p class="placeholder" style="margin:0;">MCP / Prompts / Skills / Sessions 视图切换<br>设置以 Dialog 弹窗打开</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">当前导航模型</div>
+    <div class="mockup-body">
+      <pre style="font-size:11px;line-height:1.6;color:#a0a0b0;">
+State-based Navigation (无 Router)
+
+currentView ∈ {
+  "mcp" | "mcpDiscovery"
+  | "prompts" | "skills"
+  | "skillsDiscovery" | "sessions"
+}
+
+Settings → Dialog (Modal)
+UsageDashboard → Settings Tab
+Backup/Sync → Settings > Advanced
+      </pre>
+      <div class="pros-cons">
+        <div class="pros"><h4>✅ 优势</h4><ul>
+          <li>简单直接，无路由依赖</li>
+          <li>视图切换动画流畅</li>
+          <li>无深层嵌套导航</li>
+        </ul></div>
+        <div class="cons"><h4>❌ 局限</h4><ul>
+          <li>无侧边栏，功能发现性差</li>
+          <li>设置内功能被"埋没"</li>
+          <li>无法承载 Dashboard/看板</li>
+          <li>仅支持 6 个视图</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>⚠️ 重构范围 vs 现有功能的 Gap 分析</h3>
+  <table style="width:100%;font-size:13px;border-collapse:collapse;">
+    <tr style="border-bottom:1px solid var(--border);">
+      <th style="text-align:left;padding:8px;">重构需求</th>
+      <th style="text-align:left;padding:8px;">现有基础</th>
+      <th style="text-align:left;padding:8px;">Gap</th>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">🏠 工作台 Dashboard</td>
+      <td style="padding:8px;">❌ 不存在</td>
+      <td style="padding:8px;color:#ef4444;">全新开发</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">🔄 同步备份独立页</td>
+      <td style="padding:8px;">⚠️ 在 Settings>Advanced 中</td>
+      <td style="padding:8px;color:#f59e0b;">提取+增强</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">📊 项目看板</td>
+      <td style="padding:8px;">❌ 完全不存在</td>
+      <td style="padding:8px;color:#ef4444;">全新开发</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">💰 Tokens统计独立页</td>
+      <td style="padding:8px;">⚠️ 在 Settings>usage Tab</td>
+      <td style="padding:8px;color:#f59e0b;">提取+增强</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">📁 全部项目模块</td>
+      <td style="padding:8px;">❌ 完全不存在</td>
+      <td style="padding:8px;color:#ef4444;">全新开发</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:8px;">🧭 侧边栏导航</td>
+      <td style="padding:8px;">❌ 不存在</td>
+      <td style="padding:8px;color:#ef4444;">全新开发</td>
+    </tr>
+  </table>
+</div>
