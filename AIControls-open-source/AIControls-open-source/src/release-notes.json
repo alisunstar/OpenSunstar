@@ -1,0 +1,3 @@
+{
+  "releaseNotes": "- feat: 新增 GitHub 导入能力与相关入口（Tauri 侧实现）。\n- feat: 完善提示词库页面交互与样式，提升导入/复制等操作体验。\n- chore: 补齐相关 API 与界面联动（含 Shell/首页 HUD 等）。"
+}
