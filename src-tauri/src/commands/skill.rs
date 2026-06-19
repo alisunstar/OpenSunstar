@@ -8,8 +8,8 @@ use crate::app_config::{AppType, InstalledSkill, UnmanagedSkill};
 use crate::error::format_skill_error;
 use crate::services::skill::{
     ClawHubSearchResult, ClawHubSkillStats, DiscoverableSkill, ImportSkillSelection,
-    MigrationResult, Skill, SkillBackupEntry, SkillRepo, SkillService, SkillStorageLocation,
-    SkillUninstallResult, SkillUpdateInfo, SkillsShSearchResult,
+    MigrationResult, ModelScopeSearchResult, Skill, SkillBackupEntry, SkillRepo, SkillService,
+    SkillStorageLocation, SkillUninstallResult, SkillUpdateInfo, SkillsShSearchResult,
 };
 use crate::store::AppState;
 use std::str::FromStr;
@@ -276,6 +276,18 @@ pub async fn install_clawhub_skill(slug: String) -> Result<(), String> {
     tokio::task::spawn_blocking(move || run_cli_silently(&command, "clawhub_install"))
         .await
         .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 搜索 ModelScope 技能中心
+#[tauri::command]
+pub async fn search_modelscope(
+    query: String,
+    page_number: usize,
+    page_size: usize,
+) -> Result<ModelScopeSearchResult, String> {
+    SkillService::search_modelscope(&query, page_number, page_size)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// 静默执行 CLI 命令（捕获输出，不弹窗口）

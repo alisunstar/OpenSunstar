@@ -295,6 +295,66 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+        // 19. Projects 表（项目级配置隔离）
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                path TEXT NOT NULL UNIQUE,
+                git_remote_url TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        // 20. Project × MCP 中间表
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_mcp_servers (
+                project_id TEXT NOT NULL,
+                mcp_server_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, mcp_server_id),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (mcp_server_id) REFERENCES mcp_servers(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        // 21. Project × Skills 中间表
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_skills (
+                project_id TEXT NOT NULL,
+                skill_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, skill_id),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
+        // 22. Project × Prompts 中间表
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_prompts (
+                project_id TEXT NOT NULL,
+                prompt_id TEXT NOT NULL,
+                prompt_app_type TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, prompt_id, prompt_app_type),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (prompt_id, prompt_app_type) REFERENCES prompts(id, app_type) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+
         // 尝试添加 live_takeover_active 列到 proxy_config 表
         let _ = conn.execute(
             "ALTER TABLE proxy_config ADD COLUMN live_takeover_active INTEGER NOT NULL DEFAULT 0",
@@ -443,6 +503,21 @@ impl Database {
                         log::info!("迁移数据库从 v10 到 v11（usage_daily_rollups 保留 request_model 维度）");
                         Self::migrate_v10_to_v11(conn)?;
                         Self::set_user_version(conn, 11)?;
+                    }
+                    11 => {
+                        log::info!("迁移数据库从 v11 到 v12（API Key 迁移至 OS Keychain）");
+                        Self::migrate_v11_to_v12(conn)?;
+                        Self::set_user_version(conn, 12)?;
+                    }
+                    12 => {
+                        log::info!("迁移数据库从 v12 到 v13（Prompt 桥接支持）");
+                        Self::migrate_v12_to_v13(conn)?;
+                        Self::set_user_version(conn, 13)?;
+                    }
+                    13 => {
+                        log::info!("迁移数据库从 v13 到 v14（项目级配置隔离 - 方案 E）");
+                        Self::migrate_v13_to_v14(conn)?;
+                        Self::set_user_version(conn, 14)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1267,6 +1342,205 @@ impl Database {
         log::info!(
             "v10 -> v11 迁移完成：usage_daily_rollups 已保留 request_model/pricing_model 维度"
         );
+        Ok(())
+    }
+
+    /// v11 -> v12: API Key 迁移至 OS Keychain
+    ///
+    /// 扫描 providers 表中所有 settings_config JSON，将明文 API Key
+    /// 写入 OS Keychain（或加密 fallback 文件），DB 中替换为 keychain://ref/... 占位符。
+    fn migrate_v11_to_v12(conn: &Connection) -> Result<(), AppError> {
+        use crate::keychain;
+
+        let mut stmt = conn
+            .prepare("SELECT id, app_type, settings_config FROM providers")
+            .map_err(|e| AppError::Database(format!("v12 迁移：查询 providers 失败: {e}")))?;
+
+        let rows: Vec<(String, String, String)> = stmt
+            .query_map([], |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, String>(1)?,
+                    row.get::<_, String>(2)?,
+                ))
+            })
+            .map_err(|e| AppError::Database(format!("v12 迁移：读取 providers 失败: {e}")))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| AppError::Database(format!("v12 迁移：解析 providers 失败: {e}")))?;
+
+        let mut migrated_count = 0;
+
+        for (id, app_type, config_str) in &rows {
+            let mut config: serde_json::Value = match serde_json::from_str(config_str) {
+                Ok(v) => v,
+                Err(_) => continue,
+            };
+
+            let mut updated = false;
+
+            // Known API key field paths in settings_config JSON
+            let key_fields = [
+                "ANTHROPIC_API_KEY",
+                "OPENAI_API_KEY",
+                "GEMINI_API_KEY",
+                "api_key",
+                "apiKey",
+            ];
+
+            // Check top-level fields
+            for field in &key_fields {
+                if let Some(val) = config.get(*field).and_then(|v| v.as_str()) {
+                    if !val.is_empty() && !keychain::is_keychain_ref(val) {
+                        match keychain::migrate_key_to_keychain(id, app_type, val) {
+                            Ok(ref_val) => {
+                                config[*field] = serde_json::Value::String(ref_val);
+                                updated = true;
+                            }
+                            Err(e) => {
+                                log::warn!(
+                                    "v12 迁移：provider {id}/{app_type} 的 {field} 迁移失败: {e}"
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Check nested env.* / auth.* fields
+            for container in ["env", "auth"] {
+                if let Some(obj) = config.get(container).cloned() {
+                    if let Some(map) = obj.as_object() {
+                        let mut new_map = map.clone();
+                        for (k, v) in map {
+                            if let Some(val) = v.as_str() {
+                                let is_key_like = k.contains("KEY")
+                                    || k.contains("TOKEN")
+                                    || k.contains("SECRET");
+                                if is_key_like
+                                    && !val.is_empty()
+                                    && !keychain::is_keychain_ref(val)
+                                {
+                                    let entry_key = format!("{id}/{app_type}/{container}.{k}");
+                                    match keychain::store_secret(&entry_key, val) {
+                                        Ok(()) => {
+                                            new_map.insert(
+                                                k.clone(),
+                                                serde_json::Value::String(
+                                                    keychain::make_keychain_ref(&entry_key),
+                                                ),
+                                            );
+                                            updated = true;
+                                        }
+                                        Err(e) => {
+                                            log::warn!(
+                                                "v12 迁移：provider {id}/{app_type} 的 {container}.{k} 迁移失败: {e}"
+                                            );
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if updated {
+                            config[container] =
+                                serde_json::Value::Object(new_map);
+                        }
+                    }
+                }
+            }
+
+            if updated {
+                let new_config_str = serde_json::to_string(&config)
+                    .map_err(|e| AppError::Database(format!("v12 迁移：序列化失败: {e}")))?;
+                conn.execute(
+                    "UPDATE providers SET settings_config = ?1 WHERE id = ?2 AND app_type = ?3",
+                    params![new_config_str, id, app_type],
+                )
+                .map_err(|e| {
+                    AppError::Database(format!(
+                        "v12 迁移：更新 provider {id}/{app_type} 失败: {e}"
+                    ))
+                })?;
+                migrated_count += 1;
+            }
+        }
+
+        log::info!(
+            "v11 -> v12 迁移完成：已将 {migrated_count} 个 provider 的 API Key 迁移至 OS Keychain"
+        );
+        Ok(())
+    }
+
+    /// v12 -> v13: Prompt 桥接支持（bridge_source 列）
+    fn migrate_v12_to_v13(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(conn, "prompts", "bridge_source", "TEXT")?;
+        log::info!("v12 -> v13 迁移完成：prompts 表已添加 bridge_source 列");
+        Ok(())
+    }
+
+    /// v13 -> v14: 项目级配置隔离（方案 E）
+    ///
+    /// 创建 projects 表和三张中间表：
+    /// - project_mcp_servers: 项目 × MCP 服务器映射
+    /// - project_skills: 项目 × Skills 映射
+    /// - project_prompts: 项目 × Prompts 映射
+    fn migrate_v13_to_v14(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS projects (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                path TEXT NOT NULL UNIQUE,
+                git_remote_url TEXT,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 projects 表失败: {e}")))?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_mcp_servers (
+                project_id TEXT NOT NULL,
+                mcp_server_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, mcp_server_id),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (mcp_server_id) REFERENCES mcp_servers(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 project_mcp_servers 表失败: {e}")))?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_skills (
+                project_id TEXT NOT NULL,
+                skill_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, skill_id),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 project_skills 表失败: {e}")))?;
+
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_prompts (
+                project_id TEXT NOT NULL,
+                prompt_id TEXT NOT NULL,
+                prompt_app_type TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, prompt_id, prompt_app_type),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY (prompt_id, prompt_app_type) REFERENCES prompts(id, app_type) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 project_prompts 表失败: {e}")))?;
+
+        log::info!("v13 -> v14 迁移完成：已创建项目级配置隔离表（projects + 3 张中间表）");
         Ok(())
     }
 

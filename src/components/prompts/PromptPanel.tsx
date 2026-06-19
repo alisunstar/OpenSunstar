@@ -5,6 +5,7 @@ import { type AppId } from "@/lib/api";
 import { usePromptActions } from "@/hooks/usePromptActions";
 import PromptListItem from "./PromptListItem";
 import PromptFormPanel from "./PromptFormPanel";
+import { BridgeDialog } from "./BridgeDialog";
 import { ConfirmDialog } from "../ConfirmDialog";
 
 interface PromptPanelProps {
@@ -22,6 +23,11 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
     const { t } = useTranslation();
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [bridgeTarget, setBridgeTarget] = useState<{
+      id: string;
+      name: string;
+      content: string;
+    } | null>(null);
     const [confirmDialog, setConfirmDialog] = useState<{
       isOpen: boolean;
       titleKey: string;
@@ -71,6 +77,13 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
     const handleEdit = (id: string) => {
       setEditingId(id);
       setIsFormOpen(true);
+    };
+
+    const handleBridge = (id: string) => {
+      const prompt = prompts[id];
+      if (prompt) {
+        setBridgeTarget({ id, name: prompt.name, content: prompt.content });
+      }
     };
 
     const handleDelete = (id: string) => {
@@ -133,6 +146,7 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
                   onToggle={toggleEnabled}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  onBridge={handleBridge}
                 />
               ))}
             </div>
@@ -146,6 +160,20 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
             initialData={editingId ? prompts[editingId] : undefined}
             onSave={savePrompt}
             onClose={() => setIsFormOpen(false)}
+          />
+        )}
+
+        {bridgeTarget && (
+          <BridgeDialog
+            open={!!bridgeTarget}
+            onOpenChange={(open) => {
+              if (!open) setBridgeTarget(null);
+            }}
+            promptId={bridgeTarget.id}
+            promptName={bridgeTarget.name}
+            sourceApp={appId}
+            content={bridgeTarget.content}
+            onBridged={reload}
           />
         )}
 

@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { getLocaleFromLanguage } from "./format";
 import { getUsageRangePresetLabel, resolveUsageRange } from "@/lib/usageRange";
 import { UsageDateRangePicker } from "./UsageDateRangePicker";
+import { ExportMenu } from "./ExportMenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const APP_FILTER_OPTIONS: AppTypeFilter[] = ["all", ...KNOWN_APP_TYPES];
@@ -119,6 +120,12 @@ export function UsageDashboard() {
               <RefreshCw className="mr-2 h-3.5 w-3.5" />
               {refreshIntervalMs > 0 ? `${refreshIntervalMs / 1000}s` : "--"}
             </Button>
+
+            <ExportMenu
+              appType={appType}
+              startDate={resolvedRange.startDate}
+              endDate={resolvedRange.endDate}
+            />
 
             <UsageDateRangePicker
               selection={range}

@@ -110,6 +110,7 @@ impl<'a> UsageLogger<'a> {
 
         // 通知前端使用统计有更新（200ms 防抖合并，不阻塞写入路径）
         crate::usage_events::notify_log_recorded();
+        crate::services::budget_alert::notify_after_log();
 
         Ok(())
     }

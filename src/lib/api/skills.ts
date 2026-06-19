@@ -147,6 +147,27 @@ export interface ClawHubSkillStats {
   installs?: number;
 }
 
+/** ModelScope 可发现的技能 */
+export interface ModelScopeDiscoverableSkill {
+  id: string;
+  displayName: string;
+  description: string;
+  category: string;
+  viewCount: number;
+  downloads: number;
+  skillUrl: string;
+  sourceUrl?: string;
+  owner?: string;
+  developer?: string;
+}
+
+/** ModelScope 搜索结果 */
+export interface ModelScopeSearchResult {
+  skills: ModelScopeDiscoverableSkill[];
+  total: number;
+  query: string;
+}
+
 /** 仓库配置 */
 export interface SkillRepo {
   owner: string;
@@ -264,6 +285,19 @@ export const skillsApi = {
     limit: number,
   ): Promise<ClawHubSearchResult> {
     return await invoke("search_clawhub", { query, limit });
+  },
+
+  /** 搜索 ModelScope 技能中心 */
+  async searchModelScope(
+    query: string,
+    pageNumber: number,
+    pageSize: number,
+  ): Promise<ModelScopeSearchResult> {
+    return await invoke("search_modelscope", {
+      query,
+      pageNumber,
+      pageSize,
+    });
   },
 
   /** 批量获取 ClawHub 技能的星标/下载/安装量 */

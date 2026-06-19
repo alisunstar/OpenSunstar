@@ -37,19 +37,15 @@ export function ShortcutsHelp({ open, onOpenChange }: ShortcutsHelpProps) {
         },
         {
           key: "Alt+4",
-          description: t("shortcuts.sessions", { defaultValue: "会话" }),
+          description: t("shortcuts.sessions", { defaultValue: "Context" }),
         },
         {
           key: "Alt+5",
-          description: t("shortcuts.syncBackup", { defaultValue: "同步备份" }),
+          description: t("shortcuts.tokenStats", { defaultValue: "AI 用量" }),
         },
         {
           key: "Alt+6",
-          description: t("shortcuts.kanban", { defaultValue: "项目看板" }),
-        },
-        {
-          key: "Alt+7",
-          description: t("shortcuts.tokenStats", { defaultValue: "Tokens 统计" }),
+          description: t("shortcuts.kanban", { defaultValue: "看板总览" }),
         },
       ],
     },

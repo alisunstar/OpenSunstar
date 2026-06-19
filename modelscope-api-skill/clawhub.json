@@ -1,0 +1,13 @@
+{
+  "name": "ModelScope API Skill",
+  "slug": "modelscope-api",
+  "tagline": "魔塔社区API封装：模型/数据集/技能/MCP广场/创空间",
+  "description": "封装魔塔社区（ModelScope）API，覆盖技能中心(8万+)、MCP广场(9400+)、模型库(19万+)、数据集、创空间(Studio)。支持查询、搜索、下载。所有变更操作需用户确认，含Python SDK和CLI辅助工具。",
+  "category": "development",
+  "tags": ["modelscope", "mcp", "ai-models", "dataset", "skills", "studio", "chinese-ai"],
+  "version": "1.0.4",
+  "license": "MIT-0",
+  "pricing": "free",
+  "support_url": "https://github.com/Chenghd511/modelscope-api-skill/issues",
+  "homepage": "https://github.com/Chenghd511/modelscope-api-skill"
+}

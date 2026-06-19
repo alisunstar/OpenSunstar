@@ -16,7 +16,7 @@ import type { DiscoverableSkill } from "@/lib/api/skills";
 
 type SkillCardSkill = DiscoverableSkill & { installed: boolean };
 
-export type SkillSource = "repos" | "skillssh" | "clawhub";
+export type SkillSource = "repos" | "skillssh" | "clawhub" | "modelscope";
 
 interface SkillCardProps {
   skill: SkillCardSkill;
@@ -33,12 +33,15 @@ const SOURCE_BADGE_STYLES: Record<SkillSource, string> = {
     "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
   clawhub:
     "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  modelscope:
+    "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
 };
 
 const SOURCE_LABELS: Record<SkillSource, string> = {
   repos: "GitHub",
   skillssh: "skills.sh",
   clawhub: "ClawHub",
+  modelscope: "ModelScope",
 };
 
 export function SkillCard({

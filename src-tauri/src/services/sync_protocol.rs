@@ -70,6 +70,10 @@ pub(crate) struct SyncManifest {
     pub created_at: String,
     pub artifacts: BTreeMap<String, ArtifactMeta>,
     pub snapshot_id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub encrypted: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub key_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,7 +111,23 @@ pub(crate) fn build_local_snapshot(
 ) -> Result<LocalSnapshot, AppError> {
     // Export database to SQL string
     let sql_string = db.export_sql_string_for_sync()?;
-    let db_sql = sql_string.into_bytes();
+    let db_sql_plain = sql_string.into_bytes();
+
+    // Encrypt db.sql if sync master key is available (E2EE)
+    let (db_sql, encrypted, key_id) = match crate::keychain::get_sync_master_key() {
+        Ok(Some(master_key)) => {
+            let snapshot_salt = sha256_hex(&db_sql_plain);
+            let derived_key =
+                crate::keychain::derive_snapshot_key(&master_key, &snapshot_salt)?;
+            let encrypted_bytes = crate::keychain::encrypt_data(&derived_key, &db_sql_plain)?;
+            let kid = sha256_hex(&master_key)[..16].to_string();
+            (encrypted_bytes, Some(true), Some(kid))
+        }
+        _ => {
+            log::info!("Sync master key not available, uploading db.sql in plaintext");
+            (db_sql_plain, None, None)
+        }
+    };
 
     // Pack skills into deterministic ZIP
     let tmp = tempdir().map_err(|e| {
@@ -148,6 +168,8 @@ pub(crate) fn build_local_snapshot(
         created_at: Utc::now().to_rfc3339(),
         artifacts,
         snapshot_id,
+        encrypted,
+        key_id,
     };
     let manifest_bytes =
         serde_json::to_vec_pretty(&manifest).map_err(|e| AppError::JsonSerialize { source: e })?;
@@ -306,12 +328,41 @@ pub(crate) fn verify_artifact(
 
 // ─── Snapshot application ────────────────────────────────────
 
+#[allow(dead_code)]
 pub(crate) fn apply_snapshot(
     db: &crate::database::Database,
     db_sql: &[u8],
     skills_zip: &[u8],
 ) -> Result<(), AppError> {
-    let sql_str = std::str::from_utf8(db_sql).map_err(|e| {
+    apply_snapshot_with_manifest(db, db_sql, skills_zip, None)
+}
+
+/// Apply a snapshot with optional manifest for E2EE decryption.
+/// If the manifest indicates encryption, decrypts db_sql before import.
+pub(crate) fn apply_snapshot_with_manifest(
+    db: &crate::database::Database,
+    db_sql: &[u8],
+    skills_zip: &[u8],
+    manifest: Option<&SyncManifest>,
+) -> Result<(), AppError> {
+    let decrypted_sql: Vec<u8>;
+    let actual_db_sql = if manifest.map_or(false, |m| m.encrypted == Some(true)) {
+        let master_key = crate::keychain::get_sync_master_key()?.ok_or_else(|| {
+            localized(
+                "sync.master_key_missing",
+                "同步主密钥不存在，无法解密加密的数据库快照。请确保在当前设备上配置了同步主密钥。",
+                "Sync master key not found. Cannot decrypt the encrypted database snapshot. Please ensure the sync master key is configured on this device.",
+            )
+        })?;
+        let snapshot_salt = sha256_hex(db_sql);
+        let derived_key = crate::keychain::derive_snapshot_key(&master_key, &snapshot_salt)?;
+        decrypted_sql = crate::keychain::decrypt_data(&derived_key, db_sql)?;
+        &decrypted_sql
+    } else {
+        db_sql
+    };
+
+    let sql_str = std::str::from_utf8(actual_db_sql).map_err(|e| {
         localized(
             "sync.sql_not_utf8",
             format!("SQL 非 UTF-8: {e}"),

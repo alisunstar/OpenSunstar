@@ -16,6 +16,7 @@ mod gemini_config;
 mod gemini_mcp;
 pub mod hermes_config;
 mod init_status;
+pub mod keychain;
 mod lightweight;
 #[cfg(target_os = "linux")]
 mod linux_fix;
@@ -363,6 +364,7 @@ pub fn run() {
             // 也能向前端推送 `usage-log-recorded`。
             // 放在日志系统初始化之后，确保 init 的日志能正常输出。
             usage_events::init(app.handle().clone());
+            crate::services::budget_alert::init(app.handle().clone());
 
             // 从旧版应用目录迁移数据到 OpenSunstar (~/.OpenSunstar/)
             // 必须在数据库初始化之前执行，确保用户数据完整迁移
@@ -451,6 +453,8 @@ pub fn run() {
                     }
                 }
             }
+
+            crate::services::budget_alert::init_db(db.clone());
 
             let app_state = AppState::new(db);
 
@@ -1326,6 +1330,14 @@ pub fn run() {
             commands::enable_prompt,
             commands::import_prompt_from_file,
             commands::get_current_prompt_file_content,
+            // Prompt bridge
+            commands::bridge_prompt,
+            commands::get_bridgeable_prompts,
+            commands::push_bridge_changes,
+            commands::unlink_bridge,
+            commands::preview_bridge,
+            commands::get_bridge_auto_push,
+            commands::set_bridge_auto_push,
             // model list fetch (OpenAI-compatible /v1/models)
             commands::fetch_models_for_config,
             // ours: endpoint speed test + custom endpoint management
@@ -1352,6 +1364,12 @@ pub fn run() {
             commands::s3_sync_download,
             commands::s3_sync_save_settings,
             commands::s3_sync_fetch_remote_info,
+            commands::gist_sync_test_connection,
+            commands::gist_sync_upload,
+            commands::gist_sync_download,
+            commands::gist_sync_save_pat,
+            commands::gist_sync_clear,
+            commands::gist_sync_is_configured,
             commands::save_file_dialog,
             commands::open_file_dialog,
             commands::open_zip_file_dialog,
@@ -1391,6 +1409,7 @@ pub fn run() {
             commands::search_clawhub,
             commands::batch_get_clawhub_stats,
             commands::install_clawhub_skill,
+            commands::search_modelscope,
             // Skill management (legacy API compatibility)
             commands::get_skills,
             commands::get_skills_for_app,
@@ -1558,6 +1577,31 @@ pub fn run() {
             commands::git_weekly_commit_counts,
             commands::git_contributors,
             commands::reveal_path_in_folder,
+            // Session & usage export
+            commands::export_session,
+            commands::export_usage,
+            // Onboarding wizard
+            commands::scan_environment,
+            commands::complete_onboarding,
+            commands::is_onboarding_needed,
+            // Project-level config isolation (方案 E)
+            commands::get_all_projects,
+            commands::get_project,
+            commands::get_project_by_path,
+            commands::upsert_project,
+            commands::delete_project,
+            commands::get_project_mcp_servers,
+            commands::link_project_mcp_server,
+            commands::unlink_project_mcp_server,
+            commands::set_project_mcp_servers,
+            commands::get_project_skills,
+            commands::link_project_skill,
+            commands::unlink_project_skill,
+            commands::set_project_skills,
+            commands::get_project_prompts,
+            commands::link_project_prompt,
+            commands::unlink_project_prompt,
+            commands::set_project_prompts,
         ]);
 
     let app = builder

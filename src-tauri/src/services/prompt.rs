@@ -5,6 +5,7 @@ use crate::config::write_text_file;
 use crate::error::AppError;
 use crate::prompt::Prompt;
 use crate::prompt_files::prompt_file_path;
+use crate::services::bridge;
 use crate::store::AppState;
 
 /// 安全地获取当前 Unix 时间戳
@@ -31,22 +32,20 @@ impl PromptService {
         _id: &str,
         prompt: Prompt,
     ) -> Result<(), AppError> {
-        // 检查是否为已启用的提示词
         let is_enabled = prompt.enabled;
+        let prompt_id = prompt.id.clone();
+        let app_str = app.as_str().to_string();
 
-        state.db.save_prompt(app.as_str(), &prompt)?;
+        state.db.save_prompt(&app_str, &prompt)?;
 
         if is_enabled {
-            // 启用提示词：写入内容到文件
             let target_path = prompt_file_path(&app)?;
             write_text_file(&target_path, &prompt.content)?;
         } else {
-            // 禁用提示词：检查是否还有其他已启用的提示词
-            let prompts = state.db.get_prompts(app.as_str())?;
+            let prompts = state.db.get_prompts(&app_str)?;
             let any_enabled = prompts.values().any(|p| p.enabled);
 
             if !any_enabled {
-                // 所有提示词都已禁用，清空文件
                 let target_path = prompt_file_path(&app)?;
                 if target_path.exists() {
                     write_text_file(&target_path, "")?;
@@ -54,7 +53,37 @@ impl PromptService {
             }
         }
 
+        // Auto-push bridge targets if enabled
+        Self::try_auto_bridge_push(&state.db, &app_str, &prompt_id);
+
         Ok(())
+    }
+
+    /// If bridge_auto_push is enabled and this prompt has downstream targets, push changes.
+    fn try_auto_bridge_push(db: &crate::database::Database, app_type: &str, prompt_id: &str) {
+        let auto_push = db
+            .get_setting("bridge_auto_push")
+            .ok()
+            .flatten()
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        if !auto_push {
+            return;
+        }
+
+        match bridge::push_bridge_changes(db, app_type, prompt_id) {
+            Ok(results) if !results.is_empty() => {
+                log::info!(
+                    "[bridge] Auto-pushed {} target(s) for {app_type}:{prompt_id}",
+                    results.len()
+                );
+            }
+            Ok(_) => {} // no targets, nothing to do
+            Err(e) => {
+                log::warn!("[bridge] Auto-push failed for {app_type}:{prompt_id}: {e}");
+            }
+        }
     }
 
     pub fn delete_prompt(state: &AppState, app: AppType, id: &str) -> Result<(), AppError> {

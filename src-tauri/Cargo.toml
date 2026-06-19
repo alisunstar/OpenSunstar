@@ -72,12 +72,17 @@ url = "2.5"
 auto-launch = "0.5"
 once_cell = "1.21.3"
 base64 = "0.22"
+hostname = "0.4"
 rusqlite = { version = "0.31", features = ["bundled", "backup", "hooks"] }
 indexmap = { version = "2", features = ["serde"] }
 rust_decimal = "1.33"
 uuid = { version = "1.11", features = ["v4"] }
 sha2 = "0.10"
 hmac = "0.12"
+keyring = "3"
+aes-gcm = "0.10"
+hkdf = "0.12"
+rand = "0.8"
 json5 = "0.4"
 json-five = "0.3.1"
 tokei = "14"

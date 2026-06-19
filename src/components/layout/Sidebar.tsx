@@ -7,10 +7,9 @@ import {
   BookOpen,
   Wrench,
   History,
-  RefreshCw,
+  Activity,
   LayoutGrid,
   Coins,
-  FolderArchive,
   Settings,
   Plus,
   FolderOpen,
@@ -26,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useTheme } from "@/components/theme-provider";
 import { SidebarItem } from "./SidebarItem";
 import { SidebarMenu } from "./SidebarMenu";
+import { SyncStatusBar } from "./SyncStatusBar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,17 +51,22 @@ interface SidebarProps {
 
 const COLLAPSED_STORAGE_KEY = "OpenSunstar-sidebar-collapsed";
 
-const WORKSPACE_VIEWS: PageView[] = [
+const AGENT_CONFIG_VIEWS: PageView[] = [
   "mcp",
   "mcpDiscovery",
   "prompts",
   "skills",
   "skillsDiscovery",
-  "sessions",
 ];
 
-function isWorkspaceActive(view: PageView): boolean {
-  return WORKSPACE_VIEWS.includes(view);
+const MONITOR_VIEWS: PageView[] = ["sessions", "tokenStats"];
+
+function isAgentConfigActive(view: PageView): boolean {
+  return AGENT_CONFIG_VIEWS.includes(view);
+}
+
+function isMonitorActive(view: PageView): boolean {
+  return MONITOR_VIEWS.includes(view);
 }
 
 function SectionLabel({
@@ -94,7 +99,8 @@ export function Sidebar({
 }: SidebarProps) {
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
-  const workspaceActive = isWorkspaceActive(activeView);
+  const agentConfigActive = isAgentConfigActive(activeView);
+  const monitorActive = isMonitorActive(activeView);
 
   // ── 折叠状态 ──────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -151,154 +157,137 @@ export function Sidebar({
 
       {/* ── 导航区域 ─────────────────────────── */}
       <nav className="flex-1 overflow-y-auto px-2.5 py-2 space-y-0.5">
-        {/* ▸ 工作台 */}
+        {/* ▸ Agent 配置 */}
         {collapsed ? (
           <div className="space-y-0.5">
             <SidebarItem
               icon={<LayoutDashboard className="w-4 h-4" />}
               label=""
-              active={workspaceActive}
-              onClick={() => {
-                onNavigate("mcp");
-              }}
-              accent={workspaceActive}
+              active={agentConfigActive}
+              onClick={() => onNavigate("mcp")}
+              accent={agentConfigActive}
+              collapsed
+            />
+            <SidebarItem
+              icon={<Activity className="w-4 h-4" />}
+              label=""
+              active={monitorActive}
+              onClick={() => onNavigate("sessions")}
+              accent={monitorActive}
+              collapsed
+            />
+            <SidebarItem
+              icon={<LayoutGrid className="w-4 h-4" />}
+              label=""
+              active={activeView === "kanban"}
+              onClick={() => onNavigate("kanban")}
               collapsed
             />
           </div>
         ) : (
-          <SidebarMenu
-            icon={<LayoutDashboard className="w-4 h-4" />}
-            label={t("sidebar.workspace", { defaultValue: "工作台" })}
-            defaultOpen
-            active={workspaceActive}
-          >
-            <SidebarItem
-              icon={<Server className="w-4 h-4" />}
-              label="MCP"
-              active={activeView === "mcp" || activeView === "mcpDiscovery"}
-              onClick={() => onNavigate("mcp")}
-              indent
-            />
-            <SidebarItem
-              icon={<BookOpen className="w-4 h-4" />}
-              label="Prompts"
-              active={activeView === "prompts"}
-              onClick={() => onNavigate("prompts")}
-              indent
-            />
-            <SidebarItem
-              icon={<Wrench className="w-4 h-4" />}
-              label={t("skills.manage", { defaultValue: "Skills" })}
-              active={
-                activeView === "skills" || activeView === "skillsDiscovery"
-              }
-              onClick={() => onNavigate("skills")}
-              indent
-            />
+          <>
+            <SidebarMenu
+              icon={<LayoutDashboard className="w-4 h-4" />}
+              label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
+              defaultOpen
+              active={agentConfigActive}
+            >
+              <SidebarItem
+                icon={<Server className="w-4 h-4" />}
+                label="MCP"
+                active={activeView === "mcp" || activeView === "mcpDiscovery"}
+                onClick={() => onNavigate("mcp")}
+                indent
+              />
+              <SidebarItem
+                icon={<BookOpen className="w-4 h-4" />}
+                label="Prompts"
+                active={activeView === "prompts"}
+                onClick={() => onNavigate("prompts")}
+                indent
+              />
+              <SidebarItem
+                icon={<Wrench className="w-4 h-4" />}
+                label={t("skills.manage", { defaultValue: "Skills" })}
+                active={
+                  activeView === "skills" || activeView === "skillsDiscovery"
+                }
+                onClick={() => onNavigate("skills")}
+                indent
+              />
+            </SidebarMenu>
+
+            {/* ▸ 运行监控 */}
+            <SectionLabel>
+              {t("sidebar.section.monitor", { defaultValue: "运行监控" })}
+            </SectionLabel>
+
             <SidebarItem
               icon={<History className="w-4 h-4" />}
-              label={t("sessionManager.title", { defaultValue: "会话" })}
+              label={t("sessionManager.title", { defaultValue: "Context" })}
               active={activeView === "sessions"}
               onClick={() => onNavigate("sessions")}
-              indent
             />
-          </SidebarMenu>
-        )}
 
-        {/* ▸ 工具 */}
-        <SectionLabel collapsed={collapsed}>
-          {t("sidebar.section.tools", { defaultValue: "工具" })}
-        </SectionLabel>
+            <SidebarItem
+              icon={<Coins className="w-4 h-4" />}
+              label={t("sidebar.tokenStats", { defaultValue: "AI 用量" })}
+              active={activeView === "tokenStats"}
+              onClick={() => onNavigate("tokenStats")}
+            />
 
-        <SidebarItem
-          icon={<RefreshCw className="w-4 h-4" />}
-          label={collapsed ? "" : t("sidebar.syncBackup", { defaultValue: "同步备份" })}
-          active={activeView === "syncBackup"}
-          onClick={() => onNavigate("syncBackup")}
-          collapsed={collapsed}
-          title={collapsed ? t("sidebar.syncBackup", { defaultValue: "同步备份" }) : undefined}
-        />
-
-        <SidebarItem
-          icon={<LayoutGrid className="w-4 h-4" />}
-          label={collapsed ? "" : t("sidebar.kanban", { defaultValue: "项目看板" })}
-          active={activeView === "kanban"}
-          onClick={() => onNavigate("kanban")}
-          collapsed={collapsed}
-          title={collapsed ? t("sidebar.kanban", { defaultValue: "项目看板" }) : undefined}
-        />
-
-        <SidebarItem
-          icon={<Coins className="w-4 h-4" />}
-          label={collapsed ? "" : t("sidebar.tokenStats", { defaultValue: "Tokens 统计" })}
-          active={activeView === "tokenStats"}
-          onClick={() => onNavigate("tokenStats")}
-          collapsed={collapsed}
-          title={collapsed ? t("sidebar.tokenStats", { defaultValue: "Tokens 统计" }) : undefined}
-        />
-
-        {/* ▸ 项目 */}
-        {!collapsed && (
-          <>
+            {/* ▸ 项目 */}
             <SectionLabel>
               {t("sidebar.section.projects", { defaultValue: "项目" })}
             </SectionLabel>
 
-            <SidebarMenu
-              key={projects.length}
-              icon={<FolderArchive className="w-4 h-4" />}
-              label={t("sidebar.allProjects", { defaultValue: "全部项目" })}
-              defaultOpen={projects.length > 0}
-              maxHeight="12rem"
-            >
-              {projects.length === 0 ? (
-                <div className="px-3 py-1.5 text-[11px] text-muted-foreground/70 leading-relaxed">
-                  {t("sidebar.projectsHint", {
-                    defaultValue: "添加本地项目仓库，快速切换管理",
-                  })}
-                </div>
-              ) : (
-                projects.map((project) => (
-                  <ProjectItem
-                    key={project.id}
-                    project={project}
-                    active={
-                      activeView === "kanban" && activeProjectId === project.id
-                    }
-                    onClick={() => onProjectClick?.(project.id)}
-                    onRemove={() => onProjectRemove?.(project.id)}
-                  />
-                ))
-              )}
+            <SidebarItem
+              icon={<LayoutGrid className="w-4 h-4" />}
+              label={t("sidebar.kanban", { defaultValue: "看板总览" })}
+              active={activeView === "kanban" && !activeProjectId}
+              onClick={() => onNavigate("kanban")}
+            />
 
-              <SidebarItem
-                icon={<Plus className="w-4 h-4" />}
-                label={t("sidebar.addProject", { defaultValue: "添加项目" })}
-                onClick={() => onAddProject?.()}
-                indent
-                accent={false}
+            {projects.map((project) => (
+              <ProjectItem
+                key={project.id}
+                project={project}
+                active={
+                  activeView === "kanban" && activeProjectId === project.id
+                }
+                onClick={() => onProjectClick?.(project.id)}
+                onRemove={() => onProjectRemove?.(project.id)}
               />
-            </SidebarMenu>
+            ))}
+
+            <SidebarItem
+              icon={<Plus className="w-4 h-4" />}
+              label={t("sidebar.addProject", { defaultValue: "添加项目" })}
+              onClick={() => onAddProject?.()}
+              indent
+              accent={false}
+            />
           </>
         )}
       </nav>
 
-      {/* ── 底部：折叠按钮 + 设置 ──────────────── */}
+      {/* ── 底部：同步状态 + 设置 + 折叠 ──────────────── */}
       <div
         className={cn(
           "shrink-0 border-t border-border/40",
           "bg-background/40 backdrop-blur-sm",
         )}
       >
+        <SyncStatusBar collapsed={collapsed} />
         <div className={cn("px-2.5 py-1.5 space-y-1", collapsed && "px-1.5")}>
-          {!collapsed && (
-            <SidebarItem
-              icon={<Settings className="w-4 h-4" />}
-              label={t("common.settings", { defaultValue: "设置" })}
-              active={activeView === "settings"}
-              onClick={() => onNavigate("settings")}
-            />
-          )}
+          <SidebarItem
+            icon={<Settings className="w-4 h-4" />}
+            label={collapsed ? "" : t("common.settings", { defaultValue: "设置" })}
+            active={activeView === "settings"}
+            onClick={() => onNavigate("settings")}
+            collapsed={collapsed}
+            title={collapsed ? t("common.settings", { defaultValue: "设置" }) : undefined}
+          />
 
           {/* 折叠按钮 + 主题切换 */}
           <div className={cn("flex gap-1", collapsed && "flex-col")}>
