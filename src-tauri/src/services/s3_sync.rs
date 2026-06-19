@@ -15,10 +15,11 @@ use crate::services::s3::{self, S3Credentials};
 use crate::settings::{update_s3_sync_status, S3SyncSettings, WebDavSyncStatus};
 
 use super::sync_protocol::{
-    apply_snapshot, build_local_snapshot, localized, persist_sync_success_best_effort, sha256_hex,
-    validate_artifact_size_limit, validate_manifest_compat, verify_artifact, ArtifactMeta,
-    RemoteLayout, SyncManifest, DB_COMPAT_VERSION, MAX_MANIFEST_BYTES, MAX_SYNC_ARTIFACT_BYTES,
-    PROTOCOL_VERSION, REMOTE_DB_SQL, REMOTE_MANIFEST, REMOTE_SKILLS_ZIP,
+    apply_snapshot_with_manifest, build_local_snapshot, localized,
+    persist_sync_success_best_effort, sha256_hex, validate_artifact_size_limit,
+    validate_manifest_compat, verify_artifact, ArtifactMeta, RemoteLayout, SyncManifest,
+    DB_COMPAT_VERSION, MAX_MANIFEST_BYTES, MAX_SYNC_ARTIFACT_BYTES, PROTOCOL_VERSION,
+    REMOTE_DB_SQL, REMOTE_MANIFEST, REMOTE_SKILLS_ZIP,
 };
 
 // ─── Sync lock ───────────────────────────────────────────────
@@ -121,8 +122,8 @@ pub async fn download(
     let skills_zip =
         download_and_verify(settings, &creds, REMOTE_SKILLS_ZIP, &manifest.artifacts).await?;
 
-    // Apply snapshot
-    apply_snapshot(db, &db_sql, &skills_zip)?;
+    // Apply snapshot (with E2EE decryption if manifest indicates encrypted)
+    apply_snapshot_with_manifest(db, &db_sql, &skills_zip, Some(&manifest))?;
 
     let manifest_hash = sha256_hex(&manifest_bytes);
     let _persisted =

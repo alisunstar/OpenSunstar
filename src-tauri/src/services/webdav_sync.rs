@@ -18,8 +18,8 @@ use crate::services::webdav::{
 use crate::settings::{update_webdav_sync_status, WebDavSyncSettings, WebDavSyncStatus};
 
 use super::sync_protocol::{
-    apply_snapshot, build_local_snapshot, effective_db_compat_version, localized,
-    persist_sync_success_best_effort, sha256_hex, validate_artifact_size_limit,
+    apply_snapshot_with_manifest, build_local_snapshot, effective_db_compat_version,
+    localized, persist_sync_success_best_effort, sha256_hex, validate_artifact_size_limit,
     validate_manifest_compat, verify_artifact, ArtifactMeta, RemoteLayout, SyncManifest,
     DB_COMPAT_VERSION, MAX_MANIFEST_BYTES, MAX_SYNC_ARTIFACT_BYTES, PROTOCOL_VERSION,
     REMOTE_DB_SQL, REMOTE_MANIFEST, REMOTE_SKILLS_ZIP,
@@ -143,8 +143,8 @@ pub async fn download(
     )
     .await?;
 
-    // Apply snapshot
-    apply_snapshot(db, &db_sql, &skills_zip)?;
+    // Apply snapshot (with E2EE decryption if manifest indicates encrypted)
+    apply_snapshot_with_manifest(db, &db_sql, &skills_zip, Some(&snapshot.manifest))?;
 
     let manifest_hash = sha256_hex(&snapshot.manifest_bytes);
     let _persisted = persist_sync_success_best_effort(

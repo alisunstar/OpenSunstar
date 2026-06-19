@@ -14,7 +14,7 @@ export function TokenStatsPage() {
     >
       <div className="shrink-0 px-6 pt-6 pb-2">
         <h2 className="text-lg font-semibold text-foreground">
-          {t("sidebar.tokenStats", { defaultValue: "Tokens 统计" })}
+          {t("sidebar.tokenStats", { defaultValue: "AI 用量" })}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
           {t("tokenStats.description", {

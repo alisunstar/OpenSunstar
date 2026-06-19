@@ -3143,6 +3143,59 @@ impl SkillService {
         })
     }
 
+    // ========== ModelScope 搜索 ==========
+
+    /// 搜索 ModelScope 技能中心
+    pub async fn search_modelscope(
+        query: &str,
+        page_number: usize,
+        page_size: usize,
+    ) -> Result<ModelScopeSearchResult> {
+        let client = crate::proxy::http_client::get();
+
+        let url = url::Url::parse_with_params(
+            "https://www.modelscope.cn/openapi/v1/skills",
+            &[
+                ("search", query),
+                ("page_number", &page_number.to_string()),
+                ("page_size", &page_size.to_string()),
+            ],
+        )?;
+
+        let resp = client
+            .get(url)
+            .timeout(std::time::Duration::from_secs(10))
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<ModelScopeApiResponse>()
+            .await?;
+
+        let skills = resp
+            .data
+            .skills
+            .into_iter()
+            .map(|s| ModelScopeDiscoverableSkill {
+                id: s.id.clone(),
+                display_name: s.display_name,
+                description: s.description.unwrap_or_default(),
+                category: s.category.unwrap_or_default(),
+                view_count: s.view_count.unwrap_or(0),
+                downloads: s.downloads.unwrap_or(0),
+                skill_url: format!("https://www.modelscope.cn/skills/{}", s.id),
+                source_url: s.source_url.filter(|u| !u.is_empty()),
+                owner: s.owner.filter(|o| !o.is_empty()),
+                developer: s.developer.filter(|d| !d.is_empty()),
+            })
+            .collect();
+
+        Ok(ModelScopeSearchResult {
+            skills,
+            total: resp.data.total,
+            query: query.to_string(),
+        })
+    }
+
     // ========== ClawHub 批量统计 ==========
 
     /// 批量获取 ClawHub 技能的星标/下载/安装量
@@ -3215,6 +3268,61 @@ impl SkillService {
         let results = futures::future::join_all(futures).await;
         Ok(results)
     }
+}
+
+// ========== ModelScope API 类型 ==========
+
+/// ModelScope API 原始搜索响应（新格式 /openapi/v1/）
+#[derive(Debug, Clone, Deserialize)]
+struct ModelScopeApiResponse {
+    pub success: bool,
+    pub data: ModelScopeApiData,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ModelScopeApiData {
+    pub total: u64,
+    pub skills: Vec<ModelScopeApiSkill>,
+}
+
+/// ModelScope API 原始技能条目
+#[derive(Debug, Clone, Deserialize)]
+struct ModelScopeApiSkill {
+    pub id: String,
+    #[serde(rename = "display_name")]
+    pub display_name: String,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub view_count: Option<u64>,
+    pub downloads: Option<u64>,
+    pub source_url: Option<String>,
+    pub owner: Option<String>,
+    pub developer: Option<String>,
+}
+
+/// ModelScope 搜索结果（返回给前端）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelScopeSearchResult {
+    pub skills: Vec<ModelScopeDiscoverableSkill>,
+    pub total: u64,
+    pub query: String,
+}
+
+/// ModelScope 可发现技能（返回给前端）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ModelScopeDiscoverableSkill {
+    pub id: String,
+    pub display_name: String,
+    pub description: String,
+    pub category: String,
+    pub view_count: u64,
+    pub downloads: u64,
+    pub skill_url: String,
+    pub source_url: Option<String>,
+    pub owner: Option<String>,
+    pub developer: Option<String>,
 }
 
 // ========== ClawHub API 类型 ==========

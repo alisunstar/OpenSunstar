@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { Cloud, HardDriveDownload } from "lucide-react";
+import { Cloud, Github, HardDriveDownload } from "lucide-react";
 import { toast } from "sonner";
 import {
   Accordion,
@@ -13,6 +13,7 @@ import { Loader2 } from "lucide-react";
 import { useSettings } from "@/hooks/useSettings";
 import { BackupListSection } from "@/components/settings/BackupListSection";
 import { WebdavSyncSection } from "@/components/settings/WebdavSyncSection";
+import { GistSyncSection } from "./GistSyncSection";
 import type { SettingsFormState } from "@/hooks/useSettings";
 
 export function SyncBackupPage() {
@@ -70,7 +71,7 @@ export function SyncBackupPage() {
 
       <Accordion
         type="multiple"
-        defaultValue={["cloudSync", "backup"]}
+        defaultValue={["cloudSync", "gistSync", "backup"]}
         className="w-full space-y-4"
       >
         {/* 云端同步 */}
@@ -95,6 +96,24 @@ export function SyncBackupPage() {
               settings={settings ?? undefined}
               onAutoSave={handleAutoSave}
             />
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Gist 同步 */}
+        <AccordionItem value="gistSync" className="rounded-xl glass-card">
+          <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 data-[state=open]:bg-muted/50">
+            <div className="flex items-center gap-3">
+              <Github className="h-5 w-5 text-gray-800 dark:text-gray-200" />
+              <div className="text-left">
+                <h3 className="text-base font-semibold">GitHub Gist Sync</h3>
+                <p className="text-sm text-muted-foreground font-normal">
+                  Sync settings and skills via private GitHub Gist
+                </p>
+              </div>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-6 pb-6 pt-4 border-t border-border/50">
+            <GistSyncSection />
           </AccordionContent>
         </AccordionItem>
 

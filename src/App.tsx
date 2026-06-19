@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
+import { invoke } from "@tauri-apps/api/core";
 import {
   Plus,
   Download,
@@ -10,6 +11,7 @@ import {
   History,
 } from "lucide-react";
 import type { AppId } from "@/lib/api";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import {
   isWindows,
   isLinux,
@@ -35,6 +37,7 @@ import { KanbanPage } from "@/components/kanban/KanbanPage";
 import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { useProjects } from "@/hooks/useProjects";
+import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
 
 // ── 类型 ──────────────────────────────────────────
 
@@ -86,7 +89,7 @@ const ALL_VISIBLE_APPS: Record<AppId, boolean> = {
   codex: true,
   gemini: true,
   opencode: true,
-  openclaw: false,
+  openclaw: true,
   hermes: true,
 };
 
@@ -115,10 +118,10 @@ const PAGE_META: Record<PageView, PageMeta> = {
   prompts: { titleKey: "prompts.title", defaultTitle: "Prompts" },
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
   skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "发现 Skills" },
-  sessions: { titleKey: "sessionManager.title", defaultTitle: "会话" },
+  sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "同步备份" },
   kanban: { titleKey: "sidebar.kanban", defaultTitle: "项目看板" },
-  tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "Tokens 统计" },
+  tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI 用量" },
   settings: { titleKey: "common.settings", defaultTitle: "设置" },
 };
 
@@ -133,6 +136,15 @@ function App() {
   );
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useBudgetAlerts();
+
+  useEffect(() => {
+    invoke<boolean>("is_onboarding_needed")
+      .then((needed) => setShowOnboarding(needed))
+      .catch(() => setShowOnboarding(false));
+  }, []);
 
   // ── 项目管理 ────────────────────────────────
   const { projects, add: addProject, remove: removeProject } = useProjects();
@@ -174,16 +186,15 @@ function App() {
         setShortcutsOpen((prev) => !prev);
         return;
       }
-      // Alt+1~4 → 快速切换工作台视图
+      // Alt+1~6 → 快速切换视图
       if (event.altKey && !event.ctrlKey && !event.metaKey) {
         const workspaceMap: Record<string, PageView> = {
           "1": "mcp",
           "2": "prompts",
           "3": "skills",
           "4": "sessions",
-          "5": "syncBackup",
+          "5": "tokenStats",
           "6": "kanban",
-          "7": "tokenStats",
         };
         const view = workspaceMap[event.key];
         if (view) {
@@ -470,6 +481,10 @@ function App() {
       className="flex flex-col h-screen overflow-hidden bg-background text-foreground selection:bg-primary/30"
       style={{ overflowX: "hidden" }}
     >
+      {showOnboarding && (
+        <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
+      )}
+
       {/* ── Titlebar（拖拽区域）───────────────── */}
       <header
         className="fixed z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"

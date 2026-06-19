@@ -13,6 +13,7 @@ import {
   type SkillUpdateInfo,
   type SkillsShSearchResult,
   type ClawHubSearchResult,
+  type ModelScopeSearchResult,
 } from "@/lib/api/skills";
 import type { AppId } from "@/lib/api/types";
 import { mergeImportedSkills } from "@/hooks/useSkills.helpers";
@@ -419,6 +420,24 @@ export function useSearchClawHub(query: string, limit: number) {
   });
 }
 
+/**
+ * 搜索 ModelScope 技能中心
+ * 使用 5 分钟 staleTime 和 keepPreviousData 实现平滑搜索体验
+ */
+export function useSearchModelScope(
+  query: string,
+  pageNumber: number,
+  pageSize: number,
+) {
+  return useQuery({
+    queryKey: ["skills", "modelscope", query, pageNumber, pageSize],
+    queryFn: () => skillsApi.searchModelScope(query, pageNumber, pageSize),
+    enabled: query.length >= 2,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+}
+
 // ========== 辅助类型 ==========
 
 export type {
@@ -429,5 +448,6 @@ export type {
   SkillUpdateInfo,
   SkillsShSearchResult,
   ClawHubSearchResult,
+  ModelScopeSearchResult,
   AppId,
 };

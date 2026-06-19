@@ -30,6 +30,7 @@ import {
   useSearchSkillsSh,
   useSearchClawHub,
   useInstallClawHubSkill,
+  useSearchModelScope,
 } from "@/hooks/useSkills";
 import type { AppId } from "@/lib/api/types";
 import type {
@@ -37,6 +38,7 @@ import type {
   SkillRepo,
   SkillsShDiscoverableSkill,
   ClawHubSkillStats,
+  ModelScopeDiscoverableSkill,
 } from "@/lib/api/skills";
 import { skillsApi } from "@/lib/api/skills";
 import { formatSkillError } from "@/lib/errors/skillErrorParser";
@@ -50,9 +52,27 @@ export interface SkillsPageHandle {
   openRepoManager: () => void;
 }
 
-type SearchSource = "all" | "repos" | "skillssh" | "clawhub";
+type SearchSource = "all" | "repos" | "skillssh" | "clawhub" | "modelscope";
 
 const PAGE_SIZE = 20;
+
+/** 解析 ModelScope skill 的 GitHub source_url，提取 owner/repo/branch/directory */
+function parseModelScopeGitHubUrl(
+  sourceUrl?: string,
+): { repoOwner: string; repoName: string; repoBranch: string; directory: string } | null {
+  if (!sourceUrl) return null;
+  // 匹配: https://github.com/owner/repo/tree/branch/path/to/skill
+  const match = sourceUrl.match(
+    /^https?:\/\/github\.com\/([^/]+)\/([^/]+)\/tree\/([^/]+)\/(.+)$/,
+  );
+  if (!match) return null;
+  return {
+    repoOwner: match[1],
+    repoName: match[2],
+    repoBranch: match[3],
+    directory: match[4].split("/").pop() || match[4],
+  };
+}
 /** 初始发现页默认搜索词，用于预取 skills.sh / ClawHub 结果 */
 const INITIAL_DISCOVERY_QUERY = "agent";
 
@@ -141,6 +161,41 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       Record<string, ClawHubSkillStats>
     >({});
 
+    // ModelScope 搜索（"all" 和 "modelscope" 标签页共用）
+    const effectiveModelScopeQuery =
+      searchSource === "all"
+        ? userHasQuery
+          ? searchQuery
+          : INITIAL_DISCOVERY_QUERY
+        : searchSource === "modelscope"
+          ? searchQuery
+          : "";
+    const {
+      data: modelScopeResult,
+      isLoading: loadingModelScope,
+      isFetching: fetchingModelScope,
+    } = useSearchModelScope(effectiveModelScopeQuery, 1, PAGE_SIZE);
+
+    // ModelScope 分页偏移
+    const [modelscopePage, setModelscopePage] = useState(1);
+    const [accumulatedModelscope, setAccumulatedModelscope] = useState<
+      ModelScopeDiscoverableSkill[]
+    >([]);
+
+    // ModelScope 累积结果（仅 modelscope 标签页分页用）
+    useEffect(() => {
+      if (modelScopeResult && searchSource === "modelscope") {
+        if (modelscopePage === 1) {
+          setAccumulatedModelscope(modelScopeResult.skills);
+        } else {
+          setAccumulatedModelscope((prev) => [
+            ...prev,
+            ...modelScopeResult.skills,
+          ]);
+        }
+      }
+    }, [modelScopeResult, modelscopePage, searchSource]);
+
     // 当 ClawHub 搜索结果变化时，批量获取星标/下载量
     useEffect(() => {
       if (!clawHubResult || clawHubResult.skills.length === 0) return;
@@ -205,6 +260,8 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
         return;
       setSkillsShOffset(0);
       setAccumulatedResults([]);
+      setModelscopePage(1);
+      setAccumulatedModelscope([]);
       setSearchQuery(trimmed);
     };
 
@@ -358,6 +415,38 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
         });
       }
 
+      // ModelScope 结果
+      if (modelScopeResult) {
+        modelScopeResult.skills.forEach((s) => {
+          const norm = normalize(s.displayName);
+          if (!seen.has(norm)) {
+            seen.add(norm);
+            // 尝试从 source_url 解析 GitHub 仓库信息
+            const ghInfo = parseModelScopeGitHubUrl(s.sourceUrl);
+            const d: DiscoverableSkill = {
+              key: `modelscope:${s.id}`,
+              name: s.displayName,
+              description: s.description,
+              directory: ghInfo?.directory || s.id,
+              repoOwner: ghInfo?.repoOwner || "",
+              repoName: ghInfo?.repoName || "",
+              repoBranch: ghInfo?.repoBranch || "main",
+              readmeUrl: s.skillUrl,
+            };
+            results.push({
+              key: `modelscope:${s.id}`,
+              skill: {
+                ...d,
+                installed: installedKeys.has(`modelscope:${s.id}`),
+              },
+              source: "modelscope",
+              installs: s.downloads,
+              stars: s.viewCount,
+            });
+          }
+        });
+      }
+
       return results;
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
@@ -365,6 +454,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       filteredRepoSkills,
       skillsShResult,
       clawHubResult,
+      modelScopeResult,
       installedKeys,
       clawHubStats,
     ]);
@@ -374,19 +464,23 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       searchSource === "repos"
         ? loadingDiscoverable || fetchingDiscoverable
         : searchSource === "all"
-          ? loadingSkillsSh || loadingClawHub
+          ? loadingSkillsSh || loadingClawHub || loadingModelScope
           : searchSource === "skillssh"
             ? loadingSkillsSh && accumulatedResults.length === 0
-            : loadingClawHub;
+            : searchSource === "modelscope"
+              ? loadingModelScope && accumulatedModelscope.length === 0
+              : loadingClawHub;
 
     const isSearchFetching =
       searchSource === "all"
-        ? fetchingSkillsSh || fetchingClawHub
+        ? fetchingSkillsSh || fetchingClawHub || fetchingModelScope
         : searchSource === "skillssh"
           ? fetchingSkillsSh
-          : searchSource === "clawhub"
-            ? fetchingClawHub
-            : false;
+          : searchSource === "modelscope"
+            ? fetchingModelScope
+            : searchSource === "clawhub"
+              ? fetchingClawHub
+              : false;
 
     const hasQuery = userHasQuery || searchSource === "all";
 
@@ -414,6 +508,68 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
 
     // ===== 安装/卸载 =====
     const handleInstall = async (key: string) => {
+      // ModelScope 技能：优先通过 GitHub source_url 安装
+      if (key.startsWith("modelscope:")) {
+        const skillId = key.replace("modelscope:", "");
+
+        // 查找技能信息（含 sourceUrl）
+        let msSkill: ModelScopeDiscoverableSkill | undefined;
+        if (searchSource === "modelscope") {
+          msSkill = accumulatedModelscope.find((s) => s.id === skillId);
+        } else if (searchSource === "all" && modelScopeResult) {
+          msSkill = modelScopeResult.skills.find((s) => s.id === skillId);
+        }
+
+        const ghInfo = parseModelScopeGitHubUrl(msSkill?.sourceUrl);
+
+        if (ghInfo) {
+          // 有 GitHub 源 → 使用现有仓库安装机制
+          const skill: DiscoverableSkill = {
+            key,
+            name: msSkill?.displayName || skillId,
+            description: msSkill?.description || "",
+            directory: ghInfo.directory,
+            repoOwner: ghInfo.repoOwner,
+            repoName: ghInfo.repoName,
+            repoBranch: ghInfo.repoBranch,
+            readmeUrl: msSkill?.skillUrl,
+          };
+
+          try {
+            await installMutation.mutateAsync({ skill, currentApp });
+            toast.success(
+              t("skills.modelscope.installSuccess", {
+                name: skill.name,
+                defaultValue: `${skill.name} 安装成功`,
+              }),
+              { closeButton: true },
+            );
+          } catch (error) {
+            const errorMessage =
+              error instanceof Error ? error.message : String(error);
+            const { title, description } = formatSkillError(
+              errorMessage,
+              t,
+              "skills.installFailed",
+            );
+            toast.error(title, { description, duration: 10000 });
+            console.error("Install ModelScope skill failed:", error);
+          }
+        } else {
+          // 无 GitHub 源 → 打开 ModelScope 页面
+          const url =
+            msSkill?.skillUrl ||
+            `https://www.modelscope.cn/skills/${skillId}`;
+          window.open(url, "_blank");
+          toast.success(
+            t("skills.modelscope.openPage", {
+              defaultValue: `已打开 ModelScope 技能页面，请在页面中查看安装方式`,
+            }),
+          );
+        }
+        return;
+      }
+
       // ClawHub 技能：静默执行 CLI 安装
       if (key.startsWith("clawhub:")) {
         const slug = key.replace("clawhub:", "");
@@ -550,7 +706,11 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
           ? t("skills.skillssh.searchPlaceholder")
           : searchSource === "clawhub"
             ? t("skills.clawhub.searchPlaceholder")
-            : t("skills.all.searchPlaceholder");
+            : searchSource === "modelscope"
+              ? t("skills.modelscope.searchPlaceholder", {
+                  defaultValue: "输入关键词搜索 ModelScope 技能中心...",
+                })
+              : t("skills.all.searchPlaceholder");
 
     // Tab 定义
     const tabs: { id: SearchSource; label: string; mw: string }[] = [
@@ -562,6 +722,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       },
       { id: "skillssh", label: "skills.sh", mw: "min-w-[64px]" },
       { id: "clawhub", label: "ClawHub", mw: "min-w-[64px]" },
+      { id: "modelscope", label: "ModelScope", mw: "min-w-[80px]" },
     ];
 
     // 来源计数（"全部" 标签页）
@@ -571,6 +732,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
         repos: filteredRepoSkills.length,
         skillssh: skillsShResult?.skills.length ?? 0,
         clawhub: clawHubResult?.skills.length ?? 0,
+        modelscope: modelScopeResult?.skills.length ?? 0,
       };
     }, [
       searchSource,
@@ -578,6 +740,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       filteredRepoSkills,
       skillsShResult,
       clawHubResult,
+      modelScopeResult,
     ]);
 
     return (
@@ -700,9 +863,10 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                   </>
                 )}
 
-                {/* skills.sh / ClawHub 搜索按钮 */}
+                {/* skills.sh / ClawHub / ModelScope 搜索按钮 */}
                 {(searchSource === "skillssh" ||
-                  searchSource === "clawhub") && (
+                  searchSource === "clawhub" ||
+                  searchSource === "modelscope") && (
                   <Button
                     size="sm"
                     onClick={handleSearch}
@@ -786,6 +950,8 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                           ` · skills.sh ${sourceCounts.skillssh}`}
                         {sourceCounts.clawhub > 0 &&
                           ` · ClawHub ${sourceCounts.clawhub}`}
+                        {sourceCounts.modelscope > 0 &&
+                          ` · ModelScope ${sourceCounts.modelscope}`}
                       </p>
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -987,6 +1153,85 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                     </div>
                     <p className="mt-4 text-xs text-muted-foreground text-center">
                       {t("skills.clawhub.poweredBy")}
+                    </p>
+                  </>
+                )}
+              </>
+            )}
+
+            {searchSource === "modelscope" && (
+              /* ===== ModelScope 标签页 ===== */
+              <>
+                {loadingModelScope && accumulatedModelscope.length === 0 ? (
+                  <div className="flex items-center justify-center h-64">
+                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    <span className="ml-3 text-sm text-muted-foreground">
+                      {t("skills.modelscope.loading", {
+                        defaultValue: "正在搜索 ModelScope 技能中心...",
+                      })}
+                    </span>
+                  </div>
+                ) : !hasQuery ? (
+                  <div className="flex flex-col items-center justify-center h-64 text-center">
+                    <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("skills.modelscope.searchPlaceholder", {
+                        defaultValue: "输入关键词搜索 ModelScope 技能中心的 80,000+ 技能",
+                      })}
+                    </p>
+                  </div>
+                ) : accumulatedModelscope.length === 0 && !loadingModelScope ? (
+                  <div className="flex flex-col items-center justify-center h-48 text-center">
+                    <p className="text-lg font-medium text-foreground">
+                      {t("skills.modelscope.noResults", {
+                        query: searchQuery,
+                        defaultValue: `未找到与 "${searchQuery}" 相关的技能`,
+                      })}
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="mb-3 text-sm text-muted-foreground">
+                      {t("skills.modelscope.resultCount", {
+                        count: modelScopeResult?.total ?? accumulatedModelscope.length,
+                        defaultValue: `共 ${modelScopeResult?.total ?? accumulatedModelscope.length} 个技能`,
+                      })}
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {accumulatedModelscope.map((s) => {
+                        const ghInfo = parseModelScopeGitHubUrl(s.sourceUrl);
+                        const d: DiscoverableSkill = {
+                          key: `modelscope:${s.id}`,
+                          name: s.displayName,
+                          description: s.description,
+                          directory: ghInfo?.directory || s.id,
+                          repoOwner: ghInfo?.repoOwner || "",
+                          repoName: ghInfo?.repoName || "",
+                          repoBranch: ghInfo?.repoBranch || "main",
+                          readmeUrl: s.skillUrl,
+                        };
+                        return (
+                          <SkillCard
+                            key={`modelscope:${s.id}`}
+                            skill={{
+                              ...d,
+                              installed: installedKeys.has(
+                                `modelscope:${s.id}`,
+                              ),
+                            }}
+                            source="modelscope"
+                            installs={s.downloads}
+                            stars={s.viewCount}
+                            onInstall={handleInstall}
+                            onUninstall={handleUninstall}
+                          />
+                        );
+                      })}
+                    </div>
+                    <p className="mt-4 text-xs text-muted-foreground text-center">
+                      {t("skills.modelscope.poweredBy", {
+                        defaultValue: "数据来源：ModelScope 魔塔社区",
+                      })}
                     </p>
                   </>
                 )}

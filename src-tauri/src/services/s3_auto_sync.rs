@@ -52,6 +52,10 @@ pub fn should_trigger_for_table(table: &str) -> bool {
             | "skill_repos"
             | "settings"
             | "proxy_config"
+            | "projects"
+            | "project_mcp_servers"
+            | "project_skills"
+            | "project_prompts"
     )
 }
 

@@ -1,9 +1,12 @@
 pub mod balance;
+pub mod bridge;
+pub mod budget_alert;
 pub mod codex_oauth_models;
 pub mod coding_plan;
 pub mod config;
 pub mod env_checker;
 pub mod env_manager;
+pub mod gist_sync;
 pub mod mcp;
 pub mod model_fetch;
 pub mod omo;
@@ -28,6 +31,7 @@ pub mod usage_stats;
 pub mod webdav;
 pub mod webdav_auto_sync;
 pub mod webdav_sync;
+pub mod onboarding;
 
 pub use config::ConfigService;
 pub use mcp::McpService;

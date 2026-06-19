@@ -2,6 +2,7 @@
 
 mod auth;
 mod balance;
+pub mod bridge;
 mod codex_oauth;
 mod coding_plan;
 mod config;
@@ -9,6 +10,7 @@ mod copilot;
 mod deeplink;
 mod env;
 mod failover;
+mod gist;
 mod global_proxy;
 mod hermes;
 mod import_export;
@@ -29,14 +31,20 @@ mod subscription;
 mod sync_support;
 
 mod lightweight;
+mod onboarding;
 mod project_board;
+mod projects;
 mod s3_sync;
+mod session_export;
 mod usage;
+mod usage_export;
 mod webdav_sync;
 
+pub use onboarding::*;
 
 pub use auth::*;
 pub use balance::*;
+pub use bridge::*;
 pub use codex_oauth::*;
 pub use coding_plan::*;
 pub use config::*;
@@ -62,9 +70,13 @@ pub use skill::*;
 pub use stream_check::*;
 pub use subscription::*;
 
+pub use gist::*;
 pub use lightweight::*;
 pub use project_board::*;
+pub use projects::*;
 pub use s3_sync::*;
+pub use session_export::*;
 pub use usage::*;
+pub use usage_export::*;
 pub use webdav_sync::*;
 
