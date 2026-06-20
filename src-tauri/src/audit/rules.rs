@@ -101,10 +101,6 @@ const fn r(id: &'static str, severity: Severity, category: &'static str, message
     AuditRule { id, severity, category, message, pattern, file_glob: None, snippet_len: 120 }
 }
 
-const fn rg(id: &'static str, severity: Severity, category: &'static str, message: &'static str, pattern: &'static str, file_glob: &'static str) -> AuditRule {
-    AuditRule { id, severity, category, message, pattern, file_glob: Some(file_glob), snippet_len: 120 }
-}
-
 // ── 全部内置规则 ────────────────────────────────────────
 
 static ALL_RULES: LazyLock<Vec<AuditRule>> = LazyLock::new(|| {

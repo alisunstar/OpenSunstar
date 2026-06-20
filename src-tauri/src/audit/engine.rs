@@ -22,10 +22,6 @@ pub enum Severity {
 }
 
 impl Severity {
-    pub fn weight(self) -> u32 {
-        self as u32
-    }
-
     pub fn label(self) -> &'static str {
         match self {
             Severity::Info => "INFO",
@@ -122,19 +118,6 @@ pub enum AuditSource {
         repo: String,
         skill_name: String,
     },
-    Manual {
-        reason: String,
-    },
-}
-
-impl AuditSource {
-    pub fn label(&self) -> String {
-        match self {
-            Self::Install { owner, repo } => format!("install:{owner}/{repo}"),
-            Self::Update { owner, repo, skill_name } => format!("update:{owner}/{repo}/{skill_name}"),
-            Self::Manual { reason } => format!("manual:{reason}"),
-        }
-    }
 }
 
 // ── 审计上下文 ──────────────────────────────────────────
@@ -177,38 +160,6 @@ impl AuditResult {
 
     pub fn total_findings(&self) -> usize {
         self.findings.len()
-    }
-
-    /// 生成阻断原因消息
-    pub fn to_error_message(&self) -> String {
-        let mut msg = format!(
-            "Skill 安全审计未通过 — 发现 {} 项安全问题:
-",
-            self.total_findings()
-        );
-        for f in &self.findings {
-            if f.severity >= Severity::High {
-                msg.push_str(&format!(
-                    "  [{}] {} → {} (行 {})  {}\n",
-                    f.severity.label(),
-                    f.rule_id,
-                    f.file,
-                    f.line,
-                    f.message
-                ));
-            }
-        }
-        msg.push_str("\n所有发现:\n");
-        for f in &self.findings {
-            msg.push_str(&format!(
-                "  [{}] {} → {}:{}\n",
-                f.severity.label(),
-                f.rule_id,
-                f.file,
-                f.line
-            ));
-        }
-        msg
     }
 }
 

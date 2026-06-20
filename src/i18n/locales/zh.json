@@ -2586,6 +2586,153 @@
     "clickToSelect": "点击选择图标",
     "color": "图标颜色"
   },
+  "simpleConnect": {
+    "nav": "快速接入",
+    "pageTitle": "API 接入",
+    "tabSimple": "快速接入",
+    "tabExpert": "高级 Provider",
+    "title": "Simple Connect",
+    "subtitle": "3 步完成：选供应商 → 保存 Key → 选 CLI 并应用（Keychain + 本地代理 + 六 CLI）",
+    "step1": "供应商",
+    "step2": "密钥",
+    "step3": "应用",
+    "supplier": "供应商",
+    "customSupplier": "自定义 OpenAI 兼容",
+    "cliTool": "CLI 工具",
+    "model": "模型",
+    "modelPlaceholder": "先拉取模型列表",
+    "fetchModels": "拉取模型列表",
+    "apply": "应用配置",
+    "applySuccess": "{{tool}} 配置已应用",
+    "modelsLoaded": "已加载 {{count}} 个模型",
+    "poolProxy": "本地代理 :{{port}} 已启用",
+    "keyRequired": "请先在 Keychain 中保存 API Key",
+    "keyRequiredHint": "保存主 Key 后才能进入应用步骤",
+    "customBaseRequired": "请先填写自定义 API Base URL",
+    "modelsFallback": "拉取失败，已使用预设模型 {{model}}",
+    "toolStatusTitle": "CLI 配置状态",
+    "toolStatusLoading": "读取 CLI 状态…",
+    "toolCleared": "{{tool}} 已清除 Simple Connect 配置",
+    "clearTool": "清除 {{tool}}",
+    "wizardNav": "快速接入步骤",
+    "summaryStep": "步骤 {{step}}/3",
+    "step3Hint": "选择 CLI 与模型后应用；详情见下方折叠面板",
+    "step3": {
+      "statusSection": "CLI 配置状态",
+      "runtimeSection": "密钥池运行态",
+      "usageSection": "用量概览（只读）"
+    },
+    "supplierChangeTitle": "切换供应商？",
+    "supplierChangeBody": "切换后将使用新的 upstream；已保存的 Key 仍对应原供应商命名空间。应用配置时会自动备份并重写 CLI。",
+    "supplierChangeConfirm": "继续切换",
+    "supplierChangedApply": "已切换供应商并写入 CLI；原配置已备份",
+    "pickSupplier": "选择供应商",
+    "pickCli": "选择要配置的 CLI",
+    "customBase": "API Base URL",
+    "customSupplierHint": "任意 OpenAI-compatible Base URL",
+    "openWebsite": "官网",
+    "keySaved": "Key 已保存",
+    "keyMissing": "未保存 Key",
+    "poolBadge": "密钥池 ×{{count}}",
+    "keySavedToast": "API Key 已安全存入 Keychain",
+    "keyReadyHint": "主 Key 已就绪，可进入下一步",
+    "poolKeyAdded": "备用 Key 已添加",
+    "applyTo": "应用到 {{tool}}",
+    "modelsLoading": "正在拉取模型…",
+    "toolStatusCount": "{{configured}}/{{total}} 已配置",
+    "backToSimple": "返回快速接入",
+    "openProxySettings": "代理与故障队列设置",
+    "proxyRunning": "主代理运行中",
+    "cliGeneric": "CLI 配置",
+    "expertNoticeTitle": "Expert Provider（精简保留）",
+    "expertNoticeBody": "故障队列、代理接管、Universal 等高级能力仍在此管理。默认推荐先用「快速接入」。",
+    "pool": {
+      "enable": "开启密钥池",
+      "enableHint": "多 Key 加权轮询 + 429 阶梯冷却；CLI 始终写 local token，真实 Key 仅存 Keychain",
+      "securityNote": "密钥仅写入系统 Keychain，不会出现在配置文件或日志中。CLI 通过本地代理 token 访问。",
+      "required": "必需",
+      "primaryKey": "API Key",
+      "keyPlaceholder": "sk-...",
+      "primary": "主 Key",
+      "extra": "备用 Key",
+      "extraKey": "添加备用 Key",
+      "supplierHint": "Key 存储于 Keychain：simple-connect/{{supplier}}/…"
+    },
+    "poolHealth": {
+      "title": "密钥池运行时",
+      "running": "代理运行中",
+      "stopped": "代理未启动",
+      "idleHint": "应用配置后将启动本地代理，此处显示 Key 成功/失败与冷却状态",
+      "available": "可用",
+      "cooling": "冷却中",
+      "cooldownSecs": "{{secs}}s"
+    },
+    "usage": {
+      "title": "用量概览（只读）",
+      "input": "输入",
+      "output": "输出",
+      "sessions": "会话条数",
+      "proxyPort": "代理 :{{port}}",
+      "proxySession": "本次会话",
+      "byTool": "按 CLI 拆分",
+      "empty": "暂无本地会话用量数据"
+    },
+    "import": {
+      "title": "确认导入 API Key",
+      "description": "密钥将写入 Keychain，不会出现在配置文件中。导入前会校验 Key 有效性。",
+      "label": "标签",
+      "supplier": "供应商",
+      "warning": "请确认链接来源可信。可在快速接入中禁用 URL 导入。",
+      "confirm": "确认导入",
+      "importing": "导入中…",
+      "success": "已导入 {{count}} 个 Key 到 Keychain",
+      "duplicates": "跳过 {{count}} 个重复 Key",
+      "parseError": "导入链接解析失败"
+    },
+    "advanced": {
+      "title": "高级",
+      "verifyKey": "保存前校验 Key",
+      "verifyKeyHint": "调用 /v1/models 验证；关闭后仅高级用户手动导入",
+      "deeplinkImport": "允许 URL 导入 Key",
+      "deeplinkImportHint": "beeapi:// / OpenSunstar://simple-connect/import"
+    },
+    "backupAudit": {
+      "title": "备份目录安全扫描",
+      "files": "已扫描 {{count}} 个文件",
+      "clean": "未发现明文 Key",
+      "suspicious": "{{count}} 处可疑内容",
+      "hint": "扫描 simple-connect/backups 下 CLI 配置备份，确保无 sk- 明文落盘。"
+    },
+    "privacy": {
+      "bannerShort": "本地优先 · 密钥存系统 Keychain · 无遥测",
+      "viewDetails": "查看安全与隐私说明",
+      "title": "安全与隐私说明",
+      "intro": "快速接入遵循「数据留在本机、密钥不进配置文件、网络由你指定」的原则。以下为 Simple Connect 范围内的处理方式。",
+      "close": "知道了",
+      "sections": {
+        "localFirst": {
+          "title": "本地优先",
+          "body": "供应商选择、模型缓存、CLI 配置状态与用量统计等偏好均保存在本机应用数据目录。写入 CLI 前会自动备份原配置到本地 simple-connect/backups，可在 Step 2 高级区扫描备份是否含明文密钥。"
+        },
+        "keychain": {
+          "title": "凭据存系统 Keychain",
+          "body": "API Key 仅写入操作系统密钥链（Windows DPAPI / macOS Keychain / Linux libsecret），不会出现在 JSON、TOML、环境变量或应用日志中。CLI 侧仅注入 sc-local-* 本地代理令牌；真实 Key 仅在本地代理进程内从 Keychain 读取。"
+        },
+        "network": {
+          "title": "网络直连你选的供应商",
+          "body": "模型拉取、Key 校验（若开启）与 upstream 请求均从本机直接发往你选择的 API Base。本地代理（127.0.0.1:17172）仅在本机环回地址监听，用于密钥池与 CLI 统一入口，不对外网暴露。"
+        },
+        "noTelemetry": {
+          "title": "无遥测、无账号绑定",
+          "body": "快速接入不会向 OpenSunstar 官方或第三方上报 API Key、对话内容、模型调用明细或设备指纹。用量面板数据来自本机 CLI 会话日志与本地代理计数，仅供你在本机查看。"
+        },
+        "yourControl": {
+          "title": "你可自行控制的风险项",
+          "body": "URL 导入 Key 仅在确认链接来源可信时启用，可在 Step 2 高级区关闭。选择自定义供应商时，请自行评估第三方 Base URL 的可信度与隐私政策。"
+        }
+      }
+    }
+  },
   "migration": {
     "success": "配置迁移成功",
     "skillsSuccess": "已自动导入 {{count}} 个技能到统一管理",

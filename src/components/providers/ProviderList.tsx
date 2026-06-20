@@ -68,6 +68,7 @@ interface ProviderListProps {
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管）
   activeProviderId?: string; // 代理当前实际使用的供应商 ID（用于故障转移模式下标注绿色边框）
   onSetAsDefault?: (provider: Provider) => void; // OpenClaw: set as default model
+  compactExpert?: boolean;
 }
 
 export function ProviderList({
@@ -90,6 +91,7 @@ export function ProviderList({
   isProxyTakeover = false,
   activeProviderId,
   onSetAsDefault,
+  compactExpert = false,
 }: ProviderListProps) {
   const { t } = useTranslation();
   const { checkProvider, isChecking } = useStreamCheck(appId);
@@ -470,7 +472,7 @@ export function ProviderList({
 
   return (
     <div className="mt-4 space-y-4">
-      {claudeDesktopStatusMessages.length > 0 && (
+      {claudeDesktopStatusMessages.length > 0 && !compactExpert && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
           <div className="flex items-center gap-2 font-medium">
             <AlertTriangle className="h-4 w-4 shrink-0" />

@@ -2512,6 +2512,153 @@
     "clickToSelect": "Click to select icon",
     "color": "Icon Color"
   },
+  "simpleConnect": {
+    "nav": "Simple Connect",
+    "pageTitle": "API Setup",
+    "tabSimple": "Simple Connect",
+    "tabExpert": "Expert Provider",
+    "title": "Simple Connect",
+    "subtitle": "3 steps: supplier → save key → pick CLI & apply (Keychain + local proxy + 6 CLIs)",
+    "step1": "Supplier",
+    "step2": "Keys",
+    "step3": "Apply",
+    "supplier": "Supplier",
+    "customSupplier": "Custom OpenAI-compatible",
+    "cliTool": "CLI tool",
+    "model": "Model",
+    "modelPlaceholder": "Fetch models first",
+    "fetchModels": "Fetch models",
+    "apply": "Apply configuration",
+    "applySuccess": "{{tool}} configured",
+    "modelsLoaded": "Loaded {{count}} models",
+    "poolProxy": "Local proxy :{{port}} active",
+    "keyRequired": "Save an API key to Keychain first",
+    "keyRequiredHint": "Save the primary key before continuing to apply",
+    "customBaseRequired": "Enter a custom API base URL first",
+    "modelsFallback": "Fetch failed; using preset model {{model}}",
+    "toolStatusTitle": "CLI configuration status",
+    "toolStatusLoading": "Loading CLI status…",
+    "toolCleared": "Cleared Simple Connect config for {{tool}}",
+    "clearTool": "Clear {{tool}}",
+    "wizardNav": "Simple Connect steps",
+    "summaryStep": "Step {{step}}/3",
+    "step3Hint": "Pick a CLI and model, then apply; expand sections below for details",
+    "step3": {
+      "statusSection": "CLI configuration status",
+      "runtimeSection": "Key pool runtime",
+      "usageSection": "Usage overview (read-only)"
+    },
+    "supplierChangeTitle": "Switch supplier?",
+    "supplierChangeBody": "Upstream will change; saved keys stay under the previous supplier namespace. Applying will backup and rewrite CLI configs.",
+    "supplierChangeConfirm": "Continue",
+    "supplierChangedApply": "Supplier switched and CLI updated; previous configs backed up",
+    "pickSupplier": "Choose a supplier",
+    "pickCli": "Choose a CLI to configure",
+    "customBase": "API Base URL",
+    "customSupplierHint": "Any OpenAI-compatible base URL",
+    "openWebsite": "Website",
+    "keySaved": "Key saved",
+    "keyMissing": "No key saved",
+    "poolBadge": "Pool ×{{count}}",
+    "keySavedToast": "API key stored securely in Keychain",
+    "keyReadyHint": "Primary key ready — continue to apply",
+    "poolKeyAdded": "Backup key added",
+    "applyTo": "Apply to {{tool}}",
+    "modelsLoading": "Loading models…",
+    "toolStatusCount": "{{configured}}/{{total}} configured",
+    "backToSimple": "Back to Simple Connect",
+    "openProxySettings": "Proxy & failover settings",
+    "proxyRunning": "Main proxy running",
+    "cliGeneric": "CLI config",
+    "expertNoticeTitle": "Expert Provider (trimmed)",
+    "expertNoticeBody": "Failover, proxy takeover, Universal, etc. Advanced features stay here. Simple Connect is recommended by default.",
+    "pool": {
+      "enable": "Enable key pool",
+      "enableHint": "Weighted pool + tiered 429 cooldown; CLI always gets local token, secrets in Keychain only",
+      "securityNote": "Secrets are stored in OS Keychain only — never written to config files or logs. CLIs use the local proxy token.",
+      "required": "required",
+      "primaryKey": "API Key",
+      "keyPlaceholder": "sk-...",
+      "primary": "Primary key",
+      "extra": "Backup key",
+      "extraKey": "Add backup key",
+      "supplierHint": "Keys stored in Keychain: simple-connect/{{supplier}}/…"
+    },
+    "poolHealth": {
+      "title": "Pool runtime",
+      "running": "Proxy running",
+      "stopped": "Proxy stopped",
+      "idleHint": "Apply a CLI config to start the local proxy; success/failure and cooldown stats appear here",
+      "available": "Available",
+      "cooling": "Cooling down",
+      "cooldownSecs": "{{secs}}s"
+    },
+    "usage": {
+      "title": "Usage overview (read-only)",
+      "input": "Input",
+      "output": "Output",
+      "sessions": "Session records",
+      "proxyPort": "Proxy :{{port}}",
+      "proxySession": "This session",
+      "byTool": "By CLI",
+      "empty": "No local session usage data yet"
+    },
+    "import": {
+      "title": "Confirm API Key import",
+      "description": "Keys go to Keychain only — never written to config files. Keys are verified before import.",
+      "label": "Label",
+      "supplier": "Supplier",
+      "warning": "Only import from trusted sources. You can disable URL import in Simple Connect.",
+      "confirm": "Import",
+      "importing": "Importing…",
+      "success": "Imported {{count}} key(s) to Keychain",
+      "duplicates": "Skipped {{count}} duplicate key(s)",
+      "parseError": "Failed to parse import link"
+    },
+    "advanced": {
+      "title": "Advanced",
+      "verifyKey": "Verify key before save",
+      "verifyKeyHint": "Calls /v1/models; disable only for advanced manual import",
+      "deeplinkImport": "Allow URL key import",
+      "deeplinkImportHint": "beeapi:// / OpenSunstar://simple-connect/import"
+    },
+    "backupAudit": {
+      "title": "Backup directory scan",
+      "files": "{{count}} file(s) scanned",
+      "clean": "No plaintext keys found",
+      "suspicious": "{{count}} suspicious item(s)",
+      "hint": "Scans simple-connect/backups for CLI config copies without sk- secrets on disk."
+    },
+    "privacy": {
+      "bannerShort": "Local-first · keys in OS Keychain · no telemetry",
+      "viewDetails": "Security & privacy",
+      "title": "Security & privacy",
+      "intro": "Simple Connect follows local-first principles: data stays on your machine, secrets never land in config files, and network targets are yours to choose. Details below apply to the Simple Connect flow only.",
+      "close": "Got it",
+      "sections": {
+        "localFirst": {
+          "title": "Local-first",
+          "body": "Supplier choice, model cache, CLI status, and usage summaries are stored in the app's local data directory. Before writing CLI configs, originals are backed up under simple-connect/backups; you can scan backups in Step 2 advanced settings."
+        },
+        "keychain": {
+          "title": "Secrets in OS Keychain",
+          "body": "API keys are stored only in the OS credential store (Windows DPAPI / macOS Keychain / Linux libsecret)—never in JSON, TOML, env files, or app logs. CLIs receive sc-local-* proxy tokens only; real keys are read from Keychain inside the local proxy process."
+        },
+        "network": {
+          "title": "Direct to your chosen upstream",
+          "body": "Model fetch, optional key verification, and upstream API calls go from your machine to the base URL you select. The local proxy (127.0.0.1:17172) listens on loopback only—for key pooling and CLI routing—not exposed to the public internet."
+        },
+        "noTelemetry": {
+          "title": "No telemetry or account binding",
+          "body": "Simple Connect does not send API keys, chat content, call logs, or device fingerprints to OpenSunstar or third parties. Usage panels read local CLI session logs and local proxy counters for on-device viewing only."
+        },
+        "yourControl": {
+          "title": "Risk items you control",
+          "body": "URL key import should stay enabled only for links you trust—disable it in Step 2 advanced settings. With custom suppliers, assess the third-party base URL and privacy policy yourself."
+        }
+      }
+    }
+  },
   "migration": {
     "success": "Configuration migrated successfully",
     "skillsSuccess": "Automatically imported {{count}} skill(s) into unified management",

@@ -96,17 +96,6 @@ vi.mock("@/components/providers/EditProviderDialog", () => ({
     ) : null,
 }));
 
-vi.mock("@/components/UsageScriptModal", () => ({
-  default: ({ isOpen, provider, onSave, onClose }: any) =>
-    isOpen ? (
-      <div data-testid="usage-modal">
-        <span data-testid="usage-provider">{provider?.id}</span>
-        <button onClick={() => onSave("script-code")}>save-script</button>
-        <button onClick={() => onClose()}>close-usage</button>
-      </div>
-    ) : null,
-}));
-
 vi.mock("@/components/ConfirmDialog", () => ({
   ConfirmDialog: ({ isOpen, onConfirm, onCancel }: any) =>
     isOpen ? (
@@ -179,11 +168,6 @@ describe("App integration with MSW", () => {
         "codex-1",
       ),
     );
-
-    fireEvent.click(screen.getByText("usage"));
-    expect(screen.getByTestId("usage-modal")).toBeInTheDocument();
-    fireEvent.click(screen.getByText("save-script"));
-    fireEvent.click(screen.getByText("close-usage"));
 
     fireEvent.click(screen.getByText("create"));
     expect(screen.getByTestId("add-provider-dialog")).toBeInTheDocument();

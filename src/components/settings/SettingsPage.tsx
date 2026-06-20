@@ -47,17 +47,23 @@ import { LogConfigPanel } from "@/components/settings/LogConfigPanel";
 import { CodexAuthSettings } from "@/components/settings/CodexAuthSettings";
 import { DryRunSettings } from "@/components/settings/DryRunSettings";
 import { AiProviderSettings } from "@/components/settings/AiProviderSettings";
+import { ProxyTabContent } from "@/components/settings/ProxyTabContent";
 import { useInstalledSkills } from "@/hooks/useSkills";
 import { useSettings } from "@/hooks/useSettings";
 import { useImportExport } from "@/hooks/useImportExport";
 import { useTranslation } from "react-i18next";
 import type { SettingsFormState } from "@/hooks/useSettings";
+import {
+  consumeSettingsNavIntent,
+  type SettingsNavIntent,
+} from "@/lib/settingsNavigation";
 
 // ── 类型 ──────────────────────────────────────────
 
 interface SettingsPageContentProps {
   onImportSuccess?: () => void | Promise<void>;
   defaultTab?: string;
+  settingsNavIntent?: SettingsNavIntent | null;
   /** Dialog 模式下，保存成功后回调（用于关闭 Dialog） */
   onAfterSave?: () => void;
 }
@@ -74,6 +80,7 @@ interface SettingsDialogProps {
 export function SettingsPageContent({
   onImportSuccess,
   defaultTab = "general",
+  settingsNavIntent = null,
   onAfterSave,
 }: SettingsPageContentProps) {
   const { t } = useTranslation();
@@ -112,8 +119,22 @@ export function SettingsPageContent({
 
   const { data: installedSkills } = useInstalledSkills();
 
-  const [activeTab, setActiveTab] = useState<string>(defaultTab);
+  const [activeTab, setActiveTab] = useState<string>(
+    settingsNavIntent?.tab ?? defaultTab,
+  );
+  const [proxyOpenSections, setProxyOpenSections] = useState<string[]>(
+    settingsNavIntent?.openSections ?? [],
+  );
   const [showRestartPrompt, setShowRestartPrompt] = useState(false);
+
+  useEffect(() => {
+    const intent = settingsNavIntent ?? consumeSettingsNavIntent();
+    if (!intent) return;
+    if (intent.tab) setActiveTab(intent.tab);
+    if (intent.openSections?.length) {
+      setProxyOpenSections(intent.openSections);
+    }
+  }, [settingsNavIntent]);
 
   useEffect(() => {
     if (requiresRestart) {
@@ -266,6 +287,12 @@ export function SettingsPageContent({
                     transition={{ duration: 0.3 }}
                     className="space-y-4"
                   >
+                    <ProxyTabContent
+                      settings={settings}
+                      onAutoSave={handleAutoSave}
+                      defaultOpenSections={proxyOpenSections}
+                    />
+
                     <Accordion
                       type="multiple"
                       defaultValue={[]}

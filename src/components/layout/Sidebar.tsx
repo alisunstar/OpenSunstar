@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   EyeOff,
+  Plug2,
   Shield,
   ArrowRightLeft,
   LayoutDashboard,
@@ -173,6 +174,14 @@ export function Sidebar({
         {collapsed ? (
           <div className="space-y-0.5">
             <SidebarItem
+              icon={<Plug2 className="w-4 h-4" />}
+              label=""
+              active={activeView === "simpleConnect"}
+              onClick={() => onNavigate("simpleConnect")}
+              accent={activeView === "simpleConnect"}
+              collapsed
+            />
+            <SidebarItem
               icon={<LayoutDashboard className="w-4 h-4" />}
               label=""
               active={agentConfigActive}
@@ -198,6 +207,20 @@ export function Sidebar({
           </div>
         ) : (
           <>
+            <SectionLabel>
+              {t("sidebar.section.api", { defaultValue: "API 接入" })}
+            </SectionLabel>
+            <SidebarItem
+              icon={<Plug2 className="w-4 h-4" />}
+              label={t("simpleConnect.nav", { defaultValue: "快速接入" })}
+              active={activeView === "simpleConnect"}
+              onClick={() => onNavigate("simpleConnect")}
+              accent={activeView === "simpleConnect"}
+            />
+
+            <SectionLabel>
+              {t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
+            </SectionLabel>
             <SidebarMenu
               icon={<LayoutDashboard className="w-4 h-4" />}
               label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}

@@ -35,6 +35,8 @@ import AgentsPanel from "@/components/agents/AgentsPanel";
 import { SkillsPage } from "@/components/skills/SkillsPage";
 import UnifiedSkillsPanel from "@/components/skills/UnifiedSkillsPanel";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
+import { SimpleConnectPage } from "@/components/simpleConnect/SimpleConnectPage";
+import { DeepLinkImportDialog } from "@/components/DeepLinkImportDialog";
 import { SettingsPageContent } from "@/components/settings/SettingsPage";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SyncBackupPage } from "@/components/sync/SyncBackupPage";
@@ -45,10 +47,15 @@ import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { useProjects } from "@/hooks/useProjects";
 import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
 import { useSettingsQuery } from "@/lib/query";
+import {
+  buildProxySettingsIntent,
+  type SettingsNavIntent,
+} from "@/lib/settingsNavigation";
 
 // ── 类型 ──────────────────────────────────────────
 
 export type PageView =
+  | "simpleConnect"
   | "mcp"
   | "mcpDiscovery"
   | "prompts"
@@ -84,6 +91,7 @@ const VALID_APPS: AppId[] = [
 ];
 
 const VALID_VIEWS: PageView[] = [
+  "simpleConnect",
   "mcp",
   "mcpDiscovery",
   "prompts",
@@ -121,7 +129,7 @@ const getInitialApp = (): AppId => {
 const getInitialView = (): PageView => {
   const saved = localStorage.getItem(VIEW_STORAGE_KEY) as PageView | null;
   if (saved && VALID_VIEWS.includes(saved)) return saved;
-  return "mcp";
+  return "simpleConnect";
 };
 
 // ── 视图元数据 ────────────────────────────────────
@@ -132,6 +140,10 @@ interface PageMeta {
 }
 
 const PAGE_META: Record<PageView, PageMeta> = {
+  simpleConnect: {
+    titleKey: "simpleConnect.pageTitle",
+    defaultTitle: "API 接入",
+  },
   mcp: { titleKey: "mcp.title", defaultTitle: "MCP" },
   mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "发现 MCP" },
   prompts: { titleKey: "prompts.title", defaultTitle: "Prompts&rules" },
@@ -162,6 +174,13 @@ function App() {
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [settingsNavIntent, setSettingsNavIntent] =
+    useState<SettingsNavIntent | null>(null);
+
+  const openProxySettings = useCallback(() => {
+    setSettingsNavIntent(buildProxySettingsIntent());
+    setCurrentView("settings");
+  }, []);
 
   useBudgetAlerts();
   const { data: settings } = useSettingsQuery();
@@ -179,6 +198,13 @@ function App() {
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
   }, [currentView]);
+
+  useEffect(() => {
+    if (currentView === "settings" && settingsNavIntent) {
+      const timer = window.setTimeout(() => setSettingsNavIntent(null), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [currentView, settingsNavIntent]);
 
   useEffect(() => {
     localStorage.setItem(APP_STORAGE_KEY, targetApp);
@@ -289,6 +315,10 @@ function App() {
   // ── 渲染页面内容 ────────────────────────────
   const renderPageContent = () => {
     switch (currentView) {
+      case "simpleConnect":
+        return (
+          <SimpleConnectPage onOpenSettings={openProxySettings} />
+        );
       case "mcp":
         return (
           <UnifiedMcpPanel ref={mcpPanelRef} onOpenChange={() => {}} />
@@ -373,7 +403,12 @@ function App() {
       case "tokenStats":
         return <TokenStatsPage />;
       case "settings":
-        return <SettingsPageContent />;
+        return (
+          <SettingsPageContent
+            settingsNavIntent={settingsNavIntent}
+            defaultTab={settingsNavIntent?.tab ?? "general"}
+          />
+        );
       default:
         return null;
     }
@@ -702,6 +737,8 @@ function App() {
 
       {/* ── 快捷键帮助 ────────────────────────── */}
       <ShortcutsHelp open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
+
+      <DeepLinkImportDialog />
     </div>
   );
 }

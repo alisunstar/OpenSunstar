@@ -63,8 +63,8 @@ pub use mcp::{
 pub use provider::{Provider, ProviderMeta};
 pub use services::{
     skill::{migrate_skills_to_ssot, ImportSkillSelection},
-    ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
-    SkillService, SpeedtestService,
+    simple_connect, ConfigService, EndpointLatency, McpService, PromptService, ProviderService,
+    ProxyService, SkillService, SpeedtestService,
 };
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
@@ -137,6 +137,33 @@ fn handle_deeplink_url(
     focus_main_window: bool,
     source: &str,
 ) -> bool {
+    if crate::services::simple_connect::deeplink::is_simple_connect_import_url(url_str) {
+        let redacted_url = redact_url_for_log(url_str);
+        log::info!("✓ Simple Connect import URL from {source}: {redacted_url}");
+        match crate::services::simple_connect::deeplink::try_parse_url(url_str) {
+            Ok(payload) => {
+                if let Err(e) = app.emit("simple-connect-import", &payload) {
+                    log::error!("✗ Failed to emit simple-connect-import: {e}");
+                } else if focus_main_window {
+                    if let Some(window) = app.get_webview_window("main") {
+                        let _ = window.unminimize();
+                        let _ = window.show();
+                        let _ = window.set_focus();
+                    }
+                }
+            }
+            Err(e) => {
+                if let Err(emit_err) = app.emit(
+                    "simple-connect-import-error",
+                    serde_json::json!({ "url": url_str, "error": e.to_string() }),
+                ) {
+                    log::error!("✗ Failed to emit simple-connect-import-error: {emit_err}");
+                }
+            }
+        }
+        return true;
+    }
+
     if !url_str.starts_with("OpenSunstar://") {
         return false;
     }
@@ -1613,6 +1640,37 @@ pub fn run() {
             commands::set_project_skills,
             commands::get_project_prompts,
             commands::link_project_prompt,
+            // Simple Connect — Phase 0 Spike
+            commands::simple_connect_list_suppliers,
+            commands::simple_connect_list_tools,
+            commands::simple_connect_all_tools,
+            commands::simple_connect_get_state,
+            commands::simple_connect_set_supplier,
+            commands::simple_connect_save_state,
+            commands::simple_connect_store_key,
+            commands::simple_connect_store_pool_key,
+            commands::simple_connect_remove_pool_key,
+            commands::simple_connect_key_configured,
+            commands::simple_connect_list_tool_status,
+            commands::simple_connect_apply,
+            commands::simple_connect_clear,
+            commands::simple_connect_fetch_models,
+            commands::simple_connect_spike_apply_claude,
+            commands::simple_connect_spike_start_proxy,
+            commands::simple_connect_spike_stop_proxy,
+            commands::simple_connect_spike_proxy_info,
+            commands::simple_connect_spike_fetch_models,
+            commands::simple_connect_spike_pool_demo,
+            commands::simple_connect_pool_stats,
+            commands::simple_connect_is_import_url,
+            commands::simple_connect_parse_import_url,
+            commands::simple_connect_import_from_url,
+            commands::simple_connect_import_keys,
+            commands::simple_connect_verify_key,
+            commands::simple_connect_usage_summary,
+            commands::simple_connect_backup_audit,
+            commands::simple_connect_security_p0_audit,
+            commands::simple_connect_spike_run_all,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
             // Commands & Hooks (v0.6.5 M1)

@@ -28,14 +28,6 @@ pub struct BridgeCandidate {
     pub bridge_source: Option<String>,
 }
 
-pub fn get_filename_for_app(app_type: &str) -> &'static str {
-    match app_type {
-        "claude" | "claude-desktop" => "CLAUDE.md",
-        "gemini" => "GEMINI.md",
-        _ => "AGENTS.md",
-    }
-}
-
 /// Preview how content would be transformed from source to target app
 pub fn preview_bridge(source_app: &str, target_app: &str, content: &str) -> BridgePreview {
     let mut converted = content.to_string();
