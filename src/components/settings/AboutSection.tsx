@@ -2,10 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Download,
   Copy,
-  ExternalLink,
-  Github,
-  Globe,
-  Info,
   Loader2,
   RefreshCw,
   Terminal,
@@ -30,16 +26,12 @@ import type {
   ToolInstallation,
   ToolInstallationReport,
 } from "@/lib/api/settings";
-import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
-import appIcon from "@/assets/icons/app-icon.png";
 import { APP_ICON_MAP } from "@/config/appConfig";
 import type { AppId } from "@/lib/api/types";
 import { extractErrorMessage } from "@/utils/errorUtils";
 import { isWindows } from "@/lib/platform";
 import { isUpdateAvailable } from "@/lib/version";
-import { useUpdate } from "@/contexts/UpdateContext";
-import { getVersion } from "@tauri-apps/api/app";
 import { ToolUpgradeConfirmDialog } from "./ToolUpgradeConfirmDialog";
 import { ToolInstallRow } from "./ToolInstallRow";
 
@@ -178,12 +170,8 @@ const TOOL_APP_IDS: Record<ToolName, AppId> = {
   hermes: "hermes",
 };
 
-export function AboutSection({ isPortable }: AboutSectionProps) {
-  // ... (use hooks as before) ...
+export function AboutSection(_props: AboutSectionProps) {
   const { t } = useTranslation();
-  const [version, setVersion] = useState<string | null>(null);
-  const [isLoadingVersion, setIsLoadingVersion] = useState(true);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [toolVersions, setToolVersions] = useState<ToolVersion[]>([]);
   const [isLoadingTools, setIsLoadingTools] = useState(true);
   const [toolActions, setToolActions] = useState<
@@ -193,9 +181,6 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
     null,
   );
   const [showInstallCommands, setShowInstallCommands] = useState(false);
-
-  const { hasUpdate, updateInfo, checkUpdate, resetDismiss, isChecking } =
-    useUpdate();
 
   const [wslShellByTool, setWslShellByTool] = useState<
     Record<string, WslShellPreference>
@@ -324,114 +309,12 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
   };
 
   useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const [appVersion] = await Promise.all([
-          getVersion(),
-          loadAllToolVersions(),
-        ]);
-
-        if (active) {
-          setVersion(appVersion);
-        }
-      } catch (error) {
-        console.error("[AboutSection] Failed to load info", error);
-        if (active) {
-          setVersion(null);
-        }
-      } finally {
-        if (active) {
-          setIsLoadingVersion(false);
-        }
-      }
-    };
-
-    void load();
-    return () => {
-      active = false;
-    };
+    void loadAllToolVersions();
     // Mount-only: loadAllToolVersions is intentionally excluded to avoid
     // re-fetching all tools whenever wslShellByTool changes. Single-tool
     // refreshes are handled by refreshToolVersions in the shell/flag handlers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // ... (handlers like handleOpenReleaseNotes, handleCheckUpdate) ...
-
-  const handleOpenReleaseNotes = useCallback(async () => {
-    try {
-      const targetVersion = updateInfo?.availableVersion ?? version ?? "";
-      const displayVersion = targetVersion.startsWith("v")
-        ? targetVersion
-        : targetVersion
-          ? `v${targetVersion}`
-          : "";
-
-      if (!displayVersion) {
-        await settingsApi.openExternal(
-          "https://github.com/farion1231/OpenSunstar/releases",
-        );
-        return;
-      }
-
-      await settingsApi.openExternal(
-        `https://github.com/farion1231/OpenSunstar/releases/tag/${displayVersion}`,
-      );
-    } catch (error) {
-      console.error("[AboutSection] Failed to open release notes", error);
-      toast.error(t("settings.openReleaseNotesFailed"));
-    }
-  }, [t, updateInfo?.availableVersion, version]);
-
-  const handleCheckUpdate = useCallback(async () => {
-    if (hasUpdate) {
-      if (isPortable) {
-        try {
-          await settingsApi.checkUpdates();
-        } catch (error) {
-          console.error("[AboutSection] Portable update failed", error);
-        }
-        return;
-      }
-
-      setIsDownloading(true);
-      try {
-        resetDismiss();
-        const installed = await settingsApi.installUpdateAndRestart();
-        if (!installed) {
-          toast.success(t("settings.upToDate"), { closeButton: true });
-        }
-      } catch (error) {
-        console.error("[AboutSection] Update failed", error);
-        toast.error(t("settings.updateFailed"), {
-          description: extractErrorMessage(error) || undefined,
-          closeButton: true,
-        });
-        try {
-          await settingsApi.checkUpdates();
-        } catch (fallbackError) {
-          console.error(
-            "[AboutSection] Failed to open fallback updater",
-            fallbackError,
-          );
-        }
-      } finally {
-        setIsDownloading(false);
-      }
-      return;
-    }
-
-    try {
-      const available = await checkUpdate();
-      if (!available) {
-        toast.success(t("settings.upToDate"), { closeButton: true });
-      }
-    } catch (error) {
-      console.error("[AboutSection] Check update failed", error);
-      toast.error(t("settings.checkUpdateFailed"));
-    }
-  }, [checkUpdate, hasUpdate, isPortable, resetDismiss, t]);
 
   const handleCopyInstallCommands = useCallback(async () => {
     try {
@@ -733,8 +616,6 @@ export function AboutSection({ isPortable }: AboutSectionProps) {
   }, [pendingUpgrade, executeRun]);
 
   const handleCancelUpgrade = useCallback(() => setPendingUpgrade(null), []);
-
-  const displayVersion = version ?? t("common.unknown");
 
   // 任一安装/升级进行中（批量或单工具）即视为忙碌：用于禁用所有操作按钮，
   // 避免并发触发多个 npm/pip 全局写入造成冲突。

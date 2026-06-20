@@ -40,13 +40,13 @@ pub mod webdav;
 pub mod webdav_auto_sync;
 pub mod webdav_sync;
 pub mod onboarding;
+pub mod simple_connect;
 
 pub use config::ConfigService;
 pub use agent::AgentService;
 pub use command::CommandService;
 pub use hook::HookService;
 pub use ignore::IgnoreService;
-pub use permission::PermissionService;
 pub use mcp::McpService;
 pub use omo::OmoService;
 pub use prompt::PromptService;

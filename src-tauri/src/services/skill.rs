@@ -3275,7 +3275,6 @@ impl SkillService {
 /// ModelScope API 原始搜索响应（新格式 /openapi/v1/）
 #[derive(Debug, Clone, Deserialize)]
 struct ModelScopeApiResponse {
-    pub success: bool,
     pub data: ModelScopeApiData,
 }
 

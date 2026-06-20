@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next";
 import { Edit3, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AppToggleGroup } from "@/components/common/AppToggleGroup";
@@ -26,8 +25,6 @@ export function IgnoreListItem({
   onDelete,
   onToggleApp,
 }: IgnoreListItemProps) {
-  const { t } = useTranslation();
-
   return (
     <div className="rounded-xl border border-border-default bg-muted/50 p-4">
       <div className="flex items-start gap-3">
