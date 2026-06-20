@@ -870,7 +870,11 @@
     "sessionList": "Sessions",
     "manageBatchTooltip": "Enter batch management",
     "exitBatchModeTooltip": "Exit batch management",
-    "batchModeHint": "Select sessions to delete",
+    "batchModeHint": "Select sessions to export or delete",
+    "exportSelected": "Export Selected",
+    "batchExporting": "Exporting...",
+    "batchExportSuccess": "Exported {{count}} sessions",
+    "batchExportFailed": "Batch export failed, please try again",
     "selectForBatch": "Select session",
     "selectedCount": "{{count}} selected",
     "selectAllFiltered": "Select all",
@@ -1768,7 +1772,7 @@
   },
   "prompts": {
     "manage": "Prompts",
-    "title": "{{appName}} Prompt Management",
+    "title": "Prompts&rules",
     "claudeTitle": "Claude Prompt Management",
     "codexTitle": "Codex Prompt Management",
     "add": "Add Prompt",
@@ -1805,6 +1809,180 @@
     "confirm": {
       "deleteTitle": "Confirm Delete",
       "deleteMessage": "Are you sure you want to delete prompt \"{{name}}\"?"
+    },
+    "fragment": {
+      "isFragment": "Rule fragment",
+      "parent": "Parent prompt",
+      "selectParent": "Select parent prompt",
+      "priority": "Priority (higher merges first)",
+      "targets": "Target tools (comma-separated, * for all)",
+      "globs": "File globs (JSON array)",
+      "badge": "Fragment"
+    }
+  },
+  "dryRun": {
+    "title": "Preview mode (Dry Run)",
+    "description": "When enabled, prompt activation shows a diff preview before writing to disk",
+    "settingsTitle": "Preview mode (Dry Run)",
+    "settingsDescription": "Preview diffs before applying writes to disk",
+    "confirmWrite": "Confirm write",
+    "promptActivationTitle": "Prompt activation preview",
+    "promptActivationDesc": "Preview mode is on; confirm to write to the target file",
+    "current": "Current file",
+    "after": "After activation"
+  },
+  "commands": {
+    "title": "Commands",
+    "manage": "Commands",
+    "empty": "No custom commands yet",
+    "add": "Add Command",
+    "edit": "Edit Command",
+    "count": "{{count}} commands",
+    "loadFailed": "Failed to load commands",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "toggleFailed": "Failed to toggle sync target",
+    "confirm": {
+      "deleteTitle": "Delete Command",
+      "deleteMessage": "Delete command \"{{name}}\"? Synced files will be removed."
+    },
+    "form": {
+      "name": "Command name",
+      "description": "Description",
+      "content": "Content (Markdown)",
+      "arguments": "Arguments (JSON)",
+      "syncTargets": "Sync to"
+    },
+    "variableHelp": {
+      "title": "Template variables",
+      "arguments": "User argument placeholder for Claude Code / Gemini",
+      "codexNote": "Codex does not support standalone command files."
+    }
+  },
+  "hooks": {
+    "title": "Hooks",
+    "empty": "No lifecycle hooks yet",
+    "add": "Add Hook",
+    "edit": "Edit Hook",
+    "count": "{{count}} hooks",
+    "loadFailed": "Failed to load hooks",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "syncSuccess": "Synced to Claude Code",
+    "syncFailed": "Sync failed",
+    "syncNow": "Sync to Claude",
+    "claudeOnlyNote": "Currently syncs to Claude Code settings.json hooks field only",
+    "timeoutLabel": "Timeout {{seconds}}s",
+    "confirm": {
+      "deleteTitle": "Delete Hook",
+      "deleteMessage": "Delete this hook? settings.json will be updated."
+    },
+    "form": {
+      "eventType": "Event type",
+      "toolPattern": "Tool pattern (glob)",
+      "hookCommand": "Shell command",
+      "timeout": "Timeout (seconds, 1-300)",
+      "description": "Description"
+    },
+    "eventType": {
+      "PreToolUse": "Pre tool use",
+      "PostToolUse": "Post tool use",
+      "Notification": "Notification",
+      "Stop": "Stop"
+    }
+  },
+  "convert": {
+    "title": "Config Convert",
+    "subtitle": "Migrate Prompt, MCP, Skill, and Command configs between Claude, Codex, Gemini, and more",
+    "sourceApp": "Source tool",
+    "targetApp": "Target tool",
+    "contentType": "Config type",
+    "skill": "Skills",
+    "command": "Commands",
+    "selectTarget": "Select target tool",
+    "notFound": "File not found",
+    "loadFailed": "Failed to detect source configs",
+    "previewing": "Generating preview…",
+    "warnings": "Conversion notes",
+    "unmapped": "Unmapped section: {{section}}",
+    "sourcePreview": "Source",
+    "convertedPreview": "Converted",
+    "overwrite": "Overwrite existing target file (auto backup as .bak.opensunstar)",
+    "apply": "Apply",
+    "applySuccess": "Config written to target tool",
+    "applyFailed": "Write failed",
+    "steps": {
+      "source": "Select source",
+      "previewSource": "Preview source",
+      "previewTarget": "Preview conversion",
+      "confirm": "Confirm write"
+    }
+  },
+  "ignore": {
+    "title": "Ignore Rules",
+    "empty": "No ignore rules yet",
+    "emptyHint": "Glob rules sync to .claudeignore, .codexignore, and similar files",
+    "add": "Add Rule",
+    "edit": "Edit Ignore Rule",
+    "count": "{{count}} rules",
+    "loadFailed": "Failed to load ignore rules",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "toggleFailed": "Failed to toggle sync target",
+    "importGitignore": "Import from .gitignore",
+    "importSuccess": "Imported {{count}} rules",
+    "importFailed": "Import failed",
+    "syncNow": "Sync to tools",
+    "syncSuccess": "Synced to tool ignore files",
+    "syncFailed": "Sync failed",
+    "confirm": {
+      "deleteTitle": "Delete Rule",
+      "deleteMessage": "Delete this ignore rule? Ignore files will be updated."
+    },
+    "form": {
+      "pattern": "Glob pattern",
+      "description": "Description",
+      "syncTargets": "Sync to"
+    }
+  },
+  "permissions": {
+    "title": "Tool Permissions",
+    "empty": "No permission rules yet",
+    "emptyHint": "Manage Claude Code allow/deny lists; coexists with hooks in settings.json",
+    "add": "Add Permission",
+    "edit": "Edit Permission",
+    "count": "{{count}} permissions",
+    "loadFailed": "Failed to load permissions",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "syncNow": "Sync to Claude",
+    "syncSuccess": "Synced to Claude settings.json",
+    "syncFailed": "Sync failed",
+    "presets": "Presets:",
+    "presetApplied": "Preset applied",
+    "presetFailed": "Failed to apply preset",
+    "claudeOnlyNote": "Currently syncs to Claude Code settings.json permissions field only",
+    "confirm": {
+      "deleteTitle": "Delete Permission",
+      "deleteMessage": "Delete this permission rule? settings.json will be updated."
+    },
+    "form": {
+      "type": "Permission type",
+      "toolPattern": "Tool pattern",
+      "description": "Description"
+    },
+    "type": {
+      "allowedTools": "Allow",
+      "deniedTools": "Deny",
+      "autoApprove": "Auto-approve"
     }
   },
   "workspace": {
@@ -2341,7 +2519,36 @@
     "skillsFailedDescription": "Open the Skills page and click \"Import Existing\" to import manually (or restart and try again)."
   },
   "agents": {
-    "title": "Agents"
+    "title": "Subagents",
+    "subtitle": "Sync Markdown definitions to Claude / Gemini / OpenCode agents directories",
+    "empty": "No subagents yet",
+    "emptyHint": "Create custom subagents and sync to ~/.claude/agents/ and similar paths",
+    "add": "Add Subagent",
+    "edit": "Edit Subagent",
+    "count": "{{count}} subagents",
+    "loadFailed": "Failed to load subagents",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete",
+    "toggleFailed": "Failed to toggle sync target",
+    "geminiHint": "Enable experimental.enableSubagents in Gemini settings.json for subagents to load",
+    "codexHint": "Converted to TOML and written to ~/.codex/agents/{name}.toml",
+    "syncDisabled": {
+      "hermes": "File sync not supported yet"
+    },
+    "confirm": {
+      "deleteTitle": "Delete Subagent",
+      "deleteMessage": "Delete subagent \"{{name}}\"? Synced files will be removed."
+    },
+    "form": {
+      "name": "Name",
+      "description": "Description",
+      "content": "Definition (Markdown + YAML frontmatter)",
+      "syncTargets": "Sync to",
+      "geminiNote": "Gemini requires experimental.enableSubagents in settings.json",
+      "codexNote": "Codex auto-converts Markdown to TOML in ~/.codex/agents/"
+    }
   },
   "modelTest": {
     "testProvider": "Test model"

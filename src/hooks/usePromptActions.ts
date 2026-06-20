@@ -1,7 +1,13 @@
 import { useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { promptsApi, type Prompt, type AppId } from "@/lib/api";
+import {
+  promptsApi,
+  dryRunApi,
+  type Prompt,
+  type PromptActivationPreview,
+  type AppId,
+} from "@/lib/api";
 
 export function usePromptActions(appId: AppId) {
   const { t } = useTranslation();
@@ -10,6 +16,10 @@ export function usePromptActions(appId: AppId) {
   const [currentFileContent, setCurrentFileContent] = useState<string | null>(
     null,
   );
+  const [pendingActivation, setPendingActivation] = useState<{
+    id: string;
+    preview: PromptActivationPreview;
+  } | null>(null);
 
   const reload = useCallback(async () => {
     setLoading(true);
@@ -17,14 +27,13 @@ export function usePromptActions(appId: AppId) {
       const data = await promptsApi.getPrompts(appId);
       setPrompts(data);
 
-      // 同时加载当前文件内容
       try {
         const content = await promptsApi.getCurrentFileContent(appId);
         setCurrentFileContent(content);
-      } catch (error) {
+      } catch {
         setCurrentFileContent(null);
       }
-    } catch (error) {
+    } catch {
       toast.error(t("prompts.loadFailed"));
     } finally {
       setLoading(false);
@@ -37,9 +46,9 @@ export function usePromptActions(appId: AppId) {
         await promptsApi.upsertPrompt(appId, id, prompt);
         await reload();
         toast.success(t("prompts.saveSuccess"), { closeButton: true });
-      } catch (error) {
+      } catch {
         toast.error(t("prompts.saveFailed"));
-        throw error;
+        throw new Error("save failed");
       }
     },
     [appId, reload, t],
@@ -51,9 +60,9 @@ export function usePromptActions(appId: AppId) {
         await promptsApi.deletePrompt(appId, id);
         await reload();
         toast.success(t("prompts.deleteSuccess"), { closeButton: true });
-      } catch (error) {
+      } catch {
         toast.error(t("prompts.deleteFailed"));
-        throw error;
+        throw new Error("delete failed");
       }
     },
     [appId, reload, t],
@@ -65,27 +74,34 @@ export function usePromptActions(appId: AppId) {
         await promptsApi.enablePrompt(appId, id);
         await reload();
         toast.success(t("prompts.enableSuccess"), { closeButton: true });
-      } catch (error) {
+      } catch {
         toast.error(t("prompts.enableFailed"));
-        throw error;
+        throw new Error("enable failed");
       }
     },
     [appId, reload, t],
   );
 
+  const confirmPendingActivation = useCallback(async () => {
+    if (!pendingActivation) return;
+    const { id } = pendingActivation;
+    setPendingActivation(null);
+    await enablePrompt(id);
+  }, [pendingActivation, enablePrompt]);
+
+  const cancelPendingActivation = useCallback(() => {
+    setPendingActivation(null);
+    void reload();
+  }, [reload]);
+
   const toggleEnabled = useCallback(
     async (id: string, enabled: boolean) => {
-      // Optimistic update
       const previousPrompts = prompts;
 
-      // 如果要启用当前提示词，先禁用其他所有提示词
       if (enabled) {
         const updatedPrompts = Object.keys(prompts).reduce(
           (acc, key) => {
-            acc[key] = {
-              ...prompts[key],
-              enabled: key === id,
-            };
+            acc[key] = { ...prompts[key], enabled: key === id };
             return acc;
           },
           {} as Record<string, Prompt>,
@@ -94,19 +110,21 @@ export function usePromptActions(appId: AppId) {
       } else {
         setPrompts((prev) => ({
           ...prev,
-          [id]: {
-            ...prev[id],
-            enabled: false,
-          },
+          [id]: { ...prev[id], enabled: false },
         }));
       }
 
       try {
         if (enabled) {
+          const dryRun = await dryRunApi.getMode();
+          if (dryRun) {
+            const preview = await promptsApi.previewActivation(appId, id);
+            setPendingActivation({ id, preview });
+            return;
+          }
           await promptsApi.enablePrompt(appId, id);
           toast.success(t("prompts.enableSuccess"), { closeButton: true });
         } else {
-          // 禁用提示词 - 需要后端支持
           await promptsApi.upsertPrompt(appId, id, {
             ...prompts[id],
             enabled: false,
@@ -114,13 +132,12 @@ export function usePromptActions(appId: AppId) {
           toast.success(t("prompts.disableSuccess"), { closeButton: true });
         }
         await reload();
-      } catch (error) {
-        // Rollback on failure
+      } catch {
         setPrompts(previousPrompts);
         toast.error(
           enabled ? t("prompts.enableFailed") : t("prompts.disableFailed"),
         );
-        throw error;
+        throw new Error("toggle failed");
       }
     },
     [appId, prompts, reload, t],
@@ -132,9 +149,9 @@ export function usePromptActions(appId: AppId) {
       await reload();
       toast.success(t("prompts.importSuccess"), { closeButton: true });
       return id;
-    } catch (error) {
+    } catch {
       toast.error(t("prompts.importFailed"));
-      throw error;
+      throw new Error("import failed");
     }
   }, [appId, reload, t]);
 
@@ -142,11 +159,14 @@ export function usePromptActions(appId: AppId) {
     prompts,
     loading,
     currentFileContent,
+    pendingActivation,
     reload,
     savePrompt,
     deletePrompt,
     enablePrompt,
     toggleEnabled,
+    confirmPendingActivation,
+    cancelPendingActivation,
     importFromFile,
   };
 }

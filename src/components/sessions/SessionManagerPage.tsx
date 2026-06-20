@@ -10,6 +10,7 @@ import {
   Search,
   Play,
   Trash2,
+  FileDown,
   MessageSquare,
   Clock,
   FolderOpen,
@@ -52,6 +53,8 @@ import {
   formatSessionMessagePreview,
   formatSessionTitle,
   formatTimestamp,
+  formatSessionExportMarkdown,
+  downloadTextFile,
   getBaseName,
   getProviderIconName,
   getProviderLabel,
@@ -87,6 +90,7 @@ export function SessionManagerPage({ appId }: { appId: string }) {
     () => new Set(),
   );
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isBatchExporting, setIsBatchExporting] = useState(false);
   const [selectionMode, setSelectionMode] = useState(false);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -436,6 +440,49 @@ export function SessionManagerPage({ appId }: { appId: string }) {
     setDeleteTargets(selectedDeletableSessions);
   };
 
+  const handleBatchExport = async () => {
+    if (selectedDeletableSessions.length === 0 || isBatchExporting) {
+      return;
+    }
+
+    setIsBatchExporting(true);
+    try {
+      const parts: string[] = [];
+      for (const session of selectedDeletableSessions) {
+        const messages = await sessionsApi.getMessages(
+          session.providerId,
+          session.sourcePath!,
+        );
+        parts.push(formatSessionExportMarkdown(session, messages));
+      }
+
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, "-")
+        .slice(0, 19);
+      downloadTextFile(
+        parts.join("\n\n---\n\n"),
+        `sessions_export_${timestamp}.md`,
+      );
+
+      toast.success(
+        t("sessionManager.batchExportSuccess", {
+          defaultValue: "已导出 {{count}} 个会话",
+          count: selectedDeletableSessions.length,
+        }),
+      );
+    } catch (error) {
+      toast.error(
+        extractErrorMessage(error) ||
+          t("sessionManager.batchExportFailed", {
+            defaultValue: "批量导出失败，请稍后重试",
+          }),
+      );
+    } finally {
+      setIsBatchExporting(false);
+    }
+  };
+
   const exitSelectionMode = () => {
     setSelectionMode(false);
     setSelectedSessionKeys(new Set());
@@ -742,27 +789,50 @@ export function SessionManagerPage({ appId }: { appId: string }) {
                               })}
                             </Button>
                           </div>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            className="h-7 gap-1.5 px-2.5 whitespace-nowrap justify-self-start min-[520px]:justify-self-end"
-                            onClick={openBatchDeleteDialog}
-                            disabled={
-                              isDeleting ||
-                              selectedDeletableSessions.length === 0
-                            }
-                          >
-                            <Trash2 className="size-3.5" />
-                            <span className="text-xs">
-                              {isBatchDeleting
-                                ? t("sessionManager.batchDeleting", {
-                                    defaultValue: "删除中...",
-                                  })
-                                : t("sessionManager.deleteSelected", {
-                                    defaultValue: "批量删除",
-                                  })}
-                            </span>
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2 justify-self-start min-[520px]:justify-self-end">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2.5 whitespace-nowrap"
+                              onClick={() => void handleBatchExport()}
+                              disabled={
+                                isBatchExporting ||
+                                selectedDeletableSessions.length === 0
+                              }
+                            >
+                              <FileDown className="size-3.5" />
+                              <span className="text-xs">
+                                {isBatchExporting
+                                  ? t("sessionManager.batchExporting", {
+                                      defaultValue: "导出中...",
+                                    })
+                                  : t("sessionManager.exportSelected", {
+                                      defaultValue: "批量导出",
+                                    })}
+                              </span>
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="h-7 gap-1.5 px-2.5 whitespace-nowrap"
+                              onClick={openBatchDeleteDialog}
+                              disabled={
+                                isDeleting ||
+                                selectedDeletableSessions.length === 0
+                              }
+                            >
+                              <Trash2 className="size-3.5" />
+                              <span className="text-xs">
+                                {isBatchDeleting
+                                  ? t("sessionManager.batchDeleting", {
+                                      defaultValue: "删除中...",
+                                    })
+                                  : t("sessionManager.deleteSelected", {
+                                      defaultValue: "批量删除",
+                                    })}
+                              </span>
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     )}

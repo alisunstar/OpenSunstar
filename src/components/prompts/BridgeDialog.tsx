@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { ArrowRightLeft, Link2, AlertTriangle } from "lucide-react";
 import {
@@ -53,6 +54,7 @@ export function BridgeDialog({
   content,
   onBridged,
 }: BridgeDialogProps) {
+  const { t } = useTranslation();
   const [targetApp, setTargetApp] = useState("");
   const [preview, setPreview] = useState<BridgePreview | null>(null);
   const [loading, setLoading] = useState(false);
@@ -100,18 +102,33 @@ export function BridgeDialog({
         warnings: string[];
       };
       if (result.warnings.length > 0) {
-        toast.warning("Bridge created with warnings", {
-          description: result.warnings.join("; "),
-        });
+        toast.warning(
+          t("bridge.createdWithWarnings", {
+            defaultValue: "桥接已创建，但有警告",
+          }),
+          {
+            description: result.warnings.join("; "),
+          },
+        );
       } else {
         const label =
           TARGET_APPS.find((a) => a.id === targetApp)?.label || targetApp;
-        toast.success(`Prompt bridged to ${label}`);
+        toast.success(
+          t("bridge.createdSuccess", {
+            label,
+            defaultValue: "Prompt 已桥接到 {{label}}",
+          }),
+        );
       }
       onBridged?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error(`Bridge failed: ${e}`);
+      toast.error(
+        t("bridge.failed", {
+          error: String(e),
+          defaultValue: "桥接失败：{{error}}",
+        }),
+      );
     } finally {
       setLoading(false);
     }
@@ -123,20 +140,29 @@ export function BridgeDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ArrowRightLeft className="w-5 h-5" />
-            Bridge Prompt
+            {t("bridge.title", { defaultValue: "桥接 Prompt" })}
           </DialogTitle>
           <DialogDescription>
-            Bridge &ldquo;{promptName}&rdquo; to another AI tool. Content will be
-            automatically transformed.
+            {t("bridge.description", {
+              name: promptName,
+              defaultValue:
+                "将「{{name}}」桥接到其他 AI 工具，内容将自动转换格式。",
+            })}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4 px-6">
           <div className="space-y-2">
-            <label className="text-sm font-medium">Target Tool</label>
+            <label className="text-sm font-medium">
+              {t("bridge.targetTool", { defaultValue: "目标工具" })}
+            </label>
             <Select value={targetApp} onValueChange={setTargetApp}>
               <SelectTrigger>
-                <SelectValue placeholder="Select target tool..." />
+                <SelectValue
+                  placeholder={t("bridge.selectTarget", {
+                    defaultValue: "选择目标工具...",
+                  })}
+                />
               </SelectTrigger>
               <SelectContent>
                 {availableTargets.map((app) => (
@@ -150,7 +176,9 @@ export function BridgeDialog({
 
           {previewing && (
             <p className="text-sm text-muted-foreground animate-pulse">
-              Generating preview...
+              {t("bridge.generatingPreview", {
+                defaultValue: "正在生成预览...",
+              })}
             </p>
           )}
 
@@ -172,7 +200,9 @@ export function BridgeDialog({
 
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">
-                  Preview (first 500 chars)
+                  {t("bridge.previewLabel", {
+                    defaultValue: "预览（前 500 字符）",
+                  })}
                 </p>
                 <pre className="text-xs bg-muted/50 rounded-md p-3 max-h-[200px] overflow-auto whitespace-pre-wrap break-words border">
                   {preview.convertedContent.slice(0, 500)}
@@ -186,17 +216,27 @@ export function BridgeDialog({
         <div className="px-6 pb-2">
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div className="space-y-0.5">
-              <p className="text-sm font-medium">Auto-sync on edit</p>
+              <p className="text-sm font-medium">
+                {t("bridge.autoSyncOnEdit", { defaultValue: "编辑时自动同步" })}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Automatically push changes to bridged targets when source is saved
+                {t("bridge.autoSyncDescription", {
+                  defaultValue: "保存源 Prompt 时自动推送变更到已桥接的目标",
+                })}
               </p>
             </div>
             <Switch
               checked={autoPush}
               onCheckedChange={(checked) => {
                 setAutoPush(checked);
-                invoke("set_bridge_auto_push", { enabled: checked }).catch((e) =>
-                  toast.error(`Failed to save setting: ${e}`)
+                invoke("set_bridge_auto_push", { enabled: checked }).catch(
+                  (e) =>
+                    toast.error(
+                      t("bridge.saveSettingFailed", {
+                        error: String(e),
+                        defaultValue: "保存设置失败：{{error}}",
+                      }),
+                    ),
                 );
               }}
             />
@@ -205,15 +245,15 @@ export function BridgeDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("common.cancel", { defaultValue: "取消" })}
           </Button>
           <Button onClick={handleBridge} disabled={!targetApp || loading}>
             {loading ? (
-              "Bridging..."
+              t("bridge.bridging", { defaultValue: "桥接中..." })
             ) : (
               <>
                 <Link2 className="w-4 h-4 mr-1" />
-                Create Bridge
+                {t("bridge.createBridge", { defaultValue: "创建桥接" })}
               </>
             )}
           </Button>

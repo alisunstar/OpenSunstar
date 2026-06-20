@@ -79,6 +79,10 @@ import {
   type PricingModelSourceOption,
 } from "./ProviderAdvancedConfig";
 import {
+  ProviderBudgetLimits,
+  type ProviderBudgetLimitsConfig,
+} from "./ProviderBudgetLimits";
+import {
   useProviderCategory,
   useApiKeyState,
   useBaseUrlState,
@@ -322,6 +326,12 @@ function ProviderFormFull({
       initialData?.meta?.pricingModelSource,
     ),
   }));
+  const [budgetLimits, setBudgetLimits] = useState<ProviderBudgetLimitsConfig>(
+    () => ({
+      limitDailyUsd: initialData?.meta?.limitDailyUsd,
+      limitMonthlyUsd: initialData?.meta?.limitMonthlyUsd,
+    }),
+  );
 
   const { category } = useProviderCategory({
     appId,
@@ -353,6 +363,10 @@ function ProviderFormFull({
       pricingModelSource: normalizePricingSource(
         initialData?.meta?.pricingModelSource,
       ),
+    });
+    setBudgetLimits({
+      limitDailyUsd: initialData?.meta?.limitDailyUsd,
+      limitMonthlyUsd: initialData?.meta?.limitMonthlyUsd,
     });
     setCodexChatReasoning(initialData?.meta?.codexChatReasoning ?? {});
     setCustomUserAgent(initialData?.meta?.customUserAgent ?? "");
@@ -967,6 +981,25 @@ function ProviderFormFull({
       return;
     }
 
+    const dailyLimit = budgetLimits.limitDailyUsd?.trim();
+    const monthlyLimit = budgetLimits.limitMonthlyUsd?.trim();
+    if (dailyLimit && !isNonNegativeDecimalString(dailyLimit)) {
+      toast.error(
+        t("providerBudget.dailyLimitInvalid", {
+          defaultValue: "日预算必须为非负数",
+        }),
+      );
+      return;
+    }
+    if (monthlyLimit && !isNonNegativeDecimalString(monthlyLimit)) {
+      toast.error(
+        t("providerBudget.monthlyLimitInvalid", {
+          defaultValue: "月预算必须为非负数",
+        }),
+      );
+      return;
+    }
+
     // opencode / openclaw / hermes: providerKey 相关
     // A 类（空）归到 issues；B 类（正则不合法 / 重复 / 状态加载中）仍硬拒绝
     const keyPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -1402,6 +1435,8 @@ function ProviderFormFull({
         pricingConfig.enabled && pricingConfig.pricingModelSource !== "inherit"
           ? pricingConfig.pricingModelSource
           : undefined,
+      limitDailyUsd: dailyLimit || undefined,
+      limitMonthlyUsd: monthlyLimit || undefined,
       apiFormat:
         appId === "claude" && category !== "official"
           ? localApiFormat
@@ -2314,6 +2349,11 @@ function ProviderFormFull({
               {settingsConfigErrorField}
             </>
           )}
+
+          <ProviderBudgetLimits
+            config={budgetLimits}
+            onChange={setBudgetLimits}
+          />
 
           {!isAnyOmoCategory &&
             appId !== "opencode" &&

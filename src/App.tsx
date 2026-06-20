@@ -26,6 +26,12 @@ import type { McpDiscoveryPageHandle } from "@/components/mcp/McpDiscoveryPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import PromptPanel from "@/components/prompts/PromptPanel";
+import CommandsPanel from "@/components/commands/CommandsPanel";
+import HooksPanel from "@/components/hooks/HooksPanel";
+import { ConvertPage } from "@/components/convert/ConvertPage";
+import IgnorePanel from "@/components/ignore/IgnorePanel";
+import PermissionsPanel from "@/components/permissions/PermissionsPanel";
+import AgentsPanel from "@/components/agents/AgentsPanel";
 import { SkillsPage } from "@/components/skills/SkillsPage";
 import UnifiedSkillsPanel from "@/components/skills/UnifiedSkillsPanel";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
@@ -38,6 +44,7 @@ import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { useProjects } from "@/hooks/useProjects";
 import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
+import { useSettingsQuery } from "@/lib/query";
 
 // ── 类型 ──────────────────────────────────────────
 
@@ -45,6 +52,12 @@ export type PageView =
   | "mcp"
   | "mcpDiscovery"
   | "prompts"
+  | "commands"
+  | "hooks"
+  | "convert"
+  | "ignore"
+  | "permissions"
+  | "agents"
   | "skills"
   | "skillsDiscovery"
   | "sessions"
@@ -74,6 +87,12 @@ const VALID_VIEWS: PageView[] = [
   "mcp",
   "mcpDiscovery",
   "prompts",
+  "commands",
+  "hooks",
+  "convert",
+  "ignore",
+  "permissions",
+  "agents",
   "skills",
   "skillsDiscovery",
   "sessions",
@@ -115,13 +134,19 @@ interface PageMeta {
 const PAGE_META: Record<PageView, PageMeta> = {
   mcp: { titleKey: "mcp.title", defaultTitle: "MCP" },
   mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "发现 MCP" },
-  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts" },
+  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts&rules" },
+  commands: { titleKey: "commands.title", defaultTitle: "命令管理" },
+  hooks: { titleKey: "hooks.title", defaultTitle: "钩子管理" },
+  convert: { titleKey: "convert.title", defaultTitle: "配置转换" },
+  ignore: { titleKey: "ignore.title", defaultTitle: "忽略规则" },
+  permissions: { titleKey: "permissions.title", defaultTitle: "工具权限" },
+  agents: { titleKey: "agents.title", defaultTitle: "Subagent 管理" },
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
   skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "发现 Skills" },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "同步备份" },
   kanban: { titleKey: "sidebar.kanban", defaultTitle: "项目看板" },
-  tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI 用量" },
+  tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   settings: { titleKey: "common.settings", defaultTitle: "设置" },
 };
 
@@ -139,6 +164,7 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useBudgetAlerts();
+  const { data: settings } = useSettingsQuery();
 
   useEffect(() => {
     invoke<boolean>("is_onboarding_needed")
@@ -159,9 +185,19 @@ function App() {
   }, [targetApp]);
 
   const dragBarHeight = DEFAULT_DRAG_BAR_HEIGHT;
-  const contentTopOffset = dragBarHeight + HEADER_HEIGHT;
+  const useAppWindowControls = settings?.useAppWindowControls ?? false;
+  // macOS 叠加标题栏需要自定义拖拽区；Win/Linux 默认用系统标题栏，不额外占位
+  const needsCustomTitlebar = dragBarHeight > 0 || useAppWindowControls;
+  const contentTopOffset = needsCustomTitlebar
+    ? dragBarHeight + HEADER_HEIGHT
+    : 0;
 
   // ── Refs ────────────────────────────────────
+  const commandsPanelRef = useRef<any>(null);
+  const hooksPanelRef = useRef<any>(null);
+  const ignorePanelRef = useRef<any>(null);
+  const permissionsPanelRef = useRef<any>(null);
+  const agentsPanelRef = useRef<any>(null);
   const promptPanelRef = useRef<any>(null);
   const mcpPanelRef = useRef<any>(null);
   const mcpDiscoveryPageRef = useRef<McpDiscoveryPageHandle>(null);
@@ -276,6 +312,18 @@ function App() {
             appId={effectiveTargetApp}
           />
         );
+      case "commands":
+        return <CommandsPanel ref={commandsPanelRef} open={true} />;
+      case "hooks":
+        return <HooksPanel ref={hooksPanelRef} open={true} />;
+      case "convert":
+        return <ConvertPage />;
+      case "ignore":
+        return <IgnorePanel ref={ignorePanelRef} open={true} />;
+      case "permissions":
+        return <PermissionsPanel ref={permissionsPanelRef} open={true} />;
+      case "agents":
+        return <AgentsPanel ref={agentsPanelRef} open={true} />;
       case "skills":
         return (
           <UnifiedSkillsPanel
@@ -344,6 +392,66 @@ function App() {
           >
             <Plus className="w-4 h-4 mr-1" />
             {t("prompts.add", { defaultValue: "添加" })}
+          </Button>
+        );
+      case "commands":
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => commandsPanelRef.current?.openAdd()}
+            className="hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {t("commands.add", { defaultValue: "添加命令" })}
+          </Button>
+        );
+      case "hooks":
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => hooksPanelRef.current?.openAdd()}
+            className="hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {t("hooks.add", { defaultValue: "添加钩子" })}
+          </Button>
+        );
+      case "ignore":
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => ignorePanelRef.current?.openAdd()}
+            className="hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {t("ignore.add", { defaultValue: "添加规则" })}
+          </Button>
+        );
+      case "permissions":
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => permissionsPanelRef.current?.openAdd()}
+            className="hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {t("permissions.add", { defaultValue: "添加权限" })}
+          </Button>
+        );
+      case "agents":
+        return (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => agentsPanelRef.current?.openAdd()}
+            className="hover:bg-black/5 dark:hover:bg-white/5"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            {t("agents.add", { defaultValue: "添加 Subagent" })}
           </Button>
         );
       case "mcp":
@@ -467,6 +575,9 @@ function App() {
     "mcp",
     "mcpDiscovery",
     "prompts",
+    "commands",
+    "hooks",
+    "agents",
     "skills",
     "skillsDiscovery",
   ].includes(currentView);
@@ -485,16 +596,20 @@ function App() {
         <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
       )}
 
-      {/* ── Titlebar（拖拽区域）───────────────── */}
-      <header
-        className="fixed z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"
-        {...DRAG_REGION_ATTR}
-        style={{
-          ...DRAG_REGION_STYLE,
-          top: dragBarHeight,
-          height: HEADER_HEIGHT,
-        } as React.CSSProperties}
-      />
+      {/* ── Titlebar（macOS 叠加标题栏 / 应用级窗口按钮时显示）── */}
+      {needsCustomTitlebar && (
+        <header
+          className="fixed z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"
+          {...DRAG_REGION_ATTR}
+          style={
+            {
+              ...DRAG_REGION_STYLE,
+              top: dragBarHeight,
+              height: HEADER_HEIGHT,
+            } as React.CSSProperties
+          }
+        />
+      )}
 
       {/* ── Body：Sidebar + Content ──────────── */}
       <TooltipProvider delayDuration={300}>

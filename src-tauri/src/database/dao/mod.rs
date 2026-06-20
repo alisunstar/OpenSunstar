@@ -2,8 +2,13 @@
 //!
 //! Database access operations for each domain
 
+pub mod agent;
+pub mod command;
 pub mod failover;
+pub mod hook;
+pub mod ignore;
 pub mod mcp;
+pub mod permission;
 pub mod projects;
 pub mod prompts;
 pub mod providers;

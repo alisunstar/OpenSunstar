@@ -41,7 +41,7 @@ export function ShortcutsHelp({ open, onOpenChange }: ShortcutsHelpProps) {
         },
         {
           key: "Alt+5",
-          description: t("shortcuts.tokenStats", { defaultValue: "AI 用量" }),
+          description: t("shortcuts.tokenStats", { defaultValue: "AI Tokens" }),
         },
         {
           key: "Alt+6",

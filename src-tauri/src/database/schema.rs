@@ -76,6 +76,11 @@ impl Database {
         conn.execute("CREATE TABLE IF NOT EXISTS prompts (
             id TEXT NOT NULL, app_type TEXT NOT NULL, name TEXT NOT NULL, content TEXT NOT NULL,
             description TEXT, enabled BOOLEAN NOT NULL DEFAULT 1, created_at INTEGER, updated_at INTEGER,
+            targets TEXT NOT NULL DEFAULT '[\"*\"]',
+            globs TEXT NOT NULL DEFAULT '[]',
+            priority INTEGER NOT NULL DEFAULT 0,
+            is_fragment BOOLEAN NOT NULL DEFAULT 0,
+            parent_prompt_id TEXT,
             PRIMARY KEY (id, app_type)
         )", []).map_err(|e| AppError::Database(e.to_string()))?;
 
@@ -355,6 +360,21 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+        // 23. Commands 表（slash 命令管理）
+        Self::create_commands_table(conn)?;
+
+        // 24. Hooks 表（Claude Code 生命周期钩子）
+        Self::create_hooks_table(conn)?;
+
+        // 25. Ignore 规则表
+        Self::create_ignore_rules_table(conn)?;
+
+        // 26. Tool permissions 表
+        Self::create_tool_permissions_table(conn)?;
+
+        // 27. Agents 表（Subagent 管理）
+        Self::create_agents_table(conn)?;
+
         // 尝试添加 live_takeover_active 列到 proxy_config 表
         let _ = conn.execute(
             "ALTER TABLE proxy_config ADD COLUMN live_takeover_active INTEGER NOT NULL DEFAULT 0",
@@ -518,6 +538,26 @@ impl Database {
                         log::info!("迁移数据库从 v13 到 v14（项目级配置隔离 - 方案 E）");
                         Self::migrate_v13_to_v14(conn)?;
                         Self::set_user_version(conn, 14)?;
+                    }
+                    14 => {
+                        log::info!("迁移数据库从 v14 到 v15（Commands + Hooks 管理）");
+                        Self::migrate_v14_to_v15(conn)?;
+                        Self::set_user_version(conn, 15)?;
+                    }
+                    15 => {
+                        log::info!("迁移数据库从 v15 到 v16（Ignore + Permissions 管理）");
+                        Self::migrate_v15_to_v16(conn)?;
+                        Self::set_user_version(conn, 16)?;
+                    }
+                    16 => {
+                        log::info!("迁移数据库从 v16 到 v17（Prompts fragments + dry run）");
+                        Self::migrate_v16_to_v17(conn)?;
+                        Self::set_user_version(conn, 17)?;
+                    }
+                    17 => {
+                        log::info!("迁移数据库从 v17 到 v18（Agents / Subagents 管理）");
+                        Self::migrate_v17_to_v18(conn)?;
+                        Self::set_user_version(conn, 18)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1541,6 +1581,181 @@ impl Database {
         .map_err(|e| AppError::Database(format!("创建 project_prompts 表失败: {e}")))?;
 
         log::info!("v13 -> v14 迁移完成：已创建项目级配置隔离表（projects + 3 张中间表）");
+        Ok(())
+    }
+
+    /// v14 -> v15: Commands + Hooks 管理（M1）
+    fn migrate_v14_to_v15(conn: &Connection) -> Result<(), AppError> {
+        Self::create_commands_table(conn)?;
+        Self::create_hooks_table(conn)?;
+        log::info!("v14 -> v15 迁移完成：已创建 commands 和 hooks 表");
+        Ok(())
+    }
+
+    fn create_commands_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS commands (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                content TEXT NOT NULL,
+                arguments TEXT NOT NULL DEFAULT '[]',
+                enabled_claude BOOLEAN NOT NULL DEFAULT 0,
+                enabled_codex BOOLEAN NOT NULL DEFAULT 0,
+                enabled_gemini BOOLEAN NOT NULL DEFAULT 0,
+                enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
+                enabled_hermes BOOLEAN NOT NULL DEFAULT 0,
+                created_at INTEGER,
+                updated_at INTEGER
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 commands 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_commands_name ON commands(name)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_commands_name 失败: {e}")))?;
+        Ok(())
+    }
+
+    fn create_hooks_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS hooks (
+                id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                tool_pattern TEXT NOT NULL DEFAULT '*',
+                hook_command TEXT NOT NULL,
+                timeout_seconds INTEGER NOT NULL DEFAULT 30,
+                enabled_claude BOOLEAN NOT NULL DEFAULT 1,
+                description TEXT,
+                sort_index INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 hooks 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_hooks_event ON hooks(event_type)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_hooks_event 失败: {e}")))?;
+        Ok(())
+    }
+
+    /// v16 -> v17: Prompts fragment 字段扩展（M4 / F6）
+    fn migrate_v16_to_v17(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(
+            conn,
+            "prompts",
+            "targets",
+            "TEXT NOT NULL DEFAULT '[\"*\"]'",
+        )?;
+        Self::add_column_if_missing(conn, "prompts", "globs", "TEXT NOT NULL DEFAULT '[]'")?;
+        Self::add_column_if_missing(
+            conn,
+            "prompts",
+            "priority",
+            "INTEGER NOT NULL DEFAULT 0",
+        )?;
+        Self::add_column_if_missing(
+            conn,
+            "prompts",
+            "is_fragment",
+            "BOOLEAN NOT NULL DEFAULT 0",
+        )?;
+        Self::add_column_if_missing(conn, "prompts", "parent_prompt_id", "TEXT")?;
+        log::info!("v16 -> v17 迁移完成：已扩展 prompts 表 fragment 字段");
+        Ok(())
+    }
+
+    /// v17 -> v18: Agents / Subagents 管理（M5 / F8）
+    fn migrate_v17_to_v18(conn: &Connection) -> Result<(), AppError> {
+        Self::create_agents_table(conn)?;
+        log::info!("v17 -> v18 迁移完成：已创建 agents 表");
+        Ok(())
+    }
+
+    fn create_agents_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS agents (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                description TEXT,
+                content TEXT NOT NULL,
+                enabled_claude BOOLEAN NOT NULL DEFAULT 0,
+                enabled_codex BOOLEAN NOT NULL DEFAULT 0,
+                enabled_gemini BOOLEAN NOT NULL DEFAULT 0,
+                enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
+                enabled_hermes BOOLEAN NOT NULL DEFAULT 0,
+                created_at INTEGER,
+                updated_at INTEGER
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 agents 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_agents_name ON agents(name)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_agents_name 失败: {e}")))?;
+        Ok(())
+    }
+
+    /// v15 -> v16: Ignore + Permissions 管理（M3）
+    fn migrate_v15_to_v16(conn: &Connection) -> Result<(), AppError> {
+        Self::create_ignore_rules_table(conn)?;
+        Self::create_tool_permissions_table(conn)?;
+        log::info!("v15 -> v16 迁移完成：已创建 ignore_rules 和 tool_permissions 表");
+        Ok(())
+    }
+
+    fn create_ignore_rules_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS ignore_rules (
+                id TEXT PRIMARY KEY,
+                pattern TEXT NOT NULL,
+                description TEXT,
+                enabled_claude BOOLEAN NOT NULL DEFAULT 0,
+                enabled_codex BOOLEAN NOT NULL DEFAULT 0,
+                enabled_gemini BOOLEAN NOT NULL DEFAULT 0,
+                enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
+                enabled_hermes BOOLEAN NOT NULL DEFAULT 0,
+                sort_index INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 ignore_rules 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ignore_rules_pattern ON ignore_rules(pattern)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_ignore_rules_pattern 失败: {e}")))?;
+        Ok(())
+    }
+
+    fn create_tool_permissions_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS tool_permissions (
+                id TEXT PRIMARY KEY,
+                permission_type TEXT NOT NULL CHECK (permission_type IN (
+                    'allowedTools', 'deniedTools', 'autoApprove'
+                )),
+                tool_pattern TEXT NOT NULL,
+                enabled_claude BOOLEAN NOT NULL DEFAULT 1,
+                description TEXT,
+                sort_index INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 tool_permissions 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_tool_permissions_type ON tool_permissions(permission_type)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_tool_permissions_type 失败: {e}")))?;
         Ok(())
     }
 

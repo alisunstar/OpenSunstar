@@ -11,26 +11,38 @@ interface AppToggleGroupProps {
   apps: Partial<Record<AppId, boolean>>;
   onToggle: (app: AppId, enabled: boolean) => void;
   appIds?: AppId[];
+  /** 禁用项：展示图标但不可点击，tooltip 显示原因 */
+  disabledApps?: Partial<Record<AppId, string>>;
 }
 
 export const AppToggleGroup: React.FC<AppToggleGroupProps> = ({
   apps,
   onToggle,
   appIds = APP_IDS,
+  disabledApps = {},
 }) => {
   return (
     <div className="flex items-center gap-1.5 flex-shrink-0">
       {appIds.map((app) => {
         const { label, icon, activeClass } = APP_ICON_MAP[app];
         const enabled = apps[app];
+        const disabledReason = disabledApps[app];
+        const isDisabled = Boolean(disabledReason);
         return (
           <Tooltip key={app}>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                onClick={() => onToggle(app, !enabled)}
+                disabled={isDisabled}
+                onClick={() => {
+                  if (!isDisabled) onToggle(app, !enabled);
+                }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${
-                  enabled ? activeClass : "opacity-35 hover:opacity-70"
+                  isDisabled
+                    ? "opacity-25 cursor-not-allowed"
+                    : enabled
+                      ? activeClass
+                      : "opacity-35 hover:opacity-70"
                 }`}
               >
                 {icon}
@@ -39,7 +51,11 @@ export const AppToggleGroup: React.FC<AppToggleGroupProps> = ({
             <TooltipContent side="bottom">
               <p>
                 {label}
-                {enabled ? " ✓" : ""}
+                {isDisabled
+                  ? ` — ${disabledReason}`
+                  : enabled
+                    ? " ✓"
+                    : ""}
               </p>
             </TooltipContent>
           </Tooltip>

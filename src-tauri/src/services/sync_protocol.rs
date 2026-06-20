@@ -544,6 +544,8 @@ mod tests {
             created_at: "2026-02-12T00:00:00Z".to_string(),
             artifacts,
             snapshot_id: "snap-1".to_string(),
+            encrypted: None,
+            key_id: None,
         }
     }
 
