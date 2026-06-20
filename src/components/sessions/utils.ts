@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { createElement } from "react";
-import { SessionMeta } from "@/types";
+import { SessionMessage, SessionMeta } from "@/types";
 
 const CODEX_IDE_CONTEXT_PREFIX = "# Context from my IDE setup:";
 const CODEX_REQUEST_MARKER = "my request for codex";
@@ -129,6 +129,45 @@ export const formatSessionTitle = (session: SessionMeta) => {
     getBaseName(session.projectDir) ||
     session.sessionId.slice(0, 8)
   );
+};
+
+export const formatSessionExportMarkdown = (
+  session: SessionMeta,
+  messages: SessionMessage[],
+) => {
+  const title = formatSessionTitle(session);
+  const lines = [
+    `# ${title}`,
+    "",
+    `- **Provider**: ${session.providerId}`,
+    `- **Session ID**: ${session.sessionId}`,
+  ];
+
+  if (session.projectDir) {
+    lines.push(`- **Project**: ${session.projectDir}`);
+  }
+
+  lines.push(`- **Exported**: ${new Date().toISOString()}`, "", "---", "");
+
+  for (const message of messages) {
+    lines.push(`### ${message.role}`, "", message.content, "");
+  }
+
+  return lines.join("\n");
+};
+
+export const downloadTextFile = (content: string, filename: string) => {
+  const blob = new Blob([content], {
+    type: "text/markdown;charset=utf-8",
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(url);
 };
 
 export const shouldHideCodexMessageFromToc = (content: string) => {

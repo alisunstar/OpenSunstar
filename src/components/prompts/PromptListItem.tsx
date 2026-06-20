@@ -25,16 +25,26 @@ const PromptListItem: React.FC<PromptListItemProps> = ({
   const { t } = useTranslation();
 
   const enabled = prompt.enabled === true;
+  const isFragment = prompt.isFragment === true;
 
   return (
-    <div className="group relative h-16 rounded-xl border border-border-default bg-muted/50 p-4 transition-all duration-300 hover:bg-muted hover:border-border-default/80 hover:shadow-sm">
-      <div className="flex items-center gap-4 h-full">
-        {/* Toggle 开关 */}
+    <div
+      className={`group relative rounded-xl border border-border-default bg-muted/50 p-4 transition-all duration-300 hover:bg-muted hover:border-border-default/80 hover:shadow-sm ${
+        isFragment ? "ml-4 border-l-2 border-l-violet-500/40" : "h-16"
+      }`}
+    >
+      <div className={`flex items-center gap-4 ${isFragment ? "" : "h-full"}`}>
         <div className="flex-shrink-0">
-          <PromptToggle
-            enabled={enabled}
-            onChange={(newEnabled) => onToggle(id, newEnabled)}
-          />
+          {!isFragment ? (
+            <PromptToggle
+              enabled={enabled}
+              onChange={(newEnabled) => onToggle(id, newEnabled)}
+            />
+          ) : (
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-500 px-2">
+              {t("prompts.fragment.badge", { defaultValue: "片段" })}
+            </span>
+          )}
         </div>
 
         <div className="flex-1 min-w-0">

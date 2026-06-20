@@ -8,6 +8,8 @@ mod claude_plugin;
 mod codex_config;
 mod codex_history_migration;
 mod commands;
+mod agent;
+mod command;
 mod config;
 mod database;
 mod deeplink;
@@ -15,6 +17,9 @@ mod error;
 mod gemini_config;
 mod gemini_mcp;
 pub mod hermes_config;
+mod hook;
+mod ignore_rule;
+mod tool_permission;
 mod init_status;
 pub mod keychain;
 mod lightweight;
@@ -599,6 +604,7 @@ pub fn run() {
                                             enabled,
                                             created_at,
                                             updated_at,
+                                            ..Default::default()
                                         };
                                         if app_state.db.save_prompt(&app_type, &prompt).is_ok() {
                                             migrated += 1;
@@ -866,7 +872,7 @@ pub fn run() {
                 ] {
                     match crate::services::prompt::PromptService::import_from_file_on_first_launch(
                         &app_state,
-                        app.clone(),
+                        &app,
                     ) {
                         Ok(count) if count > 0 => {
                             log::info!("✓ Imported {count} prompt(s) for {}", app.as_str());
@@ -1328,6 +1334,9 @@ pub fn run() {
             commands::upsert_prompt,
             commands::delete_prompt,
             commands::enable_prompt,
+            commands::preview_prompt_activation,
+            commands::get_dry_run_mode,
+            commands::set_dry_run_mode,
             commands::import_prompt_from_file,
             commands::get_current_prompt_file_content,
             // Prompt bridge
@@ -1338,6 +1347,10 @@ pub fn run() {
             commands::preview_bridge,
             commands::get_bridge_auto_push,
             commands::set_bridge_auto_push,
+            // Config convert wizard (F3)
+            commands::detect_convert_sources,
+            commands::preview_convert,
+            commands::apply_convert,
             // model list fetch (OpenAI-compatible /v1/models)
             commands::fetch_models_for_config,
             // ours: endpoint speed test + custom endpoint management
@@ -1602,6 +1615,34 @@ pub fn run() {
             commands::link_project_prompt,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
+            // Commands & Hooks (v0.6.5 M1)
+            commands::get_all_commands,
+            commands::upsert_command,
+            commands::delete_command,
+            commands::toggle_command_app,
+            commands::get_all_agents,
+            commands::upsert_agent,
+            commands::delete_agent,
+            commands::toggle_agent_app,
+            commands::preview_agent_codex_toml,
+            commands::get_all_hooks,
+            commands::upsert_hook,
+            commands::delete_hook,
+            commands::sync_hooks,
+            // Ignore rules (F4)
+            commands::get_all_ignore_rules,
+            commands::upsert_ignore_rule,
+            commands::delete_ignore_rule,
+            commands::toggle_ignore_app,
+            commands::import_ignore_from_gitignore,
+            commands::sync_ignore_rules,
+            // Tool permissions (F5)
+            commands::get_all_tool_permissions,
+            commands::upsert_tool_permission,
+            commands::delete_tool_permission,
+            commands::sync_tool_permissions,
+            commands::get_permission_presets,
+            commands::apply_permission_preset,
         ]);
 
     let app = builder

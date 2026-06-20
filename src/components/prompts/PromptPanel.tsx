@@ -7,6 +7,7 @@ import PromptListItem from "./PromptListItem";
 import PromptFormPanel from "./PromptFormPanel";
 import { BridgeDialog } from "./BridgeDialog";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { DiffConfirmDialog } from "../DiffConfirmDialog";
 
 interface PromptPanelProps {
   open: boolean;
@@ -43,6 +44,9 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
       savePrompt,
       deletePrompt,
       toggleEnabled,
+      pendingActivation,
+      confirmPendingActivation,
+      cancelPendingActivation,
     } = usePromptActions(appId);
 
     useEffect(() => {
@@ -108,6 +112,14 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
 
     const enabledPrompt = promptEntries.find(([_, p]) => p.enabled);
 
+    const parentPrompts = useMemo(
+      () =>
+        promptEntries
+          .filter(([_, p]) => !p.isFragment)
+          .map(([id, p]) => ({ id, name: p.name })),
+      [promptEntries],
+    );
+
     return (
       <div className="flex flex-col flex-1 min-h-0 px-6">
         <div className="flex-shrink-0 py-4 glass rounded-xl border border-white/10 mb-4 px-6">
@@ -158,6 +170,7 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
             appId={appId}
             editingId={editingId || undefined}
             initialData={editingId ? prompts[editingId] : undefined}
+            parentPrompts={parentPrompts}
             onSave={savePrompt}
             onClose={() => setIsFormOpen(false)}
           />
@@ -184,6 +197,25 @@ const PromptPanel = React.forwardRef<PromptPanelHandle, PromptPanelProps>(
             message={t(confirmDialog.messageKey, confirmDialog.messageParams)}
             onConfirm={confirmDialog.onConfirm}
             onCancel={() => setConfirmDialog(null)}
+          />
+        )}
+
+        {pendingActivation && (
+          <DiffConfirmDialog
+            isOpen
+            title={t("dryRun.promptActivationTitle", {
+              defaultValue: "Prompt 激活预览",
+            })}
+            description={t("dryRun.promptActivationDesc", {
+              defaultValue: "预览模式已开启，确认后将写入目标文件",
+            })}
+            filePath={pendingActivation.preview.filePath}
+            leftLabel={t("dryRun.current", { defaultValue: "当前文件" })}
+            rightLabel={t("dryRun.after", { defaultValue: "激活后" })}
+            currentContent={pendingActivation.preview.currentContent}
+            newContent={pendingActivation.preview.newContent}
+            onConfirm={() => void confirmPendingActivation()}
+            onCancel={cancelPendingActivation}
           />
         )}
       </div>

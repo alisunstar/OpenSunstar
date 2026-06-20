@@ -2,12 +2,18 @@ import { useState, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
+  EyeOff,
+  Shield,
+  ArrowRightLeft,
   LayoutDashboard,
   Server,
   BookOpen,
   Wrench,
   History,
   Activity,
+  Terminal,
+  Webhook,
+  Bot,
   LayoutGrid,
   Coins,
   Settings,
@@ -55,6 +61,12 @@ const AGENT_CONFIG_VIEWS: PageView[] = [
   "mcp",
   "mcpDiscovery",
   "prompts",
+  "commands",
+  "hooks",
+  "convert",
+  "ignore",
+  "permissions",
+  "agents",
   "skills",
   "skillsDiscovery",
 ];
@@ -200,19 +212,61 @@ export function Sidebar({
                 indent
               />
               <SidebarItem
-                icon={<BookOpen className="w-4 h-4" />}
-                label="Prompts"
-                active={activeView === "prompts"}
-                onClick={() => onNavigate("prompts")}
-                indent
-              />
-              <SidebarItem
                 icon={<Wrench className="w-4 h-4" />}
                 label={t("skills.manage", { defaultValue: "Skills" })}
                 active={
                   activeView === "skills" || activeView === "skillsDiscovery"
                 }
                 onClick={() => onNavigate("skills")}
+                indent
+              />
+              <SidebarItem
+                icon={<BookOpen className="w-4 h-4" />}
+                label={t("prompts.manage", { defaultValue: "Prompts&rules" })}
+                active={activeView === "prompts"}
+                onClick={() => onNavigate("prompts")}
+                indent
+              />
+              <SidebarItem
+                icon={<Terminal className="w-4 h-4" />}
+                label={t("commands.title", { defaultValue: "命令管理" })}
+                active={activeView === "commands"}
+                onClick={() => onNavigate("commands")}
+                indent
+              />
+              <SidebarItem
+                icon={<Webhook className="w-4 h-4" />}
+                label={t("hooks.title", { defaultValue: "钩子管理" })}
+                active={activeView === "hooks"}
+                onClick={() => onNavigate("hooks")}
+                indent
+              />
+              <SidebarItem
+                icon={<ArrowRightLeft className="w-4 h-4" />}
+                label={t("convert.title", { defaultValue: "配置转换" })}
+                active={activeView === "convert"}
+                onClick={() => onNavigate("convert")}
+                indent
+              />
+              <SidebarItem
+                icon={<EyeOff className="w-4 h-4" />}
+                label={t("ignore.title", { defaultValue: "忽略规则" })}
+                active={activeView === "ignore"}
+                onClick={() => onNavigate("ignore")}
+                indent
+              />
+              <SidebarItem
+                icon={<Shield className="w-4 h-4" />}
+                label={t("permissions.title", { defaultValue: "工具权限" })}
+                active={activeView === "permissions"}
+                onClick={() => onNavigate("permissions")}
+                indent
+              />
+              <SidebarItem
+                icon={<Bot className="w-4 h-4" />}
+                label={t("agents.title", { defaultValue: "Subagent" })}
+                active={activeView === "agents"}
+                onClick={() => onNavigate("agents")}
                 indent
               />
             </SidebarMenu>
@@ -231,7 +285,7 @@ export function Sidebar({
 
             <SidebarItem
               icon={<Coins className="w-4 h-4" />}
-              label={t("sidebar.tokenStats", { defaultValue: "AI 用量" })}
+              label={t("sidebar.tokenStats", { defaultValue: "AI Tokens" })}
               active={activeView === "tokenStats"}
               onClick={() => onNavigate("tokenStats")}
             />

@@ -105,9 +105,13 @@ export function SyncBackupPage() {
             <div className="flex items-center gap-3">
               <Github className="h-5 w-5 text-gray-800 dark:text-gray-200" />
               <div className="text-left">
-                <h3 className="text-base font-semibold">GitHub Gist Sync</h3>
+                <h3 className="text-base font-semibold">
+                  {t("gistSync.title", { defaultValue: "GitHub Gist 同步" })}
+                </h3>
                 <p className="text-sm text-muted-foreground font-normal">
-                  Sync settings and skills via private GitHub Gist
+                  {t("gistSync.description", {
+                    defaultValue: "通过私有 GitHub Gist 同步设置与 Skills",
+                  })}
                 </p>
               </div>
             </div>

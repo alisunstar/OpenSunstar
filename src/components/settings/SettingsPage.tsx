@@ -9,6 +9,7 @@ import {
   ScrollText,
   HardDriveDownload,
   FlaskConical,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -38,11 +39,13 @@ import { DirectorySettings } from "@/components/settings/DirectorySettings";
 import { ImportExportSection } from "@/components/settings/ImportExportSection";
 import { BackupListSection } from "@/components/settings/BackupListSection";
 import { WebdavSyncSection } from "@/components/settings/WebdavSyncSection";
+import { GistSyncSection } from "@/components/sync/GistSyncSection";
 import { AboutSection } from "@/components/settings/AboutSection";
 import { ModelTestConfigPanel } from "@/components/usage/ModelTestConfigPanel";
 import { UsageDashboard } from "@/components/usage/UsageDashboard";
 import { LogConfigPanel } from "@/components/settings/LogConfigPanel";
 import { CodexAuthSettings } from "@/components/settings/CodexAuthSettings";
+import { DryRunSettings } from "@/components/settings/DryRunSettings";
 import { AiProviderSettings } from "@/components/settings/AiProviderSettings";
 import { useInstalledSkills } from "@/hooks/useSkills";
 import { useSettings } from "@/hooks/useSettings";
@@ -387,13 +390,16 @@ export function SettingsPageContent({
                             </div>
                           </div>
                         </AccordionTrigger>
-                        <AccordionContent className="px-6 pb-6 pt-4 border-t border-border/50">
+                        <AccordionContent className="px-6 pb-6 pt-4 border-t border-border/50 space-y-8">
                           <WebdavSyncSection
                             config={settings?.webdavSync}
                             s3Config={settings?.s3Sync}
                             settings={settings}
                             onAutoSave={handleAutoSave}
                           />
+                          <div className="border-t border-border/50 pt-6">
+                            <GistSyncSection />
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
 
@@ -416,6 +422,33 @@ export function SettingsPageContent({
                         </AccordionTrigger>
                         <AccordionContent className="px-6 pb-6 pt-4 border-t border-border/50">
                           <ModelTestConfigPanel />
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem
+                        value="dryRun"
+                        className="rounded-xl glass-card"
+                      >
+                        <AccordionTrigger className="px-6 py-4 hover:no-underline hover:bg-muted/50 data-[state=open]:bg-muted/50">
+                          <div className="flex items-center gap-3">
+                            <Eye className="h-5 w-5 text-sky-500" />
+                            <div className="text-left">
+                              <h3 className="text-base font-semibold">
+                                {t("dryRun.settingsTitle", {
+                                  defaultValue: "预览模式（Dry Run）",
+                                })}
+                              </h3>
+                              <p className="text-sm text-muted-foreground font-normal">
+                                {t("dryRun.settingsDescription", {
+                                  defaultValue:
+                                    "写入前预览 Diff，确认后再应用到磁盘",
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent className="px-6 pb-6 pt-4 border-t border-border/50">
+                          <DryRunSettings />
                         </AccordionContent>
                       </AccordionItem>
 

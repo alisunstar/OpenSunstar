@@ -790,9 +790,10 @@ impl MultiAppConfig {
             ),
             content,
             description: Some("Automatically imported on first launch".to_string()),
-            enabled: true, // 自动启用
+            enabled: true,
             created_at: Some(timestamp),
             updated_at: Some(timestamp),
+            ..Default::default()
         };
 
         // 插入到对应的应用配置中

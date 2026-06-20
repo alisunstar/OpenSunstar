@@ -355,7 +355,7 @@
       },
       "cloudSync": {
         "title": "云同步",
-        "description": "通过 WebDAV 在多设备间同步数据"
+        "description": "通过 WebDAV、S3 或 GitHub Gist 在多设备间同步数据"
       },
       "rectifier": {
         "title": "整流器",
@@ -870,7 +870,11 @@
     "sessionList": "会话列表",
     "manageBatchTooltip": "进入批量管理",
     "exitBatchModeTooltip": "退出批量管理",
-    "batchModeHint": "勾选要删除的会话",
+    "batchModeHint": "勾选要导出或删除的会话",
+    "exportSelected": "批量导出",
+    "batchExporting": "导出中...",
+    "batchExportSuccess": "已导出 {{count}} 个会话",
+    "batchExportFailed": "批量导出失败，请稍后重试",
     "selectForBatch": "选择会话",
     "selectedCount": "已选 {{count}} 项",
     "selectAllFiltered": "全选当前",
@@ -1210,6 +1214,72 @@
     "pricingModelSourceRequest": "请求模型",
     "pricingModelSourceResponse": "返回模型",
     "pricingModelSourceHint": "选择按请求模型还是返回模型进行定价匹配"
+  },
+  "providerBudget": {
+    "title": "用量预算",
+    "description": "设置日/月美元预算上限，超出后将触发预警通知（留空表示不限制）",
+    "dailyLimit": "日预算 (USD)",
+    "dailyLimitPlaceholder": "例如 0.01",
+    "dailyLimitInvalid": "日预算必须为非负数",
+    "monthlyLimit": "月预算 (USD)",
+    "monthlyLimitPlaceholder": "例如 10.00",
+    "monthlyLimitInvalid": "月预算必须为非负数"
+  },
+  "onboarding": {
+    "welcomeTitle": "欢迎使用 OpenSunstar",
+    "welcomeDescription": "您的 AI 编程助手统一控制面板。让我们扫描系统中已有的配置。",
+    "scanning": "扫描中...",
+    "scanSystem": "扫描我的系统",
+    "skipForNow": "暂时跳过",
+    "scanResultsTitle": "扫描结果",
+    "scanResultsSummary": "在您的系统中找到 {{count}} 项配置",
+    "detectedProviders": "检测到的供应商",
+    "apiKeyBadge": "API Key",
+    "detectedMcpServers": "检测到的 MCP 服务器",
+    "mcpFromSource": "来自 {{source}}",
+    "noConfigsFound": "未发现已有的 AI 工具配置。",
+    "addProvidersManually": "您可以在设置中手动添加供应商。",
+    "getStarted": "开始使用"
+  },
+  "bridge": {
+    "title": "桥接 Prompt",
+    "description": "将「{{name}}」桥接到其他 AI 工具，内容将自动转换格式。",
+    "targetTool": "目标工具",
+    "selectTarget": "选择目标工具...",
+    "generatingPreview": "正在生成预览...",
+    "previewLabel": "预览（前 500 字符）",
+    "autoSyncOnEdit": "编辑时自动同步",
+    "autoSyncDescription": "保存源 Prompt 时自动推送变更到已桥接的目标",
+    "saveSettingFailed": "保存设置失败：{{error}}",
+    "createBridge": "创建桥接",
+    "bridging": "桥接中...",
+    "createdWithWarnings": "桥接已创建，但有警告",
+    "createdSuccess": "Prompt 已桥接到 {{label}}",
+    "failed": "桥接失败：{{error}}"
+  },
+  "gistSync": {
+    "title": "GitHub Gist 同步",
+    "description": "通过私有 GitHub Gist 同步设置与 Skills",
+    "sectionLabel": "GitHub Gist 同步",
+    "patHint": "输入具有 gist 权限的 GitHub Personal Access Token 以启用 Gist 同步。",
+    "save": "保存",
+    "test": "测试连接",
+    "upload": "上传",
+    "download": "下载",
+    "clear": "清除",
+    "enterPat": "请输入 GitHub PAT",
+    "patSaved": "GitHub PAT 已安全保存",
+    "savePatFailed": "保存 PAT 失败：{{error}}",
+    "connectedAs": "已连接为 {{username}}",
+    "connectionFailed": "连接失败：{{error}}",
+    "uploadSuccess": "已上传到 Gist {{gistId}}...",
+    "uploadFailed": "上传失败：{{error}}",
+    "downloadSuccess": "已从 {{device}} 下载",
+    "downloadFailed": "下载失败：{{error}}",
+    "remoteDevice": "远程设备",
+    "configCleared": "Gist 同步配置已清除",
+    "clearFailed": "清除失败：{{error}}",
+    "gistIdLabel": "Gist ID"
   },
   "codexConfig": {
     "authJson": "auth.json (JSON) *",
@@ -1768,7 +1838,7 @@
   },
   "prompts": {
     "manage": "提示词",
-    "title": "{{appName}} 提示词管理",
+    "title": "Prompts&rules",
     "claudeTitle": "Claude 提示词管理",
     "codexTitle": "Codex 提示词管理",
     "add": "添加提示词",
@@ -1805,6 +1875,180 @@
     "confirm": {
       "deleteTitle": "确认删除",
       "deleteMessage": "确定要删除提示词 \"{{name}}\" 吗？"
+    },
+    "fragment": {
+      "isFragment": "规则片段",
+      "parent": "所属 Prompt",
+      "selectParent": "选择父 Prompt",
+      "priority": "优先级（高者优先合并）",
+      "targets": "目标工具（逗号分隔，* 表示全部）",
+      "globs": "文件 Glob（JSON 数组）",
+      "badge": "片段"
+    }
+  },
+  "dryRun": {
+    "title": "预览模式（Dry Run）",
+    "description": "开启后，Prompt 激活等写入操作将先显示 Diff 预览，确认后才实际写入",
+    "settingsTitle": "预览模式（Dry Run）",
+    "settingsDescription": "写入前预览 Diff，确认后再应用到磁盘",
+    "confirmWrite": "确认写入",
+    "promptActivationTitle": "Prompt 激活预览",
+    "promptActivationDesc": "预览模式已开启，确认后将写入目标文件",
+    "current": "当前文件",
+    "after": "激活后"
+  },
+  "commands": {
+    "title": "命令管理",
+    "manage": "命令",
+    "empty": "暂无自定义命令",
+    "add": "添加命令",
+    "edit": "编辑命令",
+    "count": "共 {{count}} 个命令",
+    "loadFailed": "加载命令失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "toggleFailed": "切换同步目标失败",
+    "confirm": {
+      "deleteTitle": "删除命令",
+      "deleteMessage": "确定删除命令 \"{{name}}\"？已同步的文件将被清理。"
+    },
+    "form": {
+      "name": "命令名称",
+      "description": "描述",
+      "content": "命令内容（Markdown）",
+      "arguments": "参数定义（JSON）",
+      "syncTargets": "同步到"
+    },
+    "variableHelp": {
+      "title": "模板变量",
+      "arguments": "Claude Code / Gemini 用户输入参数占位符",
+      "codexNote": "Codex 不支持独立命令文件，勾选后不会写入磁盘。"
+    }
+  },
+  "hooks": {
+    "title": "钩子管理",
+    "empty": "暂无生命周期钩子",
+    "add": "添加钩子",
+    "edit": "编辑钩子",
+    "count": "共 {{count}} 个钩子",
+    "loadFailed": "加载钩子失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "syncSuccess": "已同步到 Claude Code",
+    "syncFailed": "同步失败",
+    "syncNow": "同步到 Claude",
+    "claudeOnlyNote": "当前仅支持同步到 Claude Code（settings.json hooks 字段）",
+    "timeoutLabel": "超时 {{seconds}}s",
+    "confirm": {
+      "deleteTitle": "删除钩子",
+      "deleteMessage": "确定删除此钩子？settings.json 将同步更新。"
+    },
+    "form": {
+      "eventType": "事件类型",
+      "toolPattern": "工具匹配（glob）",
+      "hookCommand": "Shell 命令",
+      "timeout": "超时（秒，1-300）",
+      "description": "描述"
+    },
+    "eventType": {
+      "PreToolUse": "工具调用前",
+      "PostToolUse": "工具调用后",
+      "Notification": "通知",
+      "Stop": "停止"
+    }
+  },
+  "convert": {
+    "title": "配置转换",
+    "subtitle": "在 Claude / Codex / Gemini 等工具间迁移 Prompt、MCP、Skill 与 Command 配置",
+    "sourceApp": "源工具",
+    "targetApp": "目标工具",
+    "contentType": "配置类型",
+    "skill": "Skills",
+    "command": "Commands",
+    "selectTarget": "选择目标工具",
+    "notFound": "文件不存在",
+    "loadFailed": "检测源配置失败",
+    "previewing": "生成预览…",
+    "warnings": "转换提示",
+    "unmapped": "未映射章节: {{section}}",
+    "sourcePreview": "源内容",
+    "convertedPreview": "转换后",
+    "overwrite": "覆盖已存在的目标文件（写入前会自动备份 .bak.opensunstar）",
+    "apply": "确认写入",
+    "applySuccess": "配置已写入目标工具",
+    "applyFailed": "写入失败",
+    "steps": {
+      "source": "选择源",
+      "previewSource": "预览源",
+      "previewTarget": "预览转换",
+      "confirm": "确认写入"
+    }
+  },
+  "ignore": {
+    "title": "忽略规则",
+    "empty": "暂无忽略规则",
+    "emptyHint": "添加 glob 规则后，将同步到 .claudeignore、.codexignore 等文件",
+    "add": "添加规则",
+    "edit": "编辑忽略规则",
+    "count": "共 {{count}} 条规则",
+    "loadFailed": "加载忽略规则失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "toggleFailed": "切换同步目标失败",
+    "importGitignore": "从 .gitignore 导入",
+    "importSuccess": "已导入 {{count}} 条规则",
+    "importFailed": "导入失败",
+    "syncNow": "同步到工具",
+    "syncSuccess": "已同步到各工具 ignore 文件",
+    "syncFailed": "同步失败",
+    "confirm": {
+      "deleteTitle": "删除规则",
+      "deleteMessage": "确定删除此忽略规则？相关 ignore 文件将同步更新。"
+    },
+    "form": {
+      "pattern": "Glob 模式",
+      "description": "描述",
+      "syncTargets": "同步到"
+    }
+  },
+  "permissions": {
+    "title": "工具权限",
+    "empty": "暂无工具权限规则",
+    "emptyHint": "管理 Claude Code 的 allow/deny 工具列表，可与 Hooks 共存于 settings.json",
+    "add": "添加权限",
+    "edit": "编辑权限",
+    "count": "共 {{count}} 条权限",
+    "loadFailed": "加载权限失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "syncNow": "同步到 Claude",
+    "syncSuccess": "已同步到 Claude settings.json",
+    "syncFailed": "同步失败",
+    "presets": "预设模板：",
+    "presetApplied": "预设已应用",
+    "presetFailed": "应用预设失败",
+    "claudeOnlyNote": "当前仅同步到 Claude Code settings.json permissions 字段",
+    "confirm": {
+      "deleteTitle": "删除权限",
+      "deleteMessage": "确定删除此权限规则？settings.json 将同步更新。"
+    },
+    "form": {
+      "type": "权限类型",
+      "toolPattern": "工具匹配",
+      "description": "描述"
+    },
+    "type": {
+      "allowedTools": "允许",
+      "deniedTools": "拒绝",
+      "autoApprove": "自动批准"
     }
   },
   "workspace": {
@@ -2349,7 +2593,36 @@
     "skillsFailedDescription": "请打开 Skills 页面点击“导入已有”手动导入（或重启后再试）。"
   },
   "agents": {
-    "title": "智能体"
+    "title": "Subagent",
+    "subtitle": "同步到 Claude / Gemini / OpenCode 的 agents 目录（Markdown）",
+    "empty": "暂无 Subagent",
+    "emptyHint": "创建自定义 Subagent 并同步到 ~/.claude/agents/ 等目录",
+    "add": "添加 Subagent",
+    "edit": "编辑 Subagent",
+    "count": "共 {{count}} 个 Subagent",
+    "loadFailed": "加载 Subagent 失败",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "toggleFailed": "切换同步目标失败",
+    "geminiHint": "Gemini 需在 settings.json 中开启 experimental.enableSubagents 后生效",
+    "codexHint": "已转换为 TOML 并写入 ~/.codex/agents/{name}.toml",
+    "syncDisabled": {
+      "hermes": "暂不支持文件同步"
+    },
+    "confirm": {
+      "deleteTitle": "删除 Subagent",
+      "deleteMessage": "确定删除 Subagent \"{{name}}\"？已同步的文件将被清理。"
+    },
+    "form": {
+      "name": "名称",
+      "description": "描述",
+      "content": "定义（Markdown + YAML frontmatter）",
+      "syncTargets": "同步到",
+      "geminiNote": "Gemini 需在 settings.json 开启 experimental.enableSubagents",
+      "codexNote": "Codex 将自动把 Markdown 转为 TOML 写入 ~/.codex/agents/"
+    }
   },
   "modelTest": {
     "testProvider": "测试模型"
