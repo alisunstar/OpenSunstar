@@ -94,11 +94,14 @@ export function useCircuitBreakerStats(providerId: string, appType: string) {
 /**
  * 获取故障转移队列
  */
-export function useFailoverQueue(appType: string) {
+export function useFailoverQueue(
+  appType: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["failoverQueue", appType],
     queryFn: () => failoverApi.getFailoverQueue(appType),
-    enabled: !!appType,
+    enabled: options?.enabled ?? !!appType,
   });
 }
 
@@ -186,10 +189,14 @@ export function useRemoveFromFailoverQueue() {
 /**
  * 获取指定应用的自动故障转移开关状态
  */
-export function useAutoFailoverEnabled(appType: string) {
+export function useAutoFailoverEnabled(
+  appType: string,
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["autoFailoverEnabled", appType],
     queryFn: () => failoverApi.getAutoFailoverEnabled(appType),
+    enabled: options?.enabled ?? !!appType,
     // 默认值为 false（与后端保持一致）
     placeholderData: false,
   });

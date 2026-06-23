@@ -375,6 +375,12 @@ impl Database {
         // 27. Agents 表（Subagent 管理）
         Self::create_agents_table(conn)?;
 
+        // 28. AI Insights 缓存表（项目看板 AI 能力）
+        Self::create_ai_insights_table(conn)?;
+
+        // 29. AI 成本日志表（项目看板 AI 调用追踪）
+        Self::create_ai_cost_log_table(conn)?;
+
         // 尝试添加 live_takeover_active 列到 proxy_config 表
         let _ = conn.execute(
             "ALTER TABLE proxy_config ADD COLUMN live_takeover_active INTEGER NOT NULL DEFAULT 0",
@@ -558,6 +564,21 @@ impl Database {
                         log::info!("迁移数据库从 v17 到 v18（Agents / Subagents 管理）");
                         Self::migrate_v17_to_v18(conn)?;
                         Self::set_user_version(conn, 18)?;
+                    }
+                    18 => {
+                        log::info!("迁移数据库从 v18 到 v19（AI Insights 缓存 + 成本日志）");
+                        Self::migrate_v18_to_v19(conn)?;
+                        Self::set_user_version(conn, 19)?;
+                    }
+                    19 => {
+                        log::info!("迁移数据库从 v19 到 v20（AI Insights 用户反馈列）");
+                        Self::migrate_v19_to_v20(conn)?;
+                        Self::set_user_version(conn, 20)?;
+                    }
+                    20 => {
+                        log::info!("迁移数据库从 v20 到 v21（NL 问答日志 + project_id 统一）");
+                        Self::migrate_v20_to_v21(conn)?;
+                        Self::set_user_version(conn, 21)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1699,6 +1720,140 @@ impl Database {
             [],
         )
         .map_err(|e| AppError::Database(format!("创建 idx_agents_name 失败: {e}")))?;
+        Ok(())
+    }
+
+    /// v18 -> v19: AI Insights 缓存 + 成本日志（项目看板 AI 能力 Phase 1）
+    fn migrate_v18_to_v19(conn: &Connection) -> Result<(), AppError> {
+        Self::create_ai_insights_table(conn)?;
+        Self::create_ai_cost_log_table(conn)?;
+        log::info!("v18 -> v19 迁移完成：已创建 ai_insights 和 ai_cost_log 表");
+        Ok(())
+    }
+
+    /// v19 -> v20: AI Insights 用户反馈列（反馈闭环）
+    fn migrate_v19_to_v20(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(conn, "ai_insights", "user_feedback", "TEXT DEFAULT NULL")?;
+        log::info!("v19 -> v20 迁移完成：ai_insights 新增 user_feedback 列");
+        Ok(())
+    }
+
+    /// v20 -> v21: NL 问答独立日志表 + 合并遗留 path_* project_id
+    fn migrate_v20_to_v21(conn: &Connection) -> Result<(), AppError> {
+        Self::create_ai_query_log_table(conn)?;
+        Self::normalize_legacy_path_project_ids(conn)?;
+        log::info!("v20 -> v21 迁移完成：已创建 ai_query_log 并规范化 project_id");
+        Ok(())
+    }
+
+    fn create_ai_query_log_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS ai_query_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                query_text TEXT NOT NULL,
+                answer_preview TEXT,
+                prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                completion_tokens INTEGER NOT NULL DEFAULT 0,
+                cost REAL NOT NULL DEFAULT 0.0,
+                model TEXT,
+                provider TEXT,
+                user_feedback TEXT DEFAULT NULL,
+                created_at INTEGER NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 ai_query_log 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_query_created ON ai_query_log(created_at)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_ai_query_created 失败: {e}")))?;
+        Ok(())
+    }
+
+    /// 将遗留 path_* id 合并为 projects 表中的 canonical proj_* id
+    fn normalize_legacy_path_project_ids(conn: &Connection) -> Result<(), AppError> {
+        let mut stmt = conn
+            .prepare("SELECT id, path FROM projects")
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        let rows: Vec<(String, String)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+            .map_err(|e| AppError::Database(e.to_string()))?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        for (canonical_id, path) in rows {
+            let legacy_id = crate::ai::project_id::path_legacy_id(&path);
+            if legacy_id == canonical_id {
+                continue;
+            }
+            conn.execute(
+                "UPDATE ai_insights SET project_id = ?1 WHERE project_id = ?2",
+                rusqlite::params![canonical_id, legacy_id],
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+            conn.execute(
+                "UPDATE ai_cost_log SET project_id = ?1 WHERE project_id = ?2",
+                rusqlite::params![canonical_id, legacy_id],
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        }
+        Ok(())
+    }
+
+    fn create_ai_insights_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS ai_insights (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                project_id TEXT NOT NULL,
+                insight_type TEXT NOT NULL,
+                content TEXT NOT NULL,
+                model_used TEXT,
+                tokens_used INTEGER NOT NULL DEFAULT 0,
+                cost_estimate REAL NOT NULL DEFAULT 0.0,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL,
+                input_hash TEXT NOT NULL,
+                user_feedback TEXT DEFAULT NULL,
+                UNIQUE(project_id, insight_type)
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 ai_insights 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_insights_project ON ai_insights(project_id)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_ai_insights_project 失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_insights_expires ON ai_insights(expires_at)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_ai_insights_expires 失败: {e}")))?;
+        Ok(())
+    }
+
+    fn create_ai_cost_log_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS ai_cost_log (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                insight_type TEXT NOT NULL,
+                project_id TEXT,
+                model TEXT,
+                provider TEXT,
+                prompt_tokens INTEGER NOT NULL DEFAULT 0,
+                completion_tokens INTEGER NOT NULL DEFAULT 0,
+                cost REAL NOT NULL DEFAULT 0.0,
+                created_at INTEGER NOT NULL
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 ai_cost_log 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_ai_cost_created ON ai_cost_log(created_at)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_ai_cost_created 失败: {e}")))?;
         Ok(())
     }
 

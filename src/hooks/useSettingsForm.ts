@@ -99,12 +99,17 @@ export function useSettingsForm(): UseSettingsFormResult {
     [i18n],
   );
 
-  // 初始化设置数据
+  const syncLanguageRef = useRef(syncLanguage);
+  syncLanguageRef.current = syncLanguage;
+  const readPersistedLanguageRef = useRef(readPersistedLanguage);
+  readPersistedLanguageRef.current = readPersistedLanguage;
+
+  // 初始化设置数据（仅随服务端 data 变化，避免 reset 后因 i18n 更新被覆盖）
   useEffect(() => {
     if (!data) return;
 
     const normalizedLanguage = normalizeLanguage(
-      data.language ?? readPersistedLanguage(),
+      data.language ?? readPersistedLanguageRef.current(),
     );
 
     const normalized: SettingsFormState = {
@@ -128,8 +133,8 @@ export function useSettingsForm(): UseSettingsFormResult {
 
     setSettingsState(normalized);
     initialLanguageRef.current = normalizedLanguage;
-    syncLanguage(normalizedLanguage);
-  }, [data, readPersistedLanguage, syncLanguage]);
+    syncLanguageRef.current(normalizedLanguage);
+  }, [data]);
 
   const updateSettings = useCallback(
     (updates: Partial<SettingsFormState>) => {
@@ -191,9 +196,9 @@ export function useSettingsForm(): UseSettingsFormResult {
       };
 
       setSettingsState(normalized);
-      syncLanguage(initialLanguageRef.current);
+      void i18n.changeLanguage(initialLanguageRef.current);
     },
-    [readPersistedLanguage, syncLanguage],
+    [readPersistedLanguage, i18n],
   );
 
   return {

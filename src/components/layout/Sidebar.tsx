@@ -26,6 +26,8 @@ import {
   PanelLeftOpen,
   Sun,
   Moon,
+  Table2,
+  Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -41,12 +43,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { PageView } from "@/App";
 import type { Project } from "@/types/project";
+import type { WorkspaceTab } from "@/types/workspace";
+import appIcon from "@/assets/icons/app-icon-128.png";
 
 // ── 类型 ──────────────────────────────────────────
 
 interface SidebarProps {
   activeView: PageView;
+  workspaceTab?: WorkspaceTab;
   onNavigate: (view: PageView) => void;
+  onWorkspaceTabChange?: (tab: WorkspaceTab) => void;
+  onOpenProjectAssets?: (projectId: string) => void;
   onAddProject?: () => void;
   projects?: Project[];
   activeProjectId?: string;
@@ -59,6 +66,7 @@ interface SidebarProps {
 const COLLAPSED_STORAGE_KEY = "OpenSunstar-sidebar-collapsed";
 
 const AGENT_CONFIG_VIEWS: PageView[] = [
+  "simpleConnect",
   "mcp",
   "mcpDiscovery",
   "prompts",
@@ -101,9 +109,16 @@ function SectionLabel({
 
 // ── 组件 ──────────────────────────────────────────
 
+function isWorkspaceActive(view: PageView): boolean {
+  return view === "kanban";
+}
+
 export function Sidebar({
   activeView,
+  workspaceTab = "dashboard",
   onNavigate,
+  onWorkspaceTabChange,
+  onOpenProjectAssets,
   onAddProject,
   projects = [],
   activeProjectId,
@@ -114,6 +129,18 @@ export function Sidebar({
   const { theme, setTheme } = useTheme();
   const agentConfigActive = isAgentConfigActive(activeView);
   const monitorActive = isMonitorActive(activeView);
+  const workspaceActive = isWorkspaceActive(activeView);
+  const activeProject = activeProjectId
+    ? projects.find((p) => p.id === activeProjectId)
+    : undefined;
+
+  const goWorkspace = (tab: WorkspaceTab) => {
+    if (onWorkspaceTabChange) {
+      onWorkspaceTabChange(tab);
+      return;
+    }
+    onNavigate("kanban");
+  };
 
   // ── 折叠状态 ──────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -158,9 +185,12 @@ export function Sidebar({
           collapsed ? "h-14 px-2 justify-center" : "h-14 px-4 gap-3",
         )}
       >
-        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-          <Server className="w-4.5 h-4.5 text-blue-500" />
-        </div>
+        <img
+          src={appIcon}
+          alt="OpenSunstar"
+          className="w-8 h-8 shrink-0 object-contain"
+          draggable={false}
+        />
         {!collapsed && (
           <span className="text-sm font-semibold text-foreground tracking-tight truncate">
             OpenSunstar
@@ -174,11 +204,11 @@ export function Sidebar({
         {collapsed ? (
           <div className="space-y-0.5">
             <SidebarItem
-              icon={<Plug2 className="w-4 h-4" />}
+              icon={<LayoutDashboard className="w-4 h-4" />}
               label=""
-              active={activeView === "simpleConnect"}
-              onClick={() => onNavigate("simpleConnect")}
-              accent={activeView === "simpleConnect"}
+              active={workspaceActive}
+              onClick={() => goWorkspace("dashboard")}
+              accent={workspaceActive}
               collapsed
             />
             <SidebarItem
@@ -197,26 +227,81 @@ export function Sidebar({
               accent={monitorActive}
               collapsed
             />
-            <SidebarItem
-              icon={<LayoutGrid className="w-4 h-4" />}
-              label=""
-              active={activeView === "kanban"}
-              onClick={() => onNavigate("kanban")}
-              collapsed
-            />
           </div>
         ) : (
           <>
             <SectionLabel>
-              {t("sidebar.section.api", { defaultValue: "API 接入" })}
+              {t("workspace.sidebar.section", { defaultValue: "工作区" })}
             </SectionLabel>
-            <SidebarItem
-              icon={<Plug2 className="w-4 h-4" />}
-              label={t("simpleConnect.nav", { defaultValue: "快速接入" })}
-              active={activeView === "simpleConnect"}
-              onClick={() => onNavigate("simpleConnect")}
-              accent={activeView === "simpleConnect"}
-            />
+            <SidebarMenu
+              icon={<LayoutGrid className="w-4 h-4" />}
+              label={t("workspace.title", { defaultValue: "工作区" })}
+              defaultOpen
+              active={workspaceActive}
+            >
+              <SidebarItem
+                icon={<LayoutDashboard className="w-4 h-4" />}
+                label={t("workspace.tabs.dashboard", {
+                  defaultValue: "今日工作台",
+                })}
+                active={workspaceActive && workspaceTab === "dashboard"}
+                onClick={() => goWorkspace("dashboard")}
+                indent
+              />
+              <SidebarItem
+                icon={<LayoutGrid className="w-4 h-4" />}
+                label={t("workspace.tabs.board", { defaultValue: "项目看板" })}
+                active={
+                  workspaceActive &&
+                  workspaceTab === "board" &&
+                  !activeProjectId
+                }
+                onClick={() => goWorkspace("board")}
+                indent
+              />
+              <SidebarItem
+                icon={<Table2 className="w-4 h-4" />}
+                label={t("workspace.tabs.assetsMatrix", {
+                  defaultValue: "AI 资产总览",
+                })}
+                active={workspaceActive && workspaceTab === "assetsMatrix"}
+                onClick={() => goWorkspace("assetsMatrix")}
+                indent
+              />
+              {projects.map((project) => (
+                <ProjectItem
+                  key={project.id}
+                  project={project}
+                  active={
+                    workspaceActive &&
+                    workspaceTab === "board" &&
+                    activeProjectId === project.id
+                  }
+                  onClick={() => onProjectClick?.(project.id)}
+                  onRemove={() => onProjectRemove?.(project.id)}
+                />
+              ))}
+              {activeProject && onOpenProjectAssets && (
+                <SidebarItem
+                  icon={<Sparkles className="w-4 h-4" />}
+                  label={t("workspace.sidebar.currentProjectAssets", {
+                    name: activeProject.name,
+                    defaultValue: `${activeProject.name} · AI 配置`,
+                  })}
+                  active={false}
+                  onClick={() => onOpenProjectAssets(activeProject.id)}
+                  indent
+                  accent
+                />
+              )}
+              <SidebarItem
+                icon={<Plus className="w-4 h-4" />}
+                label={t("sidebar.addProject", { defaultValue: "添加项目" })}
+                onClick={() => onAddProject?.()}
+                indent
+                accent={false}
+              />
+            </SidebarMenu>
 
             <SectionLabel>
               {t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
@@ -224,7 +309,7 @@ export function Sidebar({
             <SidebarMenu
               icon={<LayoutDashboard className="w-4 h-4" />}
               label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
-              defaultOpen
+              defaultOpen={false}
               active={agentConfigActive}
             >
               <SidebarItem
@@ -292,6 +377,13 @@ export function Sidebar({
                 onClick={() => onNavigate("agents")}
                 indent
               />
+              <SidebarItem
+                icon={<Plug2 className="w-4 h-4" />}
+                label={t("simpleConnect.nav", { defaultValue: "API 接入" })}
+                active={activeView === "simpleConnect"}
+                onClick={() => onNavigate("simpleConnect")}
+                indent
+              />
             </SidebarMenu>
 
             {/* ▸ 运行监控 */}
@@ -311,38 +403,6 @@ export function Sidebar({
               label={t("sidebar.tokenStats", { defaultValue: "AI Tokens" })}
               active={activeView === "tokenStats"}
               onClick={() => onNavigate("tokenStats")}
-            />
-
-            {/* ▸ 项目 */}
-            <SectionLabel>
-              {t("sidebar.section.projects", { defaultValue: "项目" })}
-            </SectionLabel>
-
-            <SidebarItem
-              icon={<LayoutGrid className="w-4 h-4" />}
-              label={t("sidebar.kanban", { defaultValue: "看板总览" })}
-              active={activeView === "kanban" && !activeProjectId}
-              onClick={() => onNavigate("kanban")}
-            />
-
-            {projects.map((project) => (
-              <ProjectItem
-                key={project.id}
-                project={project}
-                active={
-                  activeView === "kanban" && activeProjectId === project.id
-                }
-                onClick={() => onProjectClick?.(project.id)}
-                onRemove={() => onProjectRemove?.(project.id)}
-              />
-            ))}
-
-            <SidebarItem
-              icon={<Plus className="w-4 h-4" />}
-              label={t("sidebar.addProject", { defaultValue: "添加项目" })}
-              onClick={() => onAddProject?.()}
-              indent
-              accent={false}
             />
           </>
         )}

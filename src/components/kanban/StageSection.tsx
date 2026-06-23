@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ArrowUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,10 @@ interface StageSectionProps {
   projects: Project[];
   stages: Map<string, StageKey>;
   progressMap: Map<string, number>;
+  aiSummaryMap?: Map<string, string>;
+  aiLoadingMap?: Map<string, boolean>;
+  aiHealthMap?: Map<string, number>;
+  agentReadinessMap?: Map<string, number>;
   onProjectClick: (project: Project) => void;
   onProjectRemove: (projectId: string) => void;
   onStageChange: (projectId: string, stage: StageKey) => void;
@@ -55,6 +60,10 @@ export function StageSection({
   projects,
   stages,
   progressMap,
+  aiSummaryMap,
+  aiLoadingMap,
+  aiHealthMap,
+  agentReadinessMap,
   onProjectClick,
   onProjectRemove,
   onStageChange,
@@ -79,6 +88,8 @@ export function StageSection({
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          aria-controls={`stage-${stage}`}
           className={cn(
             "flex items-center gap-2.5 px-1 py-2 rounded-lg",
             "hover:bg-muted/30 transition-colors",
@@ -127,36 +138,49 @@ export function StageSection({
       </div>
 
       {/* 卡片网格 */}
-      {expanded && (
-        <>
-          {sorted.length === 0 ? (
-            <div className="py-8 text-center rounded-xl border border-dashed border-border/50 bg-muted/10">
-              <p className="text-xs text-muted-foreground/60">
-                {t(cfg.emptyKey, { defaultValue: "此阶段暂无项目" })}
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-              {sorted.map((project) => (
-                <ProjectCard
-                  key={project.id}
-                  project={project}
-                  stage={stages.get(project.id) ?? "mvp"}
-                  progress={progressMap.get(project.id)}
-                  onClick={() => onProjectClick(project)}
-                  onRemove={() => onProjectRemove(project.id)}
-                  onStageChange={(s) => onStageChange(project.id, s)}
-                  onOpenFolder={
-                    onOpenFolder
-                      ? () => onOpenFolder(project.path)
-                      : undefined
-                  }
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+      <AnimatePresence initial={false}>
+        {expanded && (
+          <motion.div
+            id={`stage-${stage}`}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            {sorted.length === 0 ? (
+              <div className="py-8 text-center rounded-xl border border-dashed border-border/50 bg-muted/10">
+                <p className="text-xs text-muted-foreground/60">
+                  {t(cfg.emptyKey, { defaultValue: "此阶段暂无项目" })}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                {sorted.map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    stage={stages.get(project.id) ?? "mvp"}
+                    progress={progressMap.get(project.id)}
+                    aiSummary={aiSummaryMap?.get(project.id)}
+                    aiSummaryLoading={aiLoadingMap?.get(project.id)}
+                    healthScore={aiHealthMap?.get(project.id)}
+                    agentReadiness={agentReadinessMap?.get(project.id)}
+                    onClick={() => onProjectClick(project)}
+                    onRemove={() => onProjectRemove(project.id)}
+                    onStageChange={(s) => onStageChange(project.id, s)}
+                    onOpenFolder={
+                      onOpenFolder
+                        ? () => onOpenFolder(project.path)
+                        : undefined
+                    }
+                  />
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

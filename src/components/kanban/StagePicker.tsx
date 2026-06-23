@@ -71,7 +71,7 @@ export function StagePicker({ value, onChange }: StagePickerProps) {
             )}
           >
             <div className="text-sm font-semibold">
-              {t(opt.labelKey, { defaultValue: opt.key })}
+              {t(opt.labelKey, { defaultValue: opt.labelDefault })}
             </div>
             <div className="text-xs mt-0.5 opacity-70">
               {t(opt.descKey, { defaultValue: "" })}

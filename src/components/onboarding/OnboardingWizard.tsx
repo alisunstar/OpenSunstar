@@ -3,7 +3,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, Search, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle, Search, ArrowRight } from "lucide-react";
+import appIcon from "@/assets/icons/app-icon-256.png";
 
 interface ScanResult {
   providersFound: {
@@ -54,9 +55,12 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm">
         <Card className="w-[480px] p-8 space-y-6 shadow-2xl">
           <div className="text-center space-y-3">
-            <div className="mx-auto w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-primary" />
-            </div>
+            <img
+              src={appIcon}
+              alt="OpenSunstar"
+              className="mx-auto w-16 h-16 object-contain"
+              draggable={false}
+            />
             <h1 className="text-2xl font-bold">
               {t("onboarding.welcomeTitle", {
                 defaultValue: "欢迎使用 OpenSunstar",

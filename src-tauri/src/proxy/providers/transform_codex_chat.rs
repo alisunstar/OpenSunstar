@@ -3046,7 +3046,7 @@ mod tests {
         assert_eq!(result["error"]["type"], "upstream_error");
     }
     // Regression tests for tool_choice without tools guard
-    // https://github.com/farion1231/OpenSunstar/issues/3557
+    // https://github.com/alisunstar/OpenSunstar/issues/3557
 
     #[test]
     fn responses_request_to_chat_drops_tool_choice_when_no_tools() {

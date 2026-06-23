@@ -3,8 +3,8 @@ import {
   FolderOpen,
   Trash2,
   MoreVertical,
-  GripVertical,
   ChevronDown,
+  Shield,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,10 @@ interface ProjectCardProps {
   project: Project;
   stage: StageKey;
   progress?: number; // undefined=未设置, 仅 MVP 阶段显示
+  aiSummary?: string | null; // AI 生成的一句话摘要
+  aiSummaryLoading?: boolean; // AI 摘要加载中
+  healthScore?: number | null; // AI 健康评分 (0-100)
+  agentReadiness?: number | null; // Agent 配置就绪度 (0-80)
   onClick: () => void;
   onRemove: () => void;
   onOpenFolder?: () => void;
@@ -87,6 +91,10 @@ export function ProjectCard({
   project,
   stage,
   progress,
+  aiSummary,
+  aiSummaryLoading,
+  healthScore,
+  agentReadiness,
   onClick,
   onRemove,
   onOpenFolder,
@@ -109,6 +117,8 @@ export function ProjectCard({
         "border-l-[3px]",
         style.border,
       )}
+      role="button"
+      aria-label={`查看 ${project.name} 详情`}
       onClick={onClick}
       tabIndex={0}
       onKeyDown={(e) => {
@@ -121,8 +131,6 @@ export function ProjectCard({
       <div className="px-4 pt-3.5 pb-3">
         {/* ── 第一行：名称 + 操作 ────────────── */}
         <div className="flex items-start gap-2">
-          <GripVertical className="h-4 w-4 text-muted-foreground/30 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" />
-
           <div className="min-w-0 flex-1">
             <h3 className="text-sm font-semibold text-foreground truncate leading-tight">
               {project.name}
@@ -227,6 +235,24 @@ export function ProjectCard({
           </p>
         ) : null}
 
+        {/* ── AI 摘要 ─────────────────────── */}
+        {aiSummary && (
+          <p className="pl-6 mt-1.5 text-[11px] text-primary/70 leading-relaxed line-clamp-1">
+            <span className="inline-block px-1 py-0 rounded bg-primary/10 text-primary/60 text-[9px] font-semibold mr-1 align-middle">
+              AI
+            </span>
+            {aiSummary}
+          </p>
+        )}
+        {aiSummaryLoading && !aiSummary && (
+          <div className="pl-6 mt-1.5 flex items-center gap-1.5">
+            <span className="inline-block px-1 py-0 rounded bg-primary/10 text-primary/60 text-[9px] font-semibold">
+              AI
+            </span>
+            <div className="h-2.5 w-3/4 rounded bg-muted/40 animate-pulse" />
+          </div>
+        )}
+
         {/* ── 第三行：进度条（仅 MVP）───────── */}
         {showProgress && (
           <div className="pl-6 mt-2.5">
@@ -247,20 +273,64 @@ export function ProjectCard({
           </div>
         )}
 
-        {/* ── 底部：时间 + 路径 ─────────────── */}
+        {/* ── 底部：时间 + 路径 + 健康度 ──────── */}
         <div
           className={cn(
             "flex items-center gap-3 mt-2.5 pl-6",
-            !project.description && !showProgress && "mt-0",
+            !project.description && !showProgress && !aiSummary && !aiSummaryLoading && "mt-0",
           )}
         >
           <span className="text-[10px] text-muted-foreground/50">
             {relativeTime(project.addedAt, t)}
           </span>
           <span className="text-[10px] text-muted-foreground/30">·</span>
-          <span className="text-[10px] text-muted-foreground/50 font-mono truncate">
+          <span className="text-[10px] text-muted-foreground/50 font-mono truncate flex-1">
             {dirPath}
           </span>
+          {typeof healthScore === "number" && (
+            <span
+              className={cn(
+                "shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums",
+                healthScore >= 80
+                  ? "text-emerald-500"
+                  : healthScore >= 60
+                    ? "text-amber-500"
+                    : "text-red-400",
+              )}
+              title={`健康评分: ${healthScore}/100`}
+            >
+              <span
+                className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  healthScore >= 80
+                    ? "bg-emerald-500"
+                    : healthScore >= 60
+                      ? "bg-amber-500"
+                      : "bg-red-400",
+                )}
+              />
+              {healthScore}
+            </span>
+          )}
+          {typeof agentReadiness === "number" && (
+            <span
+              className={cn(
+                "shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums",
+                agentReadiness >= 60
+                  ? "text-emerald-500"
+                  : agentReadiness >= 40
+                    ? "text-amber-500"
+                    : "text-zinc-400",
+              )}
+              title={t("kanban.readiness.badgeTooltip", {
+                score: agentReadiness,
+                defaultValue: `Agent 配置就绪 ${agentReadiness}/80 · 点击查看详情`,
+              })}
+            >
+              <Shield className="h-3 w-3" />
+              {agentReadiness}
+            </span>
+          )}
         </div>
       </div>
     </article>

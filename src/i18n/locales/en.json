@@ -3212,6 +3212,130 @@
     "suggestedDefaults": "Apply Suggested Defaults",
     "suggestedDefaultsHint": "Use this preset's recommended default model configuration"
   },
+  "sidebar": {
+    "kanban": "AI Kanban Board",
+    "tokenStats": "AI Tokens",
+    "section": {
+      "projects": "Projects",
+      "monitor": "Monitoring"
+    }
+  },
+  "kanban": {
+    "subtitle": "AI-driven global multi-perspective project portfolio matrix: full lifecycle management, health assessment, dynamic cost monitoring",
+    "scanning": "Scanning {{done}}/{{total}} projects…",
+    "refresh": "Refresh metrics",
+    "addProject": "Add project",
+    "searchPlaceholder": "Search projects…",
+    "confirmRemoveTitle": "Remove from AI Kanban Board?",
+    "confirmRemove": "「{{name}}」 will be removed from the portfolio. Disk files are not deleted; local board data (stage, progress, etc.) will be cleared.",
+    "confirmRemoveBtn": "Remove",
+    "removed": "Removed 「{{name}}」",
+    "commits7dHint": "{{count}} commits in the last 7 days",
+    "commitsWindowHint": "{{count}} commits in the last {{days}} days",
+    "noRecentActivity": "No commits in the last 7 days",
+    "noRecentActivityWindow": "No commits in the last {{days}} days",
+    "stageDistribution": "Stage distribution",
+    "activity": {
+      "veryHigh": "Very high",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "detail": {
+      "tabs": "Project details",
+      "overview": "Overview",
+      "aiAssets": "AI assets",
+      "projectAssets": "Assets enabled for this project",
+      "projectAssetsHint": "Selections apply to this project only; stays in sync with the global library in the sidebar."
+    },
+    "readiness": {
+      "title": "Agent readiness",
+      "loading": "Assessing configuration readiness…",
+      "hint": "Click an item to jump to the right place; link project-level assets under the AI assets tab.",
+      "configure": "Configure",
+      "configureGlobal": "Open global settings",
+      "manage": "Manage",
+      "openAssetsTab": "Open AI assets",
+      "completedSection": "{{count}} completed",
+      "badgeTooltip": "Agent readiness {{score}}/80 · click for details"
+    }
+  },
+  "projectConfig": {
+    "hint": "Choose MCP, Skills, and Prompts to enable for this project. Maintain the global library under Agent config in the sidebar.",
+    "mcpServers": "MCP servers",
+    "skills": "Skills",
+    "prompts": "Prompts",
+    "noMcp": "No MCP servers yet",
+    "noSkills": "No installed Skills yet",
+    "noPrompts": "No Prompts yet",
+    "goToMcp": "Go to MCP",
+    "goToSkills": "Go to Skills",
+    "goToPrompts": "Go to Prompts"
+  },
+  "workspace": {
+    "title": "Workspace",
+    "subtitle": "Start each day with progress and AI asset readiness, then move into the project board",
+    "sidebar": {
+      "section": "Workspace",
+      "currentProjectAssets": "{{name}} · AI assets"
+    },
+    "tabs": {
+      "label": "Workspace views",
+      "dashboard": "Today",
+      "board": "Project board",
+      "assetsMatrix": "AI assets"
+    },
+    "dashboard": {
+      "title": "Today",
+      "subtitle": "{{count}} projects · focus on progress and AI asset readiness",
+      "attentionCount": "Needs attention",
+      "attentionHint": "Low readiness or missing assets",
+      "avgReadiness": "Avg. readiness",
+      "missingMcp": "Missing MCP",
+      "activeProjects": "Active ({{days}}d)",
+      "activeHint": "Git commits",
+      "queueTitle": "Priority queue",
+      "allGood": "All projects look healthy — you're good to ship.",
+      "configureAssets": "Configure assets",
+      "reasonReadiness": "Readiness {{score}}/80",
+      "reasonMcp": "No MCP linked",
+      "reasonSkills": "No Skills",
+      "reasonProgress": "MVP {{progress}}%",
+      "lastUpdated": "Last updated",
+      "updatedJustNow": "Updated just now",
+      "updatedMinutesAgo": "Updated {{count}}m ago",
+      "updatedHoursAgo": "Updated {{count}}h ago",
+      "updatedAt": "Updated {{time}}",
+      "refreshing": "Refreshing…",
+      "loading": "Loading readiness and asset data…",
+      "mvpBehindHint": "{{count}} MVP project(s) below 50% progress — consider prioritizing."
+    },
+    "assetsMatrix": {
+      "title": "AI asset overview",
+      "subtitle": "Per-project MCP / Skills / Prompts links and readiness",
+      "loading": "Summarizing project AI assets…",
+      "project": "Project",
+      "stage": "Stage",
+      "readiness": "Ready",
+      "progress": "Progress",
+      "refreshing": "Updating"
+    }
+  },
+  "board": {
+    "summary": {
+      "title": "Portfolio overview",
+      "totalProjects": "Total projects",
+      "totalCodeLines": "Total lines of code",
+      "linesUnit": "lines",
+      "avgActivity": "Avg. activity ({{days}} days)",
+      "commitsInWindow": "Commits ({{days}} days)",
+      "thisWeek": "Commits (7 days)",
+      "windowLabel": "Git activity window",
+      "daysUnit": "days",
+      "updatesUnit": "commits"
+    },
+    "duplicateCleanup": "Duplicate asset detection"
+  },
   "subscription": {
     "title": "Subscription Quota",
     "fiveHour": "5-Hour",

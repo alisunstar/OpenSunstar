@@ -1,4 +1,4 @@
-/** 本地项目仓库 */
+/** 本地项目仓库（看板 UI 模型；持久化以 SQLite 为主，localStorage 为缓存） */
 export interface Project {
   id: string;
   name: string;
@@ -9,7 +9,7 @@ export interface Project {
   addedAt: string; // ISO timestamp
 }
 
-const STORAGE_KEY = "OpenSunstar-projects";
+export const PROJECTS_STORAGE_KEY = "OpenSunstar-projects";
 
 function generateId(): string {
   return `proj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -17,7 +17,7 @@ function generateId(): string {
 
 export function loadProjects(): Project[] {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(PROJECTS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -27,11 +27,15 @@ export function loadProjects(): Project[] {
   }
 }
 
-function saveProjects(projects: Project[]): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+export function persistProjectsLocal(projects: Project[]): void {
+  localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
 }
 
-export function addProject(name: string, path: string, description?: string): Project {
+export function createLocalProject(
+  name: string,
+  path: string,
+  description?: string,
+): Project {
   const projects = loadProjects();
   const project: Project = {
     id: generateId(),
@@ -41,20 +45,36 @@ export function addProject(name: string, path: string, description?: string): Pr
     addedAt: new Date().toISOString(),
   };
   projects.push(project);
-  saveProjects(projects);
+  persistProjectsLocal(projects);
   return project;
 }
 
-export function removeProject(id: string): void {
-  const projects = loadProjects().filter((p) => p.id !== id);
-  saveProjects(projects);
+export function removeProjectLocal(id: string): void {
+  persistProjectsLocal(loadProjects().filter((p) => p.id !== id));
 }
 
-export function updateProject(id: string, updates: Partial<Pick<Project, "name" | "path">>): Project | null {
+export function updateProject(
+  id: string,
+  updates: Partial<Pick<Project, "name" | "path">>,
+): Project | null {
   const projects = loadProjects();
   const index = projects.findIndex((p) => p.id === id);
   if (index === -1) return null;
   projects[index] = { ...projects[index], ...updates };
-  saveProjects(projects);
+  persistProjectsLocal(projects);
   return projects[index];
+}
+
+/** @deprecated 使用 createLocalProject */
+export function addProject(
+  name: string,
+  path: string,
+  description?: string,
+): Project {
+  return createLocalProject(name, path, description);
+}
+
+/** @deprecated 使用 removeProjectLocal */
+export function removeProject(id: string): void {
+  removeProjectLocal(id);
 }

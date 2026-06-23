@@ -66,6 +66,8 @@ interface SettingsPageContentProps {
   settingsNavIntent?: SettingsNavIntent | null;
   /** Dialog 模式下，保存成功后回调（用于关闭 Dialog） */
   onAfterSave?: () => void;
+  /** Dialog 打开挂载时重置导入/导出状态 */
+  resetImportOnMount?: boolean;
 }
 
 interface SettingsDialogProps {
@@ -82,6 +84,7 @@ export function SettingsPageContent({
   defaultTab = "general",
   settingsNavIntent = null,
   onAfterSave,
+  resetImportOnMount = false,
 }: SettingsPageContentProps) {
   const { t } = useTranslation();
   const {
@@ -116,6 +119,12 @@ export function SettingsPageContent({
     clearSelection,
     resetStatus,
   } = useImportExport({ onImportSuccess });
+
+  useEffect(() => {
+    if (resetImportOnMount) {
+      resetStatus();
+    }
+  }, [resetImportOnMount, resetStatus]);
 
   const { data: installedSkills } = useInstalledSkills();
 
@@ -609,12 +618,15 @@ export function SettingsPage({
   onImportSuccess,
   defaultTab = "general",
 }: SettingsDialogProps) {
+  if (!open) return null;
+
   return (
     <SettingsPageContent
       key={String(open)}
       onImportSuccess={onImportSuccess}
       defaultTab={defaultTab}
       onAfterSave={() => onOpenChange(false)}
+      resetImportOnMount
     />
   );
 }

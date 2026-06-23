@@ -1,6 +1,6 @@
 {
   "name": "OpenSunstar",
-  "version": "3.16.2",
+  "version": "0.1.0",
   "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
@@ -13,11 +13,17 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,json}\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,json}\"",
     "test:unit": "vitest run",
-    "test:unit:watch": "vitest watch"
+    "test:unit:watch": "vitest watch",
+    "website:dev": "npx --yes serve website -l 3000",
+    "brand:sync": "python scripts/sync-brand-assets.py && pnpm tauri icon app-icon.png"
   },
   "keywords": [],
   "author": "Jason Young",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alisunstar/OpenSunstar"
+  },
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.0",
     "@testing-library/jest-dom": "^6.6.3",

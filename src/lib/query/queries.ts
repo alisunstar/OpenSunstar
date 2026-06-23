@@ -51,40 +51,56 @@ export interface UseProvidersQueryOptions {
   isProxyRunning?: boolean; // 代理服务是否运行中
 }
 
+export async function fetchProvidersQueryData(
+  appId: AppId,
+): Promise<ProvidersQueryData> {
+  const [providersResult, currentResult] = await Promise.allSettled([
+    providersApi.getAll(appId),
+    providersApi.getCurrent(appId),
+  ]);
+
+  let providers: Record<string, Provider> = {};
+  let currentProviderId = "";
+
+  if (providersResult.status === "fulfilled") {
+    providers = providersResult.value;
+  } else {
+    console.error("获取供应商列表失败:", providersResult.reason);
+  }
+
+  if (currentResult.status === "fulfilled") {
+    currentProviderId = currentResult.value;
+  } else {
+    console.error("获取当前供应商失败:", currentResult.reason);
+  }
+
+  return {
+    providers: sortProviders(providers),
+    currentProviderId,
+  };
+}
+
+const PROVIDERS_STALE_MS = 5 * 60 * 1000;
+
+export function providersQueryOptions(
+  appId: AppId,
+  options?: UseProvidersQueryOptions,
+) {
+  const { isProxyRunning = false } = options ?? {};
+  return {
+    queryKey: ["providers", appId] as const,
+    queryFn: () => fetchProvidersQueryData(appId),
+    staleTime: PROVIDERS_STALE_MS,
+    placeholderData: keepPreviousData,
+    refetchInterval: isProxyRunning ? 10000 : false,
+  };
+}
+
 export const useProvidersQuery = (
   appId: AppId,
   options?: UseProvidersQueryOptions,
 ): UseQueryResult<ProvidersQueryData> => {
-  const { isProxyRunning = false } = options || {};
-
-  return useQuery({
-    queryKey: ["providers", appId],
-    placeholderData: keepPreviousData,
-    // 当代理服务运行时，每 10 秒刷新一次供应商列表
-    // 这样可以自动反映后端熔断器自动禁用代理目标的变更
-    refetchInterval: isProxyRunning ? 10000 : false,
-    queryFn: async () => {
-      let providers: Record<string, Provider> = {};
-      let currentProviderId = "";
-
-      try {
-        providers = await providersApi.getAll(appId);
-      } catch (error) {
-        console.error("获取供应商列表失败:", error);
-      }
-
-      try {
-        currentProviderId = await providersApi.getCurrent(appId);
-      } catch (error) {
-        console.error("获取当前供应商失败:", error);
-      }
-
-      return {
-        providers: sortProviders(providers),
-        currentProviderId,
-      };
-    },
-  });
+  return useQuery(providersQueryOptions(appId, options));
 };
 
 export const useSettingsQuery = (): UseQueryResult<Settings> => {

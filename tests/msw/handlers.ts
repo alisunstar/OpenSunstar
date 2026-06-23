@@ -41,6 +41,8 @@ const success = <T>(payload: T) => HttpResponse.json(payload as any);
 
 export const handlers = [
   http.post(`${TAURI_ENDPOINT}/get_migration_result`, () => success(false)),
+  http.post(`${TAURI_ENDPOINT}/is_onboarding_needed`, () => success(false)),
+  http.post(`${TAURI_ENDPOINT}/set_window_theme`, () => success(true)),
   http.post(`${TAURI_ENDPOINT}/get_skills_migration_result`, () =>
     success(null),
   ),
@@ -380,4 +382,30 @@ export const handlers = [
   ),
   http.post(`${TAURI_ENDPOINT}/reset_circuit_breaker`, () => success(true)),
   http.post(`${TAURI_ENDPOINT}/get_circuit_breaker_stats`, () => success(null)),
+
+  // Project portfolio / metrics (Kanban)
+  http.post(`${TAURI_ENDPOINT}/get_all_projects`, () => success([])),
+  http.post(`${TAURI_ENDPOINT}/get_project`, () => success(null)),
+  http.post(`${TAURI_ENDPOINT}/get_project_by_path`, () => success(null)),
+  http.post(`${TAURI_ENDPOINT}/upsert_project`, () => success(undefined)),
+  http.post(`${TAURI_ENDPOINT}/delete_project`, () => success(true)),
+  http.post(`${TAURI_ENDPOINT}/count_project_code_lines`, () =>
+    success({
+      total_lines: 0,
+      code_lines: 0,
+      comment_lines: 0,
+      blank_lines: 0,
+      files: 0,
+      languages: [],
+    }),
+  ),
+  http.post(`${TAURI_ENDPOINT}/read_package_version`, () => success(null)),
+  http.post(`${TAURI_ENDPOINT}/git_commit_count_last_n_days`, () => success(0)),
+  http.post(`${TAURI_ENDPOINT}/git_weekly_commit_counts`, () =>
+    success(Array(12).fill(0)),
+  ),
+  http.post(`${TAURI_ENDPOINT}/git_contributors`, () => success([])),
+  http.post(`${TAURI_ENDPOINT}/detect_project_git_info`, () =>
+    success({ is_repo: false }),
+  ),
 ];

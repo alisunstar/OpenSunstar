@@ -1,10 +1,10 @@
 [package]
 name = "OpenSunstar"
-version = "3.16.2"
+version = "0.1.0"
 description = "OpenSunstar - Extension Manager for AI Coding Assistants"
 authors = ["Jason Young"]
 license = "MIT"
-repository = "https://github.com/farion1231/OpenSunstar"
+repository = "https://github.com/alisunstar/OpenSunstar"
 edition = "2021"
 rust-version = "1.85.0"
 

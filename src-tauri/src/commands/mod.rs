@@ -3,6 +3,7 @@
 mod auth;
 mod balance;
 pub mod bridge;
+mod ai_insight;
 mod codex_oauth;
 mod coding_plan;
 pub mod agent;
@@ -50,6 +51,7 @@ mod webdav_sync;
 pub use onboarding::*;
 
 pub use auth::*;
+pub use ai_insight::*;
 pub use balance::*;
 pub use bridge::*;
 pub use codex_oauth::*;

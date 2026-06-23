@@ -52,7 +52,12 @@ import {
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
 
-// ── 类型 ──────────────────────────────────────────
+import type { WorkspaceTab } from "@/types/workspace";
+import {
+  getInitialWorkspaceTab,
+  persistWorkspaceTab,
+} from "@/types/workspace";
+import type { ProjectDetailTab } from "@/types/projectDetail";
 
 export type PageView =
   | "simpleConnect"
@@ -129,7 +134,7 @@ const getInitialApp = (): AppId => {
 const getInitialView = (): PageView => {
   const saved = localStorage.getItem(VIEW_STORAGE_KEY) as PageView | null;
   if (saved && VALID_VIEWS.includes(saved)) return saved;
-  return "simpleConnect";
+  return "kanban";
 };
 
 // ── 视图元数据 ────────────────────────────────────
@@ -157,7 +162,7 @@ const PAGE_META: Record<PageView, PageMeta> = {
   skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "发现 Skills" },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "同步备份" },
-  kanban: { titleKey: "sidebar.kanban", defaultTitle: "项目看板" },
+  kanban: { titleKey: "workspace.title", defaultTitle: "工作区" },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   settings: { titleKey: "common.settings", defaultTitle: "设置" },
 };
@@ -167,6 +172,12 @@ const PAGE_META: Record<PageView, PageMeta> = {
 function App() {
   const { t } = useTranslation();
   const [currentView, setCurrentView] = useState<PageView>(getInitialView);
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>(
+    getInitialWorkspaceTab,
+  );
+  const [detailIntentKey, setDetailIntentKey] = useState(0);
+  const [detailIntentTab, setDetailIntentTab] =
+    useState<ProjectDetailTab>("overview");
   const [targetApp, setTargetApp] = useState<AppId>(getInitialApp);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
@@ -198,6 +209,10 @@ function App() {
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
   }, [currentView]);
+
+  useEffect(() => {
+    persistWorkspaceTab(workspaceTab);
+  }, [workspaceTab]);
 
   useEffect(() => {
     if (currentView === "settings" && settingsNavIntent) {
@@ -295,6 +310,12 @@ function App() {
     setSelectedProjectId(null);
   }, []);
 
+  const openWorkspace = useCallback((tab: WorkspaceTab) => {
+    setCurrentView("kanban");
+    setWorkspaceTab(tab);
+    setSelectedProjectId(null);
+  }, []);
+
   const handleBack = useCallback(() => {
     if (currentView === "mcpDiscovery") setCurrentView("mcp");
     if (currentView === "skillsDiscovery") setCurrentView("skills");
@@ -303,7 +324,27 @@ function App() {
   const handleProjectClick = useCallback((projectId: string) => {
     setSelectedProjectId(projectId);
     setCurrentView("kanban");
+    setWorkspaceTab("board");
+    setDetailIntentTab("overview");
+    setDetailIntentKey((key) => key + 1);
   }, []);
+
+  const handleOpenProjectAssets = useCallback((projectId: string) => {
+    setSelectedProjectId(projectId);
+    setCurrentView("kanban");
+    setWorkspaceTab("board");
+    setDetailIntentTab("aiAssets");
+    setDetailIntentKey((key) => key + 1);
+  }, []);
+
+  const projectDetailIntent = useMemo(() => {
+    if (!selectedProjectId) return null;
+    return {
+      projectId: selectedProjectId,
+      tab: detailIntentTab,
+      key: detailIntentKey,
+    };
+  }, [selectedProjectId, detailIntentTab, detailIntentKey]);
 
   const handleAddProject = useCallback(
     (name: string, path: string, description?: string) => {
@@ -387,6 +428,9 @@ function App() {
           <KanbanPage
             projects={projects}
             selectedProjectId={selectedProjectId ?? undefined}
+            projectDetailIntent={projectDetailIntent}
+            workspaceTab={workspaceTab}
+            onWorkspaceTabChange={setWorkspaceTab}
             onProjectClick={(project) => {
               setSelectedProjectId(project.id);
             }}
@@ -394,10 +438,12 @@ function App() {
               if (selectedProjectId === projectId) {
                 setSelectedProjectId(null);
               }
-              removeProject(projectId);
+              void removeProject(projectId);
             }}
             onAddProject={() => setAddProjectOpen(true)}
             onClearSelection={() => setSelectedProjectId(null)}
+            onOpenSettings={() => setCurrentView("settings")}
+            onNavigate={(view) => setCurrentView(view)}
           />
         );
       case "tokenStats":
@@ -617,9 +663,12 @@ function App() {
     "skillsDiscovery",
   ].includes(currentView);
 
-  // 是否隐藏内容区顶栏（设置页自带 header）
+  // 是否隐藏内容区顶栏（设置页 / 看板页自带 header）
   const hideContentHeader =
-    currentView === "settings" || currentView === "syncBackup" || currentView === "tokenStats";
+    currentView === "settings" ||
+    currentView === "syncBackup" ||
+    currentView === "tokenStats" ||
+    currentView === "kanban";
 
   // ── 渲染 ────────────────────────────────────
   return (
@@ -654,7 +703,10 @@ function App() {
         >
           <Sidebar
             activeView={currentView}
+            workspaceTab={workspaceTab}
             onNavigate={handleNavigate}
+            onWorkspaceTabChange={openWorkspace}
+            onOpenProjectAssets={handleOpenProjectAssets}
             onAddProject={() => setAddProjectOpen(true)}
             projects={projects}
             activeProjectId={selectedProjectId ?? undefined}
@@ -663,7 +715,7 @@ function App() {
               if (selectedProjectId === projectId) {
                 setSelectedProjectId(null);
               }
-              removeProject(projectId);
+              void removeProject(projectId);
             }}
           />
 
