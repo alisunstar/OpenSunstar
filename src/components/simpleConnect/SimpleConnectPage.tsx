@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
+import { invoke } from "@tauri-apps/api/core";
 import { Loader2, Sparkles, Wrench, Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -33,6 +35,8 @@ import { UsageSummaryPanel } from "./UsageSummaryPanel";
 import { SecurityPrivacyNotice } from "./SecurityPrivacyNotice";
 import { SC_PANEL, SC_STEP, SectionHeader } from "./ui";
 import { Cpu, Store } from "lucide-react";
+import type { AppId } from "@/lib/api";
+import { providersQueryOptions } from "@/lib/query/queries";
 
 interface SimpleConnectPageProps {
   onOpenSettings?: () => void;
@@ -40,6 +44,7 @@ interface SimpleConnectPageProps {
 
 export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("simple");
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -124,6 +129,46 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // 进入 API 接入页后在后台预热高级 Provider 所需数据，避免切 Tab 冷启动白屏
+  useEffect(() => {
+    if (loading) return;
+
+    const prefetchApps: AppId[] = [
+      "claude",
+      "codex",
+      "gemini",
+      "opencode",
+      "openclaw",
+      "hermes",
+      "claude-desktop",
+    ];
+
+    void queryClient.prefetchQuery(providersQueryOptions("claude"));
+    void queryClient.prefetchQuery({
+      queryKey: ["proxyStatus"],
+      queryFn: () => invoke("get_proxy_status"),
+      staleTime: 30_000,
+    });
+    void queryClient.prefetchQuery({
+      queryKey: ["proxyTakeoverStatus"],
+      queryFn: () => invoke("get_proxy_takeover_status"),
+      staleTime: 30_000,
+    });
+
+    const prefetchRest = () => {
+      for (const appId of prefetchApps) {
+        if (appId === "claude") continue;
+        void queryClient.prefetchQuery(providersQueryOptions(appId));
+      }
+    };
+
+    if (typeof window.requestIdleCallback === "function") {
+      window.requestIdleCallback(prefetchRest, { timeout: 3000 });
+    } else {
+      window.setTimeout(prefetchRest, 300);
+    }
+  }, [loading, queryClient]);
 
   const persistState = async (next: SimpleConnectState) => {
     setState(next);
@@ -623,12 +668,12 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
             </div>
           </TabsContent>
 
-          <TabsContent value="expert" className="flex-1 overflow-y-auto mt-0 space-y-4">
+          <TabsContent value="expert" forceMount className="flex-1 overflow-y-auto mt-0 space-y-4 data-[state=inactive]:hidden">
             <ExpertProviderPanel
               onSwitchToSimple={() => setTab("simple")}
               onOpenSettings={onOpenSettings}
             />
-            <UsageSummaryPanel />
+            <UsageSummaryPanel enabled={tab === "expert"} />
           </TabsContent>
         </Tabs>
       </div>

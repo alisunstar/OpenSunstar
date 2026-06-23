@@ -2,8 +2,13 @@
 
 use tauri::State;
 
+use crate::ai::readiness_cache::invalidate_agent_readiness_for_project;
 use crate::database::{Project, ProjectConfigLink, ProjectPromptLink};
 use crate::store::AppState;
+
+fn touch_readiness(state: &AppState, project_id: &str) {
+    invalidate_agent_readiness_for_project(&state.db, project_id, None);
+}
 
 // ========== Projects CRUD ==========
 
@@ -58,7 +63,9 @@ pub async fn link_project_mcp_server(
     state
         .db
         .link_project_mcp_server(&project_id, &mcp_server_id, enabled)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 #[tauri::command]
@@ -67,10 +74,14 @@ pub async fn unlink_project_mcp_server(
     project_id: String,
     mcp_server_id: String,
 ) -> Result<bool, String> {
-    state
+    let removed = state
         .db
         .unlink_project_mcp_server(&project_id, &mcp_server_id)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    if removed {
+        touch_readiness(&state, &project_id);
+    }
+    Ok(removed)
 }
 
 #[tauri::command]
@@ -82,7 +93,9 @@ pub async fn set_project_mcp_servers(
     state
         .db
         .set_project_mcp_servers(&project_id, &mcp_server_ids)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 // ========== Project × Skills ==========
@@ -108,7 +121,9 @@ pub async fn link_project_skill(
     state
         .db
         .link_project_skill(&project_id, &skill_id, enabled)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 #[tauri::command]
@@ -117,10 +132,14 @@ pub async fn unlink_project_skill(
     project_id: String,
     skill_id: String,
 ) -> Result<bool, String> {
-    state
+    let removed = state
         .db
         .unlink_project_skill(&project_id, &skill_id)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    if removed {
+        touch_readiness(&state, &project_id);
+    }
+    Ok(removed)
 }
 
 #[tauri::command]
@@ -132,7 +151,9 @@ pub async fn set_project_skills(
     state
         .db
         .set_project_skills(&project_id, &skill_ids)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 // ========== Project × Prompts ==========
@@ -159,7 +180,9 @@ pub async fn link_project_prompt(
     state
         .db
         .link_project_prompt(&project_id, &prompt_id, &prompt_app_type, enabled)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 #[tauri::command]
@@ -169,10 +192,14 @@ pub async fn unlink_project_prompt(
     prompt_id: String,
     prompt_app_type: String,
 ) -> Result<bool, String> {
-    state
+    let removed = state
         .db
         .unlink_project_prompt(&project_id, &prompt_id, &prompt_app_type)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    if removed {
+        touch_readiness(&state, &project_id);
+    }
+    Ok(removed)
 }
 
 #[tauri::command]
@@ -184,5 +211,7 @@ pub async fn set_project_prompts(
     state
         .db
         .set_project_prompts(&project_id, &prompts)
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }

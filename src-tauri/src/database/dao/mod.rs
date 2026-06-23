@@ -2,6 +2,7 @@
 //!
 //! Database access operations for each domain
 
+pub mod ai_insight;
 pub mod agent;
 pub mod command;
 pub mod failover;

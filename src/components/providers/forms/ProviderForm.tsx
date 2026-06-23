@@ -1435,8 +1435,8 @@ function ProviderFormFull({
         pricingConfig.enabled && pricingConfig.pricingModelSource !== "inherit"
           ? pricingConfig.pricingModelSource
           : undefined,
-      limitDailyUsd: dailyLimit || undefined,
-      limitMonthlyUsd: monthlyLimit || undefined,
+      limitDailyUsd: budgetLimits.limitDailyUsd || undefined,
+      limitMonthlyUsd: budgetLimits.limitMonthlyUsd || undefined,
       apiFormat:
         appId === "claude" && category !== "official"
           ? localApiFormat

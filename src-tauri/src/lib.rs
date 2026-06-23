@@ -45,6 +45,7 @@ mod tray;
 mod usage_events;
 mod usage_script;
 mod project_metrics;
+mod ai;
 
 pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig, SkillApps};
 pub use codex_config::{get_codex_auth_path, get_codex_config_path, write_codex_live_atomic};
@@ -1617,6 +1618,21 @@ pub fn run() {
             commands::git_weekly_commit_counts,
             commands::git_contributors,
             commands::reveal_path_in_folder,
+            // AI insight commands (项目看板 AI 能力 Phase 1)
+            commands::get_ai_insight,
+            commands::get_ai_health_score,
+            commands::get_ai_cost_summary,
+            commands::get_ai_roi_report,
+            commands::estimate_project_progress,
+            // AI insight commands Phase 2 (风险分析 + 自然语言查询)
+            commands::get_ai_risk_analysis,
+            commands::query_projects_nl,
+            // AI insight commands Phase 3 (智能周报)
+            commands::generate_weekly_report,
+            // AI insight commands F-P2-1 (Agent 配置就绪度 + 反馈闭环)
+            commands::get_agent_readiness_score,
+            commands::submit_insight_feedback,
+            commands::submit_ai_query_feedback,
             // Session & usage export
             commands::export_session,
             commands::export_usage,

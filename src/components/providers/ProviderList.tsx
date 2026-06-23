@@ -64,6 +64,7 @@ interface ProviderListProps {
   onOpenTerminal?: (provider: Provider) => void;
   onCreate?: () => void;
   isLoading?: boolean;
+  isRefreshing?: boolean;
   isProxyRunning?: boolean; // 代理服务运行状态
   isProxyTakeover?: boolean; // 代理接管模式（Live配置已被接管）
   activeProviderId?: string; // 代理当前实际使用的供应商 ID（用于故障转移模式下标注绿色边框）
@@ -87,6 +88,7 @@ export function ProviderList({
   onOpenTerminal,
   onCreate,
   isLoading = false,
+  isRefreshing = false,
   isProxyRunning = false,
   isProxyTakeover = false,
   activeProviderId,
@@ -148,9 +150,15 @@ export function ProviderList({
     [appId, openclawDefaultModel],
   );
 
-  // 故障转移相关
-  const { data: isAutoFailoverEnabled } = useAutoFailoverEnabled(appId);
-  const { data: failoverQueue } = useFailoverQueue(appId);
+  // 故障转移相关（精简 Expert 模式且未启用代理时跳过，减少切 Tab 请求瀑布）
+  const failoverQueriesEnabled =
+    !compactExpert || isProxyRunning || isProxyTakeover;
+  const { data: isAutoFailoverEnabled } = useAutoFailoverEnabled(appId, {
+    enabled: failoverQueriesEnabled,
+  });
+  const { data: failoverQueue } = useFailoverQueue(appId, {
+    enabled: failoverQueriesEnabled,
+  });
   const addToQueue = useAddToFailoverQueue();
   const removeFromQueue = useRemoveFromFailoverQueue();
 
@@ -208,6 +216,8 @@ export function ProviderList({
   const { data: settings } = useQuery({
     queryKey: ["settings"],
     queryFn: () => settingsApi.get(),
+    enabled: !compactExpert,
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleTest = useCallback(
@@ -375,11 +385,11 @@ export function ProviderList({
 
   if (isLoading) {
     return (
-      <div className="space-y-3">
+      <div className="space-y-3" aria-busy="true" aria-label="Loading providers">
         {[0, 1, 2].map((index) => (
           <div
             key={index}
-            className="w-full border border-dashed rounded-lg h-28 border-muted-foreground/40 bg-muted/40"
+            className="w-full border border-dashed rounded-lg h-28 border-muted-foreground/40 bg-muted/40 animate-pulse"
           />
         ))}
       </div>
@@ -472,6 +482,12 @@ export function ProviderList({
 
   return (
     <div className="mt-4 space-y-4">
+      {isRefreshing && (
+        <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+          <span className="inline-block h-3 w-3 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          {t("provider.refreshing", { defaultValue: "正在刷新供应商列表…" })}
+        </p>
+      )}
       {claudeDesktopStatusMessages.length > 0 && !compactExpert && (
         <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200">
           <div className="flex items-center gap-2 font-medium">

@@ -31,7 +31,7 @@ export function ExpertProviderPanel({
     takeoverStatus?.[activeApp as keyof typeof takeoverStatus],
   );
 
-  const { data, isLoading } = useProvidersQuery(activeApp, {
+  const { data, isPending, isFetching } = useProvidersQuery(activeApp, {
     isProxyRunning: isRunning,
   });
 
@@ -107,7 +107,8 @@ export function ExpertProviderPanel({
         providers={providers}
         currentProviderId={currentProviderId}
         appId={activeApp}
-        isLoading={isLoading}
+        isLoading={isPending && !data}
+        isRefreshing={isFetching && Boolean(data)}
         isProxyRunning={isRunning}
         isProxyTakeover={isProxyTakeover}
         onSwitch={switchProvider}

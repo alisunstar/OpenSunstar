@@ -1,16 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Server, Sparkles, MessageSquare, Loader2 } from "lucide-react";
+import { Server, Sparkles, MessageSquare, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
 import { useProjectConfig } from "@/hooks/useProjectConfig";
 import { mcpApi } from "@/lib/api/mcp";
 import { skillsApi, type InstalledSkill } from "@/lib/api/skills";
 import { promptsApi, type Prompt } from "@/lib/api/prompts";
 import type { McpServersMap } from "@/types";
+import type { PageView } from "@/App";
+import type { ProjectAssetSection } from "@/lib/readinessActions";
 
 interface ProjectConfigPanelProps {
   projectId: string;
+  scrollToSection?: ProjectAssetSection | null;
+  onConfigChanged?: () => void;
+  onNavigateToGlobal?: (view: PageView) => void;
 }
 
 /**
@@ -18,9 +24,17 @@ interface ProjectConfigPanelProps {
  *
  * 允许用户为特定项目选择性地启用/禁用 MCP 服务器、Skills 和 Prompts。
  */
-export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
+export function ProjectConfigPanel({
+  projectId,
+  scrollToSection,
+  onConfigChanged,
+  onNavigateToGlobal,
+}: ProjectConfigPanelProps) {
   const { t } = useTranslation();
   const { loading, mcp, skills, prompts } = useProjectConfig(projectId);
+  const mcpRef = useRef<HTMLElement>(null);
+  const skillsRef = useRef<HTMLElement>(null);
+  const promptsRef = useRef<HTMLElement>(null);
 
   // 全局可用列表
   const [allMcp, setAllMcp] = useState<McpServersMap>({});
@@ -53,6 +67,21 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (!scrollToSection) return;
+    const target =
+      scrollToSection === "mcp"
+        ? mcpRef.current
+        : scrollToSection === "skills"
+          ? skillsRef.current
+          : promptsRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollToSection, loading, globalLoading]);
+
+  const notifyChanged = () => {
+    onConfigChanged?.();
+  };
+
   if (loading || globalLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground">
@@ -78,6 +107,7 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
       } else {
         await mcp.unlink(serverId);
       }
+      notifyChanged();
     } catch {
       toast.error("操作失败");
     }
@@ -90,6 +120,7 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
       } else {
         await skills.unlink(skillId);
       }
+      notifyChanged();
     } catch {
       toast.error("操作失败");
     }
@@ -106,6 +137,7 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
       } else {
         await prompts.unlink(promptId, appType);
       }
+      notifyChanged();
     } catch {
       toast.error("操作失败");
     }
@@ -113,8 +145,15 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
 
   return (
     <div className="space-y-6">
+      <p className="text-xs text-muted-foreground leading-relaxed">
+        {t("projectConfig.hint", {
+          defaultValue:
+            "为当前项目勾选要启用的 MCP、Skills 与 Prompts。全局资产库在侧栏 Agent 配置中维护。",
+        })}
+      </p>
+
       {/* MCP Servers */}
-      <section>
+      <section ref={mcpRef}>
         <h3 className="flex items-center gap-2 text-sm font-medium mb-3">
           <Server className="w-4 h-4 text-blue-500" />
           {t("projectConfig.mcpServers", {
@@ -125,11 +164,26 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
           </span>
         </h3>
         {mcpEntries.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("projectConfig.noMcp", {
-              defaultValue: "暂无 MCP 服务器",
-            })}
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {t("projectConfig.noMcp", {
+                defaultValue: "暂无 MCP 服务器",
+              })}
+            </p>
+            {onNavigateToGlobal && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => onNavigateToGlobal("mcp")}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                {t("projectConfig.goToMcp", {
+                  defaultValue: "前往 MCP 管理",
+                })}
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {mcpEntries.map(([id, server]) => (
@@ -156,7 +210,7 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
       </section>
 
       {/* Skills */}
-      <section>
+      <section ref={skillsRef}>
         <h3 className="flex items-center gap-2 text-sm font-medium mb-3">
           <Sparkles className="w-4 h-4 text-amber-500" />
           {t("projectConfig.skills", { defaultValue: "Skills" })}
@@ -165,11 +219,26 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
           </span>
         </h3>
         {allSkills.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("projectConfig.noSkills", {
-              defaultValue: "暂无已安装的 Skills",
-            })}
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {t("projectConfig.noSkills", {
+                defaultValue: "暂无已安装的 Skills",
+              })}
+            </p>
+            {onNavigateToGlobal && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => onNavigateToGlobal("skills")}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                {t("projectConfig.goToSkills", {
+                  defaultValue: "前往 Skills 管理",
+                })}
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {allSkills.map((skill) => (
@@ -198,7 +267,7 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
       </section>
 
       {/* Prompts */}
-      <section>
+      <section ref={promptsRef}>
         <h3 className="flex items-center gap-2 text-sm font-medium mb-3">
           <MessageSquare className="w-4 h-4 text-green-500" />
           {t("projectConfig.prompts", { defaultValue: "Prompts" })}
@@ -207,11 +276,26 @@ export function ProjectConfigPanel({ projectId }: ProjectConfigPanelProps) {
           </span>
         </h3>
         {promptEntries.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            {t("projectConfig.noPrompts", {
-              defaultValue: "暂无 Prompts",
-            })}
-          </p>
+          <div className="space-y-2">
+            <p className="text-xs text-muted-foreground">
+              {t("projectConfig.noPrompts", {
+                defaultValue: "暂无 Prompts",
+              })}
+            </p>
+            {onNavigateToGlobal && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => onNavigateToGlobal("prompts")}
+              >
+                <ExternalLink className="w-3 h-3 mr-1" />
+                {t("projectConfig.goToPrompts", {
+                  defaultValue: "前往 Prompts 管理",
+                })}
+              </Button>
+            )}
+          </div>
         ) : (
           <div className="space-y-2">
             {promptEntries.map(([id, prompt]) => (

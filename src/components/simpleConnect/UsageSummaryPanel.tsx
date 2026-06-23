@@ -14,14 +14,21 @@ function formatTokens(n: number): string {
   return String(n);
 }
 
-export function UsageSummaryPanel({ embedded = false }: { embedded?: boolean }) {
+export function UsageSummaryPanel({
+  embedded = false,
+  enabled = true,
+}: {
+  embedded?: boolean;
+  enabled?: boolean;
+}) {
   const { t } = useTranslation();
   const [summary, setSummary] = useState<SimpleConnectUsageSummary | null>(
     null,
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
+    if (!enabled) return;
     setLoading(true);
     try {
       const data = await simpleConnectApi.usageSummary();
@@ -31,11 +38,12 @@ export function UsageSummaryPanel({ embedded = false }: { embedded?: boolean }) 
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) return;
     void refresh();
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   const body = (
     <>

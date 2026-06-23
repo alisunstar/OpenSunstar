@@ -6,13 +6,16 @@ import UnifiedSkillsPanel, {
   type UnifiedSkillsPanelHandle,
 } from "@/components/skills/UnifiedSkillsPanel";
 
-const scanUnmanagedMock = vi.fn();
-const toggleSkillAppMock = vi.fn();
-const uninstallSkillMock = vi.fn();
-const importSkillsMock = vi.fn();
-const installFromZipMock = vi.fn();
-const deleteSkillBackupMock = vi.fn();
-const restoreSkillBackupMock = vi.fn();
+const skillsMocks = vi.hoisted(() => ({
+  scanUnmanagedMock: vi.fn(),
+  toggleSkillAppMock: vi.fn(),
+  uninstallSkillMock: vi.fn(),
+  importSkillsMock: vi.fn(),
+  installFromZipMock: vi.fn(),
+  deleteSkillBackupMock: vi.fn(),
+  restoreSkillBackupMock: vi.fn(),
+  batchToggleSkillAppMock: vi.fn(),
+}));
 
 vi.mock("sonner", () => ({
   toast: {
@@ -22,62 +25,51 @@ vi.mock("sonner", () => ({
   },
 }));
 
-vi.mock("@/hooks/useSkills", () => ({
-  useInstalledSkills: () => ({
-    data: [],
-    isLoading: false,
-  }),
-  useSkillBackups: () => ({
-    data: [],
-    refetch: vi.fn(),
-    isFetching: false,
-  }),
-  useDeleteSkillBackup: () => ({
-    mutateAsync: deleteSkillBackupMock,
-    isPending: false,
-  }),
-  useToggleSkillApp: () => ({
-    mutateAsync: toggleSkillAppMock,
-  }),
-  useRestoreSkillBackup: () => ({
-    mutateAsync: restoreSkillBackupMock,
-    isPending: false,
-  }),
-  useUninstallSkill: () => ({
-    mutateAsync: uninstallSkillMock,
-  }),
-  useScanUnmanagedSkills: () => ({
-    data: [
-      {
-        directory: "shared-skill",
-        name: "Shared Skill",
-        description: "Imported from Claude",
-        foundIn: ["claude"],
-        path: "/tmp/shared-skill",
-      },
-    ],
-    refetch: scanUnmanagedMock,
-  }),
-  useImportSkillsFromApps: () => ({
-    mutateAsync: importSkillsMock,
-  }),
-  useInstallSkillsFromZip: () => ({
-    mutateAsync: installFromZipMock,
-  }),
-  useCheckSkillUpdates: () => ({
-    data: [],
-    refetch: vi.fn(),
-    isFetching: false,
-  }),
-  useUpdateSkill: () => ({
-    mutateAsync: vi.fn(),
-    isPending: false,
-  }),
-}));
+vi.mock("@/hooks/useSkills", async () => {
+  const { createSkillsHooksMock } = await import("../mocks/useSkillsMocks");
+  return createSkillsHooksMock({
+    useDeleteSkillBackup: () => ({
+      mutateAsync: skillsMocks.deleteSkillBackupMock,
+      isPending: false,
+    }),
+    useToggleSkillApp: () => ({
+      mutateAsync: skillsMocks.toggleSkillAppMock,
+    }),
+    useBatchToggleSkillApp: () => ({
+      mutateAsync: skillsMocks.batchToggleSkillAppMock,
+      isPending: false,
+    }),
+    useRestoreSkillBackup: () => ({
+      mutateAsync: skillsMocks.restoreSkillBackupMock,
+      isPending: false,
+    }),
+    useUninstallSkill: () => ({
+      mutateAsync: skillsMocks.uninstallSkillMock,
+    }),
+    useScanUnmanagedSkills: () => ({
+      data: [
+        {
+          directory: "shared-skill",
+          name: "Shared Skill",
+          description: "Imported from Claude",
+          foundIn: ["claude"],
+          path: "/tmp/shared-skill",
+        },
+      ],
+      refetch: skillsMocks.scanUnmanagedMock,
+    }),
+    useImportSkillsFromApps: () => ({
+      mutateAsync: skillsMocks.importSkillsMock,
+    }),
+    useInstallSkillsFromZip: () => ({
+      mutateAsync: skillsMocks.installFromZipMock,
+    }),
+  });
+});
 
 describe("UnifiedSkillsPanel", () => {
   beforeEach(() => {
-    scanUnmanagedMock.mockResolvedValue({
+    skillsMocks.scanUnmanagedMock.mockResolvedValue({
       data: [
         {
           directory: "shared-skill",
@@ -88,12 +80,13 @@ describe("UnifiedSkillsPanel", () => {
         },
       ],
     });
-    toggleSkillAppMock.mockReset();
-    uninstallSkillMock.mockReset();
-    importSkillsMock.mockReset();
-    installFromZipMock.mockReset();
-    deleteSkillBackupMock.mockReset();
-    restoreSkillBackupMock.mockReset();
+    skillsMocks.toggleSkillAppMock.mockReset();
+    skillsMocks.batchToggleSkillAppMock.mockReset();
+    skillsMocks.uninstallSkillMock.mockReset();
+    skillsMocks.importSkillsMock.mockReset();
+    skillsMocks.installFromZipMock.mockReset();
+    skillsMocks.deleteSkillBackupMock.mockReset();
+    skillsMocks.restoreSkillBackupMock.mockReset();
   });
 
   it("opens the import dialog without crashing when app toggles render", async () => {

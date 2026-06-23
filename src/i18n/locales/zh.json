@@ -3286,6 +3286,130 @@
     "suggestedDefaults": "应用建议默认配置",
     "suggestedDefaultsHint": "使用此预设推荐的默认模型配置"
   },
+  "sidebar": {
+    "kanban": "项目AI看板",
+    "tokenStats": "AI Tokens",
+    "section": {
+      "projects": "项目",
+      "monitor": "运行监控"
+    }
+  },
+  "kanban": {
+    "subtitle": "以 AI 驱动的全局多视角，多项目组合矩阵：全生命周期管理、项目健康评估、动态成本监控",
+    "scanning": "正在扫描 {{done}}/{{total}} 个项目…",
+    "refresh": "刷新指标",
+    "addProject": "添加项目",
+    "searchPlaceholder": "搜索项目…",
+    "confirmRemoveTitle": "从项目AI看板中移除？",
+    "confirmRemove": "将移除「{{name}}」；不会删除磁盘上的仓库文件，阶段与进度等本地看板数据也会清除。",
+    "confirmRemoveBtn": "移除",
+    "removed": "已移除「{{name}}」",
+    "commits7dHint": "近 7 天共 {{count}} 次提交",
+    "commitsWindowHint": "近 {{days}} 天共 {{count}} 次提交",
+    "noRecentActivity": "近 7 天无提交",
+    "noRecentActivityWindow": "近 {{days}} 天无提交",
+    "stageDistribution": "阶段分布",
+    "activity": {
+      "veryHigh": "很高",
+      "high": "高",
+      "medium": "中等",
+      "low": "低"
+    },
+    "detail": {
+      "tabs": "项目详情",
+      "overview": "概览",
+      "aiAssets": "AI 资产配置",
+      "projectAssets": "本项目启用的资产",
+      "projectAssetsHint": "勾选后仅对当前项目生效；与侧栏全局库双向同步。"
+    },
+    "readiness": {
+      "title": "Agent 配置就绪",
+      "loading": "正在评估配置就绪度…",
+      "hint": "点击下方条目可直达对应配置；项目级资产在本页「AI 资产配置」中关联。",
+      "configure": "去配置",
+      "configureGlobal": "前往全局配置",
+      "manage": "管理",
+      "openAssetsTab": "打开 AI 资产配置",
+      "completedSection": "已完成 {{count}} 项",
+      "badgeTooltip": "Agent 配置就绪 {{score}}/80 · 点击查看详情"
+    }
+  },
+  "projectConfig": {
+    "hint": "为当前项目勾选要启用的 MCP、Skills 与 Prompts。全局资产库在侧栏 Agent 配置中维护。",
+    "mcpServers": "MCP 服务器",
+    "skills": "Skills",
+    "prompts": "Prompts",
+    "noMcp": "暂无 MCP 服务器",
+    "noSkills": "暂无已安装的 Skills",
+    "noPrompts": "暂无 Prompts",
+    "goToMcp": "前往 MCP 管理",
+    "goToSkills": "前往 Skills 管理",
+    "goToPrompts": "前往 Prompts 管理"
+  },
+  "workspace": {
+    "title": "工作区",
+    "subtitle": "每日开工先看进度与 AI 资产配置，再进入项目看板迭代",
+    "sidebar": {
+      "section": "工作区",
+      "currentProjectAssets": "{{name}} · AI 配置"
+    },
+    "tabs": {
+      "label": "工作区视图",
+      "dashboard": "今日工作台",
+      "board": "项目看板",
+      "assetsMatrix": "AI 资产总览"
+    },
+    "dashboard": {
+      "title": "今日工作台",
+      "subtitle": "共 {{count}} 个项目 · 优先关注进度与 AI 资产配置",
+      "attentionCount": "待关注项目",
+      "attentionHint": "就绪不足或资产缺失",
+      "avgReadiness": "平均就绪分",
+      "missingMcp": "缺 MCP 项目",
+      "activeProjects": "近 {{days}} 天活跃",
+      "activeHint": "有 Git 提交",
+      "queueTitle": "建议优先处理",
+      "allGood": "各项目配置状态良好，可直接进入迭代。",
+      "configureAssets": "配置资产",
+      "reasonReadiness": "就绪分 {{score}}/80",
+      "reasonMcp": "未关联 MCP",
+      "reasonSkills": "未配置 Skills",
+      "reasonProgress": "MVP 进度 {{progress}}%",
+      "lastUpdated": "上次更新",
+      "updatedJustNow": "刚刚更新",
+      "updatedMinutesAgo": "{{count}} 分钟前更新",
+      "updatedHoursAgo": "{{count}} 小时前更新",
+      "updatedAt": "更新于 {{time}}",
+      "refreshing": "正在刷新…",
+      "loading": "正在汇总项目就绪与资产数据…",
+      "mvpBehindHint": "{{count}} 个 MVP 项目进度低于 50%，建议优先推进。"
+    },
+    "assetsMatrix": {
+      "title": "AI 资产总览",
+      "subtitle": "按项目查看 MCP / Skills / Prompts 关联与就绪状态",
+      "loading": "正在汇总各项目 AI 资产…",
+      "project": "项目",
+      "stage": "阶段",
+      "readiness": "就绪",
+      "progress": "进度",
+      "refreshing": "更新中"
+    }
+  },
+  "board": {
+    "summary": {
+      "title": "项目总览",
+      "totalProjects": "总项目数",
+      "totalCodeLines": "总代码行数",
+      "linesUnit": "行",
+      "avgActivity": "平均活跃度（{{days}} 天）",
+      "commitsInWindow": "近 {{days}} 天提交",
+      "thisWeek": "近 7 天提交",
+      "windowLabel": "Git 活跃统计周期",
+      "daysUnit": "天",
+      "updatesUnit": "次"
+    },
+    "duplicateCleanup": "重复资产检测"
+  },
   "subscription": {
     "title": "订阅额度",
     "fiveHour": "5小时",

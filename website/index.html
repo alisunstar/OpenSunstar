@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenSunstar — 一站式统一管理您的 AI 编程工具工作流</title>
+    <meta
+      name="description"
+      content="OpenSunstar 是一站式 AI 编程工具统一桌面管理器。可视化切换 API 供应商、统一管理 MCP/Skills/Prompts 等 Agent 扩展配置并跨设备同步，提供项目 AI 看板洞察多仓库研发健康度。支持 Windows/macOS/Linux，全本地运行零遥测。"
+    />
+    <meta name="theme-color" content="#0d1117" />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/style.css?v=6" />
+    <meta property="og:title" content="OpenSunstar — 一站式统一管理您的 AI 编程工具工作流" />
+    <meta
+      property="og:description"
+      content="七个 AI CLI 工具、一个统一管理器。预设 DeepSeek/OpenRouter/GLM/Anthropic/自定义 5 大供应商，MCP/Skills/Prompts 统一配置与同步，多仓库项目 AI 看板，全平台覆盖。"
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://opensunstar.github.io/" />
+    <meta property="og:image" content="assets/screenshots/main-zh.png" />
+  </head>
+  <body>
+    <nav class="site-nav">
+      <div class="container">
+        <a class="brand" href="#top">
+          <img
+            class="brand-logo"
+            src="assets/logo-nav.png"
+            alt="OpenSunstar"
+            width="64"
+            height="64"
+          />
+          OpenSunstar
+        </a>
+        <ul class="nav-links">
+          <li><a href="#architecture" data-section="architecture">架构</a></li>
+          <li><a href="#features" data-section="features">功能</a></li>
+          <li><a href="#tools" data-section="tools">支持工具</a></li>
+          <li><a href="#quick-start" data-section="quick-start">快速开始</a></li>
+          <li><a href="#faq" data-section="faq">FAQ</a></li>
+        </ul>
+        <div class="nav-actions">
+          <a
+            class="btn btn-ghost"
+            href="https://github.com/alisunstar/OpenSunstar"
+            target="_blank"
+            rel="noopener"
+            >GitHub</a
+          >
+          <a
+            class="btn btn-primary"
+            href="https://github.com/alisunstar/OpenSunstar/releases/latest"
+            target="_blank"
+            rel="noopener"
+            >下载 v0.1.0</a
+          >
+        </div>
+      </div>
+    </nav>
+
+    <header class="hero" id="top">
+      <div class="hero-grid-bg" aria-hidden="true"></div>
+      <div class="hero-glow" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-badge">
+          <span class="dot"></span>
+          开源 · MIT License · Tauri 2 原生桌面
+        </div>
+        <h1 class="hero-title">七个 AI CLI<br />一站式管理与同步</h1>
+        <p class="subtitle">
+          告别手动编辑 JSON/TOML 配置文件。OpenSunstar 让你在同一界面中：可视化切换
+          API 供应商并自动同步到 7 个 CLI、统一管理 MCP/Skills/Prompts
+          等 Agent 扩展配置并跨设备同步、通过本地代理实现高可用与自动故障转移、用项目 AI
+          看板洞察多仓库研发健康度。全本地运行，零遥测。
+        </p>
+        <div class="hero-actions">
+          <a
+            class="btn btn-primary"
+            href="https://github.com/alisunstar/OpenSunstar/releases/latest"
+            target="_blank"
+            rel="noopener"
+            >立即下载</a
+          >
+          <a class="btn btn-secondary" href="#quick-start">快速开始</a>
+          <a
+            class="btn btn-secondary"
+            href="https://github.com/alisunstar/OpenSunstar"
+            target="_blank"
+            rel="noopener"
+            >查看源码</a
+          >
+        </div>
+        <div class="hero-meta">
+          <span>✓ Windows / macOS / Linux</span>
+          <span>✓ 5 种常用预设（DeepSeek · OpenRouter · GLM · Anthropic · 自定义 OpenAI 兼容）</span>
+          <span>✓ 本地代理 · 故障转移 · 三态熔断</span>
+          <span>✓ 简中 / 繁中 / EN / 日</span>
+        </div>
+        <div class="hero-preview">
+          <div class="app-mock" aria-label="OpenSunstar 界面示意（非真实截图）">
+            <div class="app-mock-bar">
+              <div class="app-mock-left">
+                <div class="app-mock-dots" aria-hidden="true">
+                  <span></span><span></span><span></span>
+                </div>
+                <div class="app-mock-title">
+                  <img
+                    class="brand-logo brand-logo-sm"
+                    src="assets/logo-sm.png"
+                    alt="OpenSunstar"
+                    width="44"
+                    height="44"
+                  />
+                  OpenSunstar
+                </div>
+              </div>
+              <div class="app-mock-tabs">
+                <span class="app-mock-tab active">Claude</span>
+                <span class="app-mock-tab">Codex</span>
+                <span class="app-mock-tab">Gemini</span>
+              </div>
+            </div>
+            <div class="app-mock-body">
+              <div class="app-mock-row highlight">
+                <div class="app-mock-icon ds">DS</div>
+                <div class="app-mock-info">
+                  <strong>DeepSeek</strong>
+                  <span>https://api.deepseek.com</span>
+                </div>
+                <span class="app-mock-badge">当前</span>
+              </div>
+              <div class="app-mock-row">
+                <div class="app-mock-icon or">OR</div>
+                <div class="app-mock-info">
+                  <strong>OpenRouter</strong>
+                  <span>https://openrouter.ai/api</span>
+                </div>
+              </div>
+              <div class="app-mock-row">
+                <div class="app-mock-icon glm">GLM</div>
+                <div class="app-mock-info">
+                  <strong>智谱 GLM</strong>
+                  <span>https://open.bigmodel.cn</span>
+                </div>
+              </div>
+              <div class="app-mock-row">
+                <div class="app-mock-icon ant">A</div>
+                <div class="app-mock-info">
+                  <strong>Anthropic 官方</strong>
+                  <span>https://api.anthropic.com</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section id="architecture">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Architecture</span>
+          <h2 class="section-title">三层能力，渐进增强</h2>
+          <p class="section-desc">
+            从 API 接入到 Agent 配置，再到多项目组合洞察——每一层可独立使用，也可组合成完整的
+            AI 编程工作流。
+          </p>
+        </div>
+        <div class="card-grid card-grid-3">
+          <article class="card">
+            <div class="card-icon teal">🔌</div>
+            <h3>快速接入</h3>
+            <p>
+              SimpleConnect 三步向导：选供应商 → 填 API Key → 一键应用到 CLI。内置
+              DeepSeek、OpenRouter、智谱 GLM、Anthropic 官方、自定义 OpenAI 兼容五种预设。密钥加密存入 OS Keychain（AES-256-GCM），支持密钥池加权轮询与 429 阶梯冷却。
+            </p>
+            <div class="card-tags">
+              <span class="tag">SimpleConnect</span>
+              <span class="tag">Keychain 加密</span>
+              <span class="tag">DeepLink 导入</span>
+            </div>
+            <p class="card-meta">5 种预设 / OS Keychain</p>
+          </article>
+          <article class="card">
+            <div class="card-icon orange">⚡</div>
+            <h3>Agent 配置中心</h3>
+            <p>
+              9 大模块统一管理：MCP 服务器发现与启停、Skills 一键安装（GitHub / ZIP / ClawHub
+              / ModelScope）、Prompts & Rules 跨工具同步（CLAUDE.md / AGENTS.md /
+              GEMINI.md）、Commands / Hooks / Ignore / Permissions 统一配置。双向同步到 7
+              个 CLI，55+ 安全审计规则保障 Skills 安装安全。
+            </p>
+            <div class="card-tags">
+              <span class="tag">MCP 管理</span>
+              <span class="tag">Skills 审计</span>
+              <span class="tag">配置转换</span>
+            </div>
+            <p class="card-meta">9 大模块 · 双向同步</p>
+          </article>
+          <article class="card">
+            <div class="card-icon gold">📊</div>
+            <h3>项目 AI 看板</h3>
+            <p>
+              多 Git 仓库 AI 驾驶舱：三阶段管理视图（MVP / Rapid / Stable）、AI
+              健康评分、项目组合活跃度矩阵、AI 风险自动识别。AI 周报自动生成，集成 AI
+              成本面板与用量追踪，支持自然语言查询。
+            </p>
+            <div class="card-tags">
+              <span class="tag">AI 健康评分</span>
+              <span class="tag">NL 查询</span>
+              <span class="tag">成本面板</span>
+            </div>
+            <p class="card-meta">三阶段管理 · AI 周报</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="philosophy">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Design Philosophy</span>
+          <h2 class="section-title">配置不该成为阻力</h2>
+          <p class="section-desc">
+            现代 AI 编程依赖多个 CLI，每个都有自己的配置格式。OpenSunstar
+            用可视化界面替代手工编辑，用可靠存储替代脆弱的复制粘贴。
+          </p>
+        </div>
+        <div class="lifecycle">
+          <article class="phase-card" style="--phase-color: #58a6ff">
+            <div class="phase-header">
+              <span class="phase-emoji">🔌</span>
+              <div>
+                <span class="phase-en">Connect</span>
+                <h4>接入</h4>
+              </div>
+            </div>
+            <p>选供应商 → 安全存储 Key → 一键应用到 7 个 CLI。支持 DeepLink 协议一键导入配置</p>
+            <div class="phase-tags">
+              <span class="phase-tag">simple-connect</span>
+              <span class="phase-tag">deepseek</span>
+            </div>
+          </article>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <article class="phase-card" style="--phase-color: #f778ba">
+            <div class="phase-header">
+              <span class="phase-emoji">⚡</span>
+              <div>
+                <span class="phase-en">Configure</span>
+                <h4>配置</h4>
+              </div>
+            </div>
+            <p>9 大配置模块统一面板：MCP/Skills/Prompts/Commands/Hooks/Ignore/Permissions/Subagent/Convert，双向同步与跨设备迁移</p>
+            <div class="phase-tags">
+              <span class="phase-tag">mcp-sync</span>
+              <span class="phase-tag">skills-import</span>
+            </div>
+          </article>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <article class="phase-card" style="--phase-color: #00b96b">
+            <div class="phase-header">
+              <span class="phase-emoji">🔄</span>
+              <div>
+                <span class="phase-en">Switch</span>
+                <h4>切换</h4>
+              </div>
+            </div>
+            <p>主界面/系统托盘即时切换供应商与 Agent 配置。Claude Code 支持热切换，本地代理自动故障转移 + 三态熔断保障高可用</p>
+            <div class="phase-tags">
+              <span class="phase-tag">tray-switch</span>
+              <span class="phase-tag">hot-reload</span>
+            </div>
+          </article>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <article class="phase-card" style="--phase-color: #d29922">
+            <div class="phase-header">
+              <span class="phase-emoji">📊</span>
+              <div>
+                <span class="phase-en">Insight</span>
+                <h4>洞察</h4>
+              </div>
+            </div>
+            <p>用量统计与 Token 仪表盘、预算告警、多项目 AI 健康评分与风险分析、AI 周报自动生成、自然语言查询多仓库状态</p>
+            <div class="phase-tags">
+              <span class="phase-tag">portfolio-7d</span>
+              <span class="phase-tag">ai-weekly</span>
+            </div>
+          </article>
+        </div>
+        <div class="loop-footer">
+          <div class="loop-line"></div>
+          <p class="loop-text">
+            研发闭环 — 接入 → 配置 → 切换 → 洞察，四步串联 AI 编程全流程，一站式统一管理您的 AI 编程工具工作流
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section id="features">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Features</span>
+          <h2 class="section-title">十大模块，覆盖 AI 编程全生命周期</h2>
+          <p class="section-desc">
+            API 接入、Agent 配置、本地代理、项目看板、用量统计、会话管理、云同步、跨平台、安全隐私 — 一次配齐。
+          </p>
+        </div>
+        <div class="feature-list">
+          <div class="feature-item">
+            <div class="fi-icon">🔄</div>
+            <div>
+              <strong>多 CLI 统一管理与供应商热切换</strong>
+              <span
+                >7 个工具、5 种常用预设，拖拽排序、导入导出、系统托盘快速切换。密钥池加权轮询、429 阶梯冷却。通用配置片段保留插件与扩展数据，切换不丢配置。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🛡️</div>
+            <div>
+              <strong>本地代理与高可用</strong>
+              <span
+                >127.0.0.1:15721 本地 HTTP 代理。自动故障转移、三态熔断器、三层整流器。可按应用接管代理，实时监控供应商健康状态。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🧩</div>
+            <div>
+              <strong>Agent 扩展配置与同步</strong>
+              <span
+                >9 大模块：MCP 服务器、Skills（GitHub / ZIP / ClawHub / ModelScope）、Prompts
+                & Rules（CLAUDE.md / AGENTS.md / GEMINI.md）、Commands、Hooks、Ignore、Permissions、Subagent、Convert。55+ 安全审计规则 + 跨设备双向同步。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">💰</div>
+            <div>
+              <strong>用量统计与预算管理</strong>
+              <span
+                >AI Tokens 仪表盘，按供应商/模型分组统计。请求日志追踪、自定义模型定价、预算告警实时推送。成本一目了然。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">☁️</div>
+            <div>
+              <strong>云同步与备份</strong>
+              <span
+                >WebDAV / S3 / GitHub Gist 三通道云同步。支持自定义配置目录（Dropbox / OneDrive
+                / iCloud）。自动备份保留 10 份快照，支持导入/导出
+                SQLite。OpenSunstar:// DeepLink 协议一键导入全量配置。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">📈</div>
+            <div>
+              <strong>项目 AI 看板</strong>
+              <span
+                >多 Git 仓库驾驶舱：三阶段管理（MVP / Rapid / Stable）、AI
+                健康评分、项目组合矩阵、AI 风险分析、自然语言查询。AI
+                周报自动生成，集成成本面板。</span
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tools">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Supported Tools</span>
+          <h2 class="section-title">一个应用，七个 CLI</h2>
+          <p class="section-desc">
+            每个工具都有专属预设与配置管理，也支持一次配置多端同步。Claude Code 更支持热切换，无需重启终端。
+          </p>
+        </div>
+        <div class="tools-strip">
+          <span class="tool-chip">Claude Code</span>
+          <span class="tool-chip">Claude Desktop</span>
+          <span class="tool-chip">Codex</span>
+          <span class="tool-chip">Gemini CLI</span>
+          <span class="tool-chip">OpenCode</span>
+          <span class="tool-chip">OpenClaw</span>
+          <span class="tool-chip">Hermes</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="quick-start">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">Quick Start</span>
+          <h2 class="section-title">🚀 快速开始</h2>
+          <p class="section-desc">
+            选择你的平台，下载安装包即可。首次启动会自动导入现有 CLI 配置为 default
+            供应商，零迁移成本。
+          </p>
+        </div>
+
+        <div class="prereq">
+          <span class="prereq-item"
+            ><span class="check">✓</span> Windows 10+ / macOS 12+ / Ubuntu 22.04+</span
+          >
+          <span class="prereq-item"
+            ><span class="check">✓</span> 无需 Node.js（原生安装包）</span
+          >
+          <span class="prereq-item"
+            ><span class="check">✓</span> 已有 CLI 配置可自动导入</span
+          >
+        </div>
+
+        <div class="platform-tabs">
+          <button class="platform-tab active" data-platform="windows">
+            🪟 Windows
+          </button>
+          <button class="platform-tab" data-platform="macos">🍎 macOS</button>
+          <button class="platform-tab" data-platform="linux">🐧 Linux</button>
+        </div>
+
+        <div class="platform-panel active" id="platform-windows">
+          <p style="color: var(--text-secondary); margin-bottom: 16px">
+            从 Releases 下载 <code>OpenSunstar-v0.1.0-Windows.msi</code> 安装包，或
+            Portable 绿色版解压即用。
+          </p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">复制</button>
+            <code
+              ># 1. 下载并安装 MSI 或解压 Portable<br /># 2. 启动 OpenSunstar →
+              快速接入 → 选择供应商 → 应用配置<br /># 3. 重启终端（Claude Code
+              可热切换，无需重启）</code
+            >
+          </div>
+        </div>
+
+        <div class="platform-panel" id="platform-macos">
+          <p style="color: var(--text-secondary); margin-bottom: 16px">
+            推荐 Homebrew 安装；亦可通过 DMG 手动安装（已通过 Apple 公证）。
+          </p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">复制</button>
+            <code
+              ><span class="comment"># Homebrew（推荐）</span><br /><span
+                class="cmd"
+                >brew install --cask OpenSunstar</span
+              ><br /><br /><span class="comment"># 更新</span><br /><span
+                class="cmd"
+                >brew upgrade --cask OpenSunstar</span
+              ></code
+            >
+          </div>
+        </div>
+
+        <div class="platform-panel" id="platform-linux">
+          <p style="color: var(--text-secondary); margin-bottom: 16px">
+            支持 .deb / .rpm / AppImage；Arch 用户可通过 AUR 安装。
+          </p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">复制</button>
+            <code
+              ><span class="comment"># Debian / Ubuntu</span><br /><span
+                class="cmd"
+                >sudo dpkg -i OpenSunstar-v0.1.0-Linux.deb</span
+              ><br /><br /><span class="comment"># Arch (paru)</span><br /><span
+                class="cmd"
+                >paru -S OpenSunstar-bin</span
+              ></code
+            >
+          </div>
+        </div>
+
+        <div class="download-cards">
+          <div class="download-card">
+            <h4>📦 最新 Release</h4>
+            <p>获取全平台安装包与更新日志。</p>
+            <a
+              class="btn btn-primary"
+              href="https://github.com/alisunstar/OpenSunstar/releases/latest"
+              target="_blank"
+              rel="noopener"
+              >前往 Releases →</a
+            >
+          </div>
+          <div class="download-card">
+            <h4>📖 用户手册</h4>
+            <p>供应商、MCP、Skills、代理故障转移等完整指南。</p>
+            <a
+              class="btn btn-secondary"
+              href="https://github.com/alisunstar/OpenSunstar/tree/main/docs/user-manual/zh"
+              target="_blank"
+              rel="noopener"
+              >阅读文档 →</a
+            >
+          </div>
+          <div class="download-card">
+            <h4>🌐 官方网站</h4>
+            <p>OpenSunstar.io — 产品资讯与社区入口。</p>
+            <a
+              class="btn btn-secondary"
+              href="https://OpenSunstar.io"
+              target="_blank"
+              rel="noopener"
+              >访问 OpenSunstar.io →</a
+            >
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-label">FAQ</span>
+          <h2 class="section-title">常见问题</h2>
+        </div>
+        <div class="faq-list">
+          <details class="faq-item">
+            <summary>切换供应商后需要重启终端吗？</summary>
+            <p>
+              大多数 CLI 需要重启终端才能生效。Claude Code
+              支持供应商热切换，无需重启。切换前 OpenSunstar 会自动备份当前配置。
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>我的数据存储在哪里？</summary>
+            <p>
+              供应商、MCP、Prompts、Skills 存储在
+              <code>~/.OpenSunstar/OpenSunstar.db</code>（SQLite）。UI
+              偏好设置在 <code>settings.json</code>，自动备份保留最近 10 份。
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>如何切回官方登录？</summary>
+            <p>
+              在预设供应商中添加「官方（Official）」条目并切换过去，然后在对应 CLI
+              中执行 Log out / Log in 流程即可。
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>项目组合和看板有什么区别？</summary>
+            <p>
+              OpenSunstar 的「项目组合」是多 Git
+              仓库研发仪表盘，展示代码量、提交活跃度与 AI
+              洞察，不是拖拽式任务看板。
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>OpenSunstar 安全吗？会上传我的数据吗？</summary>
+            <p>
+              OpenSunstar 全本地运行，零遥测，不上传任何数据。API Key
+              加密存入操作系统密钥链（Windows Credential Manager / macOS Keychain /
+              Linux Secret Service），使用 AES-256-GCM 加密。Skills 安装前经过 55+
+              规则安全审计，确保来源可信。
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>如何在不同设备间同步配置？</summary>
+            <p>
+              支持 WebDAV、S3、GitHub Gist 三种云同步通道。也可以将配置目录指向
+              Dropbox、OneDrive 或 iCloud
+              实现跨设备同步。所有配置自动备份，保留最近 10
+              份快照，随时可恢复。也可导出 SQLite 文件手动迁移。
+            </p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-brand">
+            <a class="brand" href="#top">
+              <img
+                class="brand-logo brand-logo-sm"
+                src="assets/logo-sm.png"
+                alt="OpenSunstar"
+                width="44"
+                height="44"
+              />
+              OpenSunstar
+            </a>
+            <p>
+              一站式统一管理您的 AI 编程工具工作流（AI CLI切换&同步，Agent扩展配置&同步和项目AI看板）
+            </p>
+          </div>
+          <div class="footer-col">
+            <h5>产品</h5>
+            <ul>
+              <li>
+                <a href="#features">功能特性</a>
+              </li>
+              <li>
+                <a href="#quick-start">下载安装</a>
+              </li>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar/blob/main/CHANGELOG.md"
+                  target="_blank"
+                  rel="noopener"
+                  >更新日志</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h5>文档</h5>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar/tree/main/docs/user-manual/zh"
+                  target="_blank"
+                  rel="noopener"
+                  >用户手册</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar/blob/main/docs/kanban.md"
+                  target="_blank"
+                  rel="noopener"
+                  >项目组合说明</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar/blob/main/CONTRIBUTING.md"
+                  target="_blank"
+                  rel="noopener"
+                  >参与贡献</a
+                >
+              </li>
+            </ul>
+          </div>
+          <div class="footer-col">
+            <h5>社区</h5>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar"
+                  target="_blank"
+                  rel="noopener"
+                  >GitHub</a
+                >
+              </li>
+              <li>
+                <a href="https://OpenSunstar.io" target="_blank" rel="noopener"
+                  >OpenSunstar.io</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://github.com/alisunstar/OpenSunstar/issues"
+                  target="_blank"
+                  rel="noopener"
+                  >反馈 Issue</a
+                >
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-bottom">
+          <span>© 2026 OpenSunstar · MIT License</span>
+          <span>Built with Tauri 2 · v0.1.0</span>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/main.js"></script>
+  </body>
+</html>
