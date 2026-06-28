@@ -35,7 +35,7 @@ import AgentsPanel from "@/components/agents/AgentsPanel";
 import { SkillsPage } from "@/components/skills/SkillsPage";
 import UnifiedSkillsPanel from "@/components/skills/UnifiedSkillsPanel";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
-import { SimpleConnectPage } from "@/components/simpleConnect/SimpleConnectPage";
+import { QuickStartPage } from "@/components/quickStart/QuickStartPage";
 import { DeepLinkImportDialog } from "@/components/DeepLinkImportDialog";
 import { SettingsPageContent } from "@/components/settings/SettingsPage";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -49,6 +49,7 @@ import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
 import { useSettingsQuery } from "@/lib/query";
 import {
   buildProxySettingsIntent,
+  buildAiProviderSettingsIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
 
@@ -147,24 +148,34 @@ interface PageMeta {
 const PAGE_META: Record<PageView, PageMeta> = {
   simpleConnect: {
     titleKey: "simpleConnect.pageTitle",
-    defaultTitle: "API 接入",
+    defaultTitle: "API Access",
   },
   mcp: { titleKey: "mcp.title", defaultTitle: "MCP" },
-  mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "发现 MCP" },
-  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts&rules" },
-  commands: { titleKey: "commands.title", defaultTitle: "命令管理" },
-  hooks: { titleKey: "hooks.title", defaultTitle: "钩子管理" },
-  convert: { titleKey: "convert.title", defaultTitle: "配置转换" },
-  ignore: { titleKey: "ignore.title", defaultTitle: "忽略规则" },
-  permissions: { titleKey: "permissions.title", defaultTitle: "工具权限" },
-  agents: { titleKey: "agents.title", defaultTitle: "Subagent 管理" },
+  mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "Discover MCP" },
+  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts" },
+  commands: { titleKey: "commands.title", defaultTitle: "Commands" },
+  hooks: { titleKey: "hooks.title", defaultTitle: "Hooks" },
+  convert: { titleKey: "convert.title", defaultTitle: "Convert" },
+  ignore: { titleKey: "ignore.title", defaultTitle: "Ignore" },
+  permissions: { titleKey: "permissions.title", defaultTitle: "Permissions" },
+  agents: { titleKey: "agents.title", defaultTitle: "Subagents" },
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
-  skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "发现 Skills" },
+  skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "Discover Skills" },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "同步备份" },
   kanban: { titleKey: "workspace.title", defaultTitle: "工作区" },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   settings: { titleKey: "common.settings", defaultTitle: "设置" },
+};
+
+/** Agent 资产页顶栏标题：与侧栏一致，固定英文 */
+const AGENT_ASSET_PAGE_TITLES: Partial<Record<PageView, string>> = {
+  commands: "Commands",
+  hooks: "Hooks",
+  ignore: "Ignore",
+  permissions: "Permissions",
+  agents: "Subagents",
+  convert: "Convert",
 };
 
 // ── 组件 ──────────────────────────────────────────
@@ -190,6 +201,11 @@ function App() {
 
   const openProxySettings = useCallback(() => {
     setSettingsNavIntent(buildProxySettingsIntent());
+    setCurrentView("settings");
+  }, []);
+
+  const openAiProviderSettings = useCallback(() => {
+    setSettingsNavIntent(buildAiProviderSettingsIntent());
     setCurrentView("settings");
   }, []);
 
@@ -358,7 +374,7 @@ function App() {
     switch (currentView) {
       case "simpleConnect":
         return (
-          <SimpleConnectPage onOpenSettings={openProxySettings} />
+          <QuickStartPage onOpenSettings={openProxySettings} />
         );
       case "mcp":
         return (
@@ -431,6 +447,7 @@ function App() {
             projectDetailIntent={projectDetailIntent}
             workspaceTab={workspaceTab}
             onWorkspaceTabChange={setWorkspaceTab}
+            targetApp={effectiveTargetApp}
             onProjectClick={(project) => {
               setSelectedProjectId(project.id);
             }}
@@ -442,7 +459,7 @@ function App() {
             }}
             onAddProject={() => setAddProjectOpen(true)}
             onClearSelection={() => setSelectedProjectId(null)}
-            onOpenSettings={() => setCurrentView("settings")}
+            onOpenSettings={openAiProviderSettings}
             onNavigate={(view) => setCurrentView(view)}
           />
         );
@@ -568,17 +585,7 @@ function App() {
           </>
         );
       case "mcpDiscovery":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => mcpDiscoveryPageRef.current?.refresh()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <RefreshCw className="w-4 h-4 mr-1" />
-            {t("common.refresh", { defaultValue: "刷新" })}
-          </Button>
-        );
+        return null;
       case "skills":
         return (
           <>
@@ -741,9 +748,10 @@ function App() {
                     </Button>
                   )}
                   <h1 className="text-sm font-semibold text-foreground truncate">
-                    {t(pageMeta.titleKey, {
-                      defaultValue: pageMeta.defaultTitle,
-                    })}
+                    {AGENT_ASSET_PAGE_TITLES[currentView] ??
+                      t(pageMeta.titleKey, {
+                        defaultValue: pageMeta.defaultTitle,
+                      })}
                   </h1>
                   {showAppSwitcher && (
                     <AppSwitcher

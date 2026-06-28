@@ -1,4 +1,4 @@
-﻿{
+{
   "app": {
     "title": "OpenSunstar",
     "description": "Claude Code / Codex / Gemini CLI 全方位辅助工具"
@@ -1898,7 +1898,7 @@
     "after": "激活后"
   },
   "commands": {
-    "title": "命令管理",
+    "title": "Commands",
     "manage": "命令",
     "empty": "暂无自定义命令",
     "add": "添加命令",
@@ -1928,7 +1928,7 @@
     }
   },
   "hooks": {
-    "title": "钩子管理",
+    "title": "Hooks",
     "empty": "暂无生命周期钩子",
     "add": "添加钩子",
     "edit": "编辑钩子",
@@ -1962,7 +1962,7 @@
     }
   },
   "convert": {
-    "title": "配置转换",
+    "title": "Convert",
     "subtitle": "在 Claude / Codex / Gemini 等工具间迁移 Prompt、MCP、Skill 与 Command 配置",
     "sourceApp": "源工具",
     "targetApp": "目标工具",
@@ -1989,7 +1989,7 @@
     }
   },
   "ignore": {
-    "title": "忽略规则",
+    "title": "Ignore",
     "empty": "暂无忽略规则",
     "emptyHint": "添加 glob 规则后，将同步到 .claudeignore、.codexignore 等文件",
     "add": "添加规则",
@@ -2018,7 +2018,7 @@
     }
   },
   "permissions": {
-    "title": "工具权限",
+    "title": "Permissions",
     "empty": "暂无工具权限规则",
     "emptyHint": "管理 Claude Code 的 allow/deny 工具列表，可与 Hooks 共存于 settings.json",
     "add": "添加权限",
@@ -2405,7 +2405,25 @@
     "searchSource": {
       "all": "全部",
       "repos": "仓库",
-      "skillssh": "skills.sh"
+      "skillssh": "skills.sh",
+      "leaderboardAllTime": "全站总榜",
+      "leaderboardTrending": "24h 趋势"
+    },
+    "leaderboard": {
+      "allTimeTitle": "全站总榜",
+      "trendingTitle": "24h 趋势",
+      "allTimeDesc": "与 skills.sh 官网 All Time 排行榜 TOP50 对齐（历史总安装量）",
+      "trendingDesc": "与 skills.sh 官网 Trending (24h) 排行榜 TOP50 对齐",
+      "syncedAt": "同步于 {{time}}",
+      "fromCache": "本地缓存",
+      "registryTotal": "全站累计 {{count}} 次安装",
+      "loading": "正在同步 skills.sh 官方排行榜…",
+      "error": "无法同步 skills.sh 官方排行榜",
+      "empty": "暂无排行榜数据",
+      "syncPolicy": "非实时数据 · 默认每 {{hours}} 小时从 skills.sh 同步 · 点击刷新可立即更新",
+      "nextSyncAt": "下次自动同步约 {{time}}",
+      "refreshNow": "立即从 skills.sh 同步",
+      "pageRange": "{{range}} · 第 {{page}}/{{totalPages}} 页（共 {{total}} 条）"
     },
     "all": {
       "searchPlaceholder": "输入关键词搜索所有来源（仓库 / skills.sh / ClawHub）...",
@@ -2588,11 +2606,11 @@
   },
   "simpleConnect": {
     "nav": "快速接入",
-    "pageTitle": "API 接入",
+    "pageTitle": "快速接入",
     "tabSimple": "快速接入",
     "tabExpert": "高级 Provider",
-    "title": "Simple Connect",
-    "subtitle": "3 步完成：选供应商 → 保存 Key → 选 CLI 并应用（Keychain + 本地代理 + 六 CLI）",
+    "title": "快速接入",
+    "subtitle": "粘贴 API Key，三步即可在 CLI 中用起来",
     "step1": "供应商",
     "step2": "密钥",
     "step3": "应用",
@@ -2604,6 +2622,7 @@
     "fetchModels": "拉取模型列表",
     "apply": "应用配置",
     "applySuccess": "{{tool}} 配置已应用",
+    "applySuccessMulti": "{{tools}} 配置已应用",
     "modelsLoaded": "已加载 {{count}} 个模型",
     "poolProxy": "本地代理 :{{port}} 已启用",
     "keyRequired": "请先在 Keychain 中保存 API Key",
@@ -2612,12 +2631,12 @@
     "modelsFallback": "拉取失败，已使用预设模型 {{model}}",
     "toolStatusTitle": "CLI 配置状态",
     "toolStatusLoading": "读取 CLI 状态…",
-    "toolCleared": "{{tool}} 已清除 Simple Connect 配置",
+    "toolCleared": "{{tool}} 已清除快速接入配置",
     "clearTool": "清除 {{tool}}",
     "wizardNav": "快速接入步骤",
     "summaryStep": "步骤 {{step}}/3",
     "step3Hint": "选择 CLI 与模型后应用；详情见下方折叠面板",
-    "step3": {
+    "step3Sections": {
       "statusSection": "CLI 配置状态",
       "runtimeSection": "密钥池运行态",
       "usageSection": "用量概览（只读）"
@@ -2647,6 +2666,7 @@
     "expertNoticeTitle": "Expert Provider（精简保留）",
     "expertNoticeBody": "故障队列、代理接管、Universal 等高级能力仍在此管理。默认推荐先用「快速接入」。",
     "pool": {
+      "step2Hint": "输入 API Key 并保存，CLI 将通过本地代理安全访问",
       "enable": "开启密钥池",
       "enableHint": "多 Key 加权轮询 + 429 阶梯冷却；CLI 始终写 local token，真实 Key 仅存 Keychain",
       "securityNote": "密钥仅写入系统 Keychain，不会出现在配置文件或日志中。CLI 通过本地代理 token 访问。",
@@ -2707,7 +2727,7 @@
       "bannerShort": "本地优先 · 密钥存系统 Keychain · 无遥测",
       "viewDetails": "查看安全与隐私说明",
       "title": "安全与隐私说明",
-      "intro": "快速接入遵循「数据留在本机、密钥不进配置文件、网络由你指定」的原则。以下为 Simple Connect 范围内的处理方式。",
+      "intro": "快速接入遵循「数据留在本机、密钥不进配置文件、网络由你指定」的原则。以下为快速接入范围内的处理方式。",
       "close": "知道了",
       "sections": {
         "localFirst": {
@@ -2733,6 +2753,83 @@
       }
     }
   },
+  "quickStart": {
+    "nav": "快速接入",
+    "title": "快速接入",
+    "subtitle": "三步完成接入：选供应商 → 填 Key → 一键启用",
+    "searchPlaceholder": "搜索供应商名称或网址…",
+    "noResults": "未找到匹配的供应商",
+    "official": "官方",
+    "officialDesc": "官方供应商需通过浏览器登录或订阅授权，无法在快速接入中仅填 Key 完成。请前往供应商管理完成 OAuth / 官方配置。",
+    "partner": "合作伙伴",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "粘贴你的 API Key",
+    "keychainHint": "Key 将安全存储于系统钥匙串（Windows Credential Manager / macOS Keychain），不会明文落盘",
+    "getKey": "获取 API Key",
+    "apply": "一键启用",
+    "success": "接入成功！已切换为当前供应商",
+    "doneTitle": "接入成功！",
+    "doneDesc": "供应商已配置完成并切换为当前生效。现在可以在 Claude Code 中直接使用了。",
+    "doneDescApp": "{{app}} 已配置并切换为当前供应商。",
+    "proxyRunningHint": "Claude Code 的请求经本地代理（127.0.0.1:15721）转发。请保持 OpenSunstar 运行，关闭应用后 Claude Code 将无法连接。",
+    "proxyRunningHintDesktop": "Claude Desktop 经本地代理转发。请保持 OpenSunstar 运行，关闭应用后将无法连接。",
+    "addAnother": "再接入一个",
+    "openSettings": "前往供应商管理",
+    "firstProviderHint": "检测到这是你的第一个供应商，如需启动代理请在设置中确认",
+    "verify": "验证 Key",
+    "verifyOk": "Key 有效！",
+    "verifyOkAnthropic": "Key 有效（该供应商不提供模型列表 API，将使用预设默认模型）",
+    "verifyOkWithModels": "Key 有效，已获取 {{count}} 个模型",
+    "verifyOkNoModelList": "Key 有效（模型列表拉取失败，将使用预设默认模型）",
+    "verifyHint": "Anthropic 协议验证会消耗约 1 token；OpenAI 兼容网关验证成功后可展开模型列表",
+    "modelsList": "可用模型（{{count}}）",
+    "myProviders": "我的供应商",
+    "switch": "切换",
+    "apps": {
+      "claude": "Claude Code",
+      "claudeDesktop": "Claude Desktop",
+      "codex": "Codex",
+      "gemini": "Gemini"
+    },
+    "category": {
+      "custom": "自定义"
+    },
+    "gemini": {
+      "cnOfficialHint": "Phase 1 暂不提供中国官方精选卡片。请使用 OpenRouter 聚合网关，或通过「自定义配置」填写国内 Gemini 兼容端点。"
+    },
+    "custom": {
+      "cardTitle": "自定义配置",
+      "cardSubtitle": "自填 Base URL 与模型",
+      "hint": "自定义网关：填写最小必填项即可接入，高级配置可在供应商管理中编辑。",
+      "name": "供应商名称",
+      "namePlaceholder": "例如：我的 DeepSeek 网关",
+      "baseUrl": "Base URL",
+      "defaultModel": "默认模型",
+      "geminiModel": "模型 ID",
+      "defaultName": "自定义供应商"
+    },
+    "advanced": {
+      "title": "高级选项",
+      "subtitle": "大多数场景保持默认即可",
+      "upstreamModel": "上游模型",
+      "defaultModel": "默认模型",
+      "apiFormat": "API 格式"
+    },
+    "badge": {
+      "current": "当前",
+      "proxy": "本地路由"
+    },
+    "warn": {
+      "clearFailed": "清除旧快速接入标记失败，若切换仍报错请手动在设置中清除",
+      "takeoverFailed": "供应商已添加，但代理接管开启失败。请在设置-本地路由中手动开启对应应用接管"
+    },
+    "error": {
+      "emptyKey": "请填写 API Key",
+      "failed": "接入失败，请检查 API Key 或网络后重试",
+      "noBaseUrl": "请填写 Base URL",
+      "noModel": "请填写默认模型"
+    }
+  },
   "migration": {
     "success": "配置迁移成功",
     "skillsSuccess": "已自动导入 {{count}} 个技能到统一管理",
@@ -2740,7 +2837,7 @@
     "skillsFailedDescription": "请打开 Skills 页面点击“导入已有”手动导入（或重启后再试）。"
   },
   "agents": {
-    "title": "Subagent",
+    "title": "Subagents",
     "subtitle": "同步到 Claude / Gemini / OpenCode 的 agents 目录（Markdown）",
     "empty": "暂无 Subagent",
     "emptyHint": "创建自定义 Subagent 并同步到 ~/.claude/agents/ 等目录",
@@ -3291,7 +3388,8 @@
     "tokenStats": "AI Tokens",
     "section": {
       "projects": "项目",
-      "monitor": "运行监控"
+      "monitor": "运行监控",
+      "aiModels": "AI模型"
     }
   },
   "kanban": {
@@ -3320,7 +3418,7 @@
       "overview": "概览",
       "aiAssets": "AI 资产配置",
       "projectAssets": "本项目启用的资产",
-      "projectAssetsHint": "勾选后仅对当前项目生效；与侧栏全局库双向同步。"
+      "projectAssetsHint": "勾选后仅对当前项目生效；全局库在侧栏维护，项目关联仅存于本地数据库。"
     },
     "readiness": {
       "title": "Agent 配置就绪",
@@ -3331,7 +3429,21 @@
       "manage": "管理",
       "openAssetsTab": "打开 AI 资产配置",
       "completedSection": "已完成 {{count}} 项",
-      "badgeTooltip": "Agent 配置就绪 {{score}}/80 · 点击查看详情"
+      "badgeTooltip": "Agent 配置就绪 {{score}}/{{max}} · 点击查看详情",
+      "scanEffective": "生效态扫描",
+      "forApp": "按 {{app}} 计分",
+      "status": {
+        "global_only": "来源：全局基线",
+        "detected_only": "来源：仓库探测",
+        "partial": "部分 CLI 支持"
+      },
+      "effective": {
+        "configured": "已配置",
+        "effective": "已生效",
+        "drifted": "未生效",
+        "unconfigured": "未配置",
+        "unchecked": "暂未比对"
+      }
     }
   },
   "projectConfig": {
@@ -3344,7 +3456,41 @@
     "noPrompts": "暂无 Prompts",
     "goToMcp": "前往 MCP 管理",
     "goToSkills": "前往 Skills 管理",
-    "goToPrompts": "前往 Prompts 管理"
+    "goToPrompts": "前往 Prompts 管理",
+    "commands": "Commands",
+    "hooks": "Hooks",
+    "ignore": "Ignore 规则",
+    "permissions": "Permissions",
+    "subagents": "Subagents",
+    "noCommands": "暂无 Commands",
+    "noHooks": "暂无 Hooks",
+    "noIgnore": "暂无 Ignore 规则",
+    "noPermissions": "暂无 Permissions",
+    "noSubagents": "暂无 Subagents",
+    "goToCommands": "前往 Commands 管理",
+    "goToHooks": "前往 Hooks 管理",
+    "goToIgnore": "前往 Ignore 管理",
+    "goToPermissions": "前往 Permissions 管理",
+    "goToSubagents": "前往 Subagents 管理"
+  },
+  "projectAssets": {
+    "hint": "为当前项目勾选要启用的 AI 资产子集。关联仅写入 OpenSunstar 本地库，不会自动修改项目仓库文件；写入各 CLI 仍由侧栏全局资产管理。",
+    "partialHint": "部分 CLI 支持有限制，悬停标签查看说明",
+    "globalBaselineHint": "全局库已有 {{count}} 条规则作为安全基线；可为当前项目单独勾选启用子集。",
+    "switchAllUnsupported": "当前资产类型在所有目标 CLI 上均不支持同步，无法为项目启用",
+    "support": {
+      "claudeDesktop": "Claude Desktop 暂不参与此类资产同步",
+      "openclawMcp": "OpenClaw 当前不支持 MCP 同步",
+      "openclawSkills": "OpenClaw 当前不支持 Skills 同步",
+      "openclawCommands": "OpenClaw 当前不支持 Commands 同步",
+      "openclawIgnore": "OpenClaw 当前不支持 Ignore 同步",
+      "openclawSubagents": "OpenClaw 当前不支持 Subagents 同步",
+      "codexCommands": "Codex 不支持独立 slash command 文件",
+      "codexSubagent": "Codex 通过 TOML 转换写入 ~/.codex/agents/",
+      "hooksClaudeOnly": "Hooks 当前仅 Claude Code 支持写回",
+      "permissionsClaudeOnly": "Permissions 当前仅 Claude Code 支持写回",
+      "hermesSubagents": "Hermes 不支持 Subagent 文件同步"
+    }
   },
   "workspace": {
     "title": "工作区",
@@ -3371,9 +3517,10 @@
       "queueTitle": "建议优先处理",
       "allGood": "各项目配置状态良好，可直接进入迭代。",
       "configureAssets": "配置资产",
-      "reasonReadiness": "就绪分 {{score}}/80",
+      "reasonReadiness": "就绪分 {{score}}/{{max}}",
       "reasonMcp": "未关联 MCP",
       "reasonSkills": "未配置 Skills",
+      "reasonPrompts": "未关联 Prompts",
       "reasonProgress": "MVP 进度 {{progress}}%",
       "lastUpdated": "上次更新",
       "updatedJustNow": "刚刚更新",
@@ -3392,7 +3539,8 @@
       "stage": "阶段",
       "readiness": "就绪",
       "progress": "进度",
-      "refreshing": "更新中"
+      "refreshing": "更新中",
+      "subtitle8": "按项目查看 8 类 AI 资产关联数量与就绪状态（项目级启用子集）"
     }
   },
   "board": {

@@ -1,5 +1,6 @@
 import {
   useQuery,
+  type UseQueryOptions,
   type UseQueryResult,
   keepPreviousData,
 } from "@tanstack/react-query";
@@ -85,14 +86,19 @@ const PROVIDERS_STALE_MS = 5 * 60 * 1000;
 export function providersQueryOptions(
   appId: AppId,
   options?: UseProvidersQueryOptions,
-) {
+): UseQueryOptions<
+  ProvidersQueryData,
+  Error,
+  ProvidersQueryData,
+  readonly ["providers", AppId]
+> {
   const { isProxyRunning = false } = options ?? {};
   return {
     queryKey: ["providers", appId] as const,
     queryFn: () => fetchProvidersQueryData(appId),
     staleTime: PROVIDERS_STALE_MS,
     placeholderData: keepPreviousData,
-    refetchInterval: isProxyRunning ? 10000 : false,
+    refetchInterval: isProxyRunning ? 10_000 : false,
   };
 }
 

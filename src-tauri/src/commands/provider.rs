@@ -843,6 +843,27 @@ pub fn get_opencode_live_provider_ids() -> Result<Vec<String>, String> {
         .map_err(|e| e.to_string())
 }
 
+/// 校验 API Key 有效性（通用，不依赖 SimpleConnect suppliers）。
+///
+/// 接收 base_url、api_key、protocol 三元组，调用上游 /v1/models（OpenAI 兼容）
+/// 或 /v1/messages（Anthropic 原生）验证 Key 是否可用。供 QuickStart 向导、
+/// ProviderForm 编辑等场景使用。
+#[tauri::command]
+pub async fn verify_provider_key(
+    #[allow(non_snake_case)] baseUrl: String,
+    #[allow(non_snake_case)] apiKey: String,
+    protocol: String,
+) -> Result<crate::services::provider::VerifyKeyResult, String> {
+    let p = match protocol.as_str() {
+        "openai" | "open_ai" | "openai_chat" => crate::services::provider::VerifyProtocol::OpenAi,
+        "anthropic" | "anthropic_native" => crate::services::provider::VerifyProtocol::Anthropic,
+        other => return Err(format!("Unsupported protocol: {other}")),
+    };
+    crate::services::provider::verify_key(&baseUrl, &apiKey, p)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 // ============================================================================
 // OpenClaw 专属命令 → 已迁移至 commands/openclaw.rs
 // ============================================================================

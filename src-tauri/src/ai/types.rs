@@ -263,12 +263,22 @@ pub struct RoiTrendBucket {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentReadinessResult {
     pub score: u32,
+    /// 满分（当前为 100；旧缓存缺省为 100）
+    #[serde(default = "default_readiness_max_score")]
+    pub max_score: u32,
     pub details: Vec<AgentReadinessItem>,
     pub llm_suggestion: Option<String>,
     pub is_cached: bool,
     /// Unix 时间戳（秒），评分计算或缓存写入时刻
     #[serde(default)]
     pub evaluated_at: Option<i64>,
+    /// 计分所依据的目标 CLI（claude / codex / gemini / opencode 等）
+    #[serde(default)]
+    pub target_app: Option<String>,
+}
+
+fn default_readiness_max_score() -> u32 {
+    100
 }
 
 /// Agent 就绪度单项检查
@@ -279,6 +289,22 @@ pub struct AgentReadinessItem {
     pub weight: u32,
     pub score: u32,
     pub detail: String,
+    /// ready | partial | global_only | detected_only | missing
+    #[serde(default)]
+    pub status: Option<String>,
+    /// configured | unconfigured（双指标：配置态）
+    #[serde(default)]
+    pub configured_state: Option<String>,
+    /// effective | drifted | unchecked | not_applicable（双指标：生效态）
+    #[serde(default)]
+    pub effective_state: Option<String>,
+    #[serde(default)]
+    pub effective_detail: Option<String>,
+    #[serde(default)]
+    pub effective_scanned_at: Option<i64>,
+    /// 比对所用的本机文件路径（若有）
+    #[serde(default)]
+    pub live_path: Option<String>,
 }
 
 // ── OpenAI 兼容 API 类型 ──────────────────────

@@ -1,7 +1,7 @@
-//! API Key 校验（/v1/models，Phase 2 P1）
+//! API Key 校验（分协议校验，Phase 2 P1）
 
 use crate::error::AppError;
-use crate::services::simple_connect::suppliers::resolve_supplier;
+use crate::services::simple_connect::suppliers::{resolve_protocol, resolve_supplier, ApiProtocol};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
@@ -50,6 +50,19 @@ pub async fn verify_api_key(
 
     let supplier = resolve_supplier(supplier_id, custom_base)
         .ok_or_else(|| AppError::Message(format!("未知供应商: {supplier_id}")))?;
+    let protocol = resolve_protocol(supplier_id);
+
+    match protocol {
+        ApiProtocol::Anthropic => verify_anthropic_key(&supplier, trimmed).await,
+        ApiProtocol::OpenAi => verify_openai_key(&supplier, trimmed).await,
+    }
+}
+
+/// OpenAI 兼容协议校验：GET {base}/v1/models + Bearer Auth
+async fn verify_openai_key(
+    supplier: &crate::services::simple_connect::suppliers::SupplierProfile,
+    api_key: &str,
+) -> Result<VerifyKeyResult, AppError> {
     let url = format!("{}/models", openai_v1_root(&supplier.openai_base));
 
     let client = reqwest::Client::builder()
@@ -57,7 +70,7 @@ pub async fn verify_api_key(
         .build()
         .map_err(|e| AppError::Message(format!("HTTP client: {e}")))?;
 
-    let resp = match client.get(&url).bearer_auth(trimmed).send().await {
+    let resp = match client.get(&url).bearer_auth(api_key).send().await {
         Ok(r) => r,
         Err(e) => {
             let msg = if e.is_timeout() {
@@ -98,4 +111,92 @@ pub async fn verify_api_key(
         model_count: count,
         error: None,
     })
+}
+
+/// Anthropic 原生协议校验：POST {base}/v1/messages 最小请求
+///
+/// Anthropic 没有 /v1/models 端点，使用最小 messages 请求验证 Key 有效性。
+/// 注意：此校验会消耗少量 token（max_tokens=1）。
+async fn verify_anthropic_key(
+    supplier: &crate::services::simple_connect::suppliers::SupplierProfile,
+    api_key: &str,
+) -> Result<VerifyKeyResult, AppError> {
+    let base = supplier
+        .anthropic_base
+        .as_deref()
+        .unwrap_or(&supplier.openai_base);
+    let url = format!("{}/v1/messages", base.trim_end_matches('/'));
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| AppError::Message(format!("HTTP client: {e}")))?;
+
+    let body = serde_json::json!({
+        "model": &supplier.default_model,
+        "max_tokens": 1,
+        "messages": [{"role": "user", "content": "hi"}]
+    });
+
+    let resp = match client
+        .post(&url)
+        .header("x-api-key", api_key)
+        .header("anthropic-version", "2023-06-01")
+        .header("Content-Type", "application/json")
+        .json(&body)
+        .send()
+        .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            let msg = if e.is_timeout() {
+                "连接超时，请检查网络".into()
+            } else if e.is_connect() {
+                "无法连接到 Anthropic 服务器".into()
+            } else {
+                format!("网络错误: {e}")
+            };
+            return Ok(VerifyKeyResult {
+                ok: false,
+                model_count: 0,
+                error: Some(msg),
+            });
+        }
+    };
+
+    let status = resp.status();
+    match status.as_u16() {
+        200 => Ok(VerifyKeyResult {
+            ok: true,
+            model_count: 0, // Anthropic 不提供模型列表
+            error: None,
+        }),
+        401 => Ok(VerifyKeyResult {
+            ok: false,
+            model_count: 0,
+            error: Some("Key 无效或已过期，请到 Anthropic Console 重新申请".into()),
+        }),
+        403 => Ok(VerifyKeyResult {
+            ok: false,
+            model_count: 0,
+            error: Some("Key 无权限，请检查 Anthropic Console 中的 API 访问设置".into()),
+        }),
+        429 => {
+            // 429 = Key 有效但限速，视为有效
+            Ok(VerifyKeyResult {
+                ok: true,
+                model_count: 0,
+                error: Some("Key 有效，但当前限速中，稍后可正常使用".into()),
+            })
+        }
+        other => Ok(VerifyKeyResult {
+            ok: false,
+            model_count: 0,
+            error: Some(format!(
+                "Anthropic API 返回 HTTP {}：{}",
+                other,
+                humanize_status(other)
+            )),
+        }),
+    }
 }

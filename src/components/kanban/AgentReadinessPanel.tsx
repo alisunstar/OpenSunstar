@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
-import { ArrowRight, ChevronDown, ChevronRight, Loader2, RefreshCw, Shield } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight, Loader2, Radar, RefreshCw, Shield } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +21,15 @@ import {
 } from "@/lib/readinessActions";
 
 import { cn } from "@/lib/utils";
+import {
+  readinessMaxScore,
+  readinessScoreTone,
+} from "@/lib/readinessConstants";
+import {
+  effectiveBadgeTone,
+  hasEffectiveScan,
+  resolveConfiguredState,
+} from "@/lib/readinessEffective";
 
 
 
@@ -31,6 +40,9 @@ export interface AgentReadinessPanelProps {
   isLoading?: boolean;
 
   onRefresh?: () => void;
+
+  /** 触发生效态扫描（库 vs 磁盘） */
+  onScanEffective?: () => void;
 
   onOpenProjectAssets?: (section?: ProjectAssetSection) => void;
 
@@ -49,6 +61,8 @@ export function AgentReadinessPanel({
   isLoading,
 
   onRefresh,
+
+  onScanEffective,
 
   onOpenProjectAssets,
 
@@ -106,6 +120,8 @@ export function AgentReadinessPanel({
 
   if (!data) return null;
 
+  const maxScore = readinessMaxScore(data.max_score);
+
 
 
   const handleAction = (checkName: string, score: number) => {
@@ -127,6 +143,69 @@ export function AgentReadinessPanel({
   };
 
 
+
+  const renderEffectiveBadges = (item: (typeof data.details)[number]) => {
+    const configured = resolveConfiguredState(item);
+    const scanned = hasEffectiveScan(item);
+
+    if (!scanned && configured === "unconfigured") {
+      return (
+        <span className="text-[10px] text-amber-600/90 dark:text-amber-400/90">
+          {t("kanban.readiness.effective.unconfigured", {
+            defaultValue: "未配置",
+          })}
+        </span>
+      );
+    }
+
+    if (!scanned) return null;
+
+    const effTone = effectiveBadgeTone(item.effective_state);
+
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 mt-1">
+        <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600/90 dark:text-emerald-400/90">
+          <span aria-hidden>✓</span>
+          {t("kanban.readiness.effective.configured", {
+            defaultValue: "已配置",
+          })}
+        </span>
+        {effTone === "success" && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600/90 dark:text-emerald-400/90">
+            <span aria-hidden>✓</span>
+            {t("kanban.readiness.effective.effective", {
+              defaultValue: "已生效",
+            })}
+          </span>
+        )}
+        {effTone === "warning" && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600/90 dark:text-amber-400/90">
+            <span aria-hidden>⚠</span>
+            {t("kanban.readiness.effective.drifted", {
+              defaultValue: "未生效",
+            })}
+          </span>
+        )}
+        {effTone === "muted" && item.effective_state === "unchecked" && (
+          <span className="text-[10px] text-muted-foreground/70">
+            {t("kanban.readiness.effective.unchecked", {
+              defaultValue: "暂未比对",
+            })}
+          </span>
+        )}
+        {item.effective_detail && effTone === "warning" && (
+          <span className="text-[10px] text-muted-foreground/70 block w-full">
+            {item.effective_detail}
+          </span>
+        )}
+        {item.live_path && effTone === "warning" && (
+          <span className="text-[10px] text-muted-foreground/50 block w-full truncate" title={item.live_path}>
+            {item.live_path}
+          </span>
+        )}
+      </div>
+    );
+  };
 
   const renderItem = (item: (typeof data.details)[number]) => {
 
@@ -200,7 +279,26 @@ export function AgentReadinessPanel({
 
               {item.detail}
 
+              {item.status &&
+                item.status !== "ready" &&
+                item.status !== "missing" && (
+                  <span className="block mt-0.5 text-[10px] text-blue-600/80 dark:text-blue-400/80">
+                    {t(`kanban.readiness.status.${item.status}`, {
+                      defaultValue:
+                        item.status === "global_only"
+                          ? "来源：全局基线"
+                          : item.status === "detected_only"
+                            ? "来源：仓库探测"
+                            : item.status === "partial"
+                              ? "部分 CLI 支持"
+                              : item.status,
+                    })}
+                  </span>
+                )}
+
             </p>
+
+            {renderEffectiveBadges(item)}
 
             {action && (incomplete || !compact) && (
 
@@ -268,6 +366,15 @@ export function AgentReadinessPanel({
 
           </h3>
 
+          {data.target_app && (
+            <span className="text-[10px] text-muted-foreground/80 truncate">
+              {t("kanban.readiness.forApp", {
+                app: data.target_app,
+                defaultValue: `按 ${data.target_app} 计分`,
+              })}
+            </span>
+          )}
+
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
@@ -310,21 +417,43 @@ export function AgentReadinessPanel({
 
           )}
 
+          {onScanEffective && (
+
+            <Button
+
+              variant="outline"
+
+              size="sm"
+
+              className="h-7 text-[10px] px-2"
+
+              onClick={onScanEffective}
+
+              disabled={isLoading}
+
+            >
+
+              <Radar className={`h-3 w-3 mr-1 ${isLoading ? "animate-pulse" : ""}`} />
+
+              {t("kanban.readiness.scanEffective", {
+
+                defaultValue: "生效态扫描",
+
+              })}
+
+            </Button>
+
+          )}
+
           <span
 
-            className={`text-lg font-bold tabular-nums ${
+            className={cn(
 
-              data.score >= 60
+              "text-lg font-bold tabular-nums",
 
-                ? "text-emerald-500"
+              readinessScoreTone(data.score, maxScore),
 
-                : data.score >= 40
-
-                  ? "text-amber-500"
-
-                  : "text-zinc-400"
-
-            }`}
+            )}
 
           >
 
@@ -332,7 +461,7 @@ export function AgentReadinessPanel({
 
             <span className="text-xs font-normal text-muted-foreground">
 
-              /80
+              /{maxScore}
 
             </span>
 

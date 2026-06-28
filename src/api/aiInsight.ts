@@ -144,12 +144,23 @@ export interface CostByTypeEntry {
 
 export interface AgentReadinessResult {
   score: number;
+  /** 满分，默认 100 */
+  max_score?: number;
   details: AgentReadinessItem[];
   llm_suggestion: string | null;
   is_cached: boolean;
   /** Unix 时间戳（秒） */
   evaluated_at?: number | null;
+  /** 计分所依据的目标 CLI */
+  target_app?: string | null;
 }
+
+export type ReadinessItemStatus =
+  | "ready"
+  | "partial"
+  | "global_only"
+  | "detected_only"
+  | "missing";
 
 export interface AgentReadinessItem {
   check_name: string;
@@ -157,6 +168,28 @@ export interface AgentReadinessItem {
   weight: number;
   score: number;
   detail: string;
+  status?: ReadinessItemStatus | null;
+  /** configured | unconfigured */
+  configured_state?: string | null;
+  /** effective | drifted | unchecked | not_applicable */
+  effective_state?: string | null;
+  effective_detail?: string | null;
+  effective_scanned_at?: number | null;
+  live_path?: string | null;
+}
+
+export interface EffectiveItemState {
+  check_name: string;
+  configured_state: string;
+  effective_state: string;
+  effective_detail?: string | null;
+  live_path?: string | null;
+}
+
+export interface EffectiveScanResult {
+  scanned_at: number;
+  target_app: string;
+  items: EffectiveItemState[];
 }
 
 export interface ProjectContextInput {
@@ -485,20 +518,40 @@ export async function generateWeeklyReport(
 
 // ── F-P2-1 命令封装 ──────────────────────────────
 
-/** 获取 Agent 配置就绪度评分（满分 80） */
+/** 获取 Agent 配置就绪度评分（满分 100，按目标 CLI 动态调分） */
 export async function getAgentReadinessScore(
   projectPath: string,
   config?: AIProviderConfig | null,
   forceRefresh = false,
+  targetApp?: string | null,
+  scanEffective = false,
 ): Promise<AgentReadinessResult | null> {
   try {
     return await invoke<AgentReadinessResult>("get_agent_readiness_score", {
       projectPath,
       providerConfig: config ?? null,
       forceRefresh,
+      targetApp: targetApp ?? null,
+      scanEffective,
     });
   } catch (e) {
     warn("getAgentReadinessScore failed", e);
+    return null;
+  }
+}
+
+/** 仅扫描 AI 资产生效态（库 vs 磁盘），不调用 LLM */
+export async function scanProjectEffectiveState(
+  projectPath: string,
+  targetApp?: string | null,
+): Promise<EffectiveScanResult | null> {
+  try {
+    return await invoke<EffectiveScanResult>("scan_project_effective_state", {
+      projectPath,
+      targetApp: targetApp ?? null,
+    });
+  } catch (e) {
+    warn("scanProjectEffectiveState failed", e);
     return null;
   }
 }

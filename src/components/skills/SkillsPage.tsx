@@ -15,10 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { RefreshCw, Search, Loader2 } from "lucide-react";
+import { RefreshCw, Search, Loader2, Flame, Star } from "lucide-react";
 import { toast } from "sonner";
 import { SkillCard, type SkillSource } from "./SkillCard";
 import { RepoManagerPanel } from "./RepoManagerPanel";
+import { SkillsLeaderboardPanel } from "./SkillsLeaderboardPanel";
 import {
   useDiscoverableSkills,
   useInstalledSkills,
@@ -52,7 +53,14 @@ export interface SkillsPageHandle {
   openRepoManager: () => void;
 }
 
-type SearchSource = "all" | "repos" | "skillssh" | "clawhub" | "modelscope";
+type SearchSource =
+  | "all"
+  | "repos"
+  | "skillssh"
+  | "clawhub"
+  | "modelscope"
+  | "leaderboardAllTime"
+  | "leaderboardTrending";
 
 const PAGE_SIZE = 20;
 
@@ -107,6 +115,9 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
     const [filterStatus, setFilterStatus] = useState<
       "all" | "installed" | "uninstalled"
     >("all");
+
+    // 官方排行榜 Tab 刷新触发器
+    const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
 
     const currentApp = initialApp;
 
@@ -488,6 +499,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       refresh: () => {
         refetchDiscoverable();
         refetchRepos();
+        setLeaderboardRefreshKey((k) => k + 1);
       },
       openRepoManager: () => setRepoManagerOpen(true),
     }));
@@ -713,7 +725,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
               : t("skills.all.searchPlaceholder");
 
     // Tab 定义
-    const tabs: { id: SearchSource; label: string; mw: string }[] = [
+    const tabs: { id: SearchSource; label: string; mw: string; icon?: React.ReactNode }[] = [
       { id: "all", label: t("skills.searchSource.all"), mw: "min-w-[48px]" },
       {
         id: "repos",
@@ -723,6 +735,8 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       { id: "skillssh", label: "skills.sh", mw: "min-w-[64px]" },
       { id: "clawhub", label: "ClawHub", mw: "min-w-[64px]" },
       { id: "modelscope", label: "ModelScope", mw: "min-w-[80px]" },
+      { id: "leaderboardAllTime", label: t("skills.searchSource.leaderboardAllTime", { defaultValue: "全站总榜" }), mw: "min-w-[80px]", icon: <Flame className="w-3.5 h-3.5 text-amber-500" /> },
+      { id: "leaderboardTrending", label: t("skills.searchSource.leaderboardTrending", { defaultValue: "24h 趋势" }), mw: "min-w-[80px]", icon: <Star className="w-3.5 h-3.5 text-orange-500" /> },
     ];
 
     // 来源计数（"全部" 标签页）
@@ -765,6 +779,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                       }
                       onClick={() => setSearchSource(tab.id)}
                     >
+                      {tab.icon && <span className="mr-1 inline-flex">{tab.icon}</span>}
                       {tab.label}
                     </Button>
                   ))}
@@ -774,7 +789,9 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                 )}
               </div>
 
-              {/* 搜索 + 筛选行 */}
+              {/* 搜索 + 筛选行 — 热榜/精选 Tab 无需搜索 */}
+              {searchSource !== "leaderboardAllTime" &&
+                searchSource !== "leaderboardTrending" && (
               <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 <div className="relative flex-1 min-w-0">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -882,6 +899,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                   </Button>
                 )}
               </div>
+              )}
             </div>
 
             {/* ===== 内容区域 ===== */}
@@ -1236,6 +1254,20 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                   </>
                 )}
               </>
+            )}
+
+            {/* 安装热榜 / 编辑精选 */}
+            {(searchSource === "leaderboardAllTime" ||
+              searchSource === "leaderboardTrending") && (
+              <SkillsLeaderboardPanel
+                period={
+                  searchSource === "leaderboardAllTime"
+                    ? "all_time"
+                    : "trending_24h"
+                }
+                currentApp={currentApp}
+                refreshKey={leaderboardRefreshKey}
+              />
             )}
           </div>
         </div>

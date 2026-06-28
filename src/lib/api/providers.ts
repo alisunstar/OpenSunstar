@@ -21,6 +21,12 @@ export interface SwitchResult {
   warnings: string[];
 }
 
+/** API Key 校验所用的协议类型 */
+export type VerifyProtocol = "openai" | "anthropic";
+
+// VerifyKeyResult 复用 simpleConnect 模块的定义（结构相同：ok / model_count / error），
+// 避免重复类型声明。见 ./simpleConnect.ts。
+
 export interface OpenTerminalOptions {
   cwd?: string;
 }
@@ -89,6 +95,24 @@ export const providersApi = {
 
   async switch(id: string, appId: AppId): Promise<SwitchResult> {
     return await invoke("switch_provider", { id, app: appId });
+  },
+
+  /**
+   * 校验 API Key 有效性（通用，不依赖 SimpleConnect suppliers）。
+   *
+   * 调用上游 /v1/models（OpenAI 兼容）或 /v1/messages（Anthropic 原生）
+   * 验证 Key 是否可用。供 QuickStart 向导、ProviderForm 等场景使用。
+   */
+  async verifyProviderKey(
+    baseUrl: string,
+    apiKey: string,
+    protocol: VerifyProtocol,
+  ): Promise<import("./simpleConnect").VerifyKeyResult> {
+    return await invoke("verify_provider_key", {
+      baseUrl,
+      apiKey,
+      protocol,
+    });
   },
 
   async importDefault(appId: AppId): Promise<boolean> {

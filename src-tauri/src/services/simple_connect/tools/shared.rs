@@ -74,9 +74,11 @@ pub fn is_managed_value(value: &str) -> bool {
     value == MANAGED_MARKER
 }
 
-pub fn configured_by_marker(managed: Option<&str>, base: Option<&str>) -> bool {
+/// 判断 CLI 配置是否被 Simple Connect 托管。
+///
+/// **仅依赖显式托管标记**（MANAGED_MARKER），不再以 base 地址兜底。
+/// 此前用 `127.0.0.1`/`localhost` 兜底会导致主代理模块（Expert Proxy 同样
+/// 操作 ANTHROPIC_*）被误判为 Simple Connect 托管。
+pub fn configured_by_marker(managed: Option<&str>, _base: Option<&str>) -> bool {
     managed.map(is_managed_value).unwrap_or(false)
-        || base
-            .map(|b| b.contains("127.0.0.1") || b.contains("localhost"))
-            .unwrap_or(false)
 }

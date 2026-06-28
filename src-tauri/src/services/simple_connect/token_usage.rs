@@ -4,7 +4,7 @@ use serde::Serialize;
 use std::sync::Mutex;
 use std::sync::OnceLock;
 
-#[derive(Debug, Clone, Default, Serialize)]
+#[derive(Debug, Clone, Default, Serialize, serde::Deserialize)]
 pub struct ScTokenUsage {
     pub session_input: u64,
     pub session_output: u64,
@@ -14,9 +14,52 @@ pub struct ScTokenUsage {
     pub total_cache_read: u64,
 }
 
+fn usage_path() -> std::path::PathBuf {
+    crate::config::get_app_config_dir().join("simple_connect_usage.json")
+}
+
+/// 仅持久化累计字段（total_*），session_* 每次启动归零
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+struct PersistedTotals {
+    total_input: u64,
+    total_output: u64,
+    total_cache_read: u64,
+}
+
+fn load_persisted() -> ScTokenUsage {
+    let path = usage_path();
+    if !path.exists() {
+        return ScTokenUsage::default();
+    }
+    match std::fs::read_to_string(&path) {
+        Ok(text) => match serde_json::from_str::<PersistedTotals>(&text) {
+            Ok(totals) => ScTokenUsage {
+                total_input: totals.total_input,
+                total_output: totals.total_output,
+                total_cache_read: totals.total_cache_read,
+                ..Default::default()
+            },
+            Err(_) => ScTokenUsage::default(),
+        },
+        Err(_) => ScTokenUsage::default(),
+    }
+}
+
+fn persist(u: &ScTokenUsage) {
+    let totals = PersistedTotals {
+        total_input: u.total_input,
+        total_output: u.total_output,
+        total_cache_read: u.total_cache_read,
+    };
+    if let Ok(json) = serde_json::to_string_pretty(&totals) {
+        let path = usage_path();
+        let _ = std::fs::write(&path, json);
+    }
+}
+
 fn store() -> &'static Mutex<ScTokenUsage> {
     static STORE: OnceLock<Mutex<ScTokenUsage>> = OnceLock::new();
-    STORE.get_or_init(|| Mutex::new(ScTokenUsage::default()))
+    STORE.get_or_init(|| Mutex::new(load_persisted()))
 }
 
 pub fn snapshot() -> ScTokenUsage {
@@ -42,6 +85,7 @@ pub fn add_usage(input: u64, output: u64, cache_read: u64) {
         u.total_input += input;
         u.total_output += output;
         u.total_cache_read += cache_read;
+        persist(&u);
     }
 }
 

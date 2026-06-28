@@ -29,6 +29,7 @@ pub mod session_usage_codex;
 pub mod session_usage_gemini;
 pub mod session_usage_opencode;
 pub mod skill;
+pub mod skills_sh_leaderboard;
 pub mod speedtest;
 pub mod sql_helpers;
 pub mod stream_check;

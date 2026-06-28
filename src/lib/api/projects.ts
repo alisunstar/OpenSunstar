@@ -1,4 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
+import type {
+  ExtendedProjectAssetType,
+  ProjectAllAssetCounts,
+  ProjectAssetLink,
+} from "@/types/projectAsset";
 
 /** 项目信息 */
 export interface Project {
@@ -168,5 +173,48 @@ export const projectsApi = {
     prompts: [string, string][],
   ): Promise<void> {
     return await invoke("set_project_prompts", { projectId, prompts });
+  },
+
+  // ========== 扩展资产（project_asset_links，不含 MCP/Skills/Prompts）==========
+
+  async getAllAssetCounts(projectId: string): Promise<ProjectAllAssetCounts> {
+    return await invoke("get_project_all_asset_counts", { projectId });
+  },
+
+  async getAssetLinks(
+    projectId: string,
+    assetType?: ExtendedProjectAssetType,
+  ): Promise<ProjectAssetLink[]> {
+    return await invoke("get_project_asset_links", { projectId, assetType });
+  },
+
+  async linkAsset(
+    projectId: string,
+    assetType: ExtendedProjectAssetType,
+    assetId: string,
+    enabled = true,
+    assetAppType = "",
+  ): Promise<void> {
+    return await invoke("link_project_asset", {
+      projectId,
+      assetType,
+      assetId,
+      assetAppType: assetAppType || null,
+      enabled,
+    });
+  },
+
+  async unlinkAsset(
+    projectId: string,
+    assetType: ExtendedProjectAssetType,
+    assetId: string,
+    assetAppType = "",
+  ): Promise<boolean> {
+    return await invoke("unlink_project_asset", {
+      projectId,
+      assetType,
+      assetId,
+      assetAppType: assetAppType || null,
+    });
   },
 };

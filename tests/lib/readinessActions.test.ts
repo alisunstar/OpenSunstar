@@ -9,17 +9,24 @@ describe("getReadinessAction", () => {
     });
   });
 
-  it("routes ignore rules to global ignore page", () => {
+  it("routes ignore rules to project assets ignore section", () => {
     expect(getReadinessAction("ignore_rules", 0)).toEqual({
-      type: "navigate",
-      view: "ignore",
+      type: "projectTab",
+      section: "ignore",
     });
   });
 
   it("routes completed skills to manage in project tab", () => {
-    expect(getReadinessAction("skills_configured", 15)).toEqual({
+    expect(getReadinessAction("skills_configured", 12)).toEqual({
       type: "projectTab",
-      section: "skills",
+      section: "skill",
+    });
+  });
+
+  it("routes commands to project tab", () => {
+    expect(getReadinessAction("commands_configured", 0)).toEqual({
+      type: "projectTab",
+      section: "command",
     });
   });
 });

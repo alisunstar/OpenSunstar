@@ -53,11 +53,11 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
   const [state, setState] = useState<SimpleConnectState | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [modelsLoading, setModelsLoading] = useState(false);
+  const [modelsFetchedAt, setModelsFetchedAt] = useState(0);
   const [selectedModel, setSelectedModel] = useState("");
-  const [selectedTool, setSelectedTool] = useState("claude-code");
+  const [selectedTools, setSelectedTools] = useState<Set<string>>(new Set(["claude-code"]));
   const [customBase, setCustomBase] = useState("");
   const [applying, setApplying] = useState(false);
-  const [statusRefresh, setStatusRefresh] = useState(0);
   const [keyReady, setKeyReady] = useState(false);
   const [primaryKeyHint, setPrimaryKeyHint] = useState<string | null>(null);
   const [toolStatuses, setToolStatuses] = useState<ToolConfigStatus[]>([]);
@@ -116,7 +116,7 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
       setToolStatuses(statuses);
       setCustomBase(saved.custom_openai_base ?? "");
       setSelectedModel(saved.last_model ?? "");
-      setSelectedTool(saved.last_tool ?? toolList[0] ?? "claude-code");
+      setSelectedTools(new Set([saved.last_tool ?? toolList[0] ?? "claude-code"]));
       const configured = await simpleConnectApi.keyConfigured(saved.supplier_id);
       setKeyReady(configured);
     } catch (e) {
@@ -258,6 +258,7 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
           state.supplier_id === "custom" ? customBase : undefined,
         );
         setModels(list);
+        setModelsFetchedAt(Date.now());
         const fallback = selectedSupplier?.default_model;
         if (list.length) {
           setSelectedModel((prev) =>
@@ -280,15 +281,14 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
         if (fallback) {
           setModels([fallback]);
           setSelectedModel((prev) => prev || fallback);
-          if (!silent) {
-            toast.warning(
-              t("simpleConnect.modelsFallback", {
-                model: fallback,
-                defaultValue: "拉取失败，已使用预设模型 {{model}}",
-              }),
-            );
-          }
-        } else if (!silent) {
+          // 即使 silent 模式也提示，避免拉取失败时用户毫无感知
+          toast.warning(
+            t("simpleConnect.modelsFallback", {
+              model: fallback,
+              defaultValue: "拉取失败，已使用预设模型 {{model}}",
+            }),
+          );
+        } else {
           toast.error(String(e));
         }
       } finally {
@@ -300,8 +300,13 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
 
   useEffect(() => {
     if (step !== 3 || !state) return;
+    // 5 分钟 TTL 缓存：已有模型且上次拉取未过期，跳过自动请求
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    if (models.length > 0 && Date.now() - modelsFetchedAt < FIVE_MINUTES) {
+      return;
+    }
     void handleFetchModels(true);
-  }, [step, state, handleFetchModels]);
+  }, [step, state, handleFetchModels, models.length, modelsFetchedAt]);
 
   const handleGoToStep2 = async () => {
     if (state?.supplier_id === "custom") {
@@ -321,43 +326,66 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
 
   const handleGoToStep3 = async () => {
     if (!state) return;
-    const configured = await simpleConnectApi.keyConfigured(state.supplier_id);
-    if (!configured) {
-      toast.error(
-        t("simpleConnect.keyRequired", {
-          defaultValue: "请先在 Keychain 中保存 API Key",
-        }),
-      );
-      return;
+    toast.dismiss(); // 清除上一次残留的错误 toast
+    // keyReady 在 Step 2 保存 Key 成功后已设为 true（经后端 store 确认），
+    // 仅在尚未标记时才重新查询 Keychain，避免 Windows 凭据管理器
+    // store-then-read 的时序不一致。
+    if (!keyReady) {
+      const configured = await simpleConnectApi.keyConfigured(state.supplier_id);
+      if (!configured) {
+        toast.error(
+          t("simpleConnect.keyRequired", {
+            defaultValue: "请先在 Keychain 中保存 API Key",
+          }),
+        );
+        return;
+      }
+      setKeyReady(true);
     }
-    setKeyReady(true);
     setStep(3);
   };
 
   const handleApply = async () => {
-    if (!state || !selectedModel) return;
+    if (!state || !selectedModel || selectedTools.size === 0) return;
+    toast.dismiss(); // 清除残留错误 toast
     setApplying(true);
     try {
-      const result = await simpleConnectApi.apply({
-        tool: selectedTool,
-        supplierId: state.supplier_id,
-        model: selectedModel,
-        customBase: state.supplier_id === "custom" ? customBase : undefined,
-        usePool: state.pool_enabled,
-      });
+      let proxyPort: number | undefined;
+      const appliedTools: string[] = [];
+      for (const tool of selectedTools) {
+        const result = await simpleConnectApi.apply({
+          tool,
+          supplierId: state.supplier_id,
+          model: selectedModel,
+          customBase: state.supplier_id === "custom" ? customBase : undefined,
+          usePool: state.pool_enabled,
+        });
+        appliedTools.push(tool);
+        if (result.proxy_port) proxyPort = result.proxy_port;
+      }
+      const lastTool = appliedTools[appliedTools.length - 1];
       await persistState({
         ...state,
         last_model: selectedModel,
-        last_tool: selectedTool,
+        last_tool: lastTool,
       });
-      setStatusRefresh((n) => n + 1);
       await loadToolStatuses();
-      toast.success(
-        t("simpleConnect.applySuccess", {
-          tool: TOOL_LABELS[selectedTool] ?? selectedTool,
-          defaultValue: "{{tool}} 配置已应用",
-        }),
-      );
+      if (appliedTools.length === 1) {
+        toast.success(
+          t("simpleConnect.applySuccess", {
+            tool: TOOL_LABELS[appliedTools[0]] ?? appliedTools[0],
+            defaultValue: "{{tool}} 配置已应用",
+          }),
+        );
+      } else {
+        const toolNames = appliedTools.map((t) => TOOL_LABELS[t] ?? t).join("、");
+        toast.success(
+          t("simpleConnect.applySuccessMulti", {
+            tools: toolNames,
+            defaultValue: "{{tools}} 配置已应用",
+          }),
+        );
+      }
       if (
         state.last_applied_supplier_id &&
         state.last_applied_supplier_id !== state.supplier_id
@@ -368,10 +396,10 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
           }),
         );
       }
-      if (result.proxy_port) {
+      if (proxyPort) {
         toast.info(
           t("simpleConnect.poolProxy", {
-            port: result.proxy_port,
+            port: proxyPort,
             defaultValue: "本地代理 :{{port}} 已启用",
           }),
         );
@@ -561,9 +589,16 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
                     />
                     <CliToolGrid
                       tools={tools}
-                      selectedTool={selectedTool}
+                      selectedTools={selectedTools}
                       configuredTools={configuredTools}
-                      onSelect={setSelectedTool}
+                      onToggle={(tool) => {
+                        setSelectedTools((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(tool)) next.delete(tool);
+                          else next.add(tool);
+                          return next;
+                        });
+                      }}
                     />
 
                     <div className="space-y-2">
@@ -615,9 +650,6 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
 
                     <Step3DetailAccordion
                       poolEnabled={state.pool_enabled}
-                      statusRefresh={statusRefresh}
-                      selectedTool={selectedTool}
-                      onSelectTool={setSelectedTool}
                     />
                   </section>
                 )}
@@ -653,16 +685,18 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
                 <Button
                   type="button"
                   className="ml-auto gap-2"
-                  disabled={applying || !selectedModel}
+                  disabled={applying || !selectedModel || selectedTools.size === 0}
                   onClick={() => void handleApply()}
                 >
                   {applying && (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   )}
-                  {t("simpleConnect.applyTo", {
-                    tool: TOOL_LABELS[selectedTool] ?? selectedTool,
-                    defaultValue: "应用到 {{tool}}",
-                  })}
+                  {selectedTools.size === 1
+                    ? t("simpleConnect.applyTo", {
+                        tool: TOOL_LABELS[[...selectedTools][0]] ?? [...selectedTools][0],
+                        defaultValue: "应用到 {{tool}}",
+                      })
+                    : `应用到 ${selectedTools.size} 个 CLI`}
                 </Button>
               )}
             </div>
@@ -670,7 +704,10 @@ export function SimpleConnectPage({ onOpenSettings }: SimpleConnectPageProps) {
 
           <TabsContent value="expert" forceMount className="flex-1 overflow-y-auto mt-0 space-y-4 data-[state=inactive]:hidden">
             <ExpertProviderPanel
-              onSwitchToSimple={() => setTab("simple")}
+              onSwitchToSimple={() => {
+                setTab("simple");
+                void load();
+              }}
               onOpenSettings={onOpenSettings}
             />
             <UsageSummaryPanel enabled={tab === "expert"} />

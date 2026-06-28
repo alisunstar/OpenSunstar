@@ -14,6 +14,7 @@ import {
   type SkillsShSearchResult,
   type ClawHubSearchResult,
   type ModelScopeSearchResult,
+  type ModelScopeDiscoverableSkill,
 } from "@/lib/api/skills";
 import type { AppId } from "@/lib/api/types";
 import { mergeImportedSkills } from "@/hooks/useSkills.helpers";
@@ -435,6 +436,29 @@ export function useSearchModelScope(
     enabled: query.length >= 2,
     staleTime: 5 * 60 * 1000,
     placeholderData: keepPreviousData,
+  });
+}
+
+// ========== skills.sh 官方排行榜 ==========
+
+export type SkillsLeaderboardTabPeriod = "all_time" | "trending_24h";
+
+/**
+ * skills.sh 官方排行榜（All Time / Trending 24h TOP50）
+ * 数据由 Tauri 抓取 skills.sh 页面并本地缓存（默认 6h TTL）
+ */
+export function useSkillsShLeaderboard(
+  period: SkillsLeaderboardTabPeriod,
+  refreshKey = 0,
+  forceNonce = 0,
+) {
+  const forceRefresh = refreshKey > 0 || forceNonce > 0;
+  return useQuery({
+    queryKey: ["skills", "skillssh-leaderboard", period, refreshKey, forceNonce],
+    queryFn: () => skillsApi.getSkillsShLeaderboard(period, forceRefresh),
+    staleTime: 6 * 60 * 60 * 1000,
+    gcTime: 24 * 60 * 60 * 1000,
+    retry: 1,
   });
 }
 

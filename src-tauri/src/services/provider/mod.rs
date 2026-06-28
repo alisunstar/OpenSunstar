@@ -6,6 +6,7 @@ mod endpoints;
 mod gemini_auth;
 mod live;
 mod usage;
+mod verify;
 
 use indexmap::IndexMap;
 use regex::Regex;
@@ -26,6 +27,8 @@ pub use live::{
     import_opencode_providers_from_live, read_live_settings,
     should_import_default_config_on_startup, sync_current_to_live,
 };
+
+pub use verify::{verify_key, VerifyKeyResult, VerifyProtocol};
 
 // Internal re-exports (pub(crate))
 pub(crate) use live::sanitize_claude_settings_for_live;
@@ -1193,6 +1196,15 @@ impl ProviderService {
             Self::set_provider_live_config_managed(&mut provider, add_to_live);
         }
 
+        // Migrate plaintext API keys to OS keychain before persisting to DB.
+        // DB only stores keychain://ref/ placeholders; the real secrets live in
+        // the platform keychain (Windows Credential Manager / macOS Keychain /
+        // libsecret). See `provider_keychain` module docs for details.
+        crate::provider_keychain::migrate_provider_settings_to_keychain(
+            &mut provider,
+            &app_type,
+        )?;
+
         // Save to database
         state.db.save_provider(app_type.as_str(), &provider)?;
 
@@ -1243,6 +1255,17 @@ impl ProviderService {
         Self::normalize_provider_if_claude(&app_type, &mut provider);
         Self::validate_provider_settings(&app_type, &provider)?;
         normalize_provider_common_config_for_storage(state.db.as_ref(), &app_type, &mut provider)?;
+
+        // Migrate plaintext API keys to OS keychain before any save_provider call
+        // below. Covers the OMO, additive-mode, and normal update paths uniformly.
+        // (The provider_id_changed branch does its own migrate after computing the
+        // new id, so it skips this one — see below.)
+        if !provider_id_changed {
+            crate::provider_keychain::migrate_provider_settings_to_keychain(
+                &mut provider,
+                &app_type,
+            )?;
+        }
 
         if provider_id_changed {
             if !app_type.is_additive_mode() {
@@ -1305,7 +1328,17 @@ impl ProviderService {
             }
 
             Self::set_provider_live_config_managed(&mut provider, false);
+            // Migrate plaintext keys for the new provider id before saving.
+            crate::provider_keychain::migrate_provider_settings_to_keychain(
+                &mut provider,
+                &app_type,
+            )?;
             state.db.save_provider(app_type.as_str(), &provider)?;
+            // Clean up keychain entries tied to the old id.
+            crate::provider_keychain::delete_provider_keys_from_keychain(
+                &existing_provider,
+                &app_type,
+            )?;
             state.db.delete_provider(app_type.as_str(), &original_id)?;
 
             if crate::settings::get_current_provider(&app_type).as_deref() == Some(&original_id) {
@@ -1454,6 +1487,13 @@ impl ProviderService {
                         id,
                         variant.category,
                     )?;
+                    // Clean up keychain entries before deleting from DB.
+                    if let Some(existing_provider) = existing.as_ref() {
+                        crate::provider_keychain::delete_provider_keys_from_keychain(
+                            existing_provider,
+                            &app_type,
+                        )?;
+                    }
                     state.db.delete_provider(app_type.as_str(), id)?;
                     if was_current {
                         crate::services::OmoService::delete_config_file(variant)?;
@@ -1480,6 +1520,13 @@ impl ProviderService {
                     _ => {}
                 }
             }
+            // Clean up keychain entries before deleting from DB.
+            if let Some(existing_provider) = existing.as_ref() {
+                crate::provider_keychain::delete_provider_keys_from_keychain(
+                    existing_provider,
+                    &app_type,
+                )?;
+            }
             state.db.delete_provider(app_type.as_str(), id)?;
             return Ok(());
         }
@@ -1494,6 +1541,13 @@ impl ProviderService {
             ));
         }
 
+        // Clean up keychain entries before deleting from DB.
+        if let Some(existing_provider) = state.db.get_provider_by_id(id, app_type.as_str())? {
+            crate::provider_keychain::delete_provider_keys_from_keychain(
+                &existing_provider,
+                &app_type,
+            )?;
+        }
         state.db.delete_provider(app_type.as_str(), id)
     }
 

@@ -297,27 +297,40 @@ interface UseAgentReadinessReturn {
   isLoading: boolean;
   error: string | null;
   refresh: () => void;
+  /** 触发生效态扫描（库内容 vs CLI 磁盘文件） */
+  scanEffective: () => void;
 }
 
 /**
- * 获取项目的 Agent 配置就绪度评分（满分 80，6 项检查）。
+ * 获取项目的 Agent 配置就绪度评分（满分 100，9 项检查）。
  * 只需 projectPath，无需 ProjectContextInput。
  * providerConfig 可选 — 有则生成 LLM 补充建议。
+ * scanEffectiveOnLoad：打开项目时自动做一次生效态扫描（节流由调用方控制）。
  */
 export function useAgentReadiness(
   projectPath: string | null,
   enabled = true,
+  targetApp?: string | null,
+  scanEffectiveOnLoad = true,
 ): UseAgentReadinessReturn {
   const [data, setData] = useState<AgentReadinessResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef(false);
   const forceRefreshRef = useRef(false);
+  const scanEffectiveRef = useRef(scanEffectiveOnLoad);
+  const initialScanDoneRef = useRef(false);
 
   const fetch = useCallback(
-    async () => {
+    async (options?: { scanEffective?: boolean; forceRefresh?: boolean }) => {
       if (!enabled || !projectPath) return;
-      const config = buildProviderConfig(); // 可选，null 也没关系
+      const config = buildProviderConfig();
+
+      const scanEffective =
+        options?.scanEffective ?? scanEffectiveRef.current;
+      const forceRefresh =
+        options?.forceRefresh ?? forceRefreshRef.current;
+      forceRefreshRef.current = false;
 
       abortRef.current = false;
       setIsLoading(true);
@@ -326,9 +339,10 @@ export function useAgentReadiness(
       const result = await getAgentReadinessScore(
         projectPath,
         config,
-        forceRefreshRef.current,
+        forceRefresh,
+        targetApp,
+        scanEffective,
       );
-      forceRefreshRef.current = false;
 
       if (!abortRef.current) {
         setIsLoading(false);
@@ -339,20 +353,34 @@ export function useAgentReadiness(
         }
       }
     },
-    [projectPath, enabled],
+    [projectPath, enabled, targetApp],
   );
 
   useEffect(() => {
-    fetch();
+    initialScanDoneRef.current = false;
+    scanEffectiveRef.current = scanEffectiveOnLoad;
+  }, [projectPath, scanEffectiveOnLoad]);
+
+  useEffect(() => {
+    const runInitial = !initialScanDoneRef.current;
+    if (runInitial) {
+      initialScanDoneRef.current = true;
+    }
+    void fetch({ scanEffective: scanEffectiveOnLoad && runInitial });
     return () => {
       abortRef.current = true;
     };
-  }, [fetch]);
+  }, [fetch, scanEffectiveOnLoad]);
 
   const refresh = useCallback(() => {
     forceRefreshRef.current = true;
-    void fetch();
+    void fetch({ forceRefresh: true, scanEffective: false });
   }, [fetch]);
 
-  return { data, isLoading, error, refresh };
+  const scanEffective = useCallback(() => {
+    forceRefreshRef.current = true;
+    void fetch({ forceRefresh: true, scanEffective: true });
+  }, [fetch]);
+
+  return { data, isLoading, error, refresh, scanEffective };
 }

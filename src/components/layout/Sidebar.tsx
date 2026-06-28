@@ -11,7 +11,6 @@ import {
   BookOpen,
   Wrench,
   History,
-  Activity,
   Terminal,
   Webhook,
   Bot,
@@ -28,6 +27,7 @@ import {
   Moon,
   Table2,
   Sparkles,
+  Cpu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -66,28 +66,27 @@ interface SidebarProps {
 const COLLAPSED_STORAGE_KEY = "OpenSunstar-sidebar-collapsed";
 
 const AGENT_CONFIG_VIEWS: PageView[] = [
-  "simpleConnect",
   "mcp",
   "mcpDiscovery",
+  "skills",
+  "skillsDiscovery",
   "prompts",
   "commands",
   "hooks",
-  "convert",
   "ignore",
   "permissions",
   "agents",
-  "skills",
-  "skillsDiscovery",
+  "convert",
 ];
 
-const MONITOR_VIEWS: PageView[] = ["sessions", "tokenStats"];
+const AI_MODEL_VIEWS: PageView[] = ["simpleConnect", "sessions", "tokenStats"];
 
 function isAgentConfigActive(view: PageView): boolean {
   return AGENT_CONFIG_VIEWS.includes(view);
 }
 
-function isMonitorActive(view: PageView): boolean {
-  return MONITOR_VIEWS.includes(view);
+function isAiModelActive(view: PageView): boolean {
+  return AI_MODEL_VIEWS.includes(view);
 }
 
 function SectionLabel({
@@ -128,7 +127,7 @@ export function Sidebar({
   const { t } = useTranslation();
   const { theme, setTheme } = useTheme();
   const agentConfigActive = isAgentConfigActive(activeView);
-  const monitorActive = isMonitorActive(activeView);
+  const aiModelActive = isAiModelActive(activeView);
   const workspaceActive = isWorkspaceActive(activeView);
   const activeProject = activeProjectId
     ? projects.find((p) => p.id === activeProjectId)
@@ -220,11 +219,11 @@ export function Sidebar({
               collapsed
             />
             <SidebarItem
-              icon={<Activity className="w-4 h-4" />}
+              icon={<Cpu className="w-4 h-4" />}
               label=""
-              active={monitorActive}
-              onClick={() => onNavigate("sessions")}
-              accent={monitorActive}
+              active={aiModelActive}
+              onClick={() => onNavigate("simpleConnect")}
+              accent={aiModelActive}
               collapsed
             />
           </div>
@@ -321,7 +320,7 @@ export function Sidebar({
               />
               <SidebarItem
                 icon={<Wrench className="w-4 h-4" />}
-                label={t("skills.manage", { defaultValue: "Skills" })}
+                label="Skills"
                 active={
                   activeView === "skills" || activeView === "skillsDiscovery"
                 }
@@ -330,66 +329,66 @@ export function Sidebar({
               />
               <SidebarItem
                 icon={<BookOpen className="w-4 h-4" />}
-                label={t("prompts.manage", { defaultValue: "Prompts&rules" })}
+                label="Prompts"
                 active={activeView === "prompts"}
                 onClick={() => onNavigate("prompts")}
                 indent
               />
               <SidebarItem
                 icon={<Terminal className="w-4 h-4" />}
-                label={t("commands.title", { defaultValue: "命令管理" })}
+                label="Commands"
                 active={activeView === "commands"}
                 onClick={() => onNavigate("commands")}
                 indent
               />
               <SidebarItem
                 icon={<Webhook className="w-4 h-4" />}
-                label={t("hooks.title", { defaultValue: "钩子管理" })}
+                label="Hooks"
                 active={activeView === "hooks"}
                 onClick={() => onNavigate("hooks")}
                 indent
               />
               <SidebarItem
-                icon={<ArrowRightLeft className="w-4 h-4" />}
-                label={t("convert.title", { defaultValue: "配置转换" })}
-                active={activeView === "convert"}
-                onClick={() => onNavigate("convert")}
-                indent
-              />
-              <SidebarItem
                 icon={<EyeOff className="w-4 h-4" />}
-                label={t("ignore.title", { defaultValue: "忽略规则" })}
+                label="Ignore"
                 active={activeView === "ignore"}
                 onClick={() => onNavigate("ignore")}
                 indent
               />
               <SidebarItem
                 icon={<Shield className="w-4 h-4" />}
-                label={t("permissions.title", { defaultValue: "工具权限" })}
+                label="Permissions"
                 active={activeView === "permissions"}
                 onClick={() => onNavigate("permissions")}
                 indent
               />
               <SidebarItem
                 icon={<Bot className="w-4 h-4" />}
-                label={t("agents.title", { defaultValue: "Subagent" })}
+                label="Subagents"
                 active={activeView === "agents"}
                 onClick={() => onNavigate("agents")}
                 indent
               />
               <SidebarItem
-                icon={<Plug2 className="w-4 h-4" />}
-                label={t("simpleConnect.nav", { defaultValue: "API 接入" })}
-                active={activeView === "simpleConnect"}
-                onClick={() => onNavigate("simpleConnect")}
+                icon={<ArrowRightLeft className="w-4 h-4" />}
+                label="Convert"
+                active={activeView === "convert"}
+                onClick={() => onNavigate("convert")}
                 indent
               />
             </SidebarMenu>
 
-            {/* ▸ 运行监控 */}
+            {/* ▸ AI 模型 */}
             <SectionLabel>
-              {t("sidebar.section.monitor", { defaultValue: "运行监控" })}
+              {t("sidebar.section.aiModels", { defaultValue: "AI模型" })}
             </SectionLabel>
+
+            <SidebarItem
+              icon={<Plug2 className="w-4 h-4" />}
+              label={t("quickStart.nav", { defaultValue: "快速接入" })}
+              active={activeView === "simpleConnect"}
+              onClick={() => onNavigate("simpleConnect")}
+            />
 
             <SidebarItem
               icon={<History className="w-4 h-4" />}

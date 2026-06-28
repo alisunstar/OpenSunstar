@@ -260,6 +260,58 @@ pub async fn install_mcp_from_registry(
 }
 
 // ============================================================================
+// v3.18.0 新增：Smithery Registry 发现
+// ============================================================================
+
+use crate::mcp_smithery::{self, SmitheryListResponse, SmitheryServerDetail};
+
+/// 搜索/浏览 Smithery Registry 服务器列表
+#[tauri::command]
+pub async fn search_smithery_servers(
+    page: Option<u32>,
+    page_size: Option<u32>,
+    verified: Option<bool>,
+    remote: Option<bool>,
+) -> Result<SmitheryListResponse, String> {
+    mcp_smithery::search_servers(page, page_size, verified, remote)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 获取 Smithery Registry 单个服务器详情
+#[tauri::command]
+pub async fn get_smithery_server_detail(
+    qualified_name: String,
+) -> Result<SmitheryServerDetail, String> {
+    mcp_smithery::get_server_detail(&qualified_name)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 从 Smithery Registry 安装 MCP 服务器到统一管理
+#[tauri::command]
+pub async fn install_mcp_from_smithery(
+    state: State<'_, AppState>,
+    qualified_name: String,
+    enabled_apps: crate::app_config::McpApps,
+) -> Result<McpServer, String> {
+    // 1. 从 Smithery 获取服务器详情
+    let detail = mcp_smithery::get_server_detail(&qualified_name)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // 2. 映射为 McpServer
+    let server = mcp_smithery::smithery_to_mcp_server(&detail, &enabled_apps)
+        .map_err(|e| e.to_string())?;
+
+    // 3. 保存到数据库
+    McpService::upsert_server(&state, server.clone())
+        .map_err(|e| e.to_string())?;
+
+    Ok(server)
+}
+
+// ============================================================================
 // v3.17.0 新增：MCP 连接测试
 // ============================================================================
 

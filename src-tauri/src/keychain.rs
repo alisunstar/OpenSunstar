@@ -24,6 +24,17 @@ const FALLBACK_SALT: &[u8] = b"opensunstar-fallback-keystore-v1";
 static KEYCHAIN_AVAILABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static FALLBACK_STORE: std::sync::OnceLock<Mutex<FallbackStore>> = std::sync::OnceLock::new();
 
+/// In-memory write-through cache for platform keychain secrets.
+/// Bridges the Windows Credential Manager DPAPI propagation delay where
+/// `set_password` returns Ok but `get_password` returns NoEntry for a short window.
+/// Also avoids redundant OS calls for frequently-read keys within the same session.
+static KEYCHAIN_CACHE: std::sync::OnceLock<Mutex<HashMap<String, String>>> =
+    std::sync::OnceLock::new();
+
+fn keychain_cache() -> &'static Mutex<HashMap<String, String>> {
+    KEYCHAIN_CACHE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
 struct FallbackStore {
     entries: HashMap<String, String>,
     dirty: bool,
@@ -49,6 +60,15 @@ pub fn provider_entry_key(provider_id: &str, app_type: &str) -> String {
     format!("{provider_id}/{app_type}")
 }
 
+/// Build the entry key for a specific credential field of a provider.
+///
+/// Each provider may expose multiple credential fields (e.g. ANTHROPIC_AUTH_TOKEN
+/// and ANTHROPIC_API_KEY). Storing them under distinct entry keys avoids
+/// overwriting one with another when both are present.
+pub fn provider_field_entry_key(provider_id: &str, app_type: &str, field: &str) -> String {
+    format!("{provider_id}/{app_type}/{field}")
+}
+
 /// Store a secret in the OS keychain (or fallback)
 pub fn store_secret(entry_key: &str, secret: &str) -> Result<(), AppError> {
     if secret.is_empty() {
@@ -61,22 +81,57 @@ pub fn store_secret(entry_key: &str, secret: &str) -> Result<(), AppError> {
         entry
             .set_password(secret)
             .map_err(|e| AppError::Config(format!("Keychain store failed: {e}")))?;
+        // Write-through: populate in-memory cache so subsequent reads are instant,
+        // bridging the Windows DPAPI propagation delay.
+        if let Ok(mut cache) = keychain_cache().lock() {
+            cache.insert(entry_key.to_string(), secret.to_string());
+        }
     } else {
         store_fallback(entry_key, secret)?;
     }
     Ok(())
 }
 
-/// Retrieve a secret from the OS keychain (or fallback)
+/// Retrieve a secret from the OS keychain (or fallback).
+///
+/// Checks the in-memory write-through cache first — if the secret was stored
+/// during this session, it is returned instantly without an OS keychain call.
+/// This completely eliminates the Windows Credential Manager DPAPI propagation
+/// delay for same-session store→read sequences.
+///
+/// For keys stored in a previous session (not in cache), falls back to the
+/// platform keychain with a short retry on `NoEntry` to absorb any residual
+/// timing issues.
 pub fn get_secret(entry_key: &str) -> Result<Option<String>, AppError> {
+    // 1. In-memory cache hit — instant return, no OS call at all
+    if let Ok(cache) = keychain_cache().lock() {
+        if let Some(secret) = cache.get(entry_key) {
+            return Ok(Some(secret.clone()));
+        }
+    }
+
     if is_platform_keychain_available() {
         let entry = keyring::Entry::new(SERVICE_NAME, entry_key)
             .map_err(|e| AppError::Config(format!("Keychain entry creation failed: {e}")))?;
-        match entry.get_password() {
-            Ok(secret) => Ok(Some(secret)),
-            Err(keyring::Error::NoEntry) => Ok(None),
-            Err(e) => Err(AppError::Config(format!("Keychain read failed: {e}"))),
+        let max_attempts = if cfg!(target_os = "windows") { 5 } else { 2 };
+        let delay_ms: u64 = if cfg!(target_os = "windows") { 200 } else { 50 };
+        for attempt in 0..max_attempts {
+            match entry.get_password() {
+                Ok(secret) => {
+                    // Populate cache on successful read for future calls
+                    if let Ok(mut cache) = keychain_cache().lock() {
+                        cache.insert(entry_key.to_string(), secret.clone());
+                    }
+                    return Ok(Some(secret));
+                }
+                Err(keyring::Error::NoEntry) if attempt + 1 < max_attempts => {
+                    std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+                }
+                Err(keyring::Error::NoEntry) => return Ok(None),
+                Err(e) => return Err(AppError::Config(format!("Keychain read failed: {e}"))),
+            }
         }
+        Ok(None) // unreachable, but satisfies the borrow checker
     } else {
         get_fallback(entry_key)
     }
@@ -84,6 +139,10 @@ pub fn get_secret(entry_key: &str) -> Result<Option<String>, AppError> {
 
 /// Delete a secret from the OS keychain (or fallback)
 pub fn delete_secret(entry_key: &str) -> Result<(), AppError> {
+    // Invalidate cache first — even if OS delete fails, we don't want stale reads
+    if let Ok(mut cache) = keychain_cache().lock() {
+        cache.remove(entry_key);
+    }
     if is_platform_keychain_available() {
         let entry = keyring::Entry::new(SERVICE_NAME, entry_key)
             .map_err(|e| AppError::Config(format!("Keychain entry creation failed: {e}")))?;

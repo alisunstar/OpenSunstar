@@ -27,3 +27,10 @@ export function buildProxySettingsIntent(): SettingsNavIntent {
     openSections: ["proxy", "failover"],
   };
 }
+
+export function buildAiProviderSettingsIntent(): SettingsNavIntent {
+  return {
+    tab: "advanced",
+    openSections: ["aiProvider"],
+  };
+}

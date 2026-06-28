@@ -11,6 +11,7 @@ pub mod ignore;
 pub mod mcp;
 pub mod permission;
 pub mod projects;
+pub mod project_assets;
 pub mod prompts;
 pub mod providers;
 pub mod providers_seed;
@@ -25,3 +26,4 @@ pub mod usage_rollup;
 // 导出 FailoverQueueItem 供外部使用
 pub use failover::FailoverQueueItem;
 pub use projects::{Project, ProjectConfigLink, ProjectPromptLink};
+pub use project_assets::{ProjectAllAssetCounts, ProjectAssetLink, EXTENDED_ASSET_TYPES};

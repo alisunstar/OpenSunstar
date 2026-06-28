@@ -5,7 +5,7 @@ import { BarChart3, Coins, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StagePicker } from "./StagePicker";
 import { AgentReadinessPanel } from "./AgentReadinessPanel";
-import { ProjectConfigPanel } from "@/components/projects/ProjectConfigPanel";
+import { ProjectAssetPanel } from "@/components/projects/ProjectAssetPanel";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { Project } from "@/types/project";
 import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
@@ -19,6 +19,7 @@ import { useAICost } from "@/contexts/AICostContext";
 import { activityTier7d, formatCompactNumber } from "@/lib/portfolioMetrics";
 import { formatAiCostYuan, formatAiTokens } from "@/lib/aiCostFormat";
 import type { PageView } from "@/App";
+import type { AppId } from "@/lib/api";
 import type { ProjectAssetSection } from "@/lib/readinessActions";
 import { cn } from "@/lib/utils";
 
@@ -46,6 +47,7 @@ export interface ProjectDetailSheetProps {
   onNavigate?: (view: PageView) => void;
   initialTab?: DetailTab;
   onPortfolioConfigChanged?: () => void;
+  targetApp?: AppId;
 }
 
 export function ProjectDetailSheet({
@@ -68,6 +70,7 @@ export function ProjectDetailSheet({
   onNavigate,
   initialTab = "overview",
   onPortfolioConfigChanged,
+  targetApp = "claude",
 }: ProjectDetailSheetProps) {
   const { t: tr } = useTranslation();
   const sheetRef = useRef<HTMLDivElement>(null);
@@ -124,8 +127,8 @@ export function ProjectDetailSheet({
     riskHook.refresh();
   };
 
-  const { data: readinessData, isLoading: readinessLoading, refresh: refreshReadiness } =
-    useAgentReadiness(project.path);
+  const { data: readinessData, isLoading: readinessLoading, refresh: refreshReadiness, scanEffective } =
+    useAgentReadiness(project.path, true, targetApp);
   const { refreshToken } = useAICost();
   const { report: roiReport } = useAIRoiReport(30, refreshToken);
   const projectRoi = roiReport?.by_project.find((p) => p.project_id === project.id);
@@ -144,9 +147,9 @@ export function ProjectDetailSheet({
   );
 
   const handleConfigChanged = useCallback(() => {
-    void refreshReadiness();
+    scanEffective();
     onPortfolioConfigChanged?.();
-  }, [refreshReadiness, onPortfolioConfigChanged]);
+  }, [scanEffective, onPortfolioConfigChanged]);
 
   function activityLabel(count: number): { text: string; color: string } {
     const tier = activityTier7d(count);
@@ -569,6 +572,7 @@ export function ProjectDetailSheet({
             data={readinessData}
             isLoading={readinessLoading}
             onRefresh={refreshReadiness}
+            onScanEffective={scanEffective}
             onOpenProjectAssets={openAssetsTab}
             onNavigate={handleNavigate}
             compact
@@ -582,6 +586,7 @@ export function ProjectDetailSheet({
                 data={readinessData}
                 isLoading={readinessLoading}
                 onRefresh={refreshReadiness}
+                onScanEffective={scanEffective}
                 onOpenProjectAssets={openAssetsTab}
                 onNavigate={handleNavigate}
               />
@@ -597,7 +602,7 @@ export function ProjectDetailSheet({
                       "勾选后仅对当前项目生效；与侧栏全局库双向同步。",
                   })}
                 </p>
-                <ProjectConfigPanel
+                <ProjectAssetPanel
                   projectId={project.id}
                   scrollToSection={scrollSection}
                   onConfigChanged={handleConfigChanged}

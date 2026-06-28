@@ -49,6 +49,7 @@ import { WorkspaceTabBar } from "./WorkspaceTabBar";
 import { usePortfolioAssetSummary } from "@/hooks/kanban/usePortfolioAssetSummary";
 import type { WorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
+import type { AppId } from "@/lib/api";
 import {
   PORTFOLIO_OVERVIEW_WINDOW_OPTIONS,
   type PortfolioOverviewWindowDays,
@@ -68,6 +69,7 @@ interface KanbanPageProps {
   onOpenSettings?: () => void;
   onNavigate?: (view: PageView) => void;
   onPortfolioDataChanged?: () => void;
+  targetApp?: AppId;
 }
 
 // ── 主组件 ─────────────────────────────────────
@@ -85,6 +87,7 @@ export function KanbanPage({
   onOpenSettings,
   onNavigate,
   onPortfolioDataChanged,
+  targetApp = "claude",
 }: KanbanPageProps) {
   const { t } = useTranslation();
   const { stages, getStage, setStage } = useProjectStages();
@@ -149,6 +152,7 @@ export function KanbanPage({
     scanEpoch,
     portfolioRefreshToken,
     getConfig,
+    targetApp,
   });
 
   const {
@@ -756,6 +760,7 @@ export function KanbanPage({
             onNavigate={onNavigate}
             initialTab={detailInitialTab}
             onPortfolioConfigChanged={handlePortfolioConfigChanged}
+            targetApp={targetApp}
           />
         )}
       </AnimatePresence>

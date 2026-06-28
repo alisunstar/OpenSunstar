@@ -1,5 +1,6 @@
 import {
   Bot,
+  Check,
   Code2,
   Sparkles,
   Terminal,
@@ -21,16 +22,16 @@ const TOOL_ICONS: Record<string, typeof Terminal> = {
 
 interface CliToolGridProps {
   tools: string[];
-  selectedTool: string;
+  selectedTools: Set<string>;
   configuredTools?: Set<string>;
-  onSelect: (tool: string) => void;
+  onToggle: (tool: string) => void;
 }
 
 export function CliToolGrid({
   tools,
-  selectedTool,
+  selectedTools,
   configuredTools,
-  onSelect,
+  onToggle,
 }: CliToolGridProps) {
   const { t } = useTranslation();
 
@@ -38,14 +39,14 @@ export function CliToolGrid({
     <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
       {tools.map((tool) => {
         const Icon = TOOL_ICONS[tool] ?? Terminal;
-        const selected = selectedTool === tool;
+        const selected = selectedTools.has(tool);
         const configured = configuredTools?.has(tool);
 
         return (
           <button
             key={tool}
             type="button"
-            onClick={() => onSelect(tool)}
+            onClick={() => onToggle(tool)}
             className={cn(
               "flex items-start gap-3 rounded-xl border p-3 text-left transition-all",
               "hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -76,6 +77,9 @@ export function CliToolGrid({
                   t("simpleConnect.cliGeneric", { defaultValue: "CLI 配置" })}
               </p>
             </div>
+            {selected && (
+              <Check className="h-4 w-4 shrink-0 text-primary mt-1" />
+            )}
           </button>
         );
       })}

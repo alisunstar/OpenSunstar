@@ -1,4 +1,4 @@
-﻿{
+{
   "app": {
     "title": "OpenSunstar",
     "description": "Claude Code・Codex・Gemini CLI のためのオールインワンアシスタント"
@@ -2133,7 +2133,25 @@
     "searchPlaceholder": "スキル名またはリポジトリで検索...",
     "searchSource": {
       "repos": "リポジトリ",
-      "skillssh": "skills.sh"
+      "skillssh": "skills.sh",
+      "leaderboardAllTime": "全期間",
+      "leaderboardTrending": "24h トレンド"
+    },
+    "leaderboard": {
+      "allTimeTitle": "全期間 TOP50",
+      "trendingTitle": "24h トレンド",
+      "allTimeDesc": "skills.sh 公式 All Time ランキング TOP50 と同期",
+      "trendingDesc": "skills.sh 公式 Trending (24h) ランキング TOP50 と同期",
+      "syncedAt": "同期 {{time}}",
+      "fromCache": "ローカルキャッシュ",
+      "registryTotal": "skills.sh 累計 {{count}} インストール",
+      "loading": "skills.sh 公式ランキングを同期中…",
+      "error": "skills.sh 公式ランキングの同期に失敗しました",
+      "empty": "ランキングデータがありません",
+      "syncPolicy": "非リアルタイム · 既定 {{hours}} 時間ごとに skills.sh から同期 · 更新ボタンで即時取得",
+      "nextSyncAt": "次回自動同期 約 {{time}}",
+      "refreshNow": "skills.sh から今すぐ同期",
+      "pageRange": "{{range}} · {{page}}/{{totalPages}} ページ（全 {{total}} 件）"
     },
     "skillssh": {
       "searchPlaceholder": "skills.sh を検索（2文字以上）...",
@@ -2296,6 +2314,83 @@
     "clickToSelect": "クリックでアイコンを選択",
     "color": "アイコンカラー"
   },
+  "quickStart": {
+    "nav": "クイック接続",
+    "title": "クイック接続",
+    "subtitle": "3ステップで接続：プロバイダー選択 → Key 入力 → 有効化",
+    "searchPlaceholder": "プロバイダー名または URL を検索…",
+    "noResults": "一致するプロバイダーが見つかりません",
+    "official": "公式",
+    "officialDesc": "公式プロバイダーはブラウザログインまたはサブスクリプション認証が必要です。Key のみでは接続できません。プロバイダー管理で OAuth / 公式設定を完了してください。",
+    "partner": "パートナー",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "API Key を貼り付け",
+    "keychainHint": "Key は OS キーチェーン（Windows Credential Manager / macOS Keychain）に安全に保存され、平文でディスクに書き込まれません",
+    "getKey": "API Key を取得",
+    "apply": "有効化",
+    "success": "接続成功！このプロバイダーに切り替えました",
+    "doneTitle": "接続成功！",
+    "doneDesc": "プロバイダーが設定され、有効化されました。Claude Code で今すぐ利用できます。",
+    "doneDescApp": "{{app}} が設定され、現在のプロバイダーに切り替わりました。",
+    "proxyRunningHint": "Claude Code のリクエストはローカルプロキシ（127.0.0.1:15721）経由で転送されます。OpenSunstar を実行し続けてください。アプリを閉じると Claude Code は接続できなくなります。",
+    "proxyRunningHintDesktop": "Claude Desktop はローカルプロキシ経由で転送されます。OpenSunstar を実行し続けてください。",
+    "addAnother": "別のを追加",
+    "openSettings": "プロバイダー管理へ",
+    "firstProviderHint": "最初のプロバイダーです。必要に応じて設定でプロキシを起動してください。",
+    "verify": "Key を検証",
+    "verifyOk": "Key は有効です！",
+    "verifyOkAnthropic": "Key は有効です（モデル一覧 API なし — プリセット既定モデルを使用）",
+    "verifyOkWithModels": "Key は有効 — {{count}} 件のモデルを取得",
+    "verifyOkNoModelList": "Key は有効（モデル一覧の取得に失敗 — プリセット既定モデルを使用）",
+    "verifyHint": "Anthropic 検証は約 1 token 消費。OpenAI 互換ゲートウェイは成功後にモデル一覧を展開できます",
+    "modelsList": "利用可能なモデル（{{count}}）",
+    "myProviders": "マイプロバイダー",
+    "switch": "切り替え",
+    "apps": {
+      "claude": "Claude Code",
+      "claudeDesktop": "Claude Desktop",
+      "codex": "Codex",
+      "gemini": "Gemini"
+    },
+    "category": {
+      "custom": "カスタム"
+    },
+    "gemini": {
+      "cnOfficialHint": "Phase 1 では中国公式プリセットカードはありません。OpenRouter を使うか、「カスタム設定」で国内 Gemini 互換エンドポイントを入力してください。"
+    },
+    "custom": {
+      "cardTitle": "カスタム設定",
+      "cardSubtitle": "Base URL とモデルを自分で入力",
+      "hint": "カスタムゲートウェイ：最小項目を入力して接続。詳細設定はプロバイダー管理で編集できます。",
+      "name": "プロバイダー名",
+      "namePlaceholder": "例：My DeepSeek ゲートウェイ",
+      "baseUrl": "Base URL",
+      "defaultModel": "既定モデル",
+      "geminiModel": "モデル ID",
+      "defaultName": "カスタムプロバイダー"
+    },
+    "advanced": {
+      "title": "詳細オプション",
+      "subtitle": "多くの場合は既定値のままで問題ありません",
+      "upstreamModel": "アップストリームモデル",
+      "defaultModel": "既定モデル",
+      "apiFormat": "API 形式"
+    },
+    "badge": {
+      "current": "現在",
+      "proxy": "ローカルルート"
+    },
+    "warn": {
+      "clearFailed": "旧クイック接続マーカーのクリアに失敗しました。切り替えで引き続きエラーになる場合は設定で手動クリアしてください",
+      "takeoverFailed": "プロバイダーは追加されましたが、プロキシ接管の有効化に失敗しました。設定-ローカルルートで該当アプリの接管を手動で有効にしてください"
+    },
+    "error": {
+      "emptyKey": "API Key を入力してください",
+      "failed": "接続に失敗しました。API Key またはネットワークを確認して再試行してください。",
+      "noBaseUrl": "Base URL を入力してください",
+      "noModel": "既定モデルを入力してください"
+    }
+  },
   "migration": {
     "success": "設定の移行が完了しました",
     "skillsSuccess": "スキルを {{count}} 件、自動的に統合管理へインポートしました",
@@ -2303,7 +2398,7 @@
     "skillsFailedDescription": "Skills 画面で「既存をインポート」をクリックして手動でインポートしてください（または再起動して再試行）。"
   },
   "agents": {
-    "title": "エージェント"
+    "title": "Subagents"
   },
   "modelTest": {
     "testProvider": "モデルテスト"

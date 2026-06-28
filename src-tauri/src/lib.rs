@@ -28,6 +28,7 @@ mod linux_fix;
 mod mcp;
 mod mcp_connection_test;
 mod mcp_registry;
+mod mcp_smithery;
 mod openclaw_config;
 mod opencode_config;
 mod panic_hook;
@@ -35,6 +36,7 @@ mod prompt;
 mod prompt_files;
 mod provider;
 mod provider_defaults;
+mod provider_keychain;
 mod proxy;
 mod services;
 mod session_manager;
@@ -710,6 +712,28 @@ pub fn run() {
                 Err(e) => log::warn!("✗ Failed to seed official providers: {e}"),
             }
 
+            // One-time migration: move any plaintext API keys still stored in the
+            // providers table into the OS keychain, replacing them with
+            // keychain://ref/ placeholders. Idempotent — safe to run every launch.
+            {
+                let db_for_keychain_migration = app_state.db.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    match crate::provider_keychain::migrate_all_providers_if_needed(
+                        &db_for_keychain_migration,
+                    ) {
+                        Ok(count) if count > 0 => {
+                            log::info!("✓ Migrated {count} provider key(s) to OS keychain");
+                        }
+                        Ok(_) => {
+                            log::debug!("○ No plaintext provider keys needed keychain migration");
+                        }
+                        Err(e) => {
+                            log::warn!("✗ Provider keychain migration failed: {e}");
+                        }
+                    }
+                });
+            }
+
             {
                 let db_for_codex_history_migration = app_state.db.clone();
                 tauri::async_runtime::spawn_blocking(move || {
@@ -1112,35 +1136,16 @@ pub fn run() {
                 }
             }
 
-            // 异常退出恢复 + 代理状态自动恢复
+            // 代理恢复必须在主窗口显示前完成，避免 Claude Code 在端口未监听时连接 127.0.0.1
+            {
+                let state = app.state::<AppState>();
+                tauri::async_runtime::block_on(run_startup_proxy_recovery(state.inner()));
+            }
+
+            // 后台周期任务（备份、会话同步等）
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<AppState>();
-
-                // 检查是否有 Live 备份（表示上次异常退出时可能处于接管状态）
-                let has_backups = match state.db.has_any_live_backup().await {
-                    Ok(v) => v,
-                    Err(e) => {
-                        log::error!("检查 Live 备份失败: {e}");
-                        false
-                    }
-                };
-                // 检查 Live 配置是否仍处于被接管状态（包含占位符）
-                let live_taken_over = state.proxy_service.detect_takeover_in_live_configs();
-
-                if has_backups || live_taken_over {
-                    log::warn!("检测到上次异常退出（存在接管残留），正在恢复 Live 配置...");
-                    if let Err(e) = state.proxy_service.recover_from_crash().await {
-                        log::error!("恢复 Live 配置失败: {e}");
-                    } else {
-                        log::info!("Live 配置已恢复");
-                    }
-                }
-
-                initialize_common_config_snippets(&state);
-
-                // 检查 settings 表中的代理状态，自动恢复代理服务
-                restore_proxy_state_on_startup(&state).await;
 
                 // Periodic backup check (on startup)
                 if let Err(e) = state.db.periodic_backup_if_needed() {
@@ -1281,6 +1286,7 @@ pub fn run() {
             commands::delete_provider,
             commands::remove_provider_from_live_config,
             commands::switch_provider,
+            commands::verify_provider_key,
             commands::import_default_config,
             commands::get_claude_desktop_status,
             commands::get_claude_desktop_default_routes,
@@ -1355,6 +1361,10 @@ pub fn run() {
             commands::search_mcp_registry,
             commands::get_mcp_registry_server,
             commands::install_mcp_from_registry,
+            // Smithery Registry discovery
+            commands::search_smithery_servers,
+            commands::get_smithery_server_detail,
+            commands::install_mcp_from_smithery,
             // MCP connection test
             commands::test_mcp_connection,
             // Prompt management
@@ -1447,6 +1457,7 @@ pub fn run() {
             commands::migrate_skill_storage,
             commands::resync_all_skills,
             commands::search_skills_sh,
+            commands::get_skills_sh_leaderboard,
             commands::search_clawhub,
             commands::batch_get_clawhub_stats,
             commands::install_clawhub_skill,
@@ -1631,6 +1642,7 @@ pub fn run() {
             commands::generate_weekly_report,
             // AI insight commands F-P2-1 (Agent 配置就绪度 + 反馈闭环)
             commands::get_agent_readiness_score,
+            commands::scan_project_effective_state,
             commands::submit_insight_feedback,
             commands::submit_ai_query_feedback,
             // Session & usage export
@@ -1689,6 +1701,12 @@ pub fn run() {
             commands::simple_connect_spike_run_all,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
+            commands::get_project_asset_links,
+            commands::link_project_asset,
+            commands::unlink_project_asset,
+            commands::set_project_assets,
+            commands::get_project_all_asset_counts,
+            commands::list_extended_project_asset_types,
             // Commands & Hooks (v0.6.5 M1)
             commands::get_all_commands,
             commands::upsert_command,
@@ -1942,7 +1960,31 @@ pub(crate) fn remove_tray_icon_before_exit(app_handle: &tauri::AppHandle) {
 // 启动时恢复代理状态
 // ============================================================
 
-/// 启动时根据 proxy_config 表中的代理状态自动恢复代理服务
+/// 启动时代理恢复（崩溃清理 + 按 DB 状态重新接管）。
+/// 必须在主窗口显示前完成，否则用户可能在代理尚未监听时打开 Claude Code。
+async fn run_startup_proxy_recovery(state: &store::AppState) {
+    let has_backups = match state.db.has_any_live_backup().await {
+        Ok(v) => v,
+        Err(e) => {
+            log::error!("检查 Live 备份失败: {e}");
+            false
+        }
+    };
+    let live_taken_over = state.proxy_service.detect_takeover_in_live_configs();
+
+    if has_backups || live_taken_over {
+        log::warn!("检测到上次异常退出（存在接管残留），正在恢复 Live 配置...");
+        if let Err(e) = state.proxy_service.recover_from_crash().await {
+            log::error!("恢复 Live 配置失败: {e}");
+        } else {
+            log::info!("Live 配置已恢复");
+        }
+    }
+
+    initialize_common_config_snippets(state);
+    restore_proxy_state_on_startup(state).await;
+}
+
 ///
 /// 检查 `proxy_config.enabled` 字段，如果有任一应用的状态为 `true`，
 /// 则自动启动代理服务并接管对应应用的 Live 配置。

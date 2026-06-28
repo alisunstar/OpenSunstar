@@ -3,6 +3,7 @@ import { Loader2, Shield } from "lucide-react";
 import type { Project } from "@/types/project";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
+import { readinessScoreTone } from "@/lib/readinessConstants";
 import { cn } from "@/lib/utils";
 
 const STAGE_LABEL: Record<StageKey, string> = {
@@ -10,6 +11,32 @@ const STAGE_LABEL: Record<StageKey, string> = {
   rapid: "迭代",
   stable: "稳定",
 };
+
+const EMPTY_COUNTS: ProjectAssetCounts = {
+  mcp: 0,
+  skills: 0,
+  prompts: 0,
+  commands: 0,
+  hooks: 0,
+  ignore: 0,
+  permissions: 0,
+  subagents: 0,
+};
+
+const COUNT_COLUMNS: {
+  key: keyof ProjectAssetCounts;
+  label: string;
+  width: string;
+}[] = [
+  { key: "mcp", label: "MCP", width: "w-12" },
+  { key: "skills", label: "Skills", width: "w-12" },
+  { key: "prompts", label: "Prompts", width: "w-14" },
+  { key: "commands", label: "Cmd", width: "w-12" },
+  { key: "hooks", label: "Hooks", width: "w-12" },
+  { key: "ignore", label: "Ign", width: "w-12" },
+  { key: "permissions", label: "Perm", width: "w-12" },
+  { key: "subagents", label: "Sub", width: "w-12" },
+];
 
 export interface ProjectAssetsMatrixProps {
   projects: Project[];
@@ -53,9 +80,7 @@ export function ProjectAssetsMatrix({
     );
   }
 
-  if (projects.length === 0) {
-    return null;
-  }
+  if (projects.length === 0) return null;
 
   return (
     <div className="rounded-xl border border-border/60 bg-card/30 overflow-hidden">
@@ -67,8 +92,9 @@ export function ProjectAssetsMatrix({
             })}
           </h3>
           <p className="text-[11px] text-muted-foreground mt-0.5">
-            {t("workspace.assetsMatrix.subtitle", {
-              defaultValue: "按项目查看 MCP / Skills / Prompts 关联与就绪状态",
+            {t("workspace.assetsMatrix.subtitle8", {
+              defaultValue:
+                "按项目查看 8 类 AI 资产关联数量与就绪状态（项目级启用子集）",
             })}
           </p>
         </div>
@@ -81,32 +107,35 @@ export function ProjectAssetsMatrix({
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-xs">
+        <table className="w-full min-w-[960px] text-xs">
           <thead>
             <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
-              <th className="text-left font-medium px-4 py-2.5">
+              <th className="text-left font-medium px-4 py-2.5 sticky left-0 bg-muted/20 z-10">
                 {t("workspace.assetsMatrix.project", {
                   defaultValue: "项目",
                 })}
               </th>
-              <th className="text-center font-medium px-2 py-2.5 w-16">
+              <th className="text-center font-medium px-2 py-2.5 w-14">
                 {t("workspace.assetsMatrix.stage", { defaultValue: "阶段" })}
               </th>
-              <th className="text-center font-medium px-2 py-2.5 w-16">
-                MCP
-              </th>
-              <th className="text-center font-medium px-2 py-2.5 w-16">
-                Skills
-              </th>
-              <th className="text-center font-medium px-2 py-2.5 w-20">
-                Prompts
-              </th>
-              <th className="text-center font-medium px-2 py-2.5 w-20">
+              {COUNT_COLUMNS.map((col) => (
+                <th
+                  key={col.key}
+                  className={cn(
+                    "text-center font-medium px-1.5 py-2.5",
+                    col.width,
+                  )}
+                  title={col.label}
+                >
+                  {col.label}
+                </th>
+              ))}
+              <th className="text-center font-medium px-2 py-2.5 w-14">
                 {t("workspace.assetsMatrix.readiness", {
                   defaultValue: "就绪",
                 })}
               </th>
-              <th className="text-center font-medium px-2 py-2.5 w-16">
+              <th className="text-center font-medium px-2 py-2.5 w-14">
                 {t("workspace.assetsMatrix.progress", {
                   defaultValue: "进度",
                 })}
@@ -116,11 +145,7 @@ export function ProjectAssetsMatrix({
           <tbody>
             {projects.map((project) => {
               const stage = getStage(project.id);
-              const assets = assetMap.get(project.id) ?? {
-                mcp: 0,
-                skills: 0,
-                prompts: 0,
-              };
+              const assets = assetMap.get(project.id) ?? EMPTY_COUNTS;
               const readiness = agentReadinessMap.get(project.id);
               const progress = progressMap.get(project.id);
 
@@ -130,54 +155,35 @@ export function ProjectAssetsMatrix({
                   className="border-b border-border/30 hover:bg-muted/20 cursor-pointer transition-colors"
                   onClick={() => onOpenProject(project, { assetsTab: true })}
                 >
-                  <td className="px-4 py-2.5">
-                    <p className="font-medium text-foreground truncate max-w-[200px]">
+                  <td className="px-4 py-2.5 sticky left-0 bg-card/95 z-10">
+                    <p className="font-medium text-foreground truncate max-w-[160px]">
                       {project.name}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/70 font-mono truncate max-w-[220px]">
-                      {project.path}
                     </p>
                   </td>
                   <td className="text-center px-2 py-2.5 text-muted-foreground">
                     {STAGE_LABEL[stage]}
                   </td>
-                  <td
-                    className={cn(
-                      "text-center px-2 py-2.5 font-semibold tabular-nums",
-                      cellTone(assets.mcp),
-                      cellBg(assets.mcp),
-                    )}
-                  >
-                    {assets.mcp}
-                  </td>
-                  <td
-                    className={cn(
-                      "text-center px-2 py-2.5 font-semibold tabular-nums",
-                      cellTone(assets.skills),
-                      cellBg(assets.skills),
-                    )}
-                  >
-                    {assets.skills}
-                  </td>
-                  <td
-                    className={cn(
-                      "text-center px-2 py-2.5 font-semibold tabular-nums",
-                      cellTone(assets.prompts),
-                      cellBg(assets.prompts),
-                    )}
-                  >
-                    {assets.prompts}
-                  </td>
+                  {COUNT_COLUMNS.map((col) => {
+                    const count = assets[col.key];
+                    return (
+                      <td
+                        key={col.key}
+                        className={cn(
+                          "text-center px-1.5 py-2.5 font-semibold tabular-nums",
+                          cellTone(count),
+                          cellBg(count),
+                        )}
+                      >
+                        {count}
+                      </td>
+                    );
+                  })}
                   <td className="text-center px-2 py-2.5">
                     {typeof readiness === "number" ? (
                       <span
                         className={cn(
                           "inline-flex items-center gap-0.5 font-semibold tabular-nums",
-                          readiness >= 60
-                            ? "text-emerald-500"
-                            : readiness >= 40
-                              ? "text-amber-500"
-                              : "text-zinc-400",
+                          readinessScoreTone(readiness),
                         )}
                       >
                         <Shield className="h-3 w-3" />
