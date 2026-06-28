@@ -30,3 +30,10 @@ copilot-api
 CODEBUDDY.md
 .github
 mainWindow.js
+
+# Internal docs in docs/ root — keep locally, do not publish to GitHub
+/docs/*
+!/docs/kanban.md
+!/docs/user-manual/
+!/docs/release-notes/
+!/docs/LOGO素材/
