@@ -9,7 +9,7 @@
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
-**官网：** [opensunstar.github.io](https://opensunstar.github.io/) · [OpenSunstar.io](https://OpenSunstar.io)
+**代码仓库：** [github.com/alisunstar/OpenSunstar](https://github.com/alisunstar/OpenSunstar)
 
 [English](README.md) | 中文 | [日本語](README_JA.md) | [Deutsch](README_DE.md) | [更新日志](CHANGELOG.md)
 
@@ -17,88 +17,76 @@
 
 ---
 
-## 产品简介
+## 目录
 
-AI 编程时代，开发者往往同时使用 **Claude Code**、**Codex**、**Gemini CLI** 等多款 CLI——但每家工具的配置格式各不相同。切换 API 供应商意味着手动改 JSON / TOML / `.env`，MCP 与 Skills 也难以跨应用统一管理。
+- [一. 什么是 OpenSunstar](#一-什么是-opensunstar)
+- [二. 安装指南](#二-安装指南)
+- [三. 快速开始](#三-快速开始)
+- [四. 常见问题 FAQ](#四-常见问题-faq)
+- [附录](#附录)
+  - [文档](#文档)
+  - [开发](#开发)
+  - [参与贡献](#参与贡献)
+  - [许可证](#许可证)
 
-**OpenSunstar** 是一款原生桌面控制台，将这些能力收敛到一处：
+---
 
-- **50+ 供应商预设**，可视化一键切换
-- **MCP / Skills / Prompts** 统一面板，双向同步
-- **项目组合** 多仓库研发仪表盘与 AI 洞察
-- **SQLite 原子写入**，配置安全不损坏
+## 一. 什么是 OpenSunstar
 
-> **v0.1.0** 为首次公开发布版本，功能已成型，具备正式上线使用条件。
+AI 编程时代，开发者往往同时使用 **Claude Code**、**Codex**、**Gemini CLI** 等多款 CLI——但各家配置格式不同。切换 API 供应商要手动改 JSON / TOML / `.env`；MCP 与 Skills 难以跨应用统一；多仓库团队也缺少 AI 就绪度与资产的一览视图。
 
-## 核心亮点
+**OpenSunstar** 是基于 Tauri 2 + React 的原生桌面控制台，把**接入、配置、项目治理**收敛到一处。
 
-- **一个应用，七个 CLI** — Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes
-- **快速接入** — 选供应商 → 保存 Key → 应用到 CLI，三步完成
-- **系统托盘切换** — 无需打开主窗口即可换供应商
-- **本地代理与故障转移** — 格式转换、熔断器、健康监控
-- **项目组合洞察** — 7 天统一提交指标、代码统计、AI 周报
-- **云同步** — WebDAV、S3 兼容存储、自定义配置目录
-- **跨平台** — Windows / macOS / Linux · 基于 Tauri 2
-
-## 界面预览
-
-| 主界面 | 添加供应商 |
-| :----: | :--------: |
-| ![主界面](assets/screenshots/main-zh.png) | ![添加供应商](assets/screenshots/add-zh.png) |
-
-## 功能特性
-
-### 接入与供应商
-
-- 50+ 内置预设（中转站、云 API、Coding Plan）
-- 通用供应商跨 Claude Code / Codex / Gemini CLI 同步
-- 拖拽排序、导入导出、通用配置片段（保留插件数据）
-- Deep Link（`OpenSunstar://`）一键导入
-
-### Agent 配置
-
-- 统一 **MCP** 面板：发现注册表、按应用同步开关
-- **Skills**：GitHub / ZIP / skills.sh / ClawHub / ModelScope 一键安装
-- **Prompts**、命令、钩子、忽略规则、权限、Subagent 全套工具
-- **会话管理**与 OpenClaw 工作区编辑器
-
-### 代理与可靠性
-
-- 本地路由代理与请求整流器
-- 自动故障转移队列与熔断器
-- 按应用 / 按供应商的代理接管
-
-### 项目组合与用量
-
-- **项目组合仪表盘** — 多 Git 仓库驾驶舱，7 天指标统一
-- AI 组合摘要、健康评分与周报生成
-- 用量仪表盘、预算告警、自定义模型定价
-
-### 系统能力
-
-- 深色 / 浅色 / 跟随系统主题
-- 国际化：简体中文 · 繁體中文 · English · 日本語
-- 自动备份、应用内更新、最小侵入式设计
-
-[v0.1.0 发布说明](docs/release-notes/v0.1.0-zh.md) · [用户手册](docs/user-manual/zh/README.md) · [繁體中文手冊](docs/user-manual/zh-TW/README.md)
-
-## 支持的工具
+### 支持的 CLI 工具
 
 | Claude Code | Claude Desktop | Codex | Gemini CLI | OpenCode | OpenClaw | Hermes |
 | :---------: | :------------: | :---: | :--------: | :------: | :------: | :----: |
 
-## 快速开始
+### 核心能力
 
-1. **下载** 对应平台的最新安装包（[Releases](https://github.com/alisunstar/OpenSunstar/releases/latest)）
-2. 打开 **快速接入** → 选供应商 → 保存 Key → 应用到 CLI
-3. 在主界面或系统托盘 **切换供应商**
-4. **重启终端**使大多数 CLI 生效（Claude Code 支持热切换）
+**接入**
 
-侧边栏可进入 **MCP**、**Skills**、**Prompts**；**项目组合** 中添加本地 Git 仓库即可查看研发洞察。
+- **快速接入** — 面向 Claude Code、Claude Desktop、Codex、Gemini 的精选向导（官方 / 国产 / 聚合 / 自定义）
+- **50+ 供应商预设**，可视化切换 + 系统托盘快捷切换
+- **本地路由代理** — 格式转换、健康检查、故障转移与熔断
+- **Deep Link**（`OpenSunstar://`）一键导入
 
-> 首次启动可自动导入现有 CLI 配置为 default 供应商。
+**配置**
 
-## 下载安装
+- 统一管理 **MCP**、**Skills**、**Prompts**、**Commands**、**Hooks**、**Ignore**、**Permissions**、**Subagents**
+- **MCP 发现** — 浏览注册表模板，并从 **Smithery** 安装
+- **Skills 发现** — GitHub 仓库、ZIP、skills.sh 搜索、**skills.sh 官方排行榜**（全站总榜 / 24h 趋势 TOP 50）、ClawHub、ModelScope
+- **会话管理**、配置 **Convert**、同步与备份（WebDAV / S3 兼容）
+
+**治理（工作区）**
+
+- **今日工作台** — 组合级快照，突出需关注项
+- **项目看板** — 多仓库驾驶舱：Git 指标、阶段（MVP / 迭代 / 稳定）、AI 组合周报
+- **AI 资产总览** — 跨项目的 MCP / Skills / Prompts 数量矩阵
+- **Agent 就绪度** — 按项目评分，支持「已配置 vs 磁盘生效态」扫描
+- **项目 AI 配置** — 按 Git 仓库绑定与管理 Agent 资产
+
+**系统**
+
+- Windows / macOS / Linux · SQLite 原子写入 · 密钥优先走系统 Keychain
+- 深色 / 浅色 / 跟随系统 · 多语言：简体中文 · 繁體中文 · English · 日本語 · Deutsch
+- 用量仪表盘、预算告警、自定义模型定价、应用内更新
+
+### 界面预览
+
+| 主界面 | 添加供应商 |
+| :----: | :--------: |
+| ![主界面](website/assets/screenshots/main-zh.png) | ![添加供应商](website/assets/screenshots/add-zh.png) |
+
+> **v0.1.0** 为首次公开发布版本，可日常使用；工作区与 AI 资产闭环能力仍在持续迭代。
+
+---
+
+## 二. 安装指南
+
+### 下载安装（推荐）
+
+从 [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releases/latest) 获取最新构建。
 
 | 平台 | 安装包 |
 | ---- | ------ |
@@ -108,12 +96,58 @@ AI 编程时代，开发者往往同时使用 **Claude Code**、**Codex**、**Ge
 
 **系统要求：** Windows 10+ · macOS 12+ · Ubuntu 22.04+ / Debian 11+ / Fedora 34+
 
-## 常见问题
+### 源码构建
+
+见附录 [开发](#开发)。
+
+---
+
+## 三. 快速开始
+
+### 首次启动
+
+1. 首次运行可**自动导入**现有 CLI 配置为 default 供应商。
+2. 若弹出引导向导，按提示完成即可。
+
+### 三步接入 CLI
+
+1. 侧边栏 → **快速接入**
+2. 选择目标应用：**Claude Code**、**Claude Desktop**、**Codex** 或 **Gemini**
+3. 选择精选供应商 → 填写 API Key（或按官方 OAuth 指引）→ **验证并应用**
+
+官方供应商（Anthropic / OpenAI / Google）需在 **设置 → 供应商管理** 中完成浏览器登录。
+
+> **代理提示：** Claude Code、Codex、Gemini、Claude Desktop 使用时请**保持 OpenSunstar 运行**，CLI 请求经本地代理转发。
+
+### 切换供应商
+
+- 在主界面或**系统托盘**切换当前供应商
+- 大多数 CLI 切换后需**重启终端**（Claude Code 支持**热切换**）
+
+### 配置工作区
+
+1. 侧边栏 → **工作区** → **添加项目**，绑定本地 Git 仓库
+2. 打开 **今日工作台** 查看待办与就绪度缺口
+3. 在 **项目看板** 查看提交活跃度与 AI 组合报告
+4. 进入项目的 **AI 配置** 管理仓库级 MCP / Skills / Prompts
+
+### 探索 Agent 工具
+
+| 目标 | 入口 |
+| ---- | ---- |
+| 安装 MCP | Agent 配置 → **MCP** → 发现（Smithery / 注册表） |
+| 浏览热门 Skills | Agent 配置 → **Skills** → skills.sh 排行榜 |
+| 管理 Prompts / Hooks | Agent 配置 → **Prompts** / **Commands** / **Hooks** |
+| 查看 Token 用量 | 侧边栏 → **AI Tokens** |
+
+---
+
+## 四. 常见问题 FAQ
 
 <details>
 <summary><strong>支持哪些 AI 工具？</strong></summary>
 
-七个工具：Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes，各有专属预设。
+七个工具：Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes。快速接入向导覆盖前四个；全部七个可在供应商与 Agent 面板中管理。
 </details>
 
 <details>
@@ -123,43 +157,73 @@ AI 编程时代，开发者往往同时使用 **Claude Code**、**Codex**、**Ge
 </details>
 
 <details>
+<summary><strong>为什么需要保持 OpenSunstar 运行？</strong></summary>
+
+部分 CLI 的配置会指向 OpenSunstar 本地代理。关闭应用后代理停止，CLI 可能出现连接失败，需重新启动 OpenSunstar。
+</details>
+
+<details>
 <summary><strong>数据存储在哪里？</strong></summary>
 
-- 数据库：`~/.OpenSunstar/OpenSunstar.db`
-- 本地设置：`~/.OpenSunstar/settings.json`
-- 自动备份：`~/.OpenSunstar/backups/`（保留最近 10 份）
-- Skills：`~/.OpenSunstar/skills/`
+| 路径 | 用途 |
+| ---- | ---- |
+| `~/.OpenSunstar/OpenSunstar.db` | SQLite 数据库（供应商、MCP、项目、资产） |
+| `~/.OpenSunstar/settings.json` | 应用设置 |
+| `~/.OpenSunstar/backups/` | 自动备份（保留最近 10 份） |
+| `~/.OpenSunstar/skills/` | 已安装 Skills 缓存 |
+| `~/.OpenSunstar/cache/` | 远程数据缓存（如 skills.sh 排行榜，约 6 小时 TTL） |
 </details>
 
 <details>
 <summary><strong>如何切回官方登录？</strong></summary>
 
-添加「官方（Official）」预设供应商并切换，然后在对应 CLI 中执行 Log out / Log in 流程。
+添加或选择 **Official（官方）** 预设供应商并切换，然后在终端执行对应 CLI 的 Log out / Log in 流程。
 </details>
 
 <details>
-<summary><strong>「项目组合」是看板吗？</strong></summary>
+<summary><strong>「工作区」是任务看板吗？</strong></summary>
 
-不是拖拽式任务看板，而是多 Git 仓库的研发健康度仪表盘，含代码量、提交活跃度与 AI 周报。
+不是。工作区是**多仓库 AI 治理仪表盘**——Git 健康度、Agent 就绪度、项目级资产与 AI 洞察——而非拖拽式 Issue 看板。
 </details>
 
-## 文档
+<details>
+<summary><strong>skills.sh 排行榜多久更新一次？</strong></summary>
 
-完整指南：**[用户手册](docs/user-manual/zh/README.md)** · **[繁體中文手冊](docs/user-manual/zh-TW/README.md)** · **[项目组合说明](docs/kanban.md)** · **[v0.1.0 发布说明](docs/release-notes/v0.1.0-zh.md)**
+从 skills.sh 拉取后本地缓存约 6 小时。界面显示上次同步时间；可手动刷新强制更新。
+</details>
 
-## 开发
+---
+
+## 附录
+
+### 文档
+
+| 资源 | 链接 |
+| ---- | ---- |
+| 用户手册（中文） | [docs/user-manual/zh/README.md](docs/user-manual/zh/README.md) |
+| 用户手册（English） | [docs/user-manual/en/README.md](docs/user-manual/en/README.md) |
+| 用户手册（繁體） | [docs/user-manual/zh-TW/README.md](docs/user-manual/zh-TW/README.md) |
+| 用户手册（日本語） | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
+| 用户手册（Deutsch） | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
+| 工作区模块说明 | [docs/kanban.md](docs/kanban.md) |
+| v0.1.0 发布说明 | [docs/release-notes/v0.1.0-zh.md](docs/release-notes/v0.1.0-zh.md) |
+
+### 开发
+
+**技术栈：** React 18 · TypeScript · Vite · Tauri 2 · Rust · SQLite · TanStack Query
+
+**环境要求：** Node.js 20+ · pnpm · Rust 1.85+ · 各平台 Tauri 构建依赖
 
 ```bash
 pnpm install
-pnpm tauri dev        # 开发模式
+pnpm tauri dev        # 桌面开发模式
+pnpm dev:renderer     # 仅前端
 pnpm typecheck        # 类型检查
 pnpm test:unit        # 单元测试
 pnpm tauri build      # 生产构建
 ```
 
-技术栈：React 18 · TypeScript · Tauri 2 · Rust · SQLite · TanStack Query
-
-## 参与贡献
+### 参与贡献
 
 欢迎提交 Issue 与 PR。提交前请确保：
 
@@ -167,12 +231,8 @@ pnpm tauri build      # 生产构建
 pnpm typecheck && pnpm format:check && pnpm test:unit
 ```
 
-详见 [CONTRIBUTING.md](CONTRIBUTING.md)。
+详见 [CONTRIBUTING.md](CONTRIBUTING.md)。合作伙伴与赞助信息见 [SUPPORT.md](SUPPORT.md)。
 
-## 赞助商
-
-合作伙伴与赞助信息见 **[SUPPORT.md](SUPPORT.md)**。
-
-## 许可证
+### 许可证
 
 [MIT](LICENSE) © Jason Young
