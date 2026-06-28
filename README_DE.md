@@ -20,6 +20,10 @@
 ## Inhaltsverzeichnis
 
 - [1. Was ist OpenSunstar](#1-was-ist-opensunstar)
+  - [Zielgruppe](#zielgruppe)
+  - [Kern-Anwendungsfälle (8 Szenarien)](#kern-anwendungsfälle-8-szenarien)
+  - [Sechs gelöste Schmerzpunkte](#sechs-gelöste-schmerzpunkte)
+  - [Funktionsübersicht](#funktionsübersicht)
 - [2. Installation](#2-installation)
 - [3. Schnellstart](#3-schnellstart)
 - [4. FAQ](#4-faq)
@@ -27,58 +31,77 @@
   - [Dokumentation](#dokumentation)
   - [Entwicklung](#entwicklung)
   - [Mitwirken](#mitwirken)
+  - [Danksagung](#danksagung)
   - [Lizenz](#lizenz)
 
 ---
 
 ## 1. Was ist OpenSunstar
 
-KI-gestützte Entwicklung nutzt oft **Claude Code**, **Codex**, **Gemini CLI** und mehr — doch jedes Tool hat sein eigenes Konfigurationsformat. Anbieterwechsel bedeutet manuelles Bearbeiten von JSON, TOML und `.env`; MCP und Skills laufen auseinander; Multi-Repo-Teams fehlt eine Gesamtansicht der AI-Readiness.
+**OpenSunstar** ist eine plattformübergreifende native Desktop-App (Tauri 2 + React) für die AI-Coding-CLI-Ära. Sie vereint **Anbieter-Onboarding, Agent-Konfiguration und Multi-Projekt-Governance**.
 
-**OpenSunstar** ist eine native Desktop-Steuerzentrale (Tauri 2 + React), die **Anbindung, Konfiguration und Projekt-Governance** vereint.
+### Zielgruppe
+
+#### Kern-Personas (5 Typen)
+
+| Persona | Profil | Bedarf |
+| ------- | ------ | ------ |
+| **Multi-CLI-Entwickler** | 2–3 Tools parallel | Anbieterwechsel an einem Ort |
+| **AI-Coding-Einsteiger** | Neu bei CLI Agents | **Schnellstart** in 3 Schritten |
+| **Multi-Projekt-Indie-Dev** | Mehrere Repos | Stagnation & fehlende AI-Assets sehen |
+| **Tech Lead** | Parallele Git-Repos | Board, Readiness, KI-Wochenberichte |
+| **Agent-Power-User** | MCP / Skills intensiv | Unified Sync, skills.sh, Smithery |
+
+#### Nicht die Zielgruppe
+
+Teams ohne AI-CLI, Nutzer nur mit offiziellem Abo, PMs die Jira/Linear-Kanban brauchen, reine SaaS-Konfigurationszentren.
+
+### Kern-Anwendungsfälle (8 Szenarien)
+
+1. Schnellstart für Claude Code / Desktop / Codex / Gemini  
+2. Multi-Tool-Anbieterwechsel (Tray, Hot-Switch bei Claude Code)  
+3. Unified Agent Assets (MCP, Skills, Prompts, …)  
+4. MCP & Skills Discovery (Smithery, skills.sh-Ranking)  
+5. Multi-Repo-Governance (Today Workspace, Board, Asset-Matrix)  
+6. Readiness pro Projekt + direkte Asset-Nachverfolgung  
+7. Token-Statistik, Budget, KI-Investitionsberichte  
+8. Backup & Sync (WebDAV / S3 / Gist, Deep Link)
+
+### Sechs gelöste Schmerzpunkte
+
+| # | Schmerzpunkt | Lösung |
+| - | ------------ | ------ |
+| 1 | Unterschiedliche Config-Formate | Visuelles Management + Schnellstart |
+| 2 | Anbieterwechsel pro Tool einzeln | Ein-Klick + lokaler Proxy |
+| 3 | Single Point of Failure | Failover, Circuit Breaker |
+| 4 | Verstreute MCP/Skills/Prompts | Unified Agent Panels |
+| 5 | Keine Usage-Sicht | AI Tokens, Budget-Alerts |
+| 6 | Keine Multi-Projekt-Readiness | Workspace-Scores, Asset-Matrix |
+
+### Funktionsübersicht
+
+| Feature | Beschreibung |
+| ------- | ------------ |
+| **7 CLI-Tools** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
+| **Schnellstart** | Kuratiert für 4 Apps |
+| **60+ Presets** | Vollständige Bibliothek in Einstellungen |
+| **Agent-Konfig** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
+| **Workspace** | Today WS · Board · Asset-Übersicht · Readiness |
+| **Discovery** | skills.sh · Smithery · ClawHub · ModelScope |
+| **Plattform** | Windows · macOS · Linux · i18n |
 
 ### Unterstützte CLI-Tools
 
 | Claude Code | Claude Desktop | Codex | Gemini CLI | OpenCode | OpenClaw | Hermes |
 | :---------: | :------------: | :---: | :--------: | :------: | :------: | :----: |
 
-### Kernfunktionen
-
-**Anbindung**
-
-- **Schnellstart** — kuratierter Assistent für Claude Code, Claude Desktop, Codex und Gemini (offiziell, China-freundlich, Aggregator, benutzerdefiniert)
-- **50+ Anbieter-Presets**, visuelles Umschalten + Tray-Schnellwechsel
-- **Lokaler Routing-Proxy** — Formatkonvertierung, Health-Checks, Failover, Circuit Breaker
-- **Deep Link** (`OpenSunstar://`) für Ein-Klick-Importe
-
-**Konfiguration**
-
-- Einheitliche Panels für **MCP**, **Skills**, **Prompts**, **Commands**, **Hooks**, **Ignore**, **Permissions**, **Subagents**
-- **MCP Discovery** — Registry-Vorlagen durchsuchen, Installation über **Smithery**
-- **Skills Discovery** — GitHub, ZIP, skills.sh-Suche, **skills.sh offizielles Ranking** (All-time / 24h Trend TOP 50), ClawHub, ModelScope
-- **Sitzungsmanager**, Config-**Convert**, Sync & Backup (WebDAV / S3-kompatibel)
-
-**Governance (Workspace)**
-
-- **Heutiger Arbeitsbereich** — Portfolio-Snapshot mit Aufmerksamkeitspunkten
-- **Projekt-Board** — Multi-Repo-Git-Cockpit, Stufen (MVP / Iteration / Stabil), KI-Wochenberichte
-- **AI-Asset-Übersicht** — Matrix der MCP-/Skills-/Prompts-Anzahlen pro Projekt
-- **Agent Readiness** — Projekt-Score mit konfiguriert vs. effektiv (auf der Festplatte)
-- **Projekt-AI-Konfiguration** — Agent-Assets pro Git-Repository
-
-**Plattform**
-
-- Windows, macOS, Linux · SQLite mit atomaren Schreibvorgängen · OS-Keychain für Secrets (wo unterstützt)
-- Dark / Light / System · i18n: 简体中文 · 繁體中文 · English · 日本語 · Deutsch
-- Nutzungs-Dashboard, Budgetwarnungen, benutzerdefinierte Modellpreise, In-App-Updater
-
 ### Screenshots
 
-| Hauptoberfläche | Anbieter hinzufügen |
-| :-------------: | :-----------------: |
-| ![Main Interface](website/assets/screenshots/main-zh.png) | ![Add Provider](website/assets/screenshots/add-zh.png) |
+| Schnellstart | Heutiger Arbeitsbereich |
+| :----------: | :---------------------: |
+| ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v0.1.0** — erste öffentliche Version, produktionsreif für den Alltag; Workspace- und Asset-Lifecycle-Features werden aktiv weiterentwickelt.
+> **v0.1.0** — erste öffentliche Version; Workspace-Features werden aktiv weiterentwickelt.
 
 ---
 
@@ -231,6 +254,16 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 Siehe [CONTRIBUTING.md](CONTRIBUTING.md). Sponsoren: [SUPPORT.md](SUPPORT.md)
 
+### Danksagung
+
+OpenSunstar ist **kein** offizieller Fork oder Wartungsprojekt von [cc-switch](https://github.com/farion1231/cc-switch) und **nicht** mit den cc-switch-Maintainern verbunden.
+
+Teile der Codebasis (Anbieterverwaltung, Agent-Konfiguration, lokaler Proxy u. a.) stammen von cc-switch unter dessen [MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE) (`Copyright (c) 2025 Jason Young`). Die **Jason Young**-Nennung in upstream README-/Lizenzmaterialien stammt von cc-switch und bedeutet **nicht**, dass OpenSunstar vom ursprünglichen cc-switch-Maintainer betrieben wird.
+
+Wir danken der cc-switch-Community. OpenSunstar entwickelt sich unabhängig weiter — Schwerpunkt: **Workspace-Governance, projektbezogene AI-Assets, Agent Readiness**.
+
 ### Lizenz
 
-[MIT](LICENSE) © Jason Young
+[MIT](LICENSE)
+
+Kern ist Open Source; Team- und Enterprise-Funktionen sind für separate kommerzielle Vereinbarungen geplant.
