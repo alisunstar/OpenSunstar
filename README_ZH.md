@@ -20,6 +20,10 @@
 ## 目录
 
 - [一. 什么是 OpenSunstar](#一-什么是-opensunstar)
+  - [OpenSunstar 目标用户精准画像](#opensunstar-目标用户精准画像)
+  - [核心适用场景（8 大场景）](#核心适用场景8-大场景)
+  - [解决的 6 大具体痛点](#解决的-6-大具体痛点)
+  - [核心特性一览](#核心特性一览)
 - [二. 安装指南](#二-安装指南)
 - [三. 快速开始](#三-快速开始)
 - [四. 常见问题 FAQ](#四-常见问题-faq)
@@ -27,56 +31,81 @@
   - [文档](#文档)
   - [开发](#开发)
   - [参与贡献](#参与贡献)
+  - [致谢](#致谢)
   - [许可证](#许可证)
 
 ---
 
 ## 一. 什么是 OpenSunstar
 
-AI 编程时代，开发者往往同时使用 **Claude Code**、**Codex**、**Gemini CLI** 等多款 CLI——但各家配置格式不同。切换 API 供应商要手动改 JSON / TOML / `.env`；MCP 与 Skills 难以跨应用统一；多仓库团队也缺少 AI 就绪度与资产的一览视图。
+**OpenSunstar** 是基于 Tauri 2 + React 的跨平台原生桌面应用，面向 AI 编程 CLI 时代，把**供应商接入、Agent 配置、多项目治理**收敛到一处——从「改配置文件」升级为「看清项目、补齐资产、持续交付」。
 
-**OpenSunstar** 是基于 Tauri 2 + React 的原生桌面控制台，把**接入、配置、项目治理**收敛到一处。
+### OpenSunstar 目标用户精准画像
+
+#### 🎯 核心用户画像（5 类典型人物）
+
+| 类型 | 典型特征 | 核心诉求 |
+| ---- | -------- | -------- |
+| **多栈 AI CLI 开发者** | 同时使用 Claude Code / Codex / Gemini 等 2–3 款工具 | 一处切换供应商，少改 JSON / TOML / `.env` |
+| **AI 编程新手 / 副业转型者** | 刚接触 CLI Agent，不熟悉各厂商配置格式 | **快速接入**三步完成：选供应商 → 填 Key → 一键启用 |
+| **多项目独立开发者** | 维护多个 side project / 客户仓库 | 开机第一眼看清：哪些项目停滞、AI 资产是否到位 |
+| **Tech Lead / 全栈负责人** | 并行多个 Git 仓库，需阶段与风险感知 | 项目看板、就绪度评分、AI 周报与投入报告 |
+| **Agent 配置重度用户** | 深度使用 MCP、Skills、Prompts、Hooks | 统一安装/同步，skills.sh 排行榜与 Smithery 发现 |
+
+#### 🚫 不是谁（非目标用户）
+
+- **不使用 AI CLI 的传统开发团队** — 无 Claude Code / Codex / Gemini 等接入需求
+- **只绑定单一官方订阅、从不切换供应商** — 仅需官方客户端即可，OpenSunstar 价值有限
+- **需要 Jira / Linear 式任务看板的 PM** — OpenSunstar 工作区是 **AI 治理仪表盘**，不是 Issue 拖拽看板
+- **纯云端 SaaS 配置中心诉求** — OpenSunstar 是**本地桌面 + 可选云同步**，非托管 SaaS
+
+### 核心适用场景（8 大场景）
+
+1. **三步快速接入** — Claude Code / Desktop / Codex / Gemini 精选向导（官方 · 国产 · OpenRouter · 自定义）
+2. **多工具供应商切换** — 主界面或系统托盘一键切换，Claude Code 支持热切换
+3. **统一 Agent 资产配置** — MCP / Skills / Prompts / Commands / Hooks / Ignore / Permissions / Subagents
+4. **MCP & Skills 发现安装** — Smithery 注册表、skills.sh 官方排行榜（全站总榜 / 24h 趋势 TOP 50）
+5. **多 Git 仓库项目治理** — 今日工作台、项目看板、AI 资产总览矩阵
+6. **按项目补齐 AI 资产** — Agent 就绪度评分 + 缺 MCP / Skills / Prompts 直达配置
+7. **用量与成本管控** — Token 统计、预算告警、AI 投入报告与组合周报
+8. **配置备份与跨设备同步** — WebDAV / S3 兼容 / Gist，Deep Link 一键导入
+
+### 解决的 6 大具体痛点
+
+| # | 痛点 | OpenSunstar 如何解决 |
+| - | ---- | -------------------- |
+| 1 | 各 CLI 配置格式不同，手动编辑易错 | 可视化供应商管理 + 快速接入向导，自动写入 live 配置 |
+| 2 | 切换 API 供应商需逐个改文件 | 一处切换，本地代理 + 格式转换，托盘快捷切换 |
+| 3 | 单供应商故障导致工作流中断 | 故障转移队列、熔断器、健康监控 |
+| 4 | MCP / Skills / Prompts 分散难统一 | Agent 配置统一面板，按应用双向同步 |
+| 5 | 无法直观监控 API 用量与费用 | AI Tokens 仪表盘、预算告警、自定义模型定价 |
+| 6 | 多项目缺少 AI 就绪度与资产视图 | 工作区就绪度评分、资产矩阵、项目级 AI 配置 |
+
+### 核心特性一览
+
+| 特性 | 说明 |
+| ---- | ---- |
+| **7 个 CLI 工具** | Claude Code · Claude Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
+| **快速接入向导** | 四应用精选：Official / CN Official / Aggregator / Custom |
+| **60+ 供应商预设** | 设置中完整预设库；快速接入为精选子集 |
+| **Agent 配置管理** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
+| **本地代理与高可用** | 格式转换、故障转移、熔断器、请求整流 |
+| **工作区治理** | 今日工作台 · 项目看板 · AI 资产总览 · Agent 就绪度 |
+| **Skills / MCP 发现** | skills.sh 排行榜 · Smithery · ClawHub · ModelScope · GitHub |
+| **密钥安全** | OS Keychain 优先，SQLite 原子写入 |
+| **云同步与备份** | WebDAV / S3 / Gist · 自动备份 · Deep Link 导入 |
+| **跨平台桌面** | Windows · macOS · Linux · 深色/浅色主题 · 多语言 |
 
 ### 支持的 CLI 工具
 
 | Claude Code | Claude Desktop | Codex | Gemini CLI | OpenCode | OpenClaw | Hermes |
 | :---------: | :------------: | :---: | :--------: | :------: | :------: | :----: |
 
-### 核心能力
-
-**接入**
-
-- **快速接入** — 面向 Claude Code、Claude Desktop、Codex、Gemini 的精选向导（官方 / 国产 / 聚合 / 自定义）
-- **50+ 供应商预设**，可视化切换 + 系统托盘快捷切换
-- **本地路由代理** — 格式转换、健康检查、故障转移与熔断
-- **Deep Link**（`OpenSunstar://`）一键导入
-
-**配置**
-
-- 统一管理 **MCP**、**Skills**、**Prompts**、**Commands**、**Hooks**、**Ignore**、**Permissions**、**Subagents**
-- **MCP 发现** — 浏览注册表模板，并从 **Smithery** 安装
-- **Skills 发现** — GitHub 仓库、ZIP、skills.sh 搜索、**skills.sh 官方排行榜**（全站总榜 / 24h 趋势 TOP 50）、ClawHub、ModelScope
-- **会话管理**、配置 **Convert**、同步与备份（WebDAV / S3 兼容）
-
-**治理（工作区）**
-
-- **今日工作台** — 组合级快照，突出需关注项
-- **项目看板** — 多仓库驾驶舱：Git 指标、阶段（MVP / 迭代 / 稳定）、AI 组合周报
-- **AI 资产总览** — 跨项目的 MCP / Skills / Prompts 数量矩阵
-- **Agent 就绪度** — 按项目评分，支持「已配置 vs 磁盘生效态」扫描
-- **项目 AI 配置** — 按 Git 仓库绑定与管理 Agent 资产
-
-**系统**
-
-- Windows / macOS / Linux · SQLite 原子写入 · 密钥优先走系统 Keychain
-- 深色 / 浅色 / 跟随系统 · 多语言：简体中文 · 繁體中文 · English · 日本語 · Deutsch
-- 用量仪表盘、预算告警、自定义模型定价、应用内更新
-
 ### 界面预览
 
-| 主界面 | 添加供应商 |
-| :----: | :--------: |
-| ![主界面](website/assets/screenshots/main-zh.png) | ![添加供应商](website/assets/screenshots/add-zh.png) |
+| 快速接入 | 今日工作台 |
+| :------: | :--------: |
+| ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
 > **v0.1.0** 为首次公开发布版本，可日常使用；工作区与 AI 资产闭环能力仍在持续迭代。
 
@@ -233,6 +262,16 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 详见 [CONTRIBUTING.md](CONTRIBUTING.md)。合作伙伴与赞助信息见 [SUPPORT.md](SUPPORT.md)。
 
+### 致谢
+
+OpenSunstar **并非** [cc-switch](https://github.com/farion1231/cc-switch) 的官方分支或维护项目，与 cc-switch 维护团队**无隶属或授权关系**。
+
+本项目部分基础能力（供应商管理、Agent 配置、本地代理等）源自 cc-switch 代码库，遵循其 [MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE)（`Copyright (c) 2025 Jason Young`）。README / 文档中出现的 **Jason Young** 署名惯例亦来自 cc-switch 上游，**不代表** OpenSunstar 由 cc-switch 原维护者运营。
+
+感谢 cc-switch 社区的开源贡献。OpenSunstar 在此基础上独立演进，侧重**工作区治理、项目级 AI 资产与 Agent 就绪度**等差异化能力。
+
 ### 许可证
 
-[MIT](LICENSE) © Jason Young
+[MIT](LICENSE)
+
+核心开源；团队/企业能力以单独商业协议提供（规划中）。

@@ -20,6 +20,10 @@
 ## 目次
 
 - [1. OpenSunstar とは](#1-opensunstar-とは)
+  - [ターゲットユーザー](#ターゲットユーザー)
+  - [コア利用シーン（8 シナリオ）](#コア利用シーン8-シナリオ)
+  - [解決する 6 つの痛点](#解決する-6-つの痛点)
+  - [コア機能一覧](#コア機能一覧)
 - [2. インストール](#2-インストール)
 - [3. クイックスタート](#3-クイックスタート)
 - [4. よくある質問 FAQ](#4-よくある質問-faq)
@@ -27,56 +31,59 @@
   - [ドキュメント](#ドキュメント)
   - [開発](#開発)
   - [コントリビューション](#コントリビューション)
+  - [謝辞](#謝辞)
   - [ライセンス](#ライセンス)
 
 ---
 
 ## 1. OpenSunstar とは
 
-AI 支援開発では **Claude Code**、**Codex**、**Gemini CLI** など複数の CLI を併用しますが、設定形式はツールごとに異なります。API プロバイダーの切り替えは JSON / TOML / `.env` の手編集が必要で、MCP や Skills もアプリ間でばらつきやすく、複数リポジトリの AI  readiness も一覧しにくい——
+**OpenSunstar** は Tauri 2 + React のクロスプラットフォームネイティブデスクトップアプリです。AI コーディング CLI 時代に、**プロバイダー接続・Agent 設定・マルチプロジェクトガバナンス**を一つに集約します。
 
-**OpenSunstar** は Tauri 2 + React のネイティブデスクトップ制御プレーンで、**接続・設定・プロジェクトガバナンス**を一つに集約します。
+### ターゲットユーザー
+
+#### コアペルソナ（5 類型）
+
+| 類型 | 典型像 | コアニーズ |
+| ---- | ------ | ---------- |
+| **マルチ CLI 開発者** | 2–3 ツール併用 | 一箇所でプロバイダー切替 |
+| **AI コーディング初心者** | CLI Agent 初心 | **クイックスタート** 3 ステップ |
+| **マルチプロジェクト個人開発者** | 複数リポジトリ | 停滞・資産不足を一覧 |
+| **Tech Lead** | 並行 Git 管理 | ボード、Readiness、週報 |
+| **Agent ヘビーユーザー** | MCP / Skills 深度利用 | 統合管理、skills.sh、Smithery |
+
+#### 対象外
+
+AI CLI 非利用チーム、単一公式サブスクのみのユーザー、Jira 型タスク看板が必要な PM、ホスト型 SaaS 志向のチーム。
+
+### コア利用シーン（8 シナリオ）
+
+クイックスタート、マルチツール切替、Agent 資産統合、MCP/Skills 発見、マルチリポ治理、Readiness 補完、Token/コスト管理、同期・バックアップ。
+
+### 解決する 6 つの痛点
+
+設定形式のばらつき、切替の手間、単一障害、資産分散、用量不可視、マルチプロジェクト readiness 欠如 — いずれも OpenSunstar の接続・設定・ワークスペース機能で解決。
+
+### コア機能一覧
+
+| 機能 | 説明 |
+| ---- | ---- |
+| **7 CLI ツール** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
+| **クイックスタート** | 4 アプリ厳選ウィザード |
+| **60+ プリセット** | 設定で全量利用可 |
+| **Agent 設定** | MCP · Skills · Prompts 等 8 モジュール |
+| **ワークスペース** | 今日の WS · ボード · 資産概要 · Readiness |
 
 ### 対応 CLI ツール
 
 | Claude Code | Claude Desktop | Codex | Gemini CLI | OpenCode | OpenClaw | Hermes |
 | :---------: | :------------: | :---: | :--------: | :------: | :------: | :----: |
 
-### 主な機能
-
-**接続**
-
-- **クイックスタート** — Claude Code / Claude Desktop / Codex / Gemini 向け厳選ウィザード（公式・中国向け・集約・カスタム）
-- **50+ プリセット**、ビジュアル切り替え + システムトレイから即時切替
-- **ローカルルーティングプロキシ** — 形式変換、ヘルスチェック、フェイルオーバー、サーキットブレーカー
-- **Deep Link**（`OpenSunstar://`）ワンクリックインポート
-
-**設定**
-
-- **MCP**、**Skills**、**Prompts**、**Commands**、**Hooks**、**Ignore**、**Permissions**、**Subagents** を統合管理
-- **MCP ディスカバリ** — レジストリテンプレート閲覧、**Smithery** からインストール
-- **Skills ディスカバリ** — GitHub、ZIP、skills.sh 検索、**skills.sh 公式ランキング**（全期間 / 24h トレンド TOP 50）、ClawHub、ModelScope
-- **セッション管理**、設定 **Convert**、同期・バックアップ（WebDAV / S3 互換）
-
-**ガバナンス（ワークスペース）**
-
-- **今日のワークスペース** — ポートフォリオ概要と要対応項目
-- **プロジェクトボード** — マルチリポ Git メトリクス、ステージ（MVP / 反復 / 安定）、AI 週次レポート
-- **AI アセット概要** — プロジェクト横断の MCP / Skills / Prompts マトリクス
-- **Agent Readiness** — プロジェクト別スコア、設定 vs ディスク上の実効状態スキャン
-- **プロジェクト AI 設定** — Git リポジトリ単位の Agent アセット管理
-
-**プラットフォーム**
-
-- Windows / macOS / Linux · SQLite アトミック書き込み · OS Keychain でシークレット保護（対応環境）
-- ダーク / ライト / システムテーマ · 多言語：简体中文 · 繁體中文 · English · 日本語 · Deutsch
-- 使用量ダッシュボード、予算アラート、カスタムモデル価格、アプリ内アップデート
-
 ### スクリーンショット
 
-| メイン画面 | プロバイダー追加 |
-| :--------: | :--------------: |
-| ![Main Interface](website/assets/screenshots/main-zh.png) | ![Add Provider](website/assets/screenshots/add-zh.png) |
+| クイックスタート | 今日のワークスペース |
+| :--------------: | :------------------: |
+| ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Workspace](website/assets/screenshots/workspace-zh.png) |
 
 > **v0.1.0** — 初の公開リリース。日常利用可能。ワークスペースと AI アセットライフサイクルは継続開発中。
 
@@ -231,6 +238,16 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 [CONTRIBUTING.md](CONTRIBUTING.md) を参照。スポンサー情報：[SUPPORT.md](SUPPORT.md)
 
+### 謝辞
+
+OpenSunstar は [cc-switch](https://github.com/farion1231/cc-switch) の公式フォークまたは保守プロジェクト**ではなく**、cc-switch 保守チームとの**提携・所属関係はありません**。
+
+一部の基盤機能（プロバイダー管理、Agent 設定、ローカルプロキシ等）は cc-switch 由来で、[MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE)（`Copyright (c) 2025 Jason Young`）に従います。README / ライセンスに現れる **Jason Young** 表記は cc-switch 上流の慣例であり、OpenSunstar が cc-switch 原保守者により運営されていることを**意味しません**。
+
+cc-switch コミュニティの OSS 貢献に感謝します。OpenSunstar は**ワークスペースガバナンス、プロジェクト単位 AI 資産、Agent Readiness** 等を中心に独立して進化しています。
+
 ### ライセンス
 
-[MIT](LICENSE) © Jason Young
+[MIT](LICENSE)
+
+コアはオープンソース。チーム/エンタープライズ向け機能は、別途商用ライセンスで提供予定（計画中）。
