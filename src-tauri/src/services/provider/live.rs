@@ -503,6 +503,19 @@ pub(crate) fn build_effective_settings_with_common_config(
         }
     }
 
+    // Resolve keychain://ref/ placeholders back to plaintext before writing to
+    // the CLI live config (settings.json / config.toml / ...). DB stores only
+    // placeholders; the CLI needs the real key to authenticate.
+    if let Err(e) =
+        crate::provider_keychain::resolve_settings_in_place(&mut effective_settings)
+    {
+        log::warn!(
+            "Failed to resolve keychain refs for {} provider '{}': {e}",
+            app_type.as_str(),
+            provider.id
+        );
+    }
+
     Ok(effective_settings)
 }
 
@@ -727,6 +740,34 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
     match app_type {
         AppType::Claude => {
             let path = get_claude_settings_path();
+
+            // ── P0-4: 互斥检测 — 防止 Expert Provider 无声覆盖 Simple Connect 托管配置 ──
+            if path.exists() {
+                if let Ok(existing) = read_json_file::<Value>(&path) {
+                    let sc_marker = existing
+                        .get("env")
+                        .and_then(|e| e.as_object())
+                        .and_then(|env| env.get("OPEN_SUNSTAR_SIMPLE_CONNECT"))
+                        .and_then(|v| v.as_str());
+                    if let Some(marker) = sc_marker {
+                        if marker == crate::services::simple_connect::MANAGED_MARKER {
+                            log::warn!(
+                                "Expert Provider: refusing to overwrite Simple Connect managed \
+                                 Claude settings at {:?}. Clear Simple Connect first.",
+                                path
+                            );
+                            return Err(AppError::localized(
+                                "provider.live.simple_connect_managed",
+                                "Claude 配置当前由「快速接入」托管，请先在快速接入中清除配置，\
+                                 再使用高级 Provider 写入。",
+                                "Claude settings are currently managed by Quick Connect. \
+                                 Clear the Quick Connect configuration first before using Expert Provider.",
+                            ));
+                        }
+                    }
+                }
+            }
+
             let settings = sanitize_claude_settings_for_live(&provider.settings_config);
             write_json_file(&path, &settings)?;
         }
@@ -1147,6 +1188,29 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
             "Live 配置当前处于代理接管状态（包含占位符），不能导入为供应商。请先关闭代理接管或恢复 Live 配置后重试。",
             "The live config is currently taken over by the proxy (contains placeholders) and cannot be imported as a provider. Disable proxy takeover or restore the live config first.",
         ));
+    }
+
+    // ── P0-4: 拒绝把「快速接入」托管的 Live 导入为 Expert Provider ──
+    if app_type == AppType::Claude {
+        let settings_path = get_claude_settings_path();
+        if settings_path.exists() {
+            if let Ok(existing) = read_json_file::<Value>(&settings_path) {
+                let sc_marker = existing
+                    .get("env")
+                    .and_then(|e| e.as_object())
+                    .and_then(|env| env.get("OPEN_SUNSTAR_SIMPLE_CONNECT"))
+                    .and_then(|v| v.as_str());
+                if sc_marker == Some(crate::services::simple_connect::MANAGED_MARKER) {
+                    return Err(AppError::localized(
+                        "provider.import.simple_connect_managed",
+                        "Claude 配置当前由「快速接入」托管，不能导入为高级 Provider。\
+                         请先在快速接入中清除配置，再尝试导入。",
+                        "Claude settings are currently managed by Quick Connect and cannot be \
+                         imported as an Expert Provider. Clear the Quick Connect configuration first.",
+                    ));
+                }
+            }
+        }
     }
 
     let settings_config = match app_type {

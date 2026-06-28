@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ExternalLink, Download, Trash2, Loader2, Star } from "lucide-react";
 import { settingsApi } from "@/lib/api";
+import { cn } from "@/lib/utils";
 import type { DiscoverableSkill } from "@/lib/api/skills";
 
 type SkillCardSkill = DiscoverableSkill & { installed: boolean };
@@ -25,6 +26,8 @@ interface SkillCardProps {
   installs?: number;
   source?: SkillSource;
   stars?: number;
+  /** skills.sh 官方榜排名（1–50） */
+  rank?: number;
 }
 
 const SOURCE_BADGE_STYLES: Record<SkillSource, string> = {
@@ -51,6 +54,7 @@ export function SkillCard({
   installs,
   source,
   stars,
+  rank,
 }: SkillCardProps) {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
@@ -92,6 +96,19 @@ export function SkillCard({
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-2">
+          {typeof rank === "number" && (
+            <div
+              className={cn(
+                "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-mono text-sm font-bold",
+                rank <= 3
+                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                  : "bg-muted text-muted-foreground",
+              )}
+              aria-label={`#${rank}`}
+            >
+              #{rank}
+            </div>
+          )}
           <div className="flex-1 min-w-0">
             <CardTitle className="text-base font-semibold truncate">
               {skill.name}

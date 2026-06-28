@@ -409,6 +409,71 @@ impl ProxyService {
         self.switch_locks.lock_for_app(app_type).await
     }
 
+    /// 短超时探测本地代理端口是否在监听。
+    async fn probe_listener(address: &str, port: u16) -> bool {
+        let addr = format!("{address}:{port}");
+        tokio::time::timeout(std::time::Duration::from_millis(500), tokio::net::TcpStream::connect(&addr))
+            .await
+            .ok()
+            .and_then(Result::ok)
+            .is_some()
+    }
+
+    /// 清除内存中已停止或端口未监听的 ProxyServer 残留（热重载 / 异常退出后可能出现）。
+    async fn clear_stale_server_instance(&self) {
+        let mut guard = self.server.write().await;
+        let Some(server) = guard.take() else {
+            return;
+        };
+
+        let status = server.get_status().await;
+        if status.running && Self::probe_listener(&status.address, status.port).await {
+            *guard = Some(server);
+            return;
+        }
+
+        log::warn!(
+            "检测到无效代理实例（running={} {}:{}），清理后准备重新启动",
+            status.running,
+            status.address,
+            status.port
+        );
+        let _ = server.stop().await;
+    }
+
+    /// 代理是否真正在监听（不仅检查内存对象是否存在）。
+    async fn is_listener_active(&self) -> bool {
+        let server = self.server.read().await;
+        let Some(server) = server.as_ref() else {
+            return false;
+        };
+        let status = server.get_status().await;
+        status.running && Self::probe_listener(&status.address, status.port).await
+    }
+
+    /// 启动代理并确认端口可连接；接管 Live 配置前必须成功。
+    async fn ensure_proxy_listening(&self) -> Result<ProxyServerInfo, String> {
+        self.clear_stale_server_instance().await;
+        if !self.is_listener_active().await {
+            self.start().await?;
+        }
+        if !self.is_listener_active().await {
+            return Err(
+                "代理服务启动后端口仍未监听，Claude Code 将无法连接（ConnectionRefused）".to_string(),
+            );
+        }
+        let server = self.server.read().await;
+        let server = server
+            .as_ref()
+            .ok_or_else(|| "代理实例缺失".to_string())?;
+        let status = server.get_status().await;
+        Ok(ProxyServerInfo {
+            address: status.address,
+            port: status.port,
+            started_at: chrono::Utc::now().to_rfc3339(),
+        })
+    }
+
     /// 启动代理服务器
     pub async fn start(&self) -> Result<ProxyServerInfo, String> {
         // 1. 启动时自动设置 proxy_enabled = true
@@ -433,15 +498,24 @@ impl ProxyService {
             .await
             .map_err(|e| format!("获取代理配置失败: {e}"))?;
 
-        // 3. 若已在运行：确保持久化状态（如需要）并返回当前信息
+        // 3. 清理僵尸实例；若端口已在监听则直接返回
+        self.clear_stale_server_instance().await;
         if let Some(server) = self.server.read().await.as_ref() {
             let status = server.get_status().await;
-            return Ok(ProxyServerInfo {
-                address: status.address,
-                port: status.port,
-                // 无法精确取回首次启动时间，返回当前时间用于 UI 展示即可
-                started_at: chrono::Utc::now().to_rfc3339(),
-            });
+            if Self::probe_listener(&status.address, status.port).await {
+                return Ok(ProxyServerInfo {
+                    address: status.address,
+                    port: status.port,
+                    // 无法精确取回首次启动时间，返回当前时间用于 UI 展示即可
+                    started_at: chrono::Utc::now().to_rfc3339(),
+                });
+            }
+            log::warn!(
+                "代理实例存在但 {}:{} 未监听，将重新绑定端口",
+                status.address,
+                status.port
+            );
+            *self.server.write().await = None;
         }
 
         // 4. 创建并启动服务器
@@ -621,10 +695,8 @@ impl ProxyService {
         let _guard = self.switch_locks.lock_for_app(app_type_str).await;
 
         if enabled {
-            // 1) 代理服务未运行则自动启动
-            if !self.is_running().await {
-                self.start().await?;
-            }
+            // 1) 确保代理端口真正在监听（修复热重载/异常退出后的僵尸实例误判）
+            self.ensure_proxy_listening().await?;
 
             // 2) 已接管则直接返回（幂等）；但如果缺少备份或占位符残留，需要重建接管
             let current_config = self
@@ -655,6 +727,8 @@ impl ProxyService {
                 // 只看占位符会把半接管/旧端口残留误判为可复用，导致开启接管后
                 // live 文件仍停留在普通供应商配置。
                 if has_backup && live_matches_current_proxy {
+                    // 幂等返回前再次确认监听（避免“已接管但代理未运行”）
+                    self.ensure_proxy_listening().await?;
                     return Ok(());
                 }
                 restore_existing_backup_before_takeover = has_backup;
@@ -727,6 +801,9 @@ impl ProxyService {
                     }
                 }
             }
+
+            // 9) 最终确认：Live 已指向本地代理时，端口必须可连接
+            self.ensure_proxy_listening().await?;
 
             return Ok(());
         }
@@ -2632,9 +2709,9 @@ impl ProxyService {
         Ok(())
     }
 
-    /// 检查服务器是否正在运行
+    /// 检查服务器是否正在运行（含端口监听探测，避免僵尸实例误判）
     pub async fn is_running(&self) -> bool {
-        self.server.read().await.is_some()
+        self.is_listener_active().await
     }
 
     /// 热更新熔断器配置

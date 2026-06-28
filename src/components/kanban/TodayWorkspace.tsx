@@ -34,7 +34,11 @@ import { cn } from "@/lib/utils";
 
 
 
-const READINESS_OK = 60;
+import {
+  AGENT_READINESS_MAX,
+  isReadinessOk,
+  readinessScoreTone,
+} from "@/lib/readinessConstants";
 
 const MVP_PROGRESS_WARN = 50;
 
@@ -194,7 +198,7 @@ export function TodayWorkspace({
 
         readinessCount += 1;
 
-        if (readiness < READINESS_OK) lowReadiness += 1;
+        if (!isReadinessOk(readiness)) lowReadiness += 1;
 
       }
 
@@ -234,7 +238,7 @@ export function TodayWorkspace({
 
       const reasons: string[] = [];
 
-      if (typeof readiness === "number" && readiness < READINESS_OK) {
+      if (typeof readiness === "number" && !isReadinessOk(readiness)) {
 
         reasons.push(
 
@@ -242,7 +246,9 @@ export function TodayWorkspace({
 
             score: readiness,
 
-            defaultValue: `就绪分 ${readiness}/80`,
+            max: AGENT_READINESS_MAX,
+
+            defaultValue: `就绪分 ${readiness}/${AGENT_READINESS_MAX}`,
 
           }),
 
@@ -271,6 +277,20 @@ export function TodayWorkspace({
           t("workspace.dashboard.reasonSkills", {
 
             defaultValue: "未配置 Skills",
+
+          }),
+
+        );
+
+      }
+
+      if (!assets || assets.prompts === 0) {
+
+        reasons.push(
+
+          t("workspace.dashboard.reasonPrompts", {
+
+            defaultValue: "未关联 Prompts",
 
           }),
 
@@ -526,13 +546,13 @@ export function TodayWorkspace({
 
               }
 
-              unit={stats.avgReadiness !== null ? "/80" : undefined}
+              unit={stats.avgReadiness !== null ? `/${AGENT_READINESS_MAX}` : undefined}
 
               color={
 
                 stats.avgReadiness !== null &&
 
-                stats.avgReadiness >= READINESS_OK
+                isReadinessOk(stats.avgReadiness)
 
                   ? "text-emerald-500"
 
@@ -672,11 +692,7 @@ export function TodayWorkspace({
 
                           "inline-flex items-center gap-1 text-[10px] font-semibold tabular-nums shrink-0",
 
-                          readiness >= READINESS_OK
-
-                            ? "text-emerald-500"
-
-                            : "text-amber-500",
+                          readinessScoreTone(readiness),
 
                         )}
 
@@ -684,7 +700,7 @@ export function TodayWorkspace({
 
                         <Shield className="h-3 w-3" />
 
-                        {readiness}/80
+                        {readiness}/{AGENT_READINESS_MAX}
 
                       </span>
 

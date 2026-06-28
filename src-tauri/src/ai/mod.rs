@@ -2,6 +2,9 @@
 //!
 //! 为项目看板提供 AI 洞察能力（Phase 1: 环境智能感知）
 
+pub mod agent_readiness;
+pub mod asset_app_support;
+pub mod asset_effective_state;
 pub mod client;
 pub mod project_id;
 pub mod prompts;

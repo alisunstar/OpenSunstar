@@ -52,7 +52,6 @@ fn backup_tool_files(tool: &str) -> Result<Option<PathBuf>, AppError> {
 async fn resolve_credentials(
     supplier_id: &str,
     custom_base: Option<&str>,
-    _use_pool: bool,
 ) -> Result<ResolvedCredentials, AppError> {
     let supplier = resolve_supplier(supplier_id, custom_base)
         .ok_or_else(|| AppError::Message(format!("未知供应商: {supplier_id}")))?;
@@ -89,7 +88,7 @@ pub async fn apply_tool(
         return Err(AppError::Message("请选择模型".into()));
     }
 
-    let creds = resolve_credentials(supplier_id, custom_base, use_pool).await?;
+    let creds = resolve_credentials(supplier_id, custom_base).await?;
     let backup_path = backup_tool_files(tool)?;
 
     let outcome = match tool {

@@ -580,6 +580,11 @@ impl Database {
                         Self::migrate_v20_to_v21(conn)?;
                         Self::set_user_version(conn, 21)?;
                     }
+                    21 => {
+                        log::info!("迁移数据库从 v21 到 v22（项目扩展资产关联表 project_asset_links）");
+                        Self::migrate_v21_to_v22(conn)?;
+                        Self::set_user_version(conn, 22)?;
+                    }
                     _ => {
                         return Err(AppError::Database(format!(
                             "未知的数据库版本 {version}，无法迁移到 {SCHEMA_VERSION}"
@@ -1743,6 +1748,36 @@ impl Database {
         Self::create_ai_query_log_table(conn)?;
         Self::normalize_legacy_path_project_ids(conn)?;
         log::info!("v20 -> v21 迁移完成：已创建 ai_query_log 并规范化 project_id");
+        Ok(())
+    }
+
+    /// v21 -> v22: 项目扩展资产关联（Commands/Hooks/Ignore/Permissions/Subagents）
+    /// MCP/Skills/Prompts 仍使用 v14 旧三表，本迁移仅新增表，不修改旧表。
+    fn migrate_v21_to_v22(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_asset_links (
+                project_id TEXT NOT NULL,
+                asset_type TEXT NOT NULL,
+                asset_id TEXT NOT NULL,
+                asset_app_type TEXT NOT NULL DEFAULT '',
+                enabled INTEGER NOT NULL DEFAULT 1,
+                scope TEXT NOT NULL DEFAULT 'project',
+                source TEXT NOT NULL DEFAULT 'manual',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, asset_type, asset_id, asset_app_type),
+                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 project_asset_links 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_project_asset_links_project_type
+             ON project_asset_links(project_id, asset_type)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_project_asset_links 失败: {e}")))?;
+        log::info!("v21 -> v22 迁移完成：已创建 project_asset_links（扩展 5 类资产）");
         Ok(())
     }
 

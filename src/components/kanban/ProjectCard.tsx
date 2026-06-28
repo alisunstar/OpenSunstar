@@ -6,6 +6,10 @@ import {
   ChevronDown,
   Shield,
 } from "lucide-react";
+import {
+  readinessMaxScore,
+  readinessScoreTone,
+} from "@/lib/readinessConstants";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -24,7 +28,7 @@ interface ProjectCardProps {
   aiSummary?: string | null; // AI 生成的一句话摘要
   aiSummaryLoading?: boolean; // AI 摘要加载中
   healthScore?: number | null; // AI 健康评分 (0-100)
-  agentReadiness?: number | null; // Agent 配置就绪度 (0-80)
+  agentReadiness?: number | null; // Agent 配置就绪度 (0-100)
   onClick: () => void;
   onRemove: () => void;
   onOpenFolder?: () => void;
@@ -316,15 +320,12 @@ export function ProjectCard({
             <span
               className={cn(
                 "shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums",
-                agentReadiness >= 60
-                  ? "text-emerald-500"
-                  : agentReadiness >= 40
-                    ? "text-amber-500"
-                    : "text-zinc-400",
+                readinessScoreTone(agentReadiness),
               )}
               title={t("kanban.readiness.badgeTooltip", {
                 score: agentReadiness,
-                defaultValue: `Agent 配置就绪 ${agentReadiness}/80 · 点击查看详情`,
+                max: readinessMaxScore(),
+                defaultValue: `Agent 配置就绪 ${agentReadiness}/100 · 点击查看详情`,
               })}
             >
               <Shield className="h-3 w-3" />

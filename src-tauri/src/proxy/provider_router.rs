@@ -105,6 +105,21 @@ impl ProviderRouter {
             }
         }
 
+        // Resolve keychain://ref/ placeholders back to plaintext secrets before
+        // handing providers to the proxy adapters. DB stores only placeholders;
+        // adapters (Claude/Codex/Gemini extract_key) read settings_config
+        // directly and need the real key to authenticate upstream.
+        for provider in &mut result {
+            if let Err(e) =
+                crate::provider_keychain::resolve_settings_in_place(&mut provider.settings_config)
+            {
+                log::warn!(
+                    "[{app_type}] Failed to resolve keychain refs for provider '{}': {e}",
+                    provider.id
+                );
+            }
+        }
+
         Ok(result)
     }
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { CheckCircle2, Plus, Shield, Trash2 } from "lucide-react";
+import { CheckCircle2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,36 +129,11 @@ export function KeyPoolPanel({
       <SectionHeader
         icon={KeyRound}
         title={t("simpleConnect.step2", { defaultValue: "密钥" })}
-        description={t("simpleConnect.pool.enableHint", {
+        description={t("simpleConnect.pool.step2Hint", {
           defaultValue:
-            "多 Key 加权轮询 + 429 阶梯冷却；CLI 始终写 local token，真实 Key 仅存 Keychain",
+            "输入 API Key 并保存，CLI 将通过本地代理安全访问",
         })}
       />
-
-      <div className="flex items-start gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2.5 text-xs text-muted-foreground">
-        <Shield className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-        <p>
-          {t("simpleConnect.pool.securityNote", {
-            defaultValue:
-              "密钥仅写入系统 Keychain，不会出现在配置文件或日志中。CLI 通过本地代理 token 访问。",
-          })}
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <Label className="text-sm font-medium">
-            {t("simpleConnect.pool.enable", { defaultValue: "开启密钥池" })}
-          </Label>
-          <p className="text-xs text-muted-foreground mt-1">
-            {t("simpleConnect.pool.enableHint", {
-              defaultValue:
-                "多 Key 加权轮询 + 429 阶梯冷却；CLI 始终写 local token，真实 Key 仅存 Keychain",
-            })}
-          </p>
-        </div>
-        <Switch checked={poolEnabled} onCheckedChange={onPoolEnabledChange} />
-      </div>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-2">
@@ -203,109 +178,6 @@ export function KeyPoolPanel({
         )}
       </div>
 
-      {poolEnabled && (
-        <div className="space-y-4 border-t border-border/40 pt-4 animate-in fade-in duration-200">
-          <div className="space-y-2">
-            <Label>
-              {t("simpleConnect.pool.extraKey", {
-                defaultValue: "添加备用 Key",
-              })}
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                autoComplete="off"
-                placeholder={t("simpleConnect.pool.keyPlaceholder", {
-                  defaultValue: "sk-...",
-                })}
-                value={extraKey}
-                onChange={(e) => setExtraKey(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleAddExtra();
-                }}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                disabled={saving || !extraKey.trim()}
-                onClick={() => void handleAddExtra()}
-              >
-                <Plus className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          {keys.length > 0 && (
-            <ul className="space-y-2">
-              {keys.map((k) => (
-                <li
-                  key={k.id}
-                  className="flex flex-wrap items-center gap-3 rounded-lg border border-border/50 bg-background/60 px-3 py-2.5"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">
-                      {k.label}
-                      {k.id === "primary" && (
-                        <span className="text-muted-foreground font-normal">
-                          {" "}
-                          ({t("simpleConnect.pool.required", { defaultValue: "必需" })})
-                        </span>
-                      )}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground font-mono truncate">
-                      {k.id}
-                    </p>
-                  </div>
-                  {poolEnabled && (
-                    <div className="flex items-center gap-2">
-                      <Label className="text-[11px] text-muted-foreground sr-only">
-                        weight
-                      </Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={99}
-                        className="h-8 w-16 text-center"
-                        value={k.weight}
-                        onChange={(e) =>
-                          updateKeyMeta(k.id, {
-                            weight: Math.max(1, Number(e.target.value) || 1),
-                          })
-                        }
-                      />
-                      <Switch
-                        checked={k.enabled}
-                        onCheckedChange={(enabled) =>
-                          updateKeyMeta(k.id, { enabled })
-                        }
-                        aria-label={k.label}
-                      />
-                    </div>
-                  )}
-                  {k.id !== "primary" && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="shrink-0"
-                      onClick={() => void handleRemove(k.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {poolEnabled && (
-        <div className={`${SC_INNER} p-4`}>
-          <PoolHealthPanel enabled pollMs={2500} embedded />
-        </div>
-      )}
-
       <Collapsible defaultOpen={false}>
         <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-border/40 px-3 py-2.5 text-sm hover:bg-muted/30 transition-colors">
           <span className="flex items-center gap-2 font-medium text-muted-foreground">
@@ -315,6 +187,123 @@ export function KeyPoolPanel({
           <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]_&]:rotate-180" />
         </CollapsibleTrigger>
         <CollapsibleContent className="space-y-4 pt-4 data-[state=closed]:animate-out data-[state=open]:animate-in">
+          {/* 密钥池开关 */}
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label className="text-sm font-medium">
+                {t("simpleConnect.pool.enable", { defaultValue: "开启密钥池" })}
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("simpleConnect.pool.enableHint", {
+                  defaultValue:
+                    "多 Key 加权轮询 + 429 阶梯冷却；CLI 始终写 local token，真实 Key 仅存 Keychain",
+                })}
+              </p>
+            </div>
+            <Switch checked={poolEnabled} onCheckedChange={onPoolEnabledChange} />
+          </div>
+
+          {poolEnabled && (
+            <>
+              {/* 备用 Key 管理 */}
+              <div className="space-y-2">
+                <Label>
+                  {t("simpleConnect.pool.extraKey", {
+                    defaultValue: "添加备用 Key",
+                  })}
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="password"
+                    autoComplete="off"
+                    placeholder={t("simpleConnect.pool.keyPlaceholder", {
+                      defaultValue: "sk-...",
+                    })}
+                    value={extraKey}
+                    onChange={(e) => setExtraKey(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void handleAddExtra();
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={saving || !extraKey.trim()}
+                    onClick={() => void handleAddExtra()}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+
+              {keys.length > 0 && (
+                <ul className="space-y-2">
+                  {keys.map((k) => (
+                    <li
+                      key={k.id}
+                      className="flex flex-wrap items-center gap-3 rounded-lg border border-border/50 bg-background/60 px-3 py-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium">
+                          {k.label}
+                          {k.id === "primary" && (
+                            <span className="text-muted-foreground font-normal">
+                              {" "}
+                              ({t("simpleConnect.pool.required", { defaultValue: "必需" })})
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground font-mono truncate">
+                          {k.id}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Label className="text-[11px] text-muted-foreground sr-only">
+                          weight
+                        </Label>
+                        <Input
+                          type="number"
+                          min={1}
+                          max={99}
+                          className="h-8 w-16 text-center"
+                          value={k.weight}
+                          onChange={(e) =>
+                            updateKeyMeta(k.id, {
+                              weight: Math.max(1, Number(e.target.value) || 1),
+                            })
+                          }
+                        />
+                        <Switch
+                          checked={k.enabled}
+                          onCheckedChange={(enabled) =>
+                            updateKeyMeta(k.id, { enabled })
+                          }
+                          aria-label={k.label}
+                        />
+                      </div>
+                      {k.id !== "primary" && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={() => void handleRemove(k.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {/* 密钥池运行态 */}
+              <div className={`${SC_INNER} p-4`}>
+                <PoolHealthPanel enabled pollMs={2500} embedded />
+              </div>
+            </>
+          )}
+
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label className="text-sm">

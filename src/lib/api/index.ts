@@ -1,8 +1,18 @@
 export type { AppId } from "./types";
 export { providersApi, universalProvidersApi } from "./providers";
+export type { VerifyProtocol } from "./providers";
 export { settingsApi } from "./settings";
 export { backupsApi } from "./settings";
 export { mcpApi } from "./mcp";
+export { smitheryRegistryApi } from "./smitheryRegistry";
+export type {
+  SmitheryServer,
+  SmitheryServerDetail,
+  SmitheryListResponse,
+  SmitheryPagination,
+  SmitheryConnection,
+  SmitheryTool,
+} from "./smitheryRegistry";
 export { promptsApi, dryRunApi } from "./prompts";
 export { commandsApi } from "./commands";
 export { hooksApi } from "./hooks";

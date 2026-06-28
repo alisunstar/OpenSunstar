@@ -1,4 +1,4 @@
-﻿{
+{
   "app": {
     "title": "OpenSunstar",
     "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI"
@@ -1896,7 +1896,7 @@
     }
   },
   "convert": {
-    "title": "Config Convert",
+    "title": "Convert",
     "subtitle": "Migrate Prompt, MCP, Skill, and Command configs between Claude, Codex, Gemini, and more",
     "sourceApp": "Source tool",
     "targetApp": "Target tool",
@@ -2326,7 +2326,25 @@
     "searchSource": {
       "all": "All",
       "repos": "Repos",
-      "skillssh": "skills.sh"
+      "skillssh": "skills.sh",
+      "leaderboardAllTime": "All Time",
+      "leaderboardTrending": "24h Trending"
+    },
+    "leaderboard": {
+      "allTimeTitle": "All Time Top 50",
+      "trendingTitle": "24h Trending",
+      "allTimeDesc": "Aligned with skills.sh official All Time leaderboard (total installs)",
+      "trendingDesc": "Aligned with skills.sh official Trending (24h) leaderboard",
+      "syncedAt": "Synced {{time}}",
+      "fromCache": "Cached locally",
+      "registryTotal": "{{count}} total installs on skills.sh",
+      "loading": "Syncing skills.sh official leaderboard…",
+      "error": "Failed to sync skills.sh official leaderboard",
+      "empty": "No leaderboard data",
+      "syncPolicy": "Not live · syncs from skills.sh every {{hours}}h by default · click refresh to update now",
+      "nextSyncAt": "Next auto-sync ~{{time}}",
+      "refreshNow": "Sync from skills.sh now",
+      "pageRange": "{{range}} · page {{page}}/{{totalPages}} ({{total}} items)"
     },
     "all": {
       "searchPlaceholder": "Search all sources (Repos / skills.sh / ClawHub)...",
@@ -2513,12 +2531,12 @@
     "color": "Icon Color"
   },
   "simpleConnect": {
-    "nav": "Simple Connect",
-    "pageTitle": "API Setup",
-    "tabSimple": "Simple Connect",
+    "nav": "Quick Connect",
+    "pageTitle": "Quick Connect",
+    "tabSimple": "Quick Connect",
     "tabExpert": "Expert Provider",
-    "title": "Simple Connect",
-    "subtitle": "3 steps: supplier → save key → pick CLI & apply (Keychain + local proxy + 6 CLIs)",
+    "title": "Quick Connect",
+    "subtitle": "Paste your API key and start using CLI tools in 3 steps",
     "step1": "Supplier",
     "step2": "Keys",
     "step3": "Apply",
@@ -2530,6 +2548,7 @@
     "fetchModels": "Fetch models",
     "apply": "Apply configuration",
     "applySuccess": "{{tool}} configured",
+    "applySuccessMulti": "{{tools}} configured",
     "modelsLoaded": "Loaded {{count}} models",
     "poolProxy": "Local proxy :{{port}} active",
     "keyRequired": "Save an API key to Keychain first",
@@ -2538,12 +2557,12 @@
     "modelsFallback": "Fetch failed; using preset model {{model}}",
     "toolStatusTitle": "CLI configuration status",
     "toolStatusLoading": "Loading CLI status…",
-    "toolCleared": "Cleared Simple Connect config for {{tool}}",
+    "toolCleared": "Cleared Quick Connect config for {{tool}}",
     "clearTool": "Clear {{tool}}",
-    "wizardNav": "Simple Connect steps",
+    "wizardNav": "Quick Connect steps",
     "summaryStep": "Step {{step}}/3",
     "step3Hint": "Pick a CLI and model, then apply; expand sections below for details",
-    "step3": {
+    "step3Sections": {
       "statusSection": "CLI configuration status",
       "runtimeSection": "Key pool runtime",
       "usageSection": "Usage overview (read-only)"
@@ -2566,13 +2585,14 @@
     "applyTo": "Apply to {{tool}}",
     "modelsLoading": "Loading models…",
     "toolStatusCount": "{{configured}}/{{total}} configured",
-    "backToSimple": "Back to Simple Connect",
+    "backToSimple": "Back to Quick Connect",
     "openProxySettings": "Proxy & failover settings",
     "proxyRunning": "Main proxy running",
     "cliGeneric": "CLI config",
     "expertNoticeTitle": "Expert Provider (trimmed)",
-    "expertNoticeBody": "Failover, proxy takeover, Universal, etc. Advanced features stay here. Simple Connect is recommended by default.",
+    "expertNoticeBody": "Failover, proxy takeover, Universal, etc. Advanced features stay here. Quick Connect is recommended by default.",
     "pool": {
+      "step2Hint": "Enter your API key and save — CLI access is secured via local proxy",
       "enable": "Enable key pool",
       "enableHint": "Weighted pool + tiered 429 cooldown; CLI always gets local token, secrets in Keychain only",
       "securityNote": "Secrets are stored in OS Keychain only — never written to config files or logs. CLIs use the local proxy token.",
@@ -2633,7 +2653,7 @@
       "bannerShort": "Local-first · keys in OS Keychain · no telemetry",
       "viewDetails": "Security & privacy",
       "title": "Security & privacy",
-      "intro": "Simple Connect follows local-first principles: data stays on your machine, secrets never land in config files, and network targets are yours to choose. Details below apply to the Simple Connect flow only.",
+      "intro": "Quick Connect follows local-first principles: data stays on your machine, secrets never land in config files, and network targets are yours to choose. Details below apply to the Quick Connect flow only.",
       "close": "Got it",
       "sections": {
         "localFirst": {
@@ -2657,6 +2677,83 @@
           "body": "URL key import should stay enabled only for links you trust—disable it in Step 2 advanced settings. With custom suppliers, assess the third-party base URL and privacy policy yourself."
         }
       }
+    }
+  },
+  "quickStart": {
+    "nav": "Quick Start",
+    "title": "Quick Start",
+    "subtitle": "Three steps: pick a provider → enter key → activate",
+    "searchPlaceholder": "Search provider name or URL…",
+    "noResults": "No matching providers",
+    "official": "Official",
+    "officialDesc": "Official providers require browser login or subscription auth. Complete OAuth in Provider Management — you cannot connect with a key alone here.",
+    "partner": "Partner",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "Paste your API key",
+    "keychainHint": "Key is stored securely in the OS keychain (Windows Credential Manager / macOS Keychain), never written to disk in plaintext",
+    "getKey": "Get API Key",
+    "apply": "Activate",
+    "success": "Connected! Switched to this provider",
+    "doneTitle": "Connected!",
+    "doneDesc": "Provider configured and activated. You can now use it in Claude Code.",
+    "doneDescApp": "{{app}} is configured and set as the active provider.",
+    "proxyRunningHint": "Claude Code requests are forwarded via the local proxy (127.0.0.1:15721). Keep OpenSunstar running — closing it will break Claude Code connectivity.",
+    "proxyRunningHintDesktop": "Claude Desktop is routed via the local proxy. Keep OpenSunstar running — closing it will break connectivity.",
+    "addAnother": "Add another",
+    "openSettings": "Go to provider management",
+    "firstProviderHint": "This is your first provider. Start the proxy in Settings if needed.",
+    "verify": "Verify Key",
+    "verifyOk": "Key is valid!",
+    "verifyOkAnthropic": "Key is valid (no model list API — preset defaults will be used)",
+    "verifyOkWithModels": "Key is valid — fetched {{count}} models",
+    "verifyOkNoModelList": "Key is valid (model list fetch failed — preset defaults will be used)",
+    "verifyHint": "Anthropic verification uses ~1 token; OpenAI-compatible gateways can expand a model list after success",
+    "modelsList": "Available models ({{count}})",
+    "myProviders": "My providers",
+    "switch": "Switch",
+    "apps": {
+      "claude": "Claude Code",
+      "claudeDesktop": "Claude Desktop",
+      "codex": "Codex",
+      "gemini": "Gemini"
+    },
+    "category": {
+      "custom": "Custom"
+    },
+    "gemini": {
+      "cnOfficialHint": "Phase 1 has no China official preset cards. Use OpenRouter, or fill a domestic Gemini-compatible endpoint under Custom."
+    },
+    "custom": {
+      "cardTitle": "Custom setup",
+      "cardSubtitle": "Enter Base URL and model yourself",
+      "hint": "Custom gateway: fill the minimum fields to connect. Advanced settings are in Provider Management.",
+      "name": "Provider name",
+      "namePlaceholder": "e.g. My DeepSeek gateway",
+      "baseUrl": "Base URL",
+      "defaultModel": "Default model",
+      "geminiModel": "Model ID",
+      "defaultName": "Custom provider"
+    },
+    "advanced": {
+      "title": "Advanced",
+      "subtitle": "Defaults work for most cases",
+      "upstreamModel": "Upstream model",
+      "defaultModel": "Default model",
+      "apiFormat": "API format"
+    },
+    "badge": {
+      "current": "Active",
+      "proxy": "Local routing"
+    },
+    "warn": {
+      "clearFailed": "Failed to clear legacy Quick Connect marker. If switching still fails, clear it manually in Settings.",
+      "takeoverFailed": "Provider added, but proxy takeover failed. Enable the app takeover manually in Settings > Local Routing."
+    },
+    "error": {
+      "emptyKey": "Please enter an API key",
+      "failed": "Connection failed. Check your API key or network and retry.",
+      "noBaseUrl": "Please enter a Base URL",
+      "noModel": "Please enter a default model"
     }
   },
   "migration": {
@@ -3217,7 +3314,8 @@
     "tokenStats": "AI Tokens",
     "section": {
       "projects": "Projects",
-      "monitor": "Monitoring"
+      "monitor": "Monitoring",
+      "aiModels": "AI Models"
     }
   },
   "kanban": {
@@ -3246,7 +3344,7 @@
       "overview": "Overview",
       "aiAssets": "AI assets",
       "projectAssets": "Assets enabled for this project",
-      "projectAssetsHint": "Selections apply to this project only; stays in sync with the global library in the sidebar."
+      "projectAssetsHint": "Selections apply to this project only; global library is in the sidebar; links are stored locally."
     },
     "readiness": {
       "title": "Agent readiness",
@@ -3257,7 +3355,21 @@
       "manage": "Manage",
       "openAssetsTab": "Open AI assets",
       "completedSection": "{{count}} completed",
-      "badgeTooltip": "Agent readiness {{score}}/80 · click for details"
+      "badgeTooltip": "Agent readiness {{score}}/{{max}} · click for details",
+      "scanEffective": "Effective-state scan",
+      "forApp": "Scored for {{app}}",
+      "status": {
+        "global_only": "Source: global baseline",
+        "detected_only": "Source: repo detected",
+        "partial": "Partial CLI support"
+      },
+      "effective": {
+        "configured": "Configured",
+        "effective": "In effect",
+        "drifted": "Drifted",
+        "unconfigured": "Not configured",
+        "unchecked": "Not compared"
+      }
     }
   },
   "projectConfig": {
@@ -3270,7 +3382,41 @@
     "noPrompts": "No Prompts yet",
     "goToMcp": "Go to MCP",
     "goToSkills": "Go to Skills",
-    "goToPrompts": "Go to Prompts"
+    "goToPrompts": "Go to Prompts",
+    "commands": "Commands",
+    "hooks": "Hooks",
+    "ignore": "Ignore rules",
+    "permissions": "Permissions",
+    "subagents": "Subagents",
+    "noCommands": "No Commands yet",
+    "noHooks": "No Hooks yet",
+    "noIgnore": "No Ignore rules yet",
+    "noPermissions": "No Permissions yet",
+    "noSubagents": "No Subagents yet",
+    "goToCommands": "Go to Commands",
+    "goToHooks": "Go to Hooks",
+    "goToIgnore": "Go to Ignore",
+    "goToPermissions": "Go to Permissions",
+    "goToSubagents": "Go to Subagents"
+  },
+  "projectAssets": {
+    "hint": "Choose the AI asset subset to enable for this project. Links are stored in OpenSunstar only and do not modify the repo; syncing to CLIs still uses the global library in the sidebar.",
+    "partialHint": "Some CLIs have limited support — hover chips for details",
+    "globalBaselineHint": "{{count}} global rule(s) act as a safety baseline; you can enable a project subset separately.",
+    "switchAllUnsupported": "This asset type cannot be synced to any target CLI — cannot enable for the project",
+    "support": {
+      "claudeDesktop": "Claude Desktop does not participate in this asset sync",
+      "openclawMcp": "OpenClaw does not support MCP sync",
+      "openclawSkills": "OpenClaw does not support Skills sync",
+      "openclawCommands": "OpenClaw does not support Commands sync",
+      "openclawIgnore": "OpenClaw does not support Ignore sync",
+      "openclawSubagents": "OpenClaw does not support Subagents sync",
+      "codexCommands": "Codex does not use standalone slash command files",
+      "codexSubagent": "Codex writes agents via TOML to ~/.codex/agents/",
+      "hooksClaudeOnly": "Hooks write-back is Claude Code only",
+      "permissionsClaudeOnly": "Permissions write-back is Claude Code only",
+      "hermesSubagents": "Hermes does not sync Subagent files"
+    }
   },
   "workspace": {
     "title": "Workspace",
@@ -3297,9 +3443,10 @@
       "queueTitle": "Priority queue",
       "allGood": "All projects look healthy — you're good to ship.",
       "configureAssets": "Configure assets",
-      "reasonReadiness": "Readiness {{score}}/80",
+      "reasonReadiness": "Readiness {{score}}/{{max}}",
       "reasonMcp": "No MCP linked",
       "reasonSkills": "No Skills",
+      "reasonPrompts": "No Prompts linked",
       "reasonProgress": "MVP {{progress}}%",
       "lastUpdated": "Last updated",
       "updatedJustNow": "Updated just now",
@@ -3318,7 +3465,8 @@
       "stage": "Stage",
       "readiness": "Ready",
       "progress": "Progress",
-      "refreshing": "Updating"
+      "refreshing": "Updating",
+      "subtitle8": "Per-project counts for 8 asset types (project-enabled subset) and readiness"
     }
   },
   "board": {

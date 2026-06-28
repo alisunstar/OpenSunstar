@@ -4,12 +4,19 @@
 
 use tauri::State;
 
+use crate::ai::agent_readiness::{
+    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput,
+    AGENT_READINESS_MAX_SCORE,
+};
+use crate::ai::asset_effective_state::{
+    merge_effective_into_details, scan_effective_states, EffectiveScanResult,
+};
 use crate::ai::client::{estimate_cost, AIClient};
 use crate::ai::project_id::{resolve_canonical_project_id, PORTFOLIO_PROJECT_ID};
 use crate::ai::prompts;
 use crate::ai::types::{
     AIHealthResult, AIInsightResult, AICostSummary, AIProviderConfig, AIRiskResult, RiskItem,
-    AgentReadinessResult, AgentReadinessItem,
+    AgentReadinessResult,
     ChatMessage, HealthBreakdown, InsightType, NLQueryResult,
     ProjectContextInput, ProjectProgressResult, WeeklyReportResult,
     CostByTypeDetail, AIRoiReport,
@@ -933,6 +940,7 @@ fn compute_agent_readiness_input_hash(
     db: &Database,
     project_path: &str,
     sqlite_id: Option<&str>,
+    target_app: Option<&str>,
 ) -> String {
     use serde::Serialize;
     use sha2::{Digest, Sha256};
@@ -944,9 +952,16 @@ fn compute_agent_readiness_input_hash(
         skills_count: u32,
         prompt_db_count: u32,
         prompt_files: Vec<String>,
-        ignore_count: u32,
-        perm_count: u32,
+        commands_count: u32,
+        hooks_count: u32,
+        ignore_project_count: u32,
+        permissions_project_count: u32,
+        subagents_count: u32,
+        ignore_global_count: u32,
+        perm_global_count: u32,
         max_config_ts: Option<i64>,
+        max_asset_links_ts: Option<i64>,
+        target_app: Option<String>,
     }
 
     let mcp_count = sqlite_id
@@ -959,10 +974,27 @@ fn compute_agent_readiness_input_hash(
         .and_then(|id| db.count_enabled_project_prompts(id).ok())
         .unwrap_or(0);
     let prompt_files = detect_prompt_files(project_path);
-    let ignore_count = db.count_global_ignore_rules().unwrap_or(0);
-    let perm_count = db.count_global_permissions().unwrap_or(0);
+    let commands_count = sqlite_id
+        .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
+        .unwrap_or(0);
+    let hooks_count = sqlite_id
+        .and_then(|id| db.count_enabled_project_assets(id, "hook").ok())
+        .unwrap_or(0);
+    let ignore_project_count = sqlite_id
+        .and_then(|id| db.count_enabled_project_assets(id, "ignore").ok())
+        .unwrap_or(0);
+    let permissions_project_count = sqlite_id
+        .and_then(|id| db.count_enabled_project_assets(id, "permission").ok())
+        .unwrap_or(0);
+    let subagents_count = sqlite_id
+        .and_then(|id| db.count_enabled_project_assets(id, "subagent").ok())
+        .unwrap_or(0);
+    let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
+    let perm_global_count = db.count_global_permissions().unwrap_or(0);
     let max_config_ts = sqlite_id
         .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
+    let max_asset_links_ts = sqlite_id
+        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
 
     let payload = ReadinessHashInput {
         project_path,
@@ -970,24 +1002,34 @@ fn compute_agent_readiness_input_hash(
         skills_count,
         prompt_db_count,
         prompt_files,
-        ignore_count,
-        perm_count,
+        commands_count,
+        hooks_count,
+        ignore_project_count,
+        permissions_project_count,
+        subagents_count,
+        ignore_global_count,
+        perm_global_count,
         max_config_ts,
+        max_asset_links_ts,
+        target_app: target_app.map(|s| s.to_string()),
     };
     let json = serde_json::to_string(&payload).unwrap_or_default();
     to_hex(&Sha256::digest(json.as_bytes()))
 }
 
-/// 获取 Agent 配置就绪度评分（满分 80，6 项检查）
+/// 获取 Agent 配置就绪度评分（满分 100，9 项检查：8 类资产 + 近 90 天更新）
 ///
 /// 通过 project_path 桥接 Kanban localStorage ID 和 SQLite projects 表，
 /// 查询 junction 表获取 MCP/Skills/Prompts 关联状态。
+/// `scan_effective=true` 时附加生效态诊断（库内容 vs CLI 磁盘文件）。
 #[tauri::command]
 pub async fn get_agent_readiness_score(
     state: State<'_, AppState>,
     project_path: String,
     provider_config: Option<AIProviderConfig>,
     force_refresh: Option<bool>,
+    target_app: Option<String>,
+    scan_effective: Option<bool>,
 ) -> Result<AgentReadinessResult, String> {
     let db = state.db.clone();
     let project_id = resolve_canonical_project_id(
@@ -996,13 +1038,19 @@ pub async fn get_agent_readiness_score(
         Some(&project_path),
     );
     let insight_type = InsightType::AgentReadiness.as_str();
-    let force = force_refresh.unwrap_or(false);
+    let force = force_refresh.unwrap_or(false) || scan_effective.unwrap_or(false);
+    let do_scan = scan_effective.unwrap_or(false);
 
     // 通过 path 桥接查找 SQLite project_id（用于 junction 表与 hash）
     let sqlite_id = db.get_project_id_by_path(&project_path).ok().flatten();
     let sqlite_id_ref = sqlite_id.as_deref();
 
-    let input_hash = compute_agent_readiness_input_hash(&db, &project_path, sqlite_id_ref);
+    let input_hash = compute_agent_readiness_input_hash(
+        &db,
+        &project_path,
+        sqlite_id_ref,
+        target_app.as_deref(),
+    );
 
     // 1. 检查缓存
     if let Some(cached) = check_cache(&db, &project_id, insight_type, &input_hash, force) {
@@ -1011,131 +1059,88 @@ pub async fn get_agent_readiness_score(
             if parsed.evaluated_at.is_none() {
                 parsed.evaluated_at = Some(cached.created_at);
             }
+            if do_scan {
+                let scan = scan_effective_states(&state, &parsed.details, target_app.as_deref());
+                merge_effective_into_details(&mut parsed.details, &scan);
+                parsed.is_cached = false;
+            }
             return Ok(parsed);
         }
     }
 
-    // 2. 逐项评分
-    let mut details = Vec::new();
-    let mut total_score = 0u32;
-
-    // ── #1: MCP 服务器 (+20) ──
+    // 2. 逐项评分（100 分模型）
     let mcp_count = sqlite_id
         .as_deref()
         .and_then(|id| db.count_enabled_project_mcp(id).ok())
         .unwrap_or(0);
-    let mcp_score = if mcp_count > 0 { 20 } else { 0 };
-    total_score += mcp_score;
-    details.push(AgentReadinessItem {
-        check_name: "mcp_enabled".to_string(),
-        label: "已关联 MCP 服务器".to_string(),
-        weight: 20,
-        score: mcp_score,
-        detail: if mcp_count > 0 {
-            format!("已关联 {} 个 MCP 服务器", mcp_count)
-        } else {
-            "未关联任何 MCP 服务器".to_string()
-        },
-    });
-
-    // ── #2: Skills 配置 (+15) ──
     let skills_count = sqlite_id
         .as_deref()
         .and_then(|id| db.count_enabled_project_skills(id).ok())
         .unwrap_or(0);
-    let skills_score = if skills_count > 0 { 15 } else { 0 };
-    total_score += skills_score;
-    details.push(AgentReadinessItem {
-        check_name: "skills_configured".to_string(),
-        label: "已配置 Skills".to_string(),
-        weight: 15,
-        score: skills_score,
-        detail: if skills_count > 0 {
-            format!("已关联 {} 个 Skills", skills_count)
-        } else {
-            "未配置任何 Skills".to_string()
-        },
-    });
-
-    // ── #3: Prompt / AGENTS 文件 (+15) ──
     let db_prompt_count = sqlite_id
         .as_deref()
         .and_then(|id| db.count_enabled_project_prompts(id).ok())
         .unwrap_or(0);
     let prompt_files = detect_prompt_files(&project_path);
-    // DB 有记录 +8，项目目录有提示词文件 +7
-    let prompt_db_score = if db_prompt_count > 0 { 8 } else { 0 };
-    let prompt_file_score = if !prompt_files.is_empty() { 7 } else { 0 };
-    let prompt_score = std::cmp::min(prompt_db_score + prompt_file_score, 15);
-    total_score += prompt_score;
-    let prompt_detail = match (db_prompt_count, prompt_files.len()) {
-        (0, 0) => "未配置 Prompt 或提示词文件".to_string(),
-        (db, 0) => format!("DB 中有 {} 条 Prompt 记录", db),
-        (0, fc) => format!("项目目录有 {} 个提示词文件: {}", fc, prompt_files.join(", ")),
-        (db, fc) => format!("DB {} 条 Prompt + {} 个文件: {}", db, fc, prompt_files.join(", ")),
-    };
-    details.push(AgentReadinessItem {
-        check_name: "prompt_files".to_string(),
-        label: "Prompt / AGENTS 配置".to_string(),
-        weight: 15,
-        score: prompt_score,
-        detail: prompt_detail,
-    });
+    let commands_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
+        .unwrap_or(0);
+    let hooks_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "hook").ok())
+        .unwrap_or(0);
+    let ignore_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "ignore").ok())
+        .unwrap_or(0);
+    let permissions_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "permission").ok())
+        .unwrap_or(0);
+    let subagents_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "subagent").ok())
+        .unwrap_or(0);
+    let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
+    let permissions_global_count = db.count_global_permissions().unwrap_or(0);
 
-    // ── #4: Ignore 规则 (+10, 全局) ──
-    let ignore_count = db.count_global_ignore_rules().unwrap_or(0);
-    let ignore_score = if ignore_count > 0 { 10 } else { 0 };
-    total_score += ignore_score;
-    details.push(AgentReadinessItem {
-        check_name: "ignore_rules".to_string(),
-        label: "Ignore 规则".to_string(),
-        weight: 10,
-        score: ignore_score,
-        detail: if ignore_count > 0 {
-            format!("已配置 {} 条全局忽略规则", ignore_count)
-        } else {
-            "未配置忽略规则".to_string()
-        },
-    });
-
-    // ── #5: Permissions 配置 (+10, 全局) ──
-    let perm_count = db.count_global_permissions().unwrap_or(0);
-    let perm_score = if perm_count > 0 { 10 } else { 0 };
-    total_score += perm_score;
-    details.push(AgentReadinessItem {
-        check_name: "permissions".to_string(),
-        label: "工具权限配置".to_string(),
-        weight: 10,
-        score: perm_score,
-        detail: if perm_count > 0 {
-            format!("已配置 {} 条权限规则", perm_count)
-        } else {
-            "未配置工具权限".to_string()
-        },
-    });
-
-    // ── #6: 近 90 天 Skills/MCP 更新 (+10) ──
-    let max_ts = sqlite_id
+    let max_legacy_ts = sqlite_id
         .as_deref()
         .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
-    let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000; // 90 * 86400
-    let update_score = match max_ts {
-        Some(ts) if ts > ninety_days_ago => 10,
-        Some(_) => 0,
-        None => 0,
+    let max_links_ts = sqlite_id
+        .as_deref()
+        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
+    let max_ts = match (max_legacy_ts, max_links_ts) {
+        (Some(a), Some(b)) => Some(a.max(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
     };
-    total_score += update_score;
-    details.push(AgentReadinessItem {
-        check_name: "recent_updates".to_string(),
-        label: "近 90 天配置更新".to_string(),
-        weight: 10,
-        score: update_score,
-        detail: match max_ts {
-            Some(ts) if ts > ninety_days_ago => "近期有配置变更".to_string(),
-            Some(_) => "最近 90 天内无配置变更".to_string(),
-            None => "暂无配置记录".to_string(),
-        },
+    let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
+    let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
+
+    let (total_score, mut details) = compute_readiness_items(&ReadinessCheckInput {
+        mcp_project_count: mcp_count,
+        has_repo_mcp: detect_repo_mcp_file(&project_path),
+        skills_count,
+        prompt_db_count: db_prompt_count,
+        prompt_files,
+        commands_count,
+        hooks_count,
+        ignore_project_count,
+        ignore_global_count,
+        permissions_project_count,
+        permissions_global_count,
+        subagents_count,
+        recent_update_within_90d,
+        target_app: target_app.clone(),
     });
+
+    if do_scan {
+        let scan = scan_effective_states(&state, &details, target_app.as_deref());
+        merge_effective_into_details(&mut details, &scan);
+    }
 
     // 4. 可选: LLM 补充建议（仅当有 AI 配置且存在缺失项时）
     let llm_suggestion = if let Some(ref config) = provider_config {
@@ -1193,14 +1198,24 @@ pub async fn get_agent_readiness_score(
     let now = chrono::Utc::now().timestamp();
     let result = AgentReadinessResult {
         score: total_score,
+        max_score: AGENT_READINESS_MAX_SCORE,
         details,
         llm_suggestion,
         is_cached: false,
         evaluated_at: Some(now),
+        target_app: target_app.clone(),
     };
 
-    // 5. 缓存结果（24h TTL）
-    let serialized = serde_json::to_string(&result).unwrap_or_default();
+    // 5. 缓存结果（24h TTL；不缓存生效态字段，避免磁盘漂移导致陈旧）
+    let mut cache_payload = result.clone();
+    for item in &mut cache_payload.details {
+        item.configured_state = None;
+        item.effective_state = None;
+        item.effective_detail = None;
+        item.effective_scanned_at = None;
+        item.live_path = None;
+    }
+    let serialized = serde_json::to_string(&cache_payload).unwrap_or_default();
     let cache_row = AIInsightRow {
         id: 0,
         project_id: project_id.clone(),
@@ -1216,6 +1231,87 @@ pub async fn get_agent_readiness_score(
     let _ = db.upsert_ai_insight(&cache_row);
 
     Ok(result)
+}
+
+/// 仅扫描项目 AI 资产生效态（库内容 vs CLI 磁盘文件），不触发 LLM 建议
+#[tauri::command]
+pub async fn scan_project_effective_state(
+    state: State<'_, AppState>,
+    project_path: String,
+    target_app: Option<String>,
+) -> Result<EffectiveScanResult, String> {
+    let db = state.db.clone();
+    let sqlite_id = db.get_project_id_by_path(&project_path).ok().flatten();
+
+    let mcp_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_mcp(id).ok())
+        .unwrap_or(0);
+    let skills_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_skills(id).ok())
+        .unwrap_or(0);
+    let db_prompt_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_prompts(id).ok())
+        .unwrap_or(0);
+    let prompt_files = detect_prompt_files(&project_path);
+    let commands_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
+        .unwrap_or(0);
+    let hooks_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "hook").ok())
+        .unwrap_or(0);
+    let ignore_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "ignore").ok())
+        .unwrap_or(0);
+    let permissions_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "permission").ok())
+        .unwrap_or(0);
+    let subagents_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "subagent").ok())
+        .unwrap_or(0);
+    let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
+    let permissions_global_count = db.count_global_permissions().unwrap_or(0);
+
+    let max_legacy_ts = sqlite_id
+        .as_deref()
+        .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
+    let max_links_ts = sqlite_id
+        .as_deref()
+        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
+    let max_ts = match (max_legacy_ts, max_links_ts) {
+        (Some(a), Some(b)) => Some(a.max(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    };
+    let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
+    let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
+
+    let (_, details) = compute_readiness_items(&ReadinessCheckInput {
+        mcp_project_count: mcp_count,
+        has_repo_mcp: detect_repo_mcp_file(&project_path),
+        skills_count,
+        prompt_db_count: db_prompt_count,
+        prompt_files,
+        commands_count,
+        hooks_count,
+        ignore_project_count,
+        ignore_global_count,
+        permissions_project_count,
+        permissions_global_count,
+        subagents_count,
+        recent_update_within_90d,
+        target_app: target_app.clone(),
+    });
+
+    Ok(scan_effective_states(&state, &details, target_app.as_deref()))
 }
 
 /// 提交 AI 洞察的用户反馈（有用 / 无用）

@@ -204,7 +204,28 @@ impl Provider {
         // Normalize like the JS-script path (extract_base_url_from_provider) so a
         // future delegation from services/provider/usage.rs is behavior-preserving
         // and `{{baseUrl}}/path` concatenation never produces a double slash.
-        (base_url.trim_end_matches('/').to_string(), api_key)
+        let base_url = base_url.trim_end_matches('/').to_string();
+
+        // Resolve keychain://ref/ placeholder to the real secret. On failure
+        // (e.g. cross-device sync placeholder without a local keychain entry)
+        // return empty so the credential is treated as missing rather than
+        // leaking the placeholder to upstream.
+        let api_key = if crate::keychain::is_keychain_ref(&api_key) {
+            match crate::keychain::resolve_value(&api_key) {
+                Ok(plaintext) => plaintext,
+                Err(e) => {
+                    log::warn!(
+                        "Failed to resolve keychain ref for usage credentials of provider '{}': {e}",
+                        self.id
+                    );
+                    String::new()
+                }
+            }
+        } else {
+            api_key
+        };
+
+        (base_url, api_key)
     }
 }
 

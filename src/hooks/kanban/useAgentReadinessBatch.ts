@@ -7,17 +7,12 @@ import type { AIProviderConfig } from "@/api/aiInsight";
 
 
 interface AgentReadinessBatchInput {
-
   projects: Project[];
-
   scanning: boolean;
-
   scanEpoch: number;
-
   portfolioRefreshToken?: number;
-
   getConfig: () => AIProviderConfig | null;
-
+  targetApp?: string | null;
 }
 
 
@@ -33,6 +28,8 @@ export function useAgentReadinessBatch({
   portfolioRefreshToken = 0,
 
   getConfig,
+
+  targetApp,
 
 }: AgentReadinessBatchInput) {
 
@@ -78,7 +75,7 @@ export function useAgentReadinessBatch({
 
           const r = await import("@/api/aiInsight").then((m) =>
 
-            m.getAgentReadinessScore(p.path, config, forceRefresh),
+            m.getAgentReadinessScore(p.path, config, forceRefresh, targetApp),
 
           );
 
@@ -118,7 +115,7 @@ export function useAgentReadinessBatch({
 
     };
 
-  }, [scanning, projects, scanEpoch, portfolioRefreshToken, getConfig]);
+  }, [scanning, projects, scanEpoch, portfolioRefreshToken, getConfig, targetApp]);
 
 
 

@@ -48,7 +48,7 @@ export function SupplierGrid({
                       {supplier.default_model}
                     </p>
                   )}
-                  {supplier.website && selected && (
+                  {supplier.website && (
                     <a
                       href={supplier.website}
                       target="_blank"

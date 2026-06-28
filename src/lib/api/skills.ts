@@ -123,6 +123,36 @@ export interface SkillsShSearchResult {
   query: string;
 }
 
+/** skills.sh 官方排行榜周期 */
+export type SkillsShLeaderboardPeriod = "all_time" | "trending_24h";
+
+/** skills.sh 官方排行榜条目 */
+export interface SkillsShLeaderboardItem {
+  rank: number;
+  key: string;
+  name: string;
+  source: string;
+  skillId: string;
+  installs: number;
+  repoOwner: string;
+  repoName: string;
+  directory: string;
+  readmeUrl?: string;
+}
+
+/** skills.sh 官方排行榜结果 */
+export interface SkillsShLeaderboardResult {
+  period: SkillsShLeaderboardPeriod;
+  syncedAt: number;
+  fromCache: boolean;
+  sourceUrl: string;
+  totalSkills?: number;
+  allTimeTotal?: number;
+  /** 本地缓存 TTL（秒） */
+  cacheTtlSecs: number;
+  skills: SkillsShLeaderboardItem[];
+}
+
 /** ClawHub 可发现的技能 */
 export interface ClawHubDiscoverableSkill {
   slug: string;
@@ -277,6 +307,14 @@ export const skillsApi = {
     offset: number,
   ): Promise<SkillsShSearchResult> {
     return await invoke("search_skills_sh", { query, limit, offset });
+  },
+
+  /** 获取 skills.sh 官方排行榜（All Time / Trending 24h TOP50） */
+  async getSkillsShLeaderboard(
+    period: SkillsShLeaderboardPeriod,
+    forceRefresh = false,
+  ): Promise<SkillsShLeaderboardResult> {
+    return await invoke("get_skills_sh_leaderboard", { period, forceRefresh });
   },
 
   /** 搜索 ClawHub 公共目录 */

@@ -5,9 +5,7 @@ import { projectsApi } from "@/lib/api/projects";
 
 vi.mock("@/lib/api/projects", () => ({
   projectsApi: {
-    getMcpServers: vi.fn(),
-    getSkills: vi.fn(),
-    getPrompts: vi.fn(),
+    getAllAssetCounts: vi.fn(),
   },
 }));
 
@@ -20,14 +18,21 @@ const project = {
 
 const projects = [project];
 
+const emptyCounts = {
+  mcp: 1,
+  skills: 0,
+  prompts: 0,
+  commands: 0,
+  hooks: 0,
+  ignore: 0,
+  permissions: 0,
+  subagents: 0,
+};
+
 describe("usePortfolioAssetSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(projectsApi.getMcpServers).mockResolvedValue([
-      { project_id: "p1", config_id: "m1", enabled: true, created_at: 1 },
-    ]);
-    vi.mocked(projectsApi.getSkills).mockResolvedValue([]);
-    vi.mocked(projectsApi.getPrompts).mockResolvedValue([]);
+    vi.mocked(projectsApi.getAllAssetCounts).mockResolvedValue(emptyCounts);
   });
 
   it("reloads when refreshToken changes", async () => {
@@ -37,13 +42,13 @@ describe("usePortfolioAssetSummary", () => {
     );
 
     await waitFor(() => {
-      expect(projectsApi.getMcpServers).toHaveBeenCalledTimes(1);
+      expect(projectsApi.getAllAssetCounts).toHaveBeenCalledTimes(1);
     });
 
     rerender({ token: 1 });
 
     await waitFor(() => {
-      expect(projectsApi.getMcpServers).toHaveBeenCalledTimes(2);
+      expect(projectsApi.getAllAssetCounts).toHaveBeenCalledTimes(2);
     });
   });
 });

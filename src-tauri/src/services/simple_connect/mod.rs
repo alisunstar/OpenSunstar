@@ -39,7 +39,8 @@ pub use proxy_poc::{
 };
 pub use state::{load_state, save_state, set_supplier, PoolKeyMeta, SimpleConnectState};
 pub use suppliers::{
-    get_supplier, list_builtin_suppliers, resolve_supplier, SupplierProfile,
+    get_supplier, list_builtin_suppliers, resolve_protocol, resolve_supplier, ApiProtocol,
+    SupplierProfile,
 };
 pub use verify::{verify_api_key, VerifyKeyResult};
 pub use usage::{build_usage_summary, SimpleConnectUsageSummary};

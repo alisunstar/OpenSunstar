@@ -11,6 +11,9 @@ use crate::services::skill::{
     MigrationResult, ModelScopeSearchResult, Skill, SkillBackupEntry, SkillRepo, SkillService,
     SkillStorageLocation, SkillUninstallResult, SkillUpdateInfo, SkillsShSearchResult,
 };
+use crate::services::skills_sh_leaderboard::{
+    self, SkillsShLeaderboardPeriod, SkillsShLeaderboardResult,
+};
 use crate::store::AppState;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -235,6 +238,18 @@ pub async fn search_skills_sh(
     offset: usize,
 ) -> Result<SkillsShSearchResult, String> {
     SkillService::search_skills_sh(&query, limit, offset)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 获取 skills.sh 官方排行榜（All Time / Trending 24h TOP50）
+#[tauri::command]
+pub async fn get_skills_sh_leaderboard(
+    period: String,
+    force_refresh: Option<bool>,
+) -> Result<SkillsShLeaderboardResult, String> {
+    let period = SkillsShLeaderboardPeriod::parse(&period).map_err(|e| e.to_string())?;
+    skills_sh_leaderboard::get_skills_sh_leaderboard(period, force_refresh.unwrap_or(false))
         .await
         .map_err(|e| e.to_string())
 }

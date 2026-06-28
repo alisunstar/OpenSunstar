@@ -189,7 +189,7 @@ export function ConvertPage() {
           </div>
           <div>
             <h2 className="text-base font-semibold">
-              {t("convert.title", { defaultValue: "配置转换向导" })}
+              {t("convert.title", { defaultValue: "Convert" })}
             </h2>
             <p className="text-sm text-muted-foreground">
               {t("convert.subtitle", {
