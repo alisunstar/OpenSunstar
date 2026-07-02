@@ -1,6 +1,4 @@
-# 项目组合（Kanban）模块说明
-
-> OpenSunstar v0.1.0 · 自 AIControls v0.2.1 移植并演进
+# 项目看板（Kanban）模块说明
 
 ## 定位
 
