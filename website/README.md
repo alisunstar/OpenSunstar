@@ -21,10 +21,32 @@ npx serve . -l 3000
 
 ### 方式 A：独立 Pages 仓库（推荐）
 
-1. 创建 GitHub 仓库 `opensunstar/opensunstar.github.io`
-2. 将 `website/` 目录下**全部文件**复制到该仓库根目录（不是整个 `website` 文件夹）
-3. 推送至 `main` 分支
-4. GitHub → Settings → Pages → Source: **Deploy from branch / main / root**
+**首次（一次性）：**
+
+1. 创建 GitHub 组织/仓库 `opensunstar/opensunstar.github.io`
+2. GitHub → Settings → Pages → Source: **Deploy from branch / main / root**
+
+**之后每次发布（一键同步）：**
+
+```bash
+# 项目根目录
+pnpm website:publish
+```
+
+脚本 `scripts/sync-website-pages.sh` 会：
+
+- 克隆或更新 `../opensunstar.github.io`（与 OpenSunstar 同级目录）
+- 将 `website/` 内容镜像到 Pages 仓库根目录（排除 `website/README.md`）
+- 有变更则 commit 并 push 到 `main`
+
+可选环境变量：
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `PAGES_REPO_DIR` | `../opensunstar.github.io` | 本地 Pages 仓库路径 |
+| `PAGES_REPO_URL` | `git@github.com:opensunstar/opensunstar.github.io.git` | 远程地址 |
+| `DRY_RUN=1` | — | 仅预览，不写入 |
+| `NO_PUSH=1` | — | 本地 commit，不 push |
 
 约 1–2 分钟后访问 https://opensunstar.github.io/
 

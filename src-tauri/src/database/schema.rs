@@ -314,51 +314,8 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
-        // 20. Project × MCP 中间表
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS project_mcp_servers (
-                project_id TEXT NOT NULL,
-                mcp_server_id TEXT NOT NULL,
-                enabled INTEGER NOT NULL DEFAULT 1,
-                created_at INTEGER NOT NULL,
-                PRIMARY KEY (project_id, mcp_server_id),
-                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-                FOREIGN KEY (mcp_server_id) REFERENCES mcp_servers(id) ON DELETE CASCADE
-            )",
-            [],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-
-        // 21. Project × Skills 中间表
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS project_skills (
-                project_id TEXT NOT NULL,
-                skill_id TEXT NOT NULL,
-                enabled INTEGER NOT NULL DEFAULT 1,
-                created_at INTEGER NOT NULL,
-                PRIMARY KEY (project_id, skill_id),
-                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-                FOREIGN KEY (skill_id) REFERENCES skills(id) ON DELETE CASCADE
-            )",
-            [],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-
-        // 22. Project × Prompts 中间表
-        conn.execute(
-            "CREATE TABLE IF NOT EXISTS project_prompts (
-                project_id TEXT NOT NULL,
-                prompt_id TEXT NOT NULL,
-                prompt_app_type TEXT NOT NULL,
-                enabled INTEGER NOT NULL DEFAULT 1,
-                created_at INTEGER NOT NULL,
-                PRIMARY KEY (project_id, prompt_id, prompt_app_type),
-                FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
-                FOREIGN KEY (prompt_id, prompt_app_type) REFERENCES prompts(id, app_type) ON DELETE CASCADE
-            )",
-            [],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
+        // 20. 项目 × 资产统一关联表（8 类 SSOT）
+        Self::create_project_asset_links_table(conn)?;
 
         // 23. Commands 表（slash 命令管理）
         Self::create_commands_table(conn)?;
@@ -584,6 +541,23 @@ impl Database {
                         log::info!("迁移数据库从 v21 到 v22（项目扩展资产关联表 project_asset_links）");
                         Self::migrate_v21_to_v22(conn)?;
                         Self::set_user_version(conn, 22)?;
+                    }
+                    22 => {
+                        log::info!("迁移数据库从 v22 到 v23（项目 target_app / blueprint_id）");
+                        Self::migrate_v22_to_v23(conn)?;
+                        Self::set_user_version(conn, 23)?;
+                    }
+                    23 => {
+                        log::info!("迁移数据库从 v23 到 v24（Hooks/Permissions 多 CLI enabled_*）");
+                        Self::migrate_v23_to_v24(conn)?;
+                        Self::set_user_version(conn, 24)?;
+                    }
+                    24 => {
+                        log::info!(
+                            "迁移数据库从 v24 到 v25（MCP/Skills/Prompts 并入 project_asset_links，废弃旧三表）"
+                        );
+                        Self::migrate_v24_to_v25(conn)?;
+                        Self::set_user_version(conn, 25)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1418,6 +1392,11 @@ impl Database {
     fn migrate_v11_to_v12(conn: &Connection) -> Result<(), AppError> {
         use crate::keychain;
 
+        if !Self::table_exists(conn, "providers")? {
+            log::info!("v11 -> v12 迁移跳过：providers 表不存在");
+            return Ok(());
+        }
+
         let mut stmt = conn
             .prepare("SELECT id, app_type, settings_config FROM providers")
             .map_err(|e| AppError::Database(format!("v12 迁移：查询 providers 失败: {e}")))?;
@@ -1538,7 +1517,9 @@ impl Database {
 
     /// v12 -> v13: Prompt 桥接支持（bridge_source 列）
     fn migrate_v12_to_v13(conn: &Connection) -> Result<(), AppError> {
-        Self::add_column_if_missing(conn, "prompts", "bridge_source", "TEXT")?;
+        if Self::table_exists(conn, "prompts")? {
+            Self::add_column_if_missing(conn, "prompts", "bridge_source", "TEXT")?;
+        }
         log::info!("v12 -> v13 迁移完成：prompts 表已添加 bridge_source 列");
         Ok(())
     }
@@ -1671,6 +1652,10 @@ impl Database {
 
     /// v16 -> v17: Prompts fragment 字段扩展（M4 / F6）
     fn migrate_v16_to_v17(conn: &Connection) -> Result<(), AppError> {
+        if !Self::table_exists(conn, "prompts")? {
+            log::info!("v16 -> v17 迁移跳过：prompts 表不存在");
+            return Ok(());
+        }
         Self::add_column_if_missing(
             conn,
             "prompts",
@@ -1751,9 +1736,14 @@ impl Database {
         Ok(())
     }
 
-    /// v21 -> v22: 项目扩展资产关联（Commands/Hooks/Ignore/Permissions/Subagents）
-    /// MCP/Skills/Prompts 仍使用 v14 旧三表，本迁移仅新增表，不修改旧表。
+    /// v21 -> v22: 项目资产统一关联表（初版 5 类；v25 扩展为 8 类 SSOT）
     fn migrate_v21_to_v22(conn: &Connection) -> Result<(), AppError> {
+        Self::create_project_asset_links_table(conn)?;
+        log::info!("v21 -> v22 迁移完成：已创建 project_asset_links");
+        Ok(())
+    }
+
+    fn create_project_asset_links_table(conn: &Connection) -> Result<(), AppError> {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS project_asset_links (
                 project_id TEXT NOT NULL,
@@ -1777,7 +1767,173 @@ impl Database {
             [],
         )
         .map_err(|e| AppError::Database(format!("创建 idx_project_asset_links 失败: {e}")))?;
-        log::info!("v21 -> v22 迁移完成：已创建 project_asset_links（扩展 5 类资产）");
+        Ok(())
+    }
+
+    /// v24 -> v25: MCP/Skills/Prompts 旧三表数据迁入 `project_asset_links` 并删除旧表
+    fn migrate_v24_to_v25(conn: &Connection) -> Result<(), AppError> {
+        Self::create_project_asset_links_table(conn)?;
+
+        Self::migrate_legacy_project_link_table(
+            conn,
+            "project_mcp_servers",
+            "mcp",
+            "mcp_server_id",
+            "''",
+            "l.project_id = project_asset_links.project_id AND l.mcp_server_id = project_asset_links.asset_id AND project_asset_links.asset_app_type = ''",
+        )?;
+        Self::migrate_legacy_project_link_table(
+            conn,
+            "project_skills",
+            "skill",
+            "skill_id",
+            "''",
+            "l.project_id = project_asset_links.project_id AND l.skill_id = project_asset_links.asset_id AND project_asset_links.asset_app_type = ''",
+        )?;
+        Self::migrate_legacy_project_link_table(
+            conn,
+            "project_prompts",
+            "prompt",
+            "prompt_id",
+            "prompt_app_type",
+            "l.project_id = project_asset_links.project_id AND l.prompt_id = project_asset_links.asset_id AND l.prompt_app_type = project_asset_links.asset_app_type",
+        )?;
+
+        conn.execute("DROP TABLE IF EXISTS project_mcp_servers", [])
+            .map_err(|e| AppError::Database(format!("删除 project_mcp_servers 失败: {e}")))?;
+        conn.execute("DROP TABLE IF EXISTS project_skills", [])
+            .map_err(|e| AppError::Database(format!("删除 project_skills 失败: {e}")))?;
+        conn.execute("DROP TABLE IF EXISTS project_prompts", [])
+            .map_err(|e| AppError::Database(format!("删除 project_prompts 失败: {e}")))?;
+
+        log::info!("v24 -> v25 迁移完成：8 类资产统一至 project_asset_links");
+        Ok(())
+    }
+
+    /// 从旧三表之一拷贝行到 `project_asset_links`；冲突时以 legacy 行的 enabled/时间戳为准并打审计日志
+    fn migrate_legacy_project_link_table(
+        conn: &Connection,
+        legacy_table: &str,
+        asset_type: &str,
+        asset_id_col: &str,
+        asset_app_type_expr: &str,
+        legacy_match_sql: &str,
+    ) -> Result<(), AppError> {
+        if !Self::table_exists(conn, legacy_table)? {
+            return Ok(());
+        }
+
+        let legacy_count: i64 = conn
+            .query_row(
+                &format!("SELECT COUNT(*) FROM {legacy_table}"),
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| AppError::Database(format!("统计 {legacy_table} 失败: {e}")))?;
+
+        let unified_before: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_asset_links WHERE asset_type = ?1",
+                [asset_type],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        let sql = format!(
+            "INSERT OR IGNORE INTO project_asset_links
+             (project_id, asset_type, asset_id, asset_app_type, enabled, scope, source, created_at, updated_at)
+             SELECT project_id, ?1, {asset_id_col}, {asset_app_type_expr}, enabled, 'project', 'migrated', created_at, created_at
+             FROM {legacy_table}"
+        );
+        conn.execute(&sql, [asset_type])
+            .map_err(|e| AppError::Database(format!("迁移 {legacy_table} 失败: {e}")))?;
+
+        let merge_sql = format!(
+            "UPDATE project_asset_links
+             SET enabled = (
+                 SELECT l.enabled FROM {legacy_table} l
+                 WHERE {legacy_match_sql}
+             ),
+             updated_at = MAX(
+                 project_asset_links.updated_at,
+                 COALESCE(
+                     (SELECT l.created_at FROM {legacy_table} l WHERE {legacy_match_sql}),
+                     project_asset_links.updated_at
+                 )
+             )
+             WHERE asset_type = ?1
+               AND EXISTS (SELECT 1 FROM {legacy_table} l WHERE {legacy_match_sql})"
+        );
+        conn.execute(&merge_sql, [asset_type])
+            .map_err(|e| AppError::Database(format!("合并 {legacy_table} 冲突行失败: {e}")))?;
+
+        let unified_after: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM project_asset_links WHERE asset_type = ?1",
+                [asset_type],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+
+        let net_new = unified_after.saturating_sub(unified_before);
+        if legacy_count > 0 {
+            log::info!(
+                "v25 迁移 {legacy_table} → project_asset_links[{asset_type}]: legacy={legacy_count}, unified_before={unified_before}, unified_after={unified_after}, net_new={net_new}"
+            );
+            if net_new < legacy_count {
+                log::warn!(
+                    "v25 迁移 {legacy_table}: {conflicts} 行与既有 project_asset_links 主键冲突，已按 legacy 合并 enabled/updated_at",
+                    conflicts = legacy_count - net_new
+                );
+            }
+        }
+
+        Ok(())
+    }
+
+    /// v22 -> v23: 项目级治理元数据（目标 CLI、已应用 Blueprint）
+    fn migrate_v22_to_v23(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(conn, "projects", "target_app", "TEXT")?;
+        Self::add_column_if_missing(conn, "projects", "blueprint_id", "TEXT")?;
+        log::info!("v22 -> v23 迁移完成：projects 增加 target_app、blueprint_id");
+        Ok(())
+    }
+
+    /// v23 -> v24: Hooks / Permissions 多 CLI 启用标志
+    fn migrate_v23_to_v24(conn: &Connection) -> Result<(), AppError> {
+        for table in ["hooks", "tool_permissions"] {
+            Self::add_column_if_missing(
+                conn,
+                table,
+                "enabled_codex",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+            Self::add_column_if_missing(
+                conn,
+                table,
+                "enabled_gemini",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+            Self::add_column_if_missing(
+                conn,
+                table,
+                "enabled_opencode",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+            Self::add_column_if_missing(
+                conn,
+                table,
+                "enabled_hermes",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+        }
+        Self::add_column_if_missing(
+            conn,
+            "tool_permissions",
+            "enabled_openclaw",
+            "BOOLEAN NOT NULL DEFAULT 0",
+        )?;
+        log::info!("v23 -> v24 迁移完成：hooks / tool_permissions 增加多 CLI enabled_* 列");
         Ok(())
     }
 

@@ -1,4 +1,5 @@
 import type { AppId } from "@/lib/api";
+import type { AppId } from "@/lib/api";
 import type { ProjectAssetType } from "@/types/projectAsset";
 
 export type AssetAppSupportStatus = "supported" | "partial" | "unsupported";
@@ -73,11 +74,7 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
       reasonKey: "projectAssets.support.claudeDesktop",
       reasonDefault: "Claude Desktop 暂不支持 Commands",
     },
-    codex: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.codexCommands",
-      reasonDefault: "Codex 不支持独立 slash command 文件",
-    },
+    codex: { status: "supported" },
     gemini: { status: "supported" },
     opencode: { status: "supported" },
     openclaw: {
@@ -92,33 +89,21 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
     "claude-desktop": {
       status: "unsupported",
       reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
+      reasonDefault: "Claude Desktop 暂不支持 Hooks 同步",
     },
-    codex: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
-    },
-    gemini: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
-    },
+    codex: { status: "supported" },
+    gemini: { status: "supported" },
     opencode: {
       status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
+      reasonKey: "projectAssets.support.hooksOpencode",
+      reasonDefault: "OpenCode 需 TypeScript 插件，暂不支持 Hooks 同步",
     },
     openclaw: {
       status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
+      reasonKey: "projectAssets.support.hooksOpenclaw",
+      reasonDefault: "OpenClaw 暂不支持 Hooks 同步",
     },
-    hermes: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Hooks 当前仅 Claude Code 支持写回",
-    },
+    hermes: { status: "supported" },
   },
   ignore: {
     claude: { status: "supported" },
@@ -142,32 +127,16 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
     "claude-desktop": {
       status: "unsupported",
       reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
+      reasonDefault: "Claude Desktop 暂不支持 Permissions 同步",
     },
-    codex: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
-    },
-    gemini: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
-    },
-    opencode: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
-    },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
-    },
+    codex: { status: "supported" },
+    gemini: { status: "supported" },
+    opencode: { status: "supported" },
+    openclaw: { status: "supported" },
     hermes: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Permissions 当前仅 Claude Code 支持写回",
+      status: "partial",
+      reasonKey: "projectAssets.support.hermesPermissions",
+      reasonDefault: "Hermes Permissions 为最佳努力写入 config.yaml",
     },
   },
   subagent: {
@@ -196,6 +165,13 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
     },
   },
 };
+
+/** Prompt 同步支持的应用（与 ASSET_APP_SUPPORT.prompt 一致） */
+export const PROMPT_SYNC_APP_IDS: AppId[] = (
+  Object.entries(ASSET_APP_SUPPORT.prompt) as [AppId, AssetAppSupport][]
+)
+  .filter(([, support]) => support.status === "supported")
+  .map(([appId]) => appId);
 
 /** 资产类型是否至少在一个目标应用上可启用 */
 export function isAssetLinkable(assetType: ProjectAssetType): boolean {

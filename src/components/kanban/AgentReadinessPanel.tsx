@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 import { useTranslation } from "react-i18next";
 
-import { ArrowRight, ChevronDown, ChevronRight, Loader2, Radar, RefreshCw, Shield } from "lucide-react";
+import { ArrowRight, ChevronDown, ChevronRight, Loader2, Radar, RefreshCw, Shield, Wrench } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
@@ -30,6 +30,10 @@ import {
   hasEffectiveScan,
   resolveConfiguredState,
 } from "@/lib/readinessEffective";
+import {
+  RepairDriftConfirmDialog,
+  type RepairDriftAssetConfirm,
+} from "./RepairDriftConfirmDialog";
 
 
 
@@ -43,6 +47,11 @@ export interface AgentReadinessPanelProps {
 
   /** 触发生效态扫描（库 vs 磁盘） */
   onScanEffective?: () => void;
+
+  /** 漂移一键修复（P0-B） */
+  onRepairDrift?: (checkName: string) => Promise<void>;
+
+  repairingCheckName?: string | null;
 
   onOpenProjectAssets?: (section?: ProjectAssetSection) => void;
 
@@ -64,6 +73,10 @@ export function AgentReadinessPanel({
 
   onScanEffective,
 
+  onRepairDrift,
+
+  repairingCheckName = null,
+
   onOpenProjectAssets,
 
   onNavigate,
@@ -75,6 +88,9 @@ export function AgentReadinessPanel({
   const { t } = useTranslation();
 
   const [showCompleted, setShowCompleted] = useState(false);
+  const [pendingRepair, setPendingRepair] = useState<RepairDriftAssetConfirm | null>(
+    null,
+  );
 
 
 
@@ -202,6 +218,31 @@ export function AgentReadinessPanel({
           <span className="text-[10px] text-muted-foreground/50 block w-full truncate" title={item.live_path}>
             {item.live_path}
           </span>
+        )}
+        {effTone === "warning" && onRepairDrift && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-6 text-[10px] px-2 mt-1"
+            disabled={isLoading || repairingCheckName === item.check_name}
+            onClick={() =>
+              setPendingRepair({
+                kind: "asset",
+                checkName: item.check_name,
+                label: item.label,
+                effectiveDetail: item.effective_detail,
+                livePath: item.live_path,
+                targetApp: data?.target_app ?? null,
+              })
+            }
+          >
+            {repairingCheckName === item.check_name ? (
+              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+            ) : (
+              <Wrench className="h-3 w-3 mr-1" />
+            )}
+            {t("kanban.readiness.repairDrift", { defaultValue: "一键修复" })}
+          </Button>
         )}
       </div>
     );
@@ -577,6 +618,19 @@ export function AgentReadinessPanel({
 
         </Button>
 
+      )}
+
+      {onRepairDrift && (
+        <RepairDriftConfirmDialog
+          pending={pendingRepair}
+          onConfirm={() => {
+            if (pendingRepair) {
+              void onRepairDrift(pendingRepair.checkName);
+            }
+            setPendingRepair(null);
+          }}
+          onCancel={() => setPendingRepair(null)}
+        />
       )}
 
     </div>

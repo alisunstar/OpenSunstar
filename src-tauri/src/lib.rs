@@ -1643,6 +1643,8 @@ pub fn run() {
             // AI insight commands F-P2-1 (Agent 配置就绪度 + 反馈闭环)
             commands::get_agent_readiness_score,
             commands::scan_project_effective_state,
+            commands::repair_asset_drift,
+            commands::repair_project_drift,
             commands::submit_insight_feedback,
             commands::submit_ai_query_feedback,
             // Session & usage export
@@ -1701,6 +1703,13 @@ pub fn run() {
             commands::simple_connect_spike_run_all,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
+            commands::set_project_target_app,
+            commands::list_project_blueprints,
+            commands::get_project_blueprint,
+            commands::preview_apply_project_blueprint,
+            commands::apply_project_blueprint,
+            commands::export_project_baseline_snapshot,
+            commands::set_project_prompts,
             commands::get_project_asset_links,
             commands::link_project_asset,
             commands::unlink_project_asset,
@@ -1720,6 +1729,7 @@ pub fn run() {
             commands::get_all_hooks,
             commands::upsert_hook,
             commands::delete_hook,
+            commands::toggle_hook_app,
             commands::sync_hooks,
             // Ignore rules (F4)
             commands::get_all_ignore_rules,
@@ -1732,6 +1742,7 @@ pub fn run() {
             commands::get_all_tool_permissions,
             commands::upsert_tool_permission,
             commands::delete_tool_permission,
+            commands::toggle_permission_app,
             commands::sync_tool_permissions,
             commands::get_permission_presets,
             commands::apply_permission_preset,

@@ -1,0 +1,11 @@
+{
+  "id": "cli-tool",
+  "name": "CLI Tool",
+  "description": "命令行工具项目：以 Codex 为目标，关联 MCP、Skills、Prompts、Commands。",
+  "projectType": "cli-tool",
+  "targetApp": "codex",
+  "linkAllMcpForTarget": true,
+  "linkAllSkillsForTarget": true,
+  "linkAllPromptsForTarget": true,
+  "linkAllCommandsForTarget": true
+}

@@ -6,6 +6,7 @@ import {
   type ToolPermission,
   type PermissionPreset,
 } from "@/lib/api/permissions";
+import type { AppId } from "@/lib/api";
 
 export function usePermissionActions() {
   const { t } = useTranslation();
@@ -57,11 +58,27 @@ export function usePermissionActions() {
     [reload, t],
   );
 
+  const toggleApp = useCallback(
+    async (permId: string, app: AppId, enabled: boolean) => {
+      try {
+        await permissionsApi.toggleApp(permId, app, enabled);
+        await reload();
+      } catch {
+        toast.error(
+          t("permissions.toggleFailed", { defaultValue: "切换同步目标失败" }),
+        );
+      }
+    },
+    [reload, t],
+  );
+
   const syncPermissions = useCallback(async () => {
     try {
       await permissionsApi.sync();
       toast.success(
-        t("permissions.syncSuccess", { defaultValue: "已同步到 Claude settings.json" }),
+        t("permissions.syncSuccess", {
+          defaultValue: "已同步到各 CLI 配置文件",
+        }),
       );
     } catch {
       toast.error(t("permissions.syncFailed", { defaultValue: "同步失败" }));
@@ -88,6 +105,7 @@ export function usePermissionActions() {
     reload,
     savePermission,
     deletePermission,
+    toggleApp,
     syncPermissions,
     applyPreset,
   };

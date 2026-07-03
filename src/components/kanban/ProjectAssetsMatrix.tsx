@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 import { Loader2, Shield } from "lucide-react";
 import type { Project } from "@/types/project";
 import type { StageKey } from "@/hooks/useProjectStages";
-import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
+import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 import { readinessScoreTone } from "@/lib/readinessConstants";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export interface ProjectAssetsMatrixProps {
   projects: Project[];
   getStage: (projectId: string) => StageKey;
   progressMap: Map<string, number>;
-  agentReadinessMap: Map<string, number>;
+  agentReadinessMap: Map<string, AgentReadinessBatchEntry>;
   assetMap: Map<string, ProjectAssetCounts>;
   loading?: boolean;
   onOpenProject: (project: Project, options?: { assetsTab?: boolean }) => void;
@@ -146,7 +146,7 @@ export function ProjectAssetsMatrix({
             {projects.map((project) => {
               const stage = getStage(project.id);
               const assets = assetMap.get(project.id) ?? EMPTY_COUNTS;
-              const readiness = agentReadinessMap.get(project.id);
+              const readiness = agentReadinessMap.get(project.id)?.score;
               const progress = progressMap.get(project.id);
 
               return (

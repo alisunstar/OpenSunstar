@@ -542,60 +542,28 @@ impl Database {
 
     /// 查询项目已启用关联的 MCP 服务器数量
     pub fn count_enabled_project_mcp(&self, project_id: &str) -> Result<u32, AppError> {
-        let conn = lock_conn!(self.conn);
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM project_mcp_servers WHERE project_id = ?1 AND enabled = 1",
-                [project_id],
-                |row| row.get(0),
-            )
-            .unwrap_or(0);
-        Ok(count as u32)
+        self.count_enabled_project_assets(project_id, crate::database::dao::project_assets::ASSET_MCP)
     }
 
     /// 查询项目已启用关联的 Skills 数量
     pub fn count_enabled_project_skills(&self, project_id: &str) -> Result<u32, AppError> {
-        let conn = lock_conn!(self.conn);
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM project_skills WHERE project_id = ?1 AND enabled = 1",
-                [project_id],
-                |row| row.get(0),
-            )
-            .unwrap_or(0);
-        Ok(count as u32)
+        self.count_enabled_project_assets(
+            project_id,
+            crate::database::dao::project_assets::ASSET_SKILL,
+        )
     }
 
     /// 查询项目已启用关联的 Prompts 数量
     pub fn count_enabled_project_prompts(&self, project_id: &str) -> Result<u32, AppError> {
-        let conn = lock_conn!(self.conn);
-        let count: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM project_prompts WHERE project_id = ?1 AND enabled = 1",
-                [project_id],
-                |row| row.get(0),
-            )
-            .unwrap_or(0);
-        Ok(count as u32)
+        self.count_enabled_project_assets(
+            project_id,
+            crate::database::dao::project_assets::ASSET_PROMPT,
+        )
     }
 
-    /// 查询项目关联配置的最新 created_at 时间戳（MCP/Skills/Prompts 三表取最大值）
+    /// 查询项目关联配置的最新 updated_at（统一 `project_asset_links`）
     pub fn max_project_config_updated_at(&self, project_id: &str) -> Result<Option<i64>, AppError> {
-        let conn = lock_conn!(self.conn);
-        let ts: Option<i64> = conn
-            .query_row(
-                "SELECT MAX(t) FROM (
-                    SELECT MAX(created_at) AS t FROM project_mcp_servers WHERE project_id = ?1
-                    UNION ALL
-                    SELECT MAX(created_at) AS t FROM project_skills WHERE project_id = ?1
-                    UNION ALL
-                    SELECT MAX(created_at) AS t FROM project_prompts WHERE project_id = ?1
-                )",
-                [project_id],
-                |row| row.get(0),
-            )
-            .unwrap_or(None);
-        Ok(ts)
+        self.max_project_asset_links_updated_at(project_id)
     }
 
     /// 查询全局 ignore 规则总数

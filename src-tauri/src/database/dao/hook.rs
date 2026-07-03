@@ -5,16 +5,17 @@ use crate::error::AppError;
 use crate::hook::Hook;
 use rusqlite::params;
 
+const HOOK_SELECT: &str = "SELECT id, event_type, tool_pattern, hook_command, timeout_seconds,
+                        enabled_claude, enabled_codex, enabled_gemini, enabled_opencode,
+                        enabled_hermes, description, sort_index, created_at";
+
 impl Database {
     pub fn get_all_hooks(&self) -> Result<Vec<Hook>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
-            .prepare(
-                "SELECT id, event_type, tool_pattern, hook_command, timeout_seconds,
-                        enabled_claude, description, sort_index, created_at
-                 FROM hooks
-                 ORDER BY sort_index ASC, created_at ASC",
-            )
+            .prepare(&format!(
+                "{HOOK_SELECT} FROM hooks ORDER BY sort_index ASC, created_at ASC"
+            ))
             .map_err(|e| AppError::Database(e.to_string()))?;
 
         let rows = stmt
@@ -26,9 +27,13 @@ impl Database {
                     hook_command: row.get(3)?,
                     timeout_seconds: row.get(4)?,
                     enabled_claude: row.get(5)?,
-                    description: row.get(6)?,
-                    sort_index: row.get(7)?,
-                    created_at: row.get(8)?,
+                    enabled_codex: row.get(6)?,
+                    enabled_gemini: row.get(7)?,
+                    enabled_opencode: row.get(8)?,
+                    enabled_hermes: row.get(9)?,
+                    description: row.get(10)?,
+                    sort_index: row.get(11)?,
+                    created_at: row.get(12)?,
                 })
             })
             .map_err(|e| AppError::Database(e.to_string()))?;
@@ -42,8 +47,9 @@ impl Database {
         conn.execute(
             "INSERT OR REPLACE INTO hooks (
                 id, event_type, tool_pattern, hook_command, timeout_seconds,
-                enabled_claude, description, sort_index, created_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                enabled_claude, enabled_codex, enabled_gemini, enabled_opencode,
+                enabled_hermes, description, sort_index, created_at
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             params![
                 hook.id,
                 hook.event_type,
@@ -51,6 +57,10 @@ impl Database {
                 hook.hook_command,
                 hook.timeout_seconds,
                 hook.enabled_claude,
+                hook.enabled_codex,
+                hook.enabled_gemini,
+                hook.enabled_opencode,
+                hook.enabled_hermes,
                 hook.description,
                 hook.sort_index,
                 hook.created_at,

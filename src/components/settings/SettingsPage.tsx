@@ -42,7 +42,6 @@ import { WebdavSyncSection } from "@/components/settings/WebdavSyncSection";
 import { GistSyncSection } from "@/components/sync/GistSyncSection";
 import { AboutSection } from "@/components/settings/AboutSection";
 import { ModelTestConfigPanel } from "@/components/usage/ModelTestConfigPanel";
-import { UsageDashboard } from "@/components/usage/UsageDashboard";
 import { LogConfigPanel } from "@/components/settings/LogConfigPanel";
 import { CodexAuthSettings } from "@/components/settings/CodexAuthSettings";
 import { DryRunSettings } from "@/components/settings/DryRunSettings";
@@ -227,14 +226,13 @@ export function SettingsPageContent({
           onValueChange={setActiveTab}
           className="flex flex-col h-full"
         >
-          <TabsList className="grid w-full grid-cols-4 mb-6 glass rounded-lg">
+          <TabsList className="grid w-full grid-cols-3 mb-6 glass rounded-lg">
             <TabsTrigger value="general">
               {t("settings.tabGeneral")}
             </TabsTrigger>
             <TabsTrigger value="advanced">
               {t("settings.tabAdvanced")}
             </TabsTrigger>
-            <TabsTrigger value="usage">{t("usage.title")}</TabsTrigger>
             <TabsTrigger value="about">{t("common.about")}</TabsTrigger>
           </TabsList>
 
@@ -543,10 +541,6 @@ export function SettingsPageContent({
 
               <TabsContent value="about" className="mt-0">
                 <AboutSection isPortable={isPortable} />
-              </TabsContent>
-
-              <TabsContent value="usage" className="mt-0">
-                <UsageDashboard />
               </TabsContent>
             </div>
 

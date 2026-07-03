@@ -1,0 +1,13 @@
+{
+  "id": "agent-plugin",
+  "name": "Agent Plugin",
+  "description": "Agent/插件型仓库：关联 Hooks、Ignore、Permissions 与 Subagents（以 Claude 为目标）。",
+  "projectType": "agent-plugin",
+  "targetApp": "claude",
+  "linkAllMcpForTarget": true,
+  "linkAllSkillsForTarget": true,
+  "linkAllHooksForTarget": true,
+  "linkAllIgnoreForTarget": true,
+  "linkAllPermissionsForTarget": true,
+  "linkAllSubagentsForTarget": true
+}

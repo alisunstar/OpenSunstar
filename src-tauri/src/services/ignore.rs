@@ -1,18 +1,29 @@
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use crate::app_config::AppType;
 use crate::codex_config::get_codex_auth_path;
 use crate::config::{get_claude_config_dir, write_text_file};
+use crate::database::ASSET_IGNORE;
 use crate::error::AppError;
 use crate::gemini_config::get_gemini_dir;
 use crate::hermes_config::get_hermes_dir;
 use crate::ignore_rule::{parse_gitignore_content, validate_ignore_pattern, IgnoreRule};
 use crate::opencode_config::get_opencode_dir;
+use crate::prompt_files::project_ignore_file_path;
 use crate::store::AppState;
 
 pub struct IgnoreService;
 
 const SYNC_APPS: [AppType; 5] = [
+    AppType::Claude,
+    AppType::Codex,
+    AppType::Gemini,
+    AppType::OpenCode,
+    AppType::Hermes,
+];
+
+const PROJECT_SYNC_APPS: [AppType; 5] = [
     AppType::Claude,
     AppType::Codex,
     AppType::Gemini,
@@ -27,8 +38,11 @@ impl IgnoreService {
 
     pub fn upsert_rule(state: &AppState, rule: IgnoreRule) -> Result<(), AppError> {
         validate_ignore_pattern(&rule.pattern).map_err(AppError::Config)?;
+        let rule_id = rule.id.clone();
         state.db.save_ignore_rule(&rule)?;
-        Self::sync_all_apps(state)
+        Self::sync_all_apps(state)?;
+        Self::sync_project_for_rule(state, &rule_id)?;
+        Ok(())
     }
 
     pub fn delete_rule(state: &AppState, id: &str) -> Result<bool, AppError> {
@@ -42,6 +56,7 @@ impl IgnoreService {
         }
         state.db.delete_ignore_rule(id)?;
         Self::sync_all_apps(state)?;
+        Self::sync_project_for_rule(state, id)?;
         Ok(true)
     }
 
@@ -57,6 +72,7 @@ impl IgnoreService {
             let snapshot = rule.clone();
             state.db.save_ignore_rule(&snapshot)?;
             Self::sync_app(state, &app)?;
+            Self::sync_project_for_rule(state, rule_id)?;
         }
         Ok(())
     }
@@ -130,6 +146,70 @@ impl IgnoreService {
             patterns.join("\n") + "\n"
         };
         write_text_file(&path, &content)?;
+        Ok(())
+    }
+
+    /// 将项目关联的 ignore 规则写回到项目根目录的 .claudeignore 等文件
+    pub fn sync_project_ignore(
+        state: &AppState,
+        project_root: &std::path::Path,
+        project_id: &str,
+    ) -> Result<(), AppError> {
+        let rules = state.db.get_all_ignore_rules()?;
+        let links = state.db.get_project_asset_links(project_id, Some(ASSET_IGNORE))?;
+        let linked_ids: HashSet<&str> = links
+            .iter()
+            .filter(|l| l.enabled)
+            .map(|l| l.asset_id.as_str())
+            .collect();
+
+        if linked_ids.is_empty() {
+            for app in &PROJECT_SYNC_APPS {
+                let path = project_ignore_file_path(project_root, app)?;
+                if path.is_file() {
+                    let _ = std::fs::remove_file(&path);
+                }
+            }
+            return Ok(());
+        }
+
+        for app in &PROJECT_SYNC_APPS {
+            let patterns: Vec<&str> = rules
+                .iter()
+                .filter(|r| linked_ids.contains(r.id.as_str()) && r.is_enabled_for(app))
+                .map(|r| r.pattern.as_str())
+                .collect();
+
+            let path = project_ignore_file_path(project_root, app)?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+            }
+            let content = if patterns.is_empty() {
+                String::new()
+            } else {
+                patterns.join("\n") + "\n"
+            };
+            write_text_file(&path, &content)?;
+        }
+        Ok(())
+    }
+
+    /// 当某条 ignore 规则变更时，同步所有关联该规则的项目级 ignore 文件
+    fn sync_project_for_rule(state: &AppState, rule_id: &str) -> Result<(), AppError> {
+        let projects = state.db.get_all_projects()?;
+        for project in projects {
+            let links = state
+                .db
+                .get_project_asset_links(&project.id, Some(ASSET_IGNORE))
+                .unwrap_or_default();
+            let is_linked = links
+                .iter()
+                .any(|l| l.asset_id == rule_id);
+            if is_linked {
+                let root = std::path::PathBuf::from(&project.path);
+                Self::sync_project_ignore(state, &root, &project.id)?;
+            }
+        }
         Ok(())
     }
 }

@@ -9,6 +9,7 @@ use crate::prompt::{
 };
 use crate::prompt_files::prompt_file_path;
 use crate::services::bridge;
+use crate::services::marker_merge::{inject_markdown_section, PROMPT_SECTION_ID};
 use crate::store::AppState;
 
 /// 安全地获取当前 Unix 时间戳
@@ -30,6 +31,19 @@ pub struct PromptActivationPreview {
 pub struct PromptService;
 
 impl PromptService {
+    fn read_live_prompt_content(path: &std::path::Path) -> String {
+        if path.exists() {
+            std::fs::read_to_string(path).unwrap_or_default()
+        } else {
+            String::new()
+        }
+    }
+
+    fn write_managed_prompt_file(path: &std::path::Path, content: &str) -> Result<(), AppError> {
+        let existing = Self::read_live_prompt_content(path);
+        let merged = inject_markdown_section(&existing, PROMPT_SECTION_ID, content);
+        write_text_file(path, &merged)
+    }
     pub fn get_prompts(
         state: &AppState,
         app: &AppType,
@@ -54,7 +68,7 @@ impl PromptService {
         if is_enabled {
             let content = Self::resolve_effective_content(&state, &app, &prompt)?;
             let target_path = prompt_file_path(&app)?;
-            write_text_file(&target_path, &content)?;
+            Self::write_managed_prompt_file(&target_path, &content)?;
         } else {
             let prompts = state.db.get_prompts(&app_str)?;
             let any_enabled = prompts.values().any(|p| p.enabled);
@@ -62,7 +76,7 @@ impl PromptService {
             if !any_enabled {
                 let target_path = prompt_file_path(&app)?;
                 if target_path.exists() {
-                    write_text_file(&target_path, "")?;
+                    Self::write_managed_prompt_file(&target_path, "")?;
                 }
             }
         }
@@ -148,11 +162,12 @@ impl PromptService {
             String::new()
         };
         let new_content = Self::resolve_effective_content(state, &app, prompt)?;
+        let merged_preview = inject_markdown_section(&current_content, PROMPT_SECTION_ID, &new_content);
 
         Ok(PromptActivationPreview {
             file_path: target_path.display().to_string(),
             current_content,
-            new_content,
+            new_content: merged_preview,
         })
     }
 
@@ -256,7 +271,7 @@ impl PromptService {
             }
             let content = Self::resolve_effective_content(state, &app, prompt)?;
             prompt.enabled = true;
-            write_text_file(&target_path, &content)?;
+            Self::write_managed_prompt_file(&target_path, &content)?;
             state.db.save_prompt(app.as_str(), prompt)?;
         } else {
             return Err(AppError::InvalidInput(format!("提示词 {id} 不存在")));

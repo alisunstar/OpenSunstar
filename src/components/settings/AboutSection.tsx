@@ -10,6 +10,9 @@ import {
   ArrowUpCircle,
   ChevronDown,
   Stethoscope,
+  Globe,
+  Github,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +37,7 @@ import { isWindows } from "@/lib/platform";
 import { isUpdateAvailable } from "@/lib/version";
 import { ToolUpgradeConfirmDialog } from "./ToolUpgradeConfirmDialog";
 import { ToolInstallRow } from "./ToolInstallRow";
+import { getCurrentVersion } from "@/lib/updater";
 
 interface AboutSectionProps {
   isPortable: boolean;
@@ -170,8 +174,15 @@ const TOOL_APP_IDS: Record<ToolName, AppId> = {
   hermes: "hermes",
 };
 
+const OPENSUNSTAR_WEBSITE_URL = "https://opensunstar.github.io/";
+const OPENSUNSTAR_GITHUB_URL = "https://github.com/alisunstar/OpenSunstar";
+const OPENSUNSTAR_RELEASE_NOTES_URL =
+  "https://github.com/alisunstar/OpenSunstar/releases";
+
 export function AboutSection(_props: AboutSectionProps) {
   const { t } = useTranslation();
+  const [currentVersion, setCurrentVersion] = useState<string>("");
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [toolVersions, setToolVersions] = useState<ToolVersion[]>([]);
   const [isLoadingTools, setIsLoadingTools] = useState(true);
   const [toolActions, setToolActions] = useState<
@@ -315,6 +326,50 @@ export function AboutSection(_props: AboutSectionProps) {
     // refreshes are handled by refreshToolVersions in the shell/flag handlers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCurrentVersion = async () => {
+      const version = await getCurrentVersion();
+      if (isMounted) {
+        setCurrentVersion(version);
+      }
+    };
+    void loadCurrentVersion();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const openExternalLink = useCallback(
+    async (url: string) => {
+      try {
+        await settingsApi.openExternal(url);
+      } catch (error) {
+        console.error("[AboutSection] Failed to open external url", error);
+        toast.error(t("settings.openReleaseNotesFailed"), {
+          description: extractErrorMessage(error) || undefined,
+          closeButton: true,
+        });
+      }
+    },
+    [t],
+  );
+
+  const handleCheckUpdates = useCallback(async () => {
+    setIsCheckingUpdates(true);
+    try {
+      await settingsApi.checkUpdates();
+    } catch (error) {
+      console.error("[AboutSection] Failed to check updates", error);
+      toast.error(t("settings.checkUpdateFailed"), {
+        description: extractErrorMessage(error) || undefined,
+        closeButton: true,
+      });
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  }, [t]);
 
   const handleCopyInstallCommands = useCallback(async () => {
     try {
@@ -639,6 +694,64 @@ export function AboutSection(_props: AboutSectionProps) {
           {t("settings.aboutHint")}
         </p>
       </header>
+
+      <div className="rounded-xl border border-border bg-gradient-to-br from-card/80 to-card/40 p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-1">
+            <div className="text-xl font-semibold">OpenSunstar</div>
+            <div className="text-sm text-muted-foreground">
+              {t("settings.currentVersion")}:{" "}
+              <span className="font-mono text-foreground">
+                {currentVersion || t("common.unknown")}
+              </span>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => openExternalLink(OPENSUNSTAR_WEBSITE_URL)}
+            >
+              <Globe className="h-3.5 w-3.5" />
+              {t("settings.officialWebsite")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => openExternalLink(OPENSUNSTAR_GITHUB_URL)}
+            >
+              <Github className="h-3.5 w-3.5" />
+              {t("settings.github")}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => openExternalLink(OPENSUNSTAR_RELEASE_NOTES_URL)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+              {t("settings.releaseNotes")}
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={handleCheckUpdates}
+              disabled={isCheckingUpdates}
+            >
+              {isCheckingUpdates ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5" />
+              )}
+              {isCheckingUpdates
+                ? t("settings.checking")
+                : t("settings.checkForUpdates")}
+            </Button>
+          </div>
+        </div>
+      </div>
 
       <div className="space-y-3">
         <div className="flex flex-col gap-2 px-1 sm:flex-row sm:items-center sm:justify-between">

@@ -18,7 +18,7 @@ const HooksPanel = React.forwardRef<HooksPanelHandle, { open: boolean }>(
     const [editingId, setEditingId] = useState<string | null>(null);
     const [confirmId, setConfirmId] = useState<string | null>(null);
 
-    const { hooks, loading, reload, saveHook, deleteHook, syncHooks } =
+    const { hooks, loading, reload, saveHook, deleteHook, toggleApp, syncHooks } =
       useHookActions();
 
     useEffect(() => {
@@ -46,7 +46,7 @@ const HooksPanel = React.forwardRef<HooksPanelHandle, { open: boolean }>(
             })}
           </div>
           <Button variant="outline" size="sm" onClick={() => void syncHooks()}>
-            {t("hooks.syncNow", { defaultValue: "同步到 Claude" })}
+            {t("hooks.syncNow", { defaultValue: "同步到各 CLI" })}
           </Button>
         </div>
 
@@ -75,6 +75,9 @@ const HooksPanel = React.forwardRef<HooksPanelHandle, { open: boolean }>(
                     setIsFormOpen(true);
                   }}
                   onDelete={setConfirmId}
+                  onToggleApp={(id, app, enabled) =>
+                    void toggleApp(id, app, enabled)
+                  }
                 />
               ))}
             </div>

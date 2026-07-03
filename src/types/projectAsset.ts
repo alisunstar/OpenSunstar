@@ -9,7 +9,7 @@ export type ProjectAssetType =
   | "permission"
   | "subagent";
 
-/** 扩展资产类型（仅存于 project_asset_links 表） */
+/** 扩展资产类型（`project_asset_links` 中 command~subagent；mcp/skill/prompt 亦存同表） */
 export type ExtendedProjectAssetType =
   | "command"
   | "hook"

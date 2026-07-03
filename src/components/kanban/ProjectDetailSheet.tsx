@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { StagePicker } from "./StagePicker";
 import { AgentReadinessPanel } from "./AgentReadinessPanel";
 import { ProjectAssetPanel } from "@/components/projects/ProjectAssetPanel";
+import { ProjectBlueprintPanel } from "@/components/projects/ProjectBlueprintPanel";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { Project } from "@/types/project";
 import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
@@ -14,6 +15,8 @@ import type { ProjectContextInput } from "@/api/aiInsight";
 import { AIRiskAnalysis } from "./AIRiskAnalysis";
 import { CommitTrendChart } from "./CommitTrendChart";
 import { useAIRisk, useAgentReadiness } from "@/hooks/useAIInsight";
+import { repairAssetDrift } from "@/api/aiInsight";
+import { showRepairAssetFeedback } from "@/lib/repairFeedback";
 import { useAIRoiReport } from "@/hooks/useAIRoiReport";
 import { useAICost } from "@/contexts/AICostContext";
 import { activityTier7d, formatCompactNumber } from "@/lib/portfolioMetrics";
@@ -78,6 +81,7 @@ export function ProjectDetailSheet({
   const [scrollSection, setScrollSection] = useState<ProjectAssetSection | null>(
     null,
   );
+  const [repairingCheckName, setRepairingCheckName] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveTab(initialTab);
@@ -150,6 +154,23 @@ export function ProjectDetailSheet({
     scanEffective();
     onPortfolioConfigChanged?.();
   }, [scanEffective, onPortfolioConfigChanged]);
+
+  const handleRepairDrift = useCallback(
+    async (checkName: string) => {
+      setRepairingCheckName(checkName);
+      try {
+        const result = await repairAssetDrift(project.path, checkName, targetApp);
+        const ok = showRepairAssetFeedback(result, tr);
+        if (ok || result) {
+          scanEffective();
+          onPortfolioConfigChanged?.();
+        }
+      } finally {
+        setRepairingCheckName(null);
+      }
+    },
+    [project.path, targetApp, scanEffective, onPortfolioConfigChanged, tr],
+  );
 
   function activityLabel(count: number): { text: string; color: string } {
     const tier = activityTier7d(count);
@@ -573,6 +594,8 @@ export function ProjectDetailSheet({
             isLoading={readinessLoading}
             onRefresh={refreshReadiness}
             onScanEffective={scanEffective}
+            onRepairDrift={handleRepairDrift}
+            repairingCheckName={repairingCheckName}
             onOpenProjectAssets={openAssetsTab}
             onNavigate={handleNavigate}
             compact
@@ -582,11 +605,20 @@ export function ProjectDetailSheet({
 
           {activeTab === "aiAssets" && (
             <div className="space-y-6">
+              <ProjectBlueprintPanel
+                projectId={project.id}
+                onApplied={() => {
+                  void refreshReadiness();
+                  handleConfigChanged();
+                }}
+              />
               <AgentReadinessPanel
                 data={readinessData}
                 isLoading={readinessLoading}
                 onRefresh={refreshReadiness}
                 onScanEffective={scanEffective}
+                onRepairDrift={handleRepairDrift}
+                repairingCheckName={repairingCheckName}
                 onOpenProjectAssets={openAssetsTab}
                 onNavigate={handleNavigate}
               />

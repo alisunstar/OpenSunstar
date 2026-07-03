@@ -3443,7 +3443,48 @@
         "drifted": "未生效",
         "unconfigured": "未配置",
         "unchecked": "暂未比对"
-      }
+      },
+      "driftBadge": "{{count}} 项配置漂移",
+      "driftShort": "漂移 {{count}}",
+      "repairDrift": "一键修复",
+      "repairSuccess": "已写回并验证生效",
+      "repairFailed": "修复后仍存在漂移",
+      "repairError": "修复请求失败，请稍后重试",
+      "repairNoop": "当前项无需修复"
+    },
+    "governance": {
+      "title": "治理总览",
+      "forApp": "目标 CLI：{{app}}",
+      "scannedProjects": "已扫描项目",
+      "ofTotal": "共 {{total}} 个",
+      "driftProjects": "漂移项目",
+      "driftItems": "{{count}} 项待修复",
+      "effectiveRate": "生效率",
+      "comparableItems": "{{count}} 项可比对",
+      "effectiveItems": "已生效项",
+      "portfolioScope": "组合层汇总",
+      "driftBreakdown": "漂移分布（按资产类型）",
+      "allEffective": "可比对资产均已生效，组合层治理状态良好。",
+      "awaitingScan": "就绪度扫描完成后将显示治理指标。",
+      "repairConfirmTitle": "确认写回修复？",
+      "repairConfirmProjectTitle": "确认修复全部漂移？",
+      "repairConfirmAssetIntro": "将把 OpenSunstar 库中的「{{label}}」写回目标 CLI（{{app}}）对应的项目级文件，可能覆盖你在 IDE/终端里手动改过的内容。",
+      "repairConfirmProjectIntro": "将修复项目「{{name}}」的全部 {{count}} 项漂移：逐项写回 OpenSunstar 库内容到目标 CLI（{{app}}），可能覆盖外部手动修改。",
+      "repairConfirmDetail": "漂移说明：{{detail}}",
+      "repairConfirmPath": "目标路径：{{path}}",
+      "repairConfirmProceed": "确认后将立即写回并复扫验证；此操作不可自动撤销。",
+      "repairConfirmAction": "确认写回",
+      "repairConfirmProjectAction": "确认修复全部"
+    },
+    "portfolioDrift": {
+      "allClear": "组合层生效态巡检：未发现配置漂移。",
+      "title": "{{projects}} 个项目存在配置漂移（共 {{items}} 项）",
+      "forApp": "目标 CLI：{{app}}",
+      "itemCount": "{{count}} 项漂移",
+      "repairAll": "修复全部漂移",
+      "repairAllSuccess": "已修复 {{count}} 项漂移并验证生效",
+      "repairPartial": "已修复 {{fixed}} 项，仍有 {{remaining}} 项漂移",
+      "repairNone": "未发现可修复的漂移项"
     }
   },
   "projectConfig": {
@@ -3518,6 +3559,7 @@
       "allGood": "各项目配置状态良好，可直接进入迭代。",
       "configureAssets": "配置资产",
       "reasonReadiness": "就绪分 {{score}}/{{max}}",
+      "reasonDrift": "配置漂移 {{count}} 项",
       "reasonMcp": "未关联 MCP",
       "reasonSkills": "未配置 Skills",
       "reasonPrompts": "未关联 Prompts",
@@ -3557,6 +3599,21 @@
       "updatesUnit": "次"
     },
     "duplicateCleanup": "重复资产检测"
+  },
+  "projectBlueprint": {
+    "title": "项目基线 Blueprint",
+    "hint": "选择模板一键关联全局库资产；合并模式仅新增关联，不删除已有配置。",
+    "loading": "加载 Blueprint…",
+    "exportSnapshot": "导出快照",
+    "targetCli": "项目目标 CLI",
+    "targetDefault": "沿用看板默认",
+    "saveTarget": "保存",
+    "previewing": "生成预览…",
+    "previewTitle": "预览：将新增 {{count}} 项关联（{{name}}）",
+    "apply": "应用 Blueprint",
+    "applied": "已应用「{{name}}」，关联 {{count}} 项资产",
+    "targetSaved": "项目目标 CLI 已保存",
+    "snapshotExported": "基线快照已导出：{{path}}"
   },
   "subscription": {
     "title": "订阅额度",

@@ -1,7 +1,6 @@
-use serde_json::json;
-
+use crate::app_config::AppType;
 use crate::error::AppError;
-use crate::services::claude_settings::ClaudeSettingsMerger;
+use crate::services::permission_sync;
 use crate::store::AppState;
 use crate::tool_permission::{
     validate_permission_type, validate_tool_pattern, ToolPermission,
@@ -46,7 +45,7 @@ impl PermissionService {
         validate_permission_type(&perm.permission_type).map_err(AppError::Config)?;
         validate_tool_pattern(&perm.tool_pattern).map_err(AppError::Config)?;
         state.db.save_tool_permission(&perm)?;
-        Self::sync_permissions_to_claude(state)
+        Self::sync_all_apps(state)
     }
 
     pub fn delete_permission(state: &AppState, id: &str) -> Result<bool, AppError> {
@@ -59,8 +58,24 @@ impl PermissionService {
             return Ok(false);
         }
         state.db.delete_tool_permission(id)?;
-        Self::sync_permissions_to_claude(state)?;
+        Self::sync_all_apps(state)?;
         Ok(true)
+    }
+
+    pub fn toggle_app(
+        state: &AppState,
+        perm_id: &str,
+        app: AppType,
+        enabled: bool,
+    ) -> Result<(), AppError> {
+        let mut perms = state.db.get_all_tool_permissions()?;
+        if let Some(perm) = perms.iter_mut().find(|p| p.id == perm_id) {
+            perm.set_enabled_for(&app, enabled);
+            let snapshot = perm.clone();
+            state.db.save_tool_permission(&snapshot)?;
+            permission_sync::sync_app(state, &app)?;
+        }
+        Ok(())
     }
 
     pub fn apply_preset(state: &AppState, preset_id: &str) -> Result<(), AppError> {
@@ -73,40 +88,16 @@ impl PermissionService {
         for rule in rules {
             state.db.save_tool_permission(&rule)?;
         }
-        Self::sync_permissions_to_claude(state)
+        Self::sync_all_apps(state)
     }
 
+    pub fn sync_all_apps(state: &AppState) -> Result<(), AppError> {
+        permission_sync::sync_all_apps(state)
+    }
+
+    /// Backward-compatible alias for Claude-only callers.
     pub fn sync_permissions_to_claude(state: &AppState) -> Result<(), AppError> {
-        let perms = state
-            .db
-            .get_all_tool_permissions()?
-            .into_iter()
-            .filter(|p| p.enabled_claude)
-            .collect::<Vec<_>>();
-
-        let mut allow: Vec<String> = Vec::new();
-        let mut deny: Vec<String> = Vec::new();
-
-        for perm in perms {
-            match perm.permission_type.as_str() {
-                "allowedTools" | "autoApprove" => allow.push(perm.tool_pattern),
-                "deniedTools" => deny.push(perm.tool_pattern),
-                _ => {}
-            }
-        }
-
-        allow.sort();
-        allow.dedup();
-        deny.sort();
-        deny.dedup();
-
-        let permissions = json!({
-            "allow": allow,
-            "deny": deny,
-            "additionalDirectories": []
-        });
-
-        ClaudeSettingsMerger::update_field("permissions", permissions)
+        permission_sync::sync_app(state, &AppType::Claude)
     }
 }
 
@@ -116,6 +107,11 @@ fn preset_rules(preset_id: &str, now: i64) -> Vec<ToolPermission> {
         permission_type: permission_type.into(),
         tool_pattern: tool_pattern.into(),
         enabled_claude: true,
+        enabled_codex: false,
+        enabled_gemini: false,
+        enabled_opencode: false,
+        enabled_hermes: false,
+        enabled_openclaw: false,
         description: Some(desc.into()),
         sort_index: idx,
         created_at: Some(now),

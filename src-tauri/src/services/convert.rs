@@ -12,6 +12,7 @@ use toml_edit::{DocumentMut, Item, Table};
 
 use crate::app_config::AppType;
 use crate::claude_mcp;
+use crate::codex_config::get_codex_config_dir;
 use crate::config::{atomic_write, get_claude_mcp_path, write_text_file};
 use crate::error::AppError;
 use crate::gemini_mcp;
@@ -795,9 +796,7 @@ fn commands_dir_for_app(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Gemini => Ok(crate::gemini_config::get_gemini_dir().join("commands")),
         AppType::OpenCode => Ok(crate::opencode_config::get_opencode_dir().join("commands")),
         AppType::Hermes => Ok(crate::hermes_config::get_hermes_dir().join("commands")),
-        AppType::Codex => Err(AppError::Config(
-            "Codex 不支持独立 slash 命令文件".into(),
-        )),
+        AppType::Codex => Ok(get_codex_config_dir().join("commands")),
         AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(format!(
             "{app:?} 不支持 slash 命令检测"
         ))),

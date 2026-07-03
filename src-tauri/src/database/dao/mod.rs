@@ -26,4 +26,3 @@ pub mod usage_rollup;
 // 导出 FailoverQueueItem 供外部使用
 pub use failover::FailoverQueueItem;
 pub use projects::{Project, ProjectConfigLink, ProjectPromptLink};
-pub use project_assets::{ProjectAllAssetCounts, ProjectAssetLink, EXTENDED_ASSET_TYPES};

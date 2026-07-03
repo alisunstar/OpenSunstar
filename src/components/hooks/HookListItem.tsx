@@ -1,16 +1,26 @@
 import { useTranslation } from "react-i18next";
 import { Edit3, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AppToggleGroup } from "@/components/common/AppToggleGroup";
 import type { Hook } from "@/lib/api/hooks";
+import type { AppId } from "@/lib/api";
 import { HookEventTypeBadge } from "./HookEventTypeBadge";
+
+const HOOK_APP_IDS: AppId[] = ["claude", "codex", "gemini", "hermes"];
 
 interface HookListItemProps {
   hook: Hook;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  onToggleApp: (id: string, app: AppId, enabled: boolean) => void;
 }
 
-export function HookListItem({ hook, onEdit, onDelete }: HookListItemProps) {
+export function HookListItem({
+  hook,
+  onEdit,
+  onDelete,
+  onToggleApp,
+}: HookListItemProps) {
   const { t } = useTranslation();
 
   return (
@@ -35,6 +45,16 @@ export function HookListItem({ hook, onEdit, onDelete }: HookListItemProps) {
               defaultValue: "超时 {{seconds}}s",
             })}
           </p>
+          <AppToggleGroup
+            apps={{
+              claude: hook.enabledClaude,
+              codex: hook.enabledCodex,
+              gemini: hook.enabledGemini,
+              hermes: hook.enabledHermes,
+            }}
+            appIds={HOOK_APP_IDS}
+            onToggle={(app, enabled) => onToggleApp(hook.id, app, enabled)}
+          />
         </div>
         <div className="flex gap-1 shrink-0">
           <Button variant="ghost" size="icon" onClick={() => onEdit(hook.id)}>

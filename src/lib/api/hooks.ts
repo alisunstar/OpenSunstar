@@ -13,6 +13,10 @@ export interface Hook {
   hookCommand: string;
   timeoutSeconds: number;
   enabledClaude: boolean;
+  enabledCodex?: boolean;
+  enabledGemini?: boolean;
+  enabledOpencode?: boolean;
+  enabledHermes?: boolean;
   description?: string;
   sortIndex: number;
   createdAt?: number;
@@ -29,6 +33,14 @@ export const hooksApi = {
 
   async delete(id: string): Promise<boolean> {
     return await invoke("delete_hook", { id });
+  },
+
+  async toggleApp(
+    hookId: string,
+    app: string,
+    enabled: boolean,
+  ): Promise<void> {
+    return await invoke("toggle_hook_app", { hookId, app, enabled });
   },
 
   async sync(): Promise<void> {

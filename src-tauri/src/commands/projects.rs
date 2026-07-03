@@ -2,12 +2,11 @@
 
 use tauri::State;
 
-use crate::ai::readiness_cache::invalidate_agent_readiness_for_project;
 use crate::database::{Project, ProjectConfigLink, ProjectPromptLink};
 use crate::store::AppState;
 
 fn touch_readiness(state: &AppState, project_id: &str) {
-    invalidate_agent_readiness_for_project(&state.db, project_id, None);
+    crate::services::project_artifacts::touch_project_governance(state, project_id);
 }
 
 // ========== Projects CRUD ==========
@@ -200,6 +199,20 @@ pub async fn unlink_project_prompt(
         touch_readiness(&state, &project_id);
     }
     Ok(removed)
+}
+
+#[tauri::command]
+pub async fn set_project_target_app(
+    state: State<'_, AppState>,
+    project_id: String,
+    target_app: Option<String>,
+) -> Result<(), String> {
+    state
+        .db
+        .set_project_target_app(&project_id, target_app.as_deref())
+        .map_err(|e| e.to_string())?;
+    touch_readiness(&state, &project_id);
+    Ok(())
 }
 
 #[tauri::command]

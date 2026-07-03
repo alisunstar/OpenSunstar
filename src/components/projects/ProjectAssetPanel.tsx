@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Server,
@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { useProjectConfig } from "@/hooks/useProjectConfig";
-import { useProjectExtendedAssets } from "@/hooks/useProjectExtendedAssets";
+import { useProjectAssets } from "@/hooks/useProjectAssets";
 import { mcpApi } from "@/lib/api/mcp";
 import { skillsApi, type InstalledSkill } from "@/lib/api/skills";
-import { promptsApi, type Prompt } from "@/lib/api/prompts";
+import { promptsApi } from "@/lib/api/prompts";
+import type { AppId } from "@/lib/api/types";
 import { commandsApi, type Command } from "@/lib/api/commands";
 import { hooksApi, type Hook } from "@/lib/api/hooks";
 import { ignoreApi, type IgnoreRule } from "@/lib/api/ignore";
@@ -34,7 +34,7 @@ import {
   ProjectAssetEnableSwitch,
   ProjectAssetSupportTooltipProvider,
 } from "./ProjectAssetSupport";
-import { summarizeAssetSupport } from "@/lib/projectAssets/assetAppSupport";
+import { summarizeAssetSupport, PROMPT_SYNC_APP_IDS } from "@/lib/projectAssets/assetAppSupport";
 
 interface ProjectAssetPanelProps {
   projectId: string;
@@ -72,8 +72,8 @@ export function ProjectAssetPanel({
   onNavigateToGlobal,
 }: ProjectAssetPanelProps) {
   const { t } = useTranslation();
-  const { loading, mcp, skills, prompts } = useProjectConfig(projectId);
-  const extended = useProjectExtendedAssets(projectId);
+  const { loading, project, mcp, skills, prompts, extended } =
+    useProjectAssets(projectId);
 
   const sectionRefs = useRef<Partial<Record<ProjectAssetSection, HTMLElement>>>(
     {},
@@ -81,7 +81,9 @@ export function ProjectAssetPanel({
 
   const [allMcp, setAllMcp] = useState<McpServersMap>({});
   const [allSkills, setAllSkills] = useState<InstalledSkill[]>([]);
-  const [allPrompts, setAllPrompts] = useState<Record<string, Prompt>>({});
+  const [promptCatalog, setPromptCatalog] = useState<
+    { id: string; name: string; appType: AppId }[]
+  >([]);
   const [allCommands, setAllCommands] = useState<Command[]>([]);
   const [allHooks, setAllHooks] = useState<Hook[]>([]);
   const [allIgnore, setAllIgnore] = useState<IgnoreRule[]>([]);
@@ -97,26 +99,34 @@ export function ProjectAssetPanel({
         const [
           mcpData,
           skillsData,
-          promptsData,
           commandsData,
           hooksData,
           ignoreData,
           permsData,
           agentsData,
+          ...promptBundles
         ] = await Promise.all([
           mcpApi.getAllServers(),
           skillsApi.getInstalled(),
-          promptsApi.getPrompts("claude"),
           commandsApi.getAll(),
           hooksApi.getAll(),
           ignoreApi.getAll(),
           permissionsApi.getAll(),
           agentsApi.getAll(),
+          ...PROMPT_SYNC_APP_IDS.map(async (app) => {
+            const data = await promptsApi.getPrompts(app);
+            return Object.entries(data).map(([id, prompt]) => ({
+              id,
+              name: prompt.name,
+              appType: app,
+            }));
+          }),
         ]);
+        const promptItems = promptBundles.flat();
         if (!cancelled) {
           setAllMcp(mcpData);
           setAllSkills(skillsData);
-          setAllPrompts(promptsData);
+          setPromptCatalog(promptItems);
           setAllCommands(Object.values(commandsData));
           setAllHooks(hooksData);
           setAllIgnore(ignoreData);
@@ -141,11 +151,11 @@ export function ProjectAssetPanel({
       behavior: "smooth",
       block: "start",
     });
-  }, [scrollToSection, loading, globalLoading, extended.loading]);
+  }, [scrollToSection, loading, globalLoading]);
 
   const notifyChanged = () => onConfigChanged?.();
 
-  if (loading || globalLoading || extended.loading) {
+  if (loading || globalLoading) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -159,6 +169,40 @@ export function ProjectAssetPanel({
   const promptLinkedIds = new Set(
     prompts.links.map((l) => `${l.prompt_id}:${l.prompt_app_type}`),
   );
+
+  const promptRows = useMemo(() => {
+    const byKey = new Map<string, { id: string; name: string; appType: AppId }>();
+    for (const item of promptCatalog) {
+      byKey.set(`${item.appType}:${item.id}`, item);
+    }
+    for (const link of prompts.links) {
+      const key = `${link.prompt_app_type}:${link.prompt_id}`;
+      if (!byKey.has(key)) {
+        byKey.set(key, {
+          id: link.prompt_id,
+          name: link.prompt_id,
+          appType: link.prompt_app_type as AppId,
+        });
+      }
+    }
+    const rows = Array.from(byKey.values());
+    const target = project?.target_app;
+    if (target) {
+      rows.sort((a, b) => {
+        if (a.appType === target && b.appType !== target) return -1;
+        if (b.appType === target && a.appType !== target) return 1;
+        return (
+          a.appType.localeCompare(b.appType) || a.name.localeCompare(b.name)
+        );
+      });
+    } else {
+      rows.sort(
+        (a, b) =>
+          a.appType.localeCompare(b.appType) || a.name.localeCompare(b.name),
+      );
+    }
+    return rows;
+  }, [promptCatalog, prompts.links, project?.target_app]);
 
   const setSectionRef =
     (section: ProjectAssetSection) => (el: HTMLElement | null) => {
@@ -315,7 +359,7 @@ export function ProjectAssetPanel({
           </p>
         </div>
 
-        {/* MCP — 旧三表 canonical */}
+        {/* MCP */}
         <section ref={setSectionRef("mcp")}>
           {renderSectionHeader(
             "mcp",
@@ -404,29 +448,34 @@ export function ProjectAssetPanel({
           {renderSectionHeader(
             "prompt",
             t("projectConfig.prompts", { defaultValue: "Prompts" }),
-            prompts.links.length,
-            Object.keys(allPrompts).length,
+            prompts.links.filter((l) => l.enabled).length,
+            promptRows.length,
           )}
-          {Object.keys(allPrompts).length === 0 ? (
+          {promptRows.length === 0 ? (
             <p className="text-xs text-muted-foreground">
               {t("projectConfig.noPrompts", { defaultValue: "暂无 Prompts" })}
             </p>
           ) : (
             <div className="space-y-2">
-              {Object.entries(allPrompts).map(([id, prompt]) => (
+              {promptRows.map((item) => (
                 <div
-                  key={id}
+                  key={`${item.appType}:${item.id}`}
                   className="flex items-center justify-between px-3 py-2 rounded-md border border-border/50 bg-card/50"
                 >
-                  <p className="text-sm font-medium truncate">{prompt.name}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-[11px] text-muted-foreground truncate">
+                      {item.appType}
+                    </p>
+                  </div>
                   <ProjectAssetEnableSwitch
                     assetType="prompt"
-                    checked={promptLinkedIds.has(`${id}:claude`)}
+                    checked={promptLinkedIds.has(`${item.id}:${item.appType}`)}
                     onCheckedChange={(checked) => {
                       void (async () => {
                         try {
-                          if (checked) await prompts.link(id, "claude");
-                          else await prompts.unlink(id, "claude");
+                          if (checked) await prompts.link(item.id, item.appType);
+                          else await prompts.unlink(item.id, item.appType);
                           notifyChanged();
                         } catch {
                           toast.error("操作失败");

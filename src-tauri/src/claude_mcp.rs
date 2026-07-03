@@ -382,6 +382,106 @@ pub fn read_mcp_servers_map() -> Result<std::collections::HashMap<String, Value>
     Ok(servers)
 }
 
+/// 将单条 MCP 服务器规范清理为可写入 Claude / 项目 `.mcp.json` 的格式
+pub fn sanitize_mcp_server_spec(
+    id: &str,
+    spec: &Value,
+    is_wsl_target: bool,
+) -> Result<Value, AppError> {
+    let mut obj = if let Some(map) = spec.as_object() {
+        map.clone()
+    } else {
+        return Err(AppError::McpValidation(format!(
+            "MCP 服务器 '{id}' 不是对象"
+        )));
+    };
+
+    if let Some(server_val) = obj.remove("server") {
+        let server_obj = server_val.as_object().cloned().ok_or_else(|| {
+            AppError::McpValidation(format!("MCP 服务器 '{id}' server 字段不是对象"))
+        })?;
+        obj = server_obj;
+    }
+
+    obj.remove("enabled");
+    obj.remove("source");
+    obj.remove("id");
+    obj.remove("name");
+    obj.remove("description");
+    obj.remove("tags");
+    obj.remove("homepage");
+    obj.remove("docs");
+
+    if !is_wsl_target {
+        wrap_command_for_windows(&mut obj);
+    }
+
+    Ok(Value::Object(obj))
+}
+
+fn build_sanitized_mcp_servers_map(
+    servers: &std::collections::HashMap<String, Value>,
+    target_path: &Path,
+) -> Result<Map<String, Value>, AppError> {
+    let is_wsl_target = is_wsl_path(target_path);
+    if is_wsl_target {
+        log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", target_path.display());
+    }
+    let mut out: Map<String, Value> = Map::new();
+    for (id, spec) in servers.iter() {
+        let sanitized = sanitize_mcp_server_spec(id, spec, is_wsl_target)?;
+        out.insert(id.clone(), sanitized);
+    }
+    Ok(out)
+}
+
+/// 与写回路径一致的 MCP 期望映射（用于生效态比对，避免 sanitize 差异导致假漂移）
+pub fn sanitized_mcp_servers_map(
+    servers: &std::collections::HashMap<String, Value>,
+    target_path: &Path,
+) -> Result<std::collections::HashMap<String, Value>, AppError> {
+    Ok(build_sanitized_mcp_servers_map(servers, target_path)?
+        .into_iter()
+        .collect())
+}
+
+/// 读取项目根 `.mcp.json` 中的 mcpServers
+pub fn read_project_mcp_servers_map(
+    project_root: &Path,
+) -> Result<std::collections::HashMap<String, Value>, AppError> {
+    let path = project_root.join(".mcp.json");
+    if !path.is_file() {
+        return Ok(std::collections::HashMap::new());
+    }
+    let root = read_json_value(&path)?;
+    let servers = root
+        .get("mcpServers")
+        .and_then(|v| v.as_object())
+        .map(|obj| obj.iter().map(|(k, v)| (k.clone(), v.clone())).collect())
+        .unwrap_or_default();
+    Ok(servers)
+}
+
+/// 写入项目根 `.mcp.json`（仅覆盖 mcpServers，保留其他顶层字段）
+pub fn write_project_mcp_servers_map(
+    project_root: &Path,
+    servers: &std::collections::HashMap<String, Value>,
+) -> Result<(), AppError> {
+    let path = project_root.join(".mcp.json");
+    let mut root = if path.exists() {
+        read_json_value(&path)?
+    } else {
+        serde_json::json!({})
+    };
+    let out = build_sanitized_mcp_servers_map(servers, &path)?;
+    let obj = root
+        .as_object_mut()
+        .ok_or_else(|| AppError::Config(".mcp.json 根必须是对象".into()))?;
+    obj.insert("mcpServers".into(), Value::Object(out));
+    write_json_value(&path, &root)?;
+    Ok(())
+}
+
 /// 将给定的启用 MCP 服务器映射写入到用户级 ~/.claude.json 的 mcpServers 字段
 /// 仅覆盖 mcpServers，其他字段保持不变
 pub fn set_mcp_servers_map(
@@ -394,45 +494,7 @@ pub fn set_mcp_servers_map(
         serde_json::json!({})
     };
 
-    // 构建 mcpServers 对象：移除 UI 辅助字段（enabled/source），仅保留实际 MCP 规范
-    // 检测目标路径是否为 WSL，若是则跳过 cmd /c 包装
-    let is_wsl_target = is_wsl_path(&path);
-    if is_wsl_target {
-        log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", path.display());
-    }
-    let mut out: Map<String, Value> = Map::new();
-    for (id, spec) in servers.iter() {
-        let mut obj = if let Some(map) = spec.as_object() {
-            map.clone()
-        } else {
-            return Err(AppError::McpValidation(format!(
-                "MCP 服务器 '{id}' 不是对象"
-            )));
-        };
-
-        if let Some(server_val) = obj.remove("server") {
-            let server_obj = server_val.as_object().cloned().ok_or_else(|| {
-                AppError::McpValidation(format!("MCP 服务器 '{id}' server 字段不是对象"))
-            })?;
-            obj = server_obj;
-        }
-
-        obj.remove("enabled");
-        obj.remove("source");
-        obj.remove("id");
-        obj.remove("name");
-        obj.remove("description");
-        obj.remove("tags");
-        obj.remove("homepage");
-        obj.remove("docs");
-
-        // Windows 平台自动包装 npx/npm 等命令为 cmd /c 格式（WSL 路径除外）
-        if !is_wsl_target {
-            wrap_command_for_windows(&mut obj);
-        }
-
-        out.insert(id.clone(), Value::Object(obj));
-    }
+    let out = build_sanitized_mcp_servers_map(servers, &path)?;
 
     {
         let obj = root

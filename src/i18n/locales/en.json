@@ -3369,7 +3369,48 @@
         "drifted": "Drifted",
         "unconfigured": "Not configured",
         "unchecked": "Not compared"
-      }
+      },
+      "driftBadge": "{{count}} drifted item(s)",
+      "driftShort": "Drift {{count}}",
+      "repairDrift": "Repair drift",
+      "repairSuccess": "Write-back verified",
+      "repairFailed": "Still drifted after repair",
+      "repairError": "Repair request failed — try again",
+      "repairNoop": "No repair needed for this item"
+    },
+    "governance": {
+      "title": "Governance overview",
+      "forApp": "Target CLI: {{app}}",
+      "scannedProjects": "Scanned projects",
+      "ofTotal": "{{total}} total",
+      "driftProjects": "Projects with drift",
+      "driftItems": "{{count}} item(s) to fix",
+      "effectiveRate": "Effective rate",
+      "comparableItems": "{{count}} comparable",
+      "effectiveItems": "Effective items",
+      "portfolioScope": "Portfolio aggregate",
+      "driftBreakdown": "Drift by asset type",
+      "allEffective": "All comparable assets are effective.",
+      "awaitingScan": "Governance metrics appear after readiness scan completes.",
+      "repairConfirmTitle": "Confirm write-back repair?",
+      "repairConfirmProjectTitle": "Repair all drift for this project?",
+      "repairConfirmAssetIntro": "OpenSunstar will write the library copy of \"{{label}}\" to the project-level files for {{app}}. This may overwrite manual edits you made outside OpenSunstar.",
+      "repairConfirmProjectIntro": "Repair all {{count}} drifted item(s) for \"{{name}}\" by writing OpenSunstar library content to {{app}} project files. External manual edits may be overwritten.",
+      "repairConfirmDetail": "Drift: {{detail}}",
+      "repairConfirmPath": "Target path: {{path}}",
+      "repairConfirmProceed": "Write-back and re-scan run immediately after you confirm. This cannot be undone automatically.",
+      "repairConfirmAction": "Confirm write-back",
+      "repairConfirmProjectAction": "Repair all"
+    },
+    "portfolioDrift": {
+      "allClear": "Portfolio effective-state scan: no configuration drift detected.",
+      "title": "{{projects}} project(s) with drift ({{items}} item(s) total)",
+      "forApp": "Target CLI: {{app}}",
+      "itemCount": "{{count}} drifted",
+      "repairAll": "Repair all drift",
+      "repairAllSuccess": "Repaired {{count}} drifted item(s) and verified",
+      "repairPartial": "Fixed {{fixed}}, {{remaining}} still drifted",
+      "repairNone": "No drifted items to repair"
     }
   },
   "projectConfig": {
@@ -3444,6 +3485,7 @@
       "allGood": "All projects look healthy — you're good to ship.",
       "configureAssets": "Configure assets",
       "reasonReadiness": "Readiness {{score}}/{{max}}",
+      "reasonDrift": "{{count}} configuration drift item(s)",
       "reasonMcp": "No MCP linked",
       "reasonSkills": "No Skills",
       "reasonPrompts": "No Prompts linked",
@@ -3483,6 +3525,21 @@
       "updatesUnit": "commits"
     },
     "duplicateCleanup": "Duplicate asset detection"
+  },
+  "projectBlueprint": {
+    "title": "Project baseline Blueprint",
+    "hint": "Pick a template to link global library assets. Merge mode only adds links; existing config is kept.",
+    "loading": "Loading blueprints…",
+    "exportSnapshot": "Export snapshot",
+    "targetCli": "Project target CLI",
+    "targetDefault": "Use board default",
+    "saveTarget": "Save",
+    "previewing": "Building preview…",
+    "previewTitle": "Preview: {{count}} new links ({{name}})",
+    "apply": "Apply Blueprint",
+    "applied": "Applied \"{{name}}\" — linked {{count}} assets",
+    "targetSaved": "Project target CLI saved",
+    "snapshotExported": "Baseline snapshot exported: {{path}}"
   },
   "subscription": {
     "title": "Subscription Quota",

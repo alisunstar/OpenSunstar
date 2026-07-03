@@ -25,6 +25,7 @@ const PermissionsPanel = React.forwardRef<PermissionsPanelHandle, { open: boolea
       reload,
       savePermission,
       deletePermission,
+      toggleApp,
       syncPermissions,
       applyPreset,
     } = usePermissionActions();
@@ -55,7 +56,7 @@ const PermissionsPanel = React.forwardRef<PermissionsPanelHandle, { open: boolea
               })}
             </div>
             <Button variant="outline" size="sm" onClick={() => void syncPermissions()}>
-              {t("permissions.syncNow", { defaultValue: "同步到 Claude" })}
+              {t("permissions.syncNow", { defaultValue: "同步到各 CLI" })}
             </Button>
           </div>
           {presets.length > 0 && (
@@ -94,7 +95,7 @@ const PermissionsPanel = React.forwardRef<PermissionsPanelHandle, { open: boolea
               <p className="text-sm text-muted-foreground max-w-md mx-auto">
                 {t("permissions.emptyHint", {
                   defaultValue:
-                    "管理 Claude Code 的 allow/deny 工具列表，可与 Hooks 共存于 settings.json",
+                    "管理各 CLI 的工具 allow/deny 规则；通过图标切换同步目标",
                 })}
               </p>
             </div>
@@ -109,6 +110,9 @@ const PermissionsPanel = React.forwardRef<PermissionsPanelHandle, { open: boolea
                     setIsFormOpen(true);
                   }}
                   onDelete={setConfirmId}
+                  onToggleApp={(id, app, enabled) =>
+                    void toggleApp(id, app, enabled)
+                  }
                 />
               ))}
             </div>

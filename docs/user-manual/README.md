@@ -13,6 +13,7 @@ OpenSunstar **v0.1.0** — first public release.
 ## Module docs
 
 - [Portfolio dashboard (项目组合)](../kanban.md)
+- [Gentle-AI coexistence (zh)](zh/gentle-ai-coexistence.md)
 
 ## Quick links
 

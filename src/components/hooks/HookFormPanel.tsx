@@ -66,7 +66,11 @@ export function HookFormPanel({
         toolPattern: toolPattern.trim() || "*",
         hookCommand: hookCommand.trim(),
         timeoutSeconds: timeout,
-        enabledClaude: true,
+        enabledClaude: initialData?.enabledClaude ?? true,
+        enabledCodex: initialData?.enabledCodex ?? false,
+        enabledGemini: initialData?.enabledGemini ?? false,
+        enabledOpencode: initialData?.enabledOpencode ?? false,
+        enabledHermes: initialData?.enabledHermes ?? false,
         description: description.trim() || undefined,
         sortIndex: initialData?.sortIndex ?? 0,
         createdAt: initialData?.createdAt ?? now,
@@ -98,8 +102,9 @@ export function HookFormPanel({
     >
       <div className="space-y-4 max-w-2xl">
         <p className="text-sm text-muted-foreground">
-          {t("hooks.claudeOnlyNote", {
-            defaultValue: "当前仅支持同步到 Claude Code（settings.json hooks 字段）",
+          {t("hooks.multiCliNote", {
+            defaultValue:
+              "默认同步到 Claude Code；可通过列表项图标启用 Codex / Gemini CLI / Hermes。",
           })}
         </p>
         <div className="space-y-2">

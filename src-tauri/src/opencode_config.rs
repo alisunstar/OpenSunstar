@@ -86,15 +86,17 @@ pub fn get_opencode_env_path() -> PathBuf {
 }
 
 pub fn read_opencode_config() -> Result<Value, AppError> {
-    let path = get_opencode_config_path();
+    read_opencode_config_at(&get_opencode_config_path())
+}
 
+pub fn read_opencode_config_at(path: &std::path::Path) -> Result<Value, AppError> {
     if !path.exists() {
         return Ok(json!({
             "$schema": "https://opencode.ai/config.json"
         }));
     }
 
-    let content = std::fs::read_to_string(&path).map_err(|e| AppError::io(&path, e))?;
+    let content = std::fs::read_to_string(path).map_err(|e| AppError::io(path, e))?;
     json5::from_str(&content).map_err(|e| {
         AppError::Config(format!(
             "Failed to parse OpenCode config: {}: {e}",
@@ -104,8 +106,14 @@ pub fn read_opencode_config() -> Result<Value, AppError> {
 }
 
 pub fn write_opencode_config(config: &Value) -> Result<(), AppError> {
-    let path = get_opencode_config_path();
-    write_json_file(&path, config)?;
+    write_opencode_config_at(&get_opencode_config_path(), config)
+}
+
+pub fn write_opencode_config_at(path: &std::path::Path, config: &Value) -> Result<(), AppError> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+    }
+    write_json_file(path, config)?;
 
     log::debug!("OpenCode config written to {path:?}");
     Ok(())

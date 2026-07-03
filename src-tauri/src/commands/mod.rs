@@ -2,6 +2,7 @@
 
 mod auth;
 mod balance;
+mod blueprint;
 pub mod bridge;
 mod ai_insight;
 mod codex_oauth;
@@ -54,6 +55,7 @@ pub use onboarding::*;
 pub use auth::*;
 pub use ai_insight::*;
 pub use balance::*;
+pub use blueprint::*;
 pub use bridge::*;
 pub use codex_oauth::*;
 pub use coding_plan::*;

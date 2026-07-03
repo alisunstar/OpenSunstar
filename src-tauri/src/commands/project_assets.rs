@@ -2,12 +2,11 @@
 
 use tauri::State;
 
-use crate::ai::readiness_cache::invalidate_agent_readiness_for_project;
 use crate::database::{ProjectAllAssetCounts, ProjectAssetLink, EXTENDED_ASSET_TYPES};
 use crate::store::AppState;
 
 fn touch_readiness(state: &AppState, project_id: &str) {
-    invalidate_agent_readiness_for_project(&state.db, project_id, None);
+    crate::services::project_artifacts::touch_project_governance(state, project_id);
 }
 
 #[tauri::command]

@@ -7,6 +7,11 @@ export interface ToolPermission {
   permissionType: PermissionType;
   toolPattern: string;
   enabledClaude: boolean;
+  enabledCodex?: boolean;
+  enabledGemini?: boolean;
+  enabledOpencode?: boolean;
+  enabledHermes?: boolean;
+  enabledOpenclaw?: boolean;
   description?: string;
   sortIndex: number;
   createdAt?: number;
@@ -29,6 +34,14 @@ export const permissionsApi = {
 
   async delete(id: string): Promise<boolean> {
     return await invoke("delete_tool_permission", { id });
+  },
+
+  async toggleApp(
+    permId: string,
+    app: string,
+    enabled: boolean,
+  ): Promise<void> {
+    return await invoke("toggle_permission_app", { permId, app, enabled });
   },
 
   async sync(): Promise<void> {

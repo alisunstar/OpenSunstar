@@ -1,21 +1,43 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   projectsApi,
   type Project,
   type ProjectConfigLink,
   type ProjectPromptLink,
 } from "@/lib/api/projects";
+import type {
+  ExtendedProjectAssetType,
+  ProjectAssetLink,
+} from "@/types/projectAsset";
+
+const EXTENDED_TYPES: ExtendedProjectAssetType[] = [
+  "command",
+  "hook",
+  "ignore",
+  "permission",
+  "subagent",
+];
+
+const EMPTY_EXTENDED: Record<ExtendedProjectAssetType, ProjectAssetLink[]> = {
+  command: [],
+  hook: [],
+  ignore: [],
+  permission: [],
+  subagent: [],
+};
 
 /**
- * 项目级配置管理 Hook
+ * 项目 8 类 AI 资产关联（SSOT：`project_asset_links`）
  *
- * 管理选定项目与 MCP/Skills/Prompts 的关联关系。
+ * 统一加载 MCP / Skills / Prompts 与扩展 5 类资产，单次 refresh、单一 loading。
  */
-export function useProjectConfig(projectId: string | null) {
+export function useProjectAssets(projectId: string | null) {
   const [project, setProject] = useState<Project | null>(null);
   const [mcpLinks, setMcpLinks] = useState<ProjectConfigLink[]>([]);
   const [skillLinks, setSkillLinks] = useState<ProjectConfigLink[]>([]);
   const [promptLinks, setPromptLinks] = useState<ProjectPromptLink[]>([]);
+  const [linksByType, setLinksByType] =
+    useState<Record<ExtendedProjectAssetType, ProjectAssetLink[]>>(EMPTY_EXTENDED);
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -24,33 +46,43 @@ export function useProjectConfig(projectId: string | null) {
       setMcpLinks([]);
       setSkillLinks([]);
       setPromptLinks([]);
+      setLinksByType(EMPTY_EXTENDED);
       return;
     }
 
     setLoading(true);
     try {
-      const [proj, mcp, skills, prompts] = await Promise.all([
+      const [proj, mcp, skills, prompts, ...extendedResults] = await Promise.all([
         projectsApi.getById(projectId),
         projectsApi.getMcpServers(projectId),
         projectsApi.getSkills(projectId),
         projectsApi.getPrompts(projectId),
+        ...EXTENDED_TYPES.map((type) => projectsApi.getAssetLinks(projectId, type)),
       ]);
+
       setProject(proj);
       setMcpLinks(mcp);
       setSkillLinks(skills);
       setPromptLinks(prompts);
+
+      const next: Record<ExtendedProjectAssetType, ProjectAssetLink[]> = {
+        ...EMPTY_EXTENDED,
+      };
+      EXTENDED_TYPES.forEach((type, index) => {
+        next[type] = extendedResults[index] ?? [];
+      });
+      setLinksByType(next);
     } catch (err) {
-      console.error("Failed to load project config:", err);
+      console.error("[useProjectAssets] load failed", err);
     } finally {
       setLoading(false);
     }
   }, [projectId]);
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, [refresh]);
 
-  // MCP operations
   const linkMcp = useCallback(
     async (mcpServerId: string, enabled = true) => {
       if (!projectId) return;
@@ -78,7 +110,6 @@ export function useProjectConfig(projectId: string | null) {
     [projectId, refresh],
   );
 
-  // Skills operations
   const linkSkill = useCallback(
     async (skillId: string, enabled = true) => {
       if (!projectId) return;
@@ -106,7 +137,6 @@ export function useProjectConfig(projectId: string | null) {
     [projectId, refresh],
   );
 
-  // Prompts operations
   const linkPrompt = useCallback(
     async (promptId: string, appType: string, enabled = true) => {
       if (!projectId) return;
@@ -134,6 +164,36 @@ export function useProjectConfig(projectId: string | null) {
     [projectId, refresh],
   );
 
+  const linkExtended = useCallback(
+    async (assetType: ExtendedProjectAssetType, assetId: string) => {
+      if (!projectId) return;
+      await projectsApi.linkAsset(projectId, assetType, assetId, true);
+      await refresh();
+    },
+    [projectId, refresh],
+  );
+
+  const unlinkExtended = useCallback(
+    async (assetType: ExtendedProjectAssetType, assetId: string) => {
+      if (!projectId) return;
+      await projectsApi.unlinkAsset(projectId, assetType, assetId);
+      await refresh();
+    },
+    [projectId, refresh],
+  );
+
+  const isLinked = useCallback(
+    (assetType: ExtendedProjectAssetType, assetId: string) =>
+      linksByType[assetType].some((l) => l.asset_id === assetId && l.enabled),
+    [linksByType],
+  );
+
+  const enabledCount = useCallback(
+    (assetType: ExtendedProjectAssetType) =>
+      linksByType[assetType].filter((l) => l.enabled).length,
+    [linksByType],
+  );
+
   return {
     project,
     loading,
@@ -155,6 +215,13 @@ export function useProjectConfig(projectId: string | null) {
       link: linkPrompt,
       unlink: unlinkPrompt,
       setAll: setPrompts,
+    },
+    extended: {
+      linksByType,
+      link: linkExtended,
+      unlink: unlinkExtended,
+      isLinked,
+      enabledCount,
     },
   };
 }

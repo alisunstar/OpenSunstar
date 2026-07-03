@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::app_config::AppType;
 use crate::command::{validate_command_name, Command};
+use crate::codex_config::get_codex_config_dir;
 use crate::config::{delete_file, write_text_file};
 use crate::error::AppError;
 use crate::gemini_config::get_gemini_dir;
@@ -81,11 +82,7 @@ impl CommandService {
             AppType::Gemini => get_gemini_dir().join("commands").join(&safe_name),
             AppType::OpenCode => get_opencode_dir().join("commands").join(&safe_name),
             AppType::Hermes => get_hermes_dir().join("commands").join(&safe_name),
-            AppType::Codex => {
-                return Err(AppError::Config(
-                    "Codex 不支持独立 slash 命令文件".into(),
-                ));
-            }
+            AppType::Codex => get_codex_config_dir().join("commands").join(&safe_name),
             AppType::OpenClaw | AppType::ClaudeDesktop => {
                 return Err(AppError::Config(format!("{app:?} 不支持 slash 命令同步")));
             }
@@ -97,18 +94,12 @@ impl CommandService {
         if !command.is_enabled_for(app) {
             return Ok(());
         }
-        if matches!(app, AppType::Codex) {
-            return Ok(());
-        }
         let path = Self::command_file_path(&command.name, app)?;
         write_text_file(&path, &command.content)?;
         Ok(())
     }
 
     fn remove_command_from_app(name: &str, app: &AppType) -> Result<(), AppError> {
-        if matches!(app, AppType::Codex) {
-            return Ok(());
-        }
         let path = Self::command_file_path(name, app)?;
         if path.exists() {
             delete_file(&path)?;

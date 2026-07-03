@@ -43,10 +43,14 @@ import { AIPortfolioMatrix } from "./AIPortfolioMatrix";
 import { AIWeeklyReport } from "./AIWeeklyReport";
 import { useAIConfig } from "@/hooks/useAIConfig";
 import { AICostProvider } from "@/contexts/AICostContext";
+import { PortfolioDriftSummary } from "./PortfolioDriftSummary";
+import { GovernanceDashboard } from "./GovernanceDashboard";
 import { TodayWorkspace } from "./TodayWorkspace";
 import { ProjectAssetsMatrix } from "./ProjectAssetsMatrix";
 import { WorkspaceTabBar } from "./WorkspaceTabBar";
 import { usePortfolioAssetSummary } from "@/hooks/kanban/usePortfolioAssetSummary";
+import { repairProjectDrift } from "@/api/aiInsight";
+import { showRepairProjectFeedback } from "@/lib/repairFeedback";
 import type { WorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
 import type { AppId } from "@/lib/api";
@@ -98,6 +102,7 @@ export function KanbanPage({
     "overview" | "aiAssets"
   >("overview");
   const [portfolioRefreshToken, setPortfolioRefreshToken] = useState(0);
+  const [repairingProjectId, setRepairingProjectId] = useState<string | null>(null);
   const [roiPanelOpen, setRoiPanelOpen] = useState(false);
   const [overviewWindowDays, setOverviewWindowDays] =
     useState<PortfolioOverviewWindowDays>(7);
@@ -185,6 +190,22 @@ export function KanbanPage({
     setPortfolioRefreshToken((token) => token + 1);
     onPortfolioDataChanged?.();
   }, [onPortfolioDataChanged]);
+
+  const handleRepairProjectDrift = useCallback(
+    async (project: Project) => {
+      setRepairingProjectId(project.id);
+      try {
+        const result = await repairProjectDrift(project.path, targetApp);
+        const ok = showRepairProjectFeedback(result, t);
+        if (ok || result) {
+          bumpPortfolioRefresh();
+        }
+      } finally {
+        setRepairingProjectId(null);
+      }
+    },
+    [bumpPortfolioRefresh, targetApp, t],
+  );
 
   useEffect(() => {
     if (!projectDetailIntent) return;
@@ -481,6 +502,25 @@ export function KanbanPage({
 
       {!empty && workspaceTab === "dashboard" && (
         <div className="px-6 pb-6 space-y-4">
+          <GovernanceDashboard
+            projects={projects}
+            agentReadinessMap={agentReadinessMap}
+            targetApp={targetApp}
+            loading={readinessLoading}
+          />
+          <PortfolioDriftSummary
+            projects={projects}
+            agentReadinessMap={agentReadinessMap}
+            targetApp={targetApp}
+            lastUpdatedAt={
+              readinessLastUpdatedAt != null
+                ? Math.floor(readinessLastUpdatedAt / 1000)
+                : null
+            }
+            onOpenProject={(p) => openDetail(p)}
+            onRepairProject={(p) => void handleRepairProjectDrift(p)}
+            repairingProjectId={repairingProjectId}
+          />
           <TodayWorkspace
             projects={projects}
             getStage={getStage}

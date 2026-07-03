@@ -192,6 +192,23 @@ export interface EffectiveScanResult {
   items: EffectiveItemState[];
 }
 
+export interface RepairAssetDriftResult {
+  check_name: string;
+  before_state: string;
+  after_state: string;
+  repaired: boolean;
+  effective_detail?: string | null;
+  live_path?: string | null;
+  scanned_at: number;
+}
+
+export interface RepairProjectDriftResult {
+  repaired_count: number;
+  still_drifted_count: number;
+  items: RepairAssetDriftResult[];
+  scanned_at: number;
+}
+
 export interface ProjectContextInput {
   project_name: string;
   project_path: string;
@@ -552,6 +569,40 @@ export async function scanProjectEffectiveState(
     });
   } catch (e) {
     warn("scanProjectEffectiveState failed", e);
+    return null;
+  }
+}
+
+/** 漂移一键修复：写回单类资产并复扫验证 */
+export async function repairAssetDrift(
+  projectPath: string,
+  checkName: string,
+  targetApp?: string | null,
+): Promise<RepairAssetDriftResult | null> {
+  try {
+    return await invoke<RepairAssetDriftResult>("repair_asset_drift", {
+      projectPath,
+      checkName,
+      targetApp: targetApp ?? null,
+    });
+  } catch (e) {
+    warn("repairAssetDrift failed", e);
+    return null;
+  }
+}
+
+/** 修复项目内全部漂移项 */
+export async function repairProjectDrift(
+  projectPath: string,
+  targetApp?: string | null,
+): Promise<RepairProjectDriftResult | null> {
+  try {
+    return await invoke<RepairProjectDriftResult>("repair_project_drift", {
+      projectPath,
+      targetApp: targetApp ?? null,
+    });
+  } catch (e) {
+    warn("repairProjectDrift failed", e);
     return null;
   }
 }

@@ -377,6 +377,53 @@ fn cleanup_hermes_backups(dir: &Path) -> Result<(), AppError> {
 // High-level Write Helper
 // ============================================================================
 
+/// Write a single top-level YAML section to config.yaml (public API for asset sync).
+pub fn write_config_section(section_key: &str, value: &serde_yaml::Value) -> Result<(), AppError> {
+    write_config_section_at_path(&get_hermes_config_path(), section_key, value)
+}
+
+/// Write a YAML section to an arbitrary config path (project-level sync).
+pub fn write_config_section_at_path(
+    config_path: &std::path::Path,
+    section_key: &str,
+    value: &serde_yaml::Value,
+) -> Result<(), AppError> {
+    if matches!(value, serde_yaml::Value::Null) {
+        return write_yaml_section_to_path(
+            config_path,
+            section_key,
+            &serde_yaml::Value::Mapping(serde_yaml::Mapping::new()),
+        )
+        .map(|_| ());
+    }
+    write_yaml_section_to_path(config_path, section_key, value).map(|_| ())
+}
+
+fn write_yaml_section_to_path(
+    config_path: &std::path::Path,
+    section_key: &str,
+    value: &serde_yaml::Value,
+) -> Result<HermesWriteOutcome, AppError> {
+    let raw = if config_path.exists() {
+        fs::read_to_string(config_path).map_err(|e| AppError::io(config_path, e))?
+    } else {
+        String::new()
+    };
+
+    let new_raw = replace_yaml_section(&raw, section_key, value)?;
+
+    if new_raw == raw {
+        return Ok(HermesWriteOutcome::default());
+    }
+
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+    }
+
+    fs::write(config_path, &new_raw).map_err(|e| AppError::io(config_path, e))?;
+    Ok(HermesWriteOutcome::default())
+}
+
 /// Write a single top-level YAML section to config.yaml using section-level replacement.
 ///
 /// This preserves comments and unrelated sections while only modifying the

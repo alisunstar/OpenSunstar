@@ -13,6 +13,8 @@ export interface Project {
   git_remote_url?: string | null;
   created_at: number;
   updated_at: number;
+  target_app?: string | null;
+  blueprint_id?: string | null;
 }
 
 /** 项目关联的配置项（MCP/Skills） */
@@ -58,6 +60,16 @@ export const projectsApi = {
   /** 删除项目（级联删除关联） */
   async delete(id: string): Promise<boolean> {
     return await invoke("delete_project", { id });
+  },
+
+  async setTargetApp(
+    projectId: string,
+    targetApp: string | null,
+  ): Promise<void> {
+    return await invoke("set_project_target_app", {
+      projectId,
+      targetApp,
+    });
   },
 
   // ========== Project × MCP Servers ==========
@@ -175,7 +187,7 @@ export const projectsApi = {
     return await invoke("set_project_prompts", { projectId, prompts });
   },
 
-  // ========== 扩展资产（project_asset_links，不含 MCP/Skills/Prompts）==========
+  // ========== 项目资产（8 类均存 project_asset_links；此处为扩展 5 类 Tauri 命令）==========
 
   async getAllAssetCounts(projectId: string): Promise<ProjectAllAssetCounts> {
     return await invoke("get_project_all_asset_counts", { projectId });

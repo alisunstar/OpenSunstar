@@ -831,3 +831,385 @@ fn ensure_incremental_auto_vacuum_rebuilds_existing_file_db() {
         "file db should persist INCREMENTAL auto_vacuum after VACUUM rebuild"
     );
 }
+
+#[test]
+fn schema_v25_drops_legacy_project_link_tables() {
+    let db = Database::memory().expect("memory db");
+    let conn = db.conn.lock().expect("lock");
+    let legacy_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='table' AND name IN ('project_mcp_servers','project_skills','project_prompts')",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count legacy tables");
+    assert_eq!(legacy_count, 0);
+    assert_eq!(
+        Database::get_user_version(&conn).expect("version"),
+        SCHEMA_VERSION
+    );
+}
+
+#[test]
+fn schema_v25_migrates_legacy_rows_into_project_asset_links() {
+    let conn = Connection::open_in_memory().expect("open memory db");
+    Database::create_tables_on_conn(&conn).expect("create tables");
+
+    conn.execute(
+        "INSERT INTO projects (id, name, path, created_at, updated_at)
+         VALUES ('p-legacy', 'Legacy', '/tmp/legacy', 100, 100)",
+        [],
+    )
+    .expect("seed project");
+
+    conn.execute(
+        "CREATE TABLE project_mcp_servers (
+            project_id TEXT NOT NULL,
+            mcp_server_id TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (project_id, mcp_server_id)
+        )",
+        [],
+    )
+    .expect("create legacy mcp table");
+    conn.execute(
+        "INSERT INTO project_mcp_servers (project_id, mcp_server_id, enabled, created_at)
+         VALUES ('p-legacy', 'srv-1', 1, 200)",
+        [],
+    )
+    .expect("seed legacy mcp row");
+
+    Database::set_user_version(&conn, 24).expect("set v24");
+    Database::apply_schema_migrations_on_conn(&conn).expect("migrate to v25");
+
+    let migrated: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM project_asset_links
+             WHERE project_id='p-legacy' AND asset_type='mcp' AND asset_id='srv-1'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("count migrated row");
+    assert_eq!(migrated, 1);
+
+    let legacy_left: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='project_mcp_servers'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("legacy table should be dropped");
+    assert_eq!(legacy_left, 0);
+}
+
+/// v25 迁移：legacy 与 unified 主键冲突时，应以 legacy 的 enabled 覆盖
+#[test]
+fn schema_v25_migration_merges_conflicting_legacy_enabled() {
+    let conn = Connection::open_in_memory().expect("open memory db");
+    Database::create_tables_on_conn(&conn).expect("create tables");
+
+    conn.execute(
+        "INSERT INTO projects (id, name, path, created_at, updated_at)
+         VALUES ('p-merge', 'Merge', '/tmp/merge', 100, 100)",
+        [],
+    )
+    .expect("seed project");
+
+    conn.execute(
+        "CREATE TABLE project_mcp_servers (
+            project_id TEXT NOT NULL,
+            mcp_server_id TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (project_id, mcp_server_id)
+        )",
+        [],
+    )
+    .expect("legacy mcp");
+    conn.execute(
+        "INSERT INTO project_mcp_servers VALUES ('p-merge', 'srv-1', 1, 300)",
+        [],
+    )
+    .expect("legacy row enabled=1");
+    conn.execute(
+        "INSERT INTO project_asset_links
+         (project_id, asset_type, asset_id, asset_app_type, enabled, scope, source, created_at, updated_at)
+         VALUES ('p-merge', 'mcp', 'srv-1', '', 0, 'project', 'manual', 100, 100)",
+        [],
+    )
+    .expect("pre-existing unified row enabled=0");
+
+    Database::set_user_version(&conn, 24).expect("v24");
+    Database::apply_schema_migrations_on_conn(&conn).expect("migrate v25");
+
+    let enabled: i64 = conn
+        .query_row(
+            "SELECT enabled FROM project_asset_links
+             WHERE project_id='p-merge' AND asset_type='mcp' AND asset_id='srv-1'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("merged row");
+    assert_eq!(enabled, 1, "legacy enabled=1 should win on conflict");
+}
+
+/// 磁盘文件库 v24→v25 升级：旧三表 + 已有扩展关联一并保留，DAO 可读
+#[test]
+fn schema_v25_file_db_upgrade_roundtrip() {
+    let temp = NamedTempFile::new().expect("temp db file");
+    let path = temp.path().to_path_buf();
+
+    {
+        let conn = Connection::open(&path).expect("open file db");
+        Database::create_tables_on_conn(&conn).expect("create tables");
+
+        conn.execute(
+            "INSERT INTO projects (id, name, path, created_at, updated_at)
+             VALUES ('p-real', 'Real', 'E:/demo', 100, 100)",
+            [],
+        )
+        .expect("seed project");
+
+        for ddl in [
+            "CREATE TABLE project_mcp_servers (
+                project_id TEXT NOT NULL,
+                mcp_server_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, mcp_server_id)
+            )",
+            "CREATE TABLE project_skills (
+                project_id TEXT NOT NULL,
+                skill_id TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, skill_id)
+            )",
+            "CREATE TABLE project_prompts (
+                project_id TEXT NOT NULL,
+                prompt_id TEXT NOT NULL,
+                prompt_app_type TEXT NOT NULL,
+                enabled INTEGER NOT NULL DEFAULT 1,
+                created_at INTEGER NOT NULL,
+                PRIMARY KEY (project_id, prompt_id, prompt_app_type)
+            )",
+        ] {
+            conn.execute(ddl, []).expect("create legacy table");
+        }
+
+        conn.execute(
+            "INSERT INTO project_mcp_servers VALUES ('p-real', 'mcp-a', 1, 200)",
+            [],
+        )
+        .expect("seed mcp");
+        conn.execute(
+            "INSERT INTO project_skills VALUES ('p-real', 'skill-a', 1, 201)",
+            [],
+        )
+        .expect("seed skill");
+        conn.execute(
+            "INSERT INTO project_prompts VALUES ('p-real', 'prompt-a', 'claude', 1, 202)",
+            [],
+        )
+        .expect("seed prompt");
+        conn.execute(
+            "INSERT INTO project_asset_links
+             (project_id, asset_type, asset_id, asset_app_type, enabled, scope, source, created_at, updated_at)
+             VALUES ('p-real', 'hook', 'hook-a', '', 1, 'project', 'manual', 300, 300)",
+            [],
+        )
+        .expect("seed extended link");
+
+        Database::set_user_version(&conn, 24).expect("pin v24");
+    }
+
+    let db = {
+        let conn = Connection::open(&path).expect("reopen file db");
+        conn.execute("PRAGMA foreign_keys = ON;", []).ok();
+        Database {
+            conn: std::sync::Mutex::new(conn),
+        }
+    };
+    db.apply_schema_migrations()
+        .expect("migrate file db to v25");
+
+    let conn = db.conn.lock().expect("lock");
+    assert_eq!(
+        Database::get_user_version(&conn).expect("version"),
+        SCHEMA_VERSION
+    );
+    let legacy: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='table' AND name IN ('project_mcp_servers','project_skills','project_prompts')",
+            [],
+            |row| row.get(0),
+        )
+        .expect("legacy tables");
+    assert_eq!(legacy, 0);
+    drop(conn);
+
+    let mcp = db.get_project_mcp_servers("p-real").expect("mcp dao");
+    assert_eq!(mcp.len(), 1);
+    assert_eq!(mcp[0].config_id, "mcp-a");
+
+    let skills = db.get_project_skills("p-real").expect("skills dao");
+    assert_eq!(skills.len(), 1);
+    assert_eq!(skills[0].config_id, "skill-a");
+
+    let prompts = db.get_project_prompts("p-real").expect("prompts dao");
+    assert_eq!(prompts.len(), 1);
+    assert_eq!(prompts[0].prompt_id, "prompt-a");
+    assert_eq!(prompts[0].prompt_app_type, "claude");
+
+    let hooks = db
+        .get_project_asset_links("p-real", Some("hook"))
+        .expect("hook links");
+    assert_eq!(hooks.len(), 1);
+    assert_eq!(hooks[0].asset_id, "hook-a");
+
+    let counts = db
+        .get_project_all_asset_counts("p-real")
+        .expect("asset counts");
+    assert_eq!(counts.mcp, 1);
+    assert_eq!(counts.skills, 1);
+    assert_eq!(counts.prompts, 1);
+    assert_eq!(counts.hooks, 1);
+}
+
+/// 只读检查本机 `~/.OpenSunstar/OpenSunstar.db`（若存在）是否已完成 v25 且无旧表
+#[test]
+fn verify_local_open_sunstar_db_post_v25() {
+    let db_path = crate::config::get_app_config_dir().join("OpenSunstar.db");
+    if !db_path.exists() {
+        eprintln!("skip: no local OpenSunstar.db at {}", db_path.display());
+        return;
+    }
+
+    let conn = Connection::open_with_flags(
+        &db_path,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .expect("open local db read-only");
+
+    let version = Database::get_user_version(&conn).expect("user_version");
+    eprintln!("local OpenSunstar.db user_version={version}");
+
+    if version >= 25 {
+        let legacy: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master
+                 WHERE type='table' AND name IN ('project_mcp_servers','project_skills','project_prompts')",
+                [],
+                |row| row.get(0),
+            )
+            .expect("legacy count");
+        assert_eq!(
+            legacy, 0,
+            "v25+ db must not contain legacy project link tables"
+        );
+
+        let link_types: i64 = conn
+            .query_row(
+                "SELECT COUNT(DISTINCT asset_type) FROM project_asset_links",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        eprintln!("local project_asset_links distinct asset_type count={link_types}");
+    } else if version == 24 {
+        eprintln!(
+            "local db still v24 — next app start will migrate to v25 and drop legacy tables"
+        );
+    }
+}
+
+/// 复制本机 OpenSunstar.db 到临时文件并执行 v24→v25 升级（不修改原库）
+#[test]
+fn upgrade_local_open_sunstar_db_copy_on_disk() {
+    let source = crate::config::get_app_config_dir().join("OpenSunstar.db");
+    if !source.exists() {
+        eprintln!("skip: no local OpenSunstar.db at {}", source.display());
+        return;
+    }
+
+    let temp = NamedTempFile::new().expect("temp db file");
+    let dest = temp.path().to_path_buf();
+    std::fs::copy(&source, &dest).expect("copy local db to temp");
+
+    let pre_conn = Connection::open_with_flags(
+        &dest,
+        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+    )
+    .expect("open copy read-only pre-migration");
+    let pre_version = Database::get_user_version(&pre_conn).expect("pre version");
+    let pre_legacy_mcp: i64 = pre_conn
+        .query_row(
+            "SELECT COUNT(*) FROM project_mcp_servers",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    let pre_links: i64 = pre_conn
+        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| row.get(0))
+        .unwrap_or(0);
+    drop(pre_conn);
+
+    eprintln!(
+        "pre-migration copy: version={pre_version}, legacy_mcp_rows={pre_legacy_mcp}, project_asset_links_rows={pre_links}"
+    );
+
+    let db = {
+        let conn = Connection::open(&dest).expect("open copy for migration");
+        conn.execute("PRAGMA foreign_keys = ON;", []).ok();
+        Database {
+            conn: std::sync::Mutex::new(conn),
+        }
+    };
+    db.apply_schema_migrations()
+        .expect("migrate copied local db");
+
+    let conn = db.conn.lock().expect("lock");
+    assert_eq!(
+        Database::get_user_version(&conn).expect("post version"),
+        SCHEMA_VERSION
+    );
+    let legacy_tables: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='table' AND name IN ('project_mcp_servers','project_skills','project_prompts')",
+            [],
+            |row| row.get(0),
+        )
+        .expect("legacy tables");
+    assert_eq!(legacy_tables, 0);
+
+    let post_mcp_links: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM project_asset_links WHERE asset_type='mcp'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("mcp links");
+    let post_all_links: i64 = conn
+        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| row.get(0))
+        .expect("all links");
+    drop(conn);
+
+    eprintln!(
+        "post-migration copy: version={SCHEMA_VERSION}, legacy_tables=0, mcp_links={post_mcp_links}, total_links={post_all_links}"
+    );
+
+    if pre_legacy_mcp > 0 {
+        assert!(
+            post_mcp_links >= pre_legacy_mcp,
+            "migrated mcp links should cover legacy rows"
+        );
+    }
+    assert!(
+        post_all_links >= pre_links + pre_legacy_mcp,
+        "total links should not shrink after migration"
+    );
+}

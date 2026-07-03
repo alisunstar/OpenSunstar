@@ -40,7 +40,7 @@ pub(crate) use dao::proxy::{
 pub use dao::FailoverQueueItem;
 pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 pub use dao::project_assets::{
-    ProjectAllAssetCounts, ProjectAssetLink, EXTENDED_ASSET_TYPES,
+    ProjectAllAssetCounts, ProjectAssetLink, ASSET_IGNORE, EXTENDED_ASSET_TYPES,
 };
 pub(crate) use dao::ai_insight::{AIInsightRow, AICostLogRow, AIQueryLogRow};
 
@@ -54,7 +54,7 @@ use std::sync::Mutex;
 
 /// 当前 Schema 版本号
 /// 每次修改表结构时递增，并在 schema.rs 中添加相应的迁移逻辑
-pub(crate) const SCHEMA_VERSION: i32 = 22;
+pub(crate) const SCHEMA_VERSION: i32 = 25;
 
 /// 安全地序列化 JSON，避免 unwrap panic
 pub(crate) fn to_json_string<T: Serialize>(value: &T) -> Result<String, AppError> {
@@ -135,6 +135,12 @@ impl Database {
                     "Creating pre-migration database backup (v{version} → v{SCHEMA_VERSION})"
                 );
                 if let Err(e) = db.backup_database_file() {
+                    // v25 会 DROP 旧三表，备份失败必须中止，避免不可逆数据丢失
+                    if version <= 24 {
+                        return Err(AppError::Database(format!(
+                            "数据库升级前备份失败（v{version} → v{SCHEMA_VERSION}，含不可逆表删除），已中止: {e}"
+                        )));
+                    }
                     log::warn!("Pre-migration backup failed, continuing migration: {e}");
                 }
             }
@@ -179,6 +185,7 @@ impl Database {
             conn: Mutex::new(conn),
         };
         db.create_tables()?;
+        db.apply_schema_migrations()?;
         db.ensure_model_pricing_seeded()?;
 
         Ok(db)

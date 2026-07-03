@@ -15,11 +15,16 @@
     "test:unit": "vitest run",
     "test:unit:watch": "vitest watch",
     "website:dev": "npx --yes serve website -l 3000",
-    "brand:sync": "python scripts/sync-brand-assets.py && pnpm tauri icon app-icon.png"
+    "website:publish": "node scripts/website-publish.mjs",
+    "brand:sync": "python scripts/sync-brand-assets.py && pnpm tauri icon app-icon.png",
+    "release:bump": "node scripts/release-bump.mjs",
+    "release:tag": "bash scripts/release-tag.sh",
+    "release:tag:win": "powershell -ExecutionPolicy Bypass -File scripts/release-tag.ps1"
   },
   "keywords": [],
   "author": "Jason Young",
   "license": "MIT",
+  "packageManager": "pnpm@11.5.2",
   "repository": {
     "type": "git",
     "url": "https://github.com/alisunstar/OpenSunstar"

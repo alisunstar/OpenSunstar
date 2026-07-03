@@ -1,11 +1,13 @@
 //! 项目级配置隔离 - 数据访问对象
 //!
-//! 提供 Projects 及其与 MCP/Skills/Prompts 中间表的 CRUD 操作。
+//! Projects 及 MCP/Skills/Prompts 项目关联均读写统一表 `project_asset_links`（v25+）。
 
 use crate::database::{lock_conn, Database};
 use crate::error::AppError;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
+
+use super::project_assets::{ASSET_MCP, ASSET_PROMPT, ASSET_SKILL};
 
 /// 项目信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,7 +18,29 @@ pub struct Project {
     pub git_remote_url: Option<String>,
     pub created_at: i64,
     pub updated_at: i64,
+    /// 项目级目标 CLI（S2-41）；空则沿用看板组合默认
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub target_app: Option<String>,
+    /// 最近应用的 Blueprint id（S2-11）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blueprint_id: Option<String>,
 }
+
+fn map_project_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
+    Ok(Project {
+        id: row.get(0)?,
+        name: row.get(1)?,
+        path: row.get(2)?,
+        git_remote_url: row.get(3)?,
+        created_at: row.get(4)?,
+        updated_at: row.get(5)?,
+        target_app: row.get(6)?,
+        blueprint_id: row.get(7)?,
+    })
+}
+
+const PROJECT_SELECT: &str =
+    "SELECT id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id";
 
 /// 项目关联的配置项（通用中间表行）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -44,23 +68,13 @@ impl Database {
     pub fn get_all_projects(&self) -> Result<Vec<Project>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
-            .prepare(
-                "SELECT id, name, path, git_remote_url, created_at, updated_at
-                 FROM projects ORDER BY updated_at DESC",
-            )
+            .prepare(&format!(
+                "{PROJECT_SELECT} FROM projects ORDER BY updated_at DESC"
+            ))
             .map_err(|e| AppError::Database(e.to_string()))?;
 
         let rows = stmt
-            .query_map([], |row| {
-                Ok(Project {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    path: row.get(2)?,
-                    git_remote_url: row.get(3)?,
-                    created_at: row.get(4)?,
-                    updated_at: row.get(5)?,
-                })
-            })
+            .query_map([], map_project_row)
             .map_err(|e| AppError::Database(e.to_string()))?;
 
         let mut projects = Vec::new();
@@ -74,19 +88,9 @@ impl Database {
     pub fn get_project(&self, id: &str) -> Result<Option<Project>, AppError> {
         let conn = lock_conn!(self.conn);
         let result = conn.query_row(
-            "SELECT id, name, path, git_remote_url, created_at, updated_at
-             FROM projects WHERE id = ?1",
+            &format!("{PROJECT_SELECT} FROM projects WHERE id = ?1"),
             params![id],
-            |row| {
-                Ok(Project {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    path: row.get(2)?,
-                    git_remote_url: row.get(3)?,
-                    created_at: row.get(4)?,
-                    updated_at: row.get(5)?,
-                })
-            },
+            map_project_row,
         );
 
         match result {
@@ -100,19 +104,9 @@ impl Database {
     pub fn get_project_by_path(&self, path: &str) -> Result<Option<Project>, AppError> {
         let conn = lock_conn!(self.conn);
         let result = conn.query_row(
-            "SELECT id, name, path, git_remote_url, created_at, updated_at
-             FROM projects WHERE path = ?1",
+            &format!("{PROJECT_SELECT} FROM projects WHERE path = ?1"),
             params![path],
-            |row| {
-                Ok(Project {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    path: row.get(2)?,
-                    git_remote_url: row.get(3)?,
-                    created_at: row.get(4)?,
-                    updated_at: row.get(5)?,
-                })
-            },
+            map_project_row,
         );
 
         match result {
@@ -126,13 +120,15 @@ impl Database {
     pub fn upsert_project(&self, project: &Project) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         conn.execute(
-            "INSERT INTO projects (id, name, path, git_remote_url, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            "INSERT INTO projects (id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 path = excluded.path,
                 git_remote_url = excluded.git_remote_url,
-                updated_at = excluded.updated_at",
+                updated_at = excluded.updated_at,
+                target_app = excluded.target_app,
+                blueprint_id = excluded.blueprint_id",
             params![
                 project.id,
                 project.name,
@@ -140,6 +136,8 @@ impl Database {
                 project.git_remote_url,
                 project.created_at,
                 project.updated_at,
+                project.target_app,
+                project.blueprint_id,
             ],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -155,243 +153,135 @@ impl Database {
         Ok(affected > 0)
     }
 
-    // ========== Project × MCP Servers ==========
+    pub fn set_project_target_app(
+        &self,
+        project_id: &str,
+        target_app: Option<&str>,
+    ) -> Result<(), AppError> {
+        let conn = lock_conn!(self.conn);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        conn.execute(
+            "UPDATE projects SET target_app = ?2, updated_at = ?3 WHERE id = ?1",
+            params![project_id, target_app, now],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+        Ok(())
+    }
+
+    pub fn set_project_blueprint_id(
+        &self,
+        project_id: &str,
+        blueprint_id: Option<&str>,
+    ) -> Result<(), AppError> {
+        let conn = lock_conn!(self.conn);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        conn.execute(
+            "UPDATE projects SET blueprint_id = ?2, updated_at = ?3 WHERE id = ?1",
+            params![project_id, blueprint_id, now],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+        Ok(())
+    }
+
+    // ========== Project × MCP / Skills / Prompts（SSOT: project_asset_links）==========
 
     /// 获取项目关联的 MCP 服务器 ID 列表
     pub fn get_project_mcp_servers(&self, project_id: &str) -> Result<Vec<ProjectConfigLink>, AppError> {
-        let conn = lock_conn!(self.conn);
-        let mut stmt = conn
-            .prepare(
-                "SELECT project_id, mcp_server_id, enabled, created_at
-                 FROM project_mcp_servers WHERE project_id = ?1
-                 ORDER BY created_at ASC",
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let rows = stmt
-            .query_map(params![project_id], |row| {
-                Ok(ProjectConfigLink {
-                    project_id: row.get(0)?,
-                    config_id: row.get(1)?,
-                    enabled: row.get(2)?,
-                    created_at: row.get(3)?,
-                })
+        let links = self.get_project_asset_links(project_id, Some(ASSET_MCP))?;
+        Ok(links
+            .into_iter()
+            .map(|l| ProjectConfigLink {
+                project_id: l.project_id,
+                config_id: l.asset_id,
+                enabled: l.enabled,
+                created_at: l.created_at,
             })
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let mut links = Vec::new();
-        for row in rows {
-            links.push(row.map_err(|e| AppError::Database(e.to_string()))?);
-        }
-        Ok(links)
+            .collect())
     }
 
-    /// 关联 MCP 服务器到项目
     pub fn link_project_mcp_server(
         &self,
         project_id: &str,
         mcp_server_id: &str,
         enabled: bool,
     ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
-        conn.execute(
-            "INSERT INTO project_mcp_servers (project_id, mcp_server_id, enabled, created_at)
-             VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(project_id, mcp_server_id) DO UPDATE SET enabled = excluded.enabled",
-            params![project_id, mcp_server_id, enabled, now],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(())
+        self.link_project_asset(project_id, ASSET_MCP, mcp_server_id, "", enabled)
     }
 
-    /// 取消 MCP 服务器与项目的关联
     pub fn unlink_project_mcp_server(
         &self,
         project_id: &str,
         mcp_server_id: &str,
     ) -> Result<bool, AppError> {
-        let conn = lock_conn!(self.conn);
-        let affected = conn
-            .execute(
-                "DELETE FROM project_mcp_servers WHERE project_id = ?1 AND mcp_server_id = ?2",
-                params![project_id, mcp_server_id],
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(affected > 0)
+        self.unlink_project_asset(project_id, ASSET_MCP, mcp_server_id, "")
     }
 
-    /// 批量设置项目的 MCP 服务器关联（替换所有现有关联）
     pub fn set_project_mcp_servers(
         &self,
         project_id: &str,
         mcp_server_ids: &[String],
     ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
-        conn.execute(
-            "DELETE FROM project_mcp_servers WHERE project_id = ?1",
-            params![project_id],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO project_mcp_servers (project_id, mcp_server_id, enabled, created_at)
-                 VALUES (?1, ?2, 1, ?3)",
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        for id in mcp_server_ids {
-            stmt.execute(params![project_id, id, now])
-                .map_err(|e| AppError::Database(e.to_string()))?;
-        }
-        Ok(())
+        self.set_project_assets(project_id, ASSET_MCP, mcp_server_ids)
     }
 
-    // ========== Project × Skills ==========
-
-    /// 获取项目关联的 Skill ID 列表
     pub fn get_project_skills(&self, project_id: &str) -> Result<Vec<ProjectConfigLink>, AppError> {
-        let conn = lock_conn!(self.conn);
-        let mut stmt = conn
-            .prepare(
-                "SELECT project_id, skill_id, enabled, created_at
-                 FROM project_skills WHERE project_id = ?1
-                 ORDER BY created_at ASC",
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let rows = stmt
-            .query_map(params![project_id], |row| {
-                Ok(ProjectConfigLink {
-                    project_id: row.get(0)?,
-                    config_id: row.get(1)?,
-                    enabled: row.get(2)?,
-                    created_at: row.get(3)?,
-                })
+        let links = self.get_project_asset_links(project_id, Some(ASSET_SKILL))?;
+        Ok(links
+            .into_iter()
+            .map(|l| ProjectConfigLink {
+                project_id: l.project_id,
+                config_id: l.asset_id,
+                enabled: l.enabled,
+                created_at: l.created_at,
             })
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let mut links = Vec::new();
-        for row in rows {
-            links.push(row.map_err(|e| AppError::Database(e.to_string()))?);
-        }
-        Ok(links)
+            .collect())
     }
 
-    /// 关联 Skill 到项目
     pub fn link_project_skill(
         &self,
         project_id: &str,
         skill_id: &str,
         enabled: bool,
     ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
-        conn.execute(
-            "INSERT INTO project_skills (project_id, skill_id, enabled, created_at)
-             VALUES (?1, ?2, ?3, ?4)
-             ON CONFLICT(project_id, skill_id) DO UPDATE SET enabled = excluded.enabled",
-            params![project_id, skill_id, enabled, now],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(())
+        self.link_project_asset(project_id, ASSET_SKILL, skill_id, "", enabled)
     }
 
-    /// 取消 Skill 与项目的关联
     pub fn unlink_project_skill(
         &self,
         project_id: &str,
         skill_id: &str,
     ) -> Result<bool, AppError> {
-        let conn = lock_conn!(self.conn);
-        let affected = conn
-            .execute(
-                "DELETE FROM project_skills WHERE project_id = ?1 AND skill_id = ?2",
-                params![project_id, skill_id],
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(affected > 0)
+        self.unlink_project_asset(project_id, ASSET_SKILL, skill_id, "")
     }
 
-    /// 批量设置项目的 Skill 关联（替换所有现有关联）
     pub fn set_project_skills(
         &self,
         project_id: &str,
         skill_ids: &[String],
     ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
-        conn.execute(
-            "DELETE FROM project_skills WHERE project_id = ?1",
-            params![project_id],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO project_skills (project_id, skill_id, enabled, created_at)
-                 VALUES (?1, ?2, 1, ?3)",
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        for id in skill_ids {
-            stmt.execute(params![project_id, id, now])
-                .map_err(|e| AppError::Database(e.to_string()))?;
-        }
-        Ok(())
+        self.set_project_assets(project_id, ASSET_SKILL, skill_ids)
     }
 
-    // ========== Project × Prompts ==========
-
-    /// 获取项目关联的 Prompt 列表
     pub fn get_project_prompts(&self, project_id: &str) -> Result<Vec<ProjectPromptLink>, AppError> {
-        let conn = lock_conn!(self.conn);
-        let mut stmt = conn
-            .prepare(
-                "SELECT project_id, prompt_id, prompt_app_type, enabled, created_at
-                 FROM project_prompts WHERE project_id = ?1
-                 ORDER BY created_at ASC",
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let rows = stmt
-            .query_map(params![project_id], |row| {
-                Ok(ProjectPromptLink {
-                    project_id: row.get(0)?,
-                    prompt_id: row.get(1)?,
-                    prompt_app_type: row.get(2)?,
-                    enabled: row.get(3)?,
-                    created_at: row.get(4)?,
-                })
+        let links = self.get_project_asset_links(project_id, Some(ASSET_PROMPT))?;
+        Ok(links
+            .into_iter()
+            .map(|l| ProjectPromptLink {
+                project_id: l.project_id,
+                prompt_id: l.asset_id,
+                prompt_app_type: l.asset_app_type,
+                enabled: l.enabled,
+                created_at: l.created_at,
             })
-            .map_err(|e| AppError::Database(e.to_string()))?;
-
-        let mut links = Vec::new();
-        for row in rows {
-            links.push(row.map_err(|e| AppError::Database(e.to_string()))?);
-        }
-        Ok(links)
+            .collect())
     }
 
-    /// 关联 Prompt 到项目
     pub fn link_project_prompt(
         &self,
         project_id: &str,
@@ -399,44 +289,22 @@ impl Database {
         prompt_app_type: &str,
         enabled: bool,
     ) -> Result<(), AppError> {
-        let conn = lock_conn!(self.conn);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_secs() as i64;
-
-        conn.execute(
-            "INSERT INTO project_prompts (project_id, prompt_id, prompt_app_type, enabled, created_at)
-             VALUES (?1, ?2, ?3, ?4, ?5)
-             ON CONFLICT(project_id, prompt_id, prompt_app_type) DO UPDATE SET enabled = excluded.enabled",
-            params![project_id, prompt_id, prompt_app_type, enabled, now],
-        )
-        .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(())
+        self.link_project_asset(project_id, ASSET_PROMPT, prompt_id, prompt_app_type, enabled)
     }
 
-    /// 取消 Prompt 与项目的关联
     pub fn unlink_project_prompt(
         &self,
         project_id: &str,
         prompt_id: &str,
         prompt_app_type: &str,
     ) -> Result<bool, AppError> {
-        let conn = lock_conn!(self.conn);
-        let affected = conn
-            .execute(
-                "DELETE FROM project_prompts WHERE project_id = ?1 AND prompt_id = ?2 AND prompt_app_type = ?3",
-                params![project_id, prompt_id, prompt_app_type],
-            )
-            .map_err(|e| AppError::Database(e.to_string()))?;
-        Ok(affected > 0)
+        self.unlink_project_asset(project_id, ASSET_PROMPT, prompt_id, prompt_app_type)
     }
 
-    /// 批量设置项目的 Prompt 关联（替换所有现有关联）
     pub fn set_project_prompts(
         &self,
         project_id: &str,
-        prompts: &[(String, String)], // (prompt_id, app_type)
+        prompts: &[(String, String)],
     ) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         let now = std::time::SystemTime::now()
@@ -445,20 +313,21 @@ impl Database {
             .as_secs() as i64;
 
         conn.execute(
-            "DELETE FROM project_prompts WHERE project_id = ?1",
-            params![project_id],
+            "DELETE FROM project_asset_links WHERE project_id = ?1 AND asset_type = ?2",
+            params![project_id, ASSET_PROMPT],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
         let mut stmt = conn
             .prepare(
-                "INSERT INTO project_prompts (project_id, prompt_id, prompt_app_type, enabled, created_at)
-                 VALUES (?1, ?2, ?3, 1, ?4)",
+                "INSERT INTO project_asset_links
+                 (project_id, asset_type, asset_id, asset_app_type, enabled, scope, source, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, 1, 'project', 'manual', ?5, ?5)",
             )
             .map_err(|e| AppError::Database(e.to_string()))?;
 
         for (prompt_id, app_type) in prompts {
-            stmt.execute(params![project_id, prompt_id, app_type, now])
+            stmt.execute(params![project_id, ASSET_PROMPT, prompt_id, app_type, now])
                 .map_err(|e| AppError::Database(e.to_string()))?;
         }
         Ok(())

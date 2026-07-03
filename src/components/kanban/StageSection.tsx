@@ -13,6 +13,7 @@ import {
 import { ProjectCard } from "./ProjectCard";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { Project } from "@/types/project";
+import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 
 interface StageSectionProps {
   stage: StageKey;
@@ -22,7 +23,7 @@ interface StageSectionProps {
   aiSummaryMap?: Map<string, string>;
   aiLoadingMap?: Map<string, boolean>;
   aiHealthMap?: Map<string, number>;
-  agentReadinessMap?: Map<string, number>;
+  agentReadinessMap?: Map<string, AgentReadinessBatchEntry>;
   onProjectClick: (project: Project) => void;
   onProjectRemove: (projectId: string) => void;
   onStageChange: (projectId: string, stage: StageKey) => void;
@@ -165,7 +166,8 @@ export function StageSection({
                     aiSummary={aiSummaryMap?.get(project.id)}
                     aiSummaryLoading={aiLoadingMap?.get(project.id)}
                     healthScore={aiHealthMap?.get(project.id)}
-                    agentReadiness={agentReadinessMap?.get(project.id)}
+                    agentReadiness={agentReadinessMap?.get(project.id)?.score}
+                    agentDriftCount={agentReadinessMap?.get(project.id)?.driftCount}
                     onClick={() => onProjectClick(project)}
                     onRemove={() => onProjectRemove(project.id)}
                     onStageChange={(s) => onStageChange(project.id, s)}

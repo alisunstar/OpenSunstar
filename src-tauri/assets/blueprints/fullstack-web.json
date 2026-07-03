@@ -1,0 +1,11 @@
+{
+  "id": "fullstack-web",
+  "name": "Fullstack Web",
+  "description": "Web 全栈项目：关联目标 CLI 下已启用的 MCP、Skills、Prompts 与 Commands。",
+  "projectType": "fullstack",
+  "targetApp": "claude",
+  "linkAllMcpForTarget": true,
+  "linkAllSkillsForTarget": true,
+  "linkAllPromptsForTarget": true,
+  "linkAllCommandsForTarget": true
+}

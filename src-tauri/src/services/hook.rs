@@ -1,8 +1,7 @@
-use serde_json::{json, Map, Value};
-
+use crate::app_config::AppType;
 use crate::error::AppError;
 use crate::hook::{validate_hook_event_type, validate_timeout, Hook};
-use crate::services::claude_settings::ClaudeSettingsMerger;
+use crate::services::hook_sync;
 use crate::store::AppState;
 
 pub struct HookService;
@@ -16,7 +15,7 @@ impl HookService {
         validate_hook_event_type(&hook.event_type).map_err(AppError::Config)?;
         validate_timeout(hook.timeout_seconds).map_err(AppError::Config)?;
         state.db.save_hook(&hook)?;
-        Self::sync_hooks_to_claude(state)
+        Self::sync_all_apps(state)
     }
 
     pub fn delete_hook(state: &AppState, id: &str) -> Result<bool, AppError> {
@@ -25,36 +24,32 @@ impl HookService {
             return Ok(false);
         }
         state.db.delete_hook(id)?;
-        Self::sync_hooks_to_claude(state)?;
+        Self::sync_all_apps(state)?;
         Ok(true)
     }
 
-    pub fn sync_hooks_to_claude(state: &AppState) -> Result<(), AppError> {
-        let hooks = state
-            .db
-            .get_all_hooks()?
-            .into_iter()
-            .filter(|h| h.enabled_claude)
-            .collect::<Vec<_>>();
-
-        let mut hooks_map: Map<String, Value> = Map::new();
-        for hook in hooks {
-            let entry = json!({
-                "matcher": hook.tool_pattern,
-                "hooks": [{
-                    "type": "command",
-                    "command": hook.hook_command,
-                    "timeout": hook.timeout_seconds
-                }]
-            });
-            hooks_map
-                .entry(hook.event_type.clone())
-                .or_insert_with(|| json!([]))
-                .as_array_mut()
-                .expect("hooks array")
-                .push(entry);
+    pub fn toggle_app(
+        state: &AppState,
+        hook_id: &str,
+        app: AppType,
+        enabled: bool,
+    ) -> Result<(), AppError> {
+        let mut hooks = state.db.get_all_hooks()?;
+        if let Some(hook) = hooks.iter_mut().find(|h| h.id == hook_id) {
+            hook.set_enabled_for(&app, enabled);
+            let snapshot = hook.clone();
+            state.db.save_hook(&snapshot)?;
+            hook_sync::sync_app(state, &app)?;
         }
+        Ok(())
+    }
 
-        ClaudeSettingsMerger::update_field("hooks", Value::Object(hooks_map))
+    pub fn sync_all_apps(state: &AppState) -> Result<(), AppError> {
+        hook_sync::sync_all_apps(state)
+    }
+
+    /// Backward-compatible alias for Claude-only callers.
+    pub fn sync_hooks_to_claude(state: &AppState) -> Result<(), AppError> {
+        hook_sync::sync_app(state, &AppType::Claude)
     }
 }

@@ -22,6 +22,9 @@ use crate::hermes_config::get_hermes_dir;
 use crate::opencode_config::get_opencode_dir;
 use crate::services::agent_codex::markdown_agent_to_codex_toml;
 use crate::services::claude_settings::ClaudeSettingsMerger;
+use crate::services::marker_merge::{
+    extract_markdown_section, strip_managed_subagent_marker, PROMPT_SECTION_ID,
+};
 use crate::services::prompt::PromptService;
 use crate::services::skill::SkillService;
 use crate::store::AppState;
@@ -51,6 +54,29 @@ pub struct EffectiveScanResult {
     pub scanned_at: i64,
     pub target_app: String,
     pub items: Vec<EffectiveItemState>,
+}
+
+/// 单项漂移修复结果（写回 + 复扫验证）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepairAssetDriftResult {
+    pub check_name: String,
+    pub before_state: String,
+    pub after_state: String,
+    pub repaired: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_detail: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live_path: Option<String>,
+    pub scanned_at: i64,
+}
+
+/// 项目级批量漂移修复结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepairProjectDriftResult {
+    pub repaired_count: u32,
+    pub still_drifted_count: u32,
+    pub items: Vec<RepairAssetDriftResult>,
+    pub scanned_at: i64,
 }
 
 fn now_ts() -> i64 {
@@ -336,6 +362,7 @@ fn scan_mcp(
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     let check_name = "mcp_enabled";
     if support == AssetSupport::Unsupported {
@@ -356,6 +383,40 @@ fn scan_mcp(
             live_path: None,
         };
     }
+
+    let use_project = matches!(app, AppType::Claude)
+        && ctx.project_id.is_some_and(|id| db.count_enabled_project_mcp(id).unwrap_or(0) > 0)
+        && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let raw_expected = expected_project_mcp_map(db, project_id).unwrap_or_default();
+        let live_path = crate::prompt_files::project_mcp_json_path(project_root);
+        let expected = crate::claude_mcp::sanitized_mcp_servers_map(&raw_expected, &live_path)
+            .unwrap_or(raw_expected);
+        let actual = crate::claude_mcp::read_project_mcp_servers_map(project_root).unwrap_or_default();
+        let exp_json = mcp_map_to_json(&expected);
+        let act_json = mcp_map_to_json(&actual);
+        let path_str = live_path.display().to_string();
+        if compare_json(&exp_json, &act_json) {
+            return EffectiveItemState {
+                check_name: check_name.into(),
+                configured_state: configured.into(),
+                effective_state: EFFECTIVE.into(),
+                effective_detail: None,
+                live_path: Some(path_str),
+            };
+        }
+        return EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: DRIFTED.into(),
+            effective_detail: Some("项目 .mcp.json 与 OpenSunstar 库不一致".into()),
+            live_path: Some(path_str),
+        };
+    }
+
     if !matches!(app, AppType::Claude | AppType::Gemini | AppType::OpenCode) {
         return EffectiveItemState {
             check_name: check_name.into(),
@@ -411,6 +472,7 @@ fn scan_prompt(
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     let check_name = "prompt_files";
     if support == AssetSupport::Unsupported {
@@ -432,6 +494,37 @@ fn scan_prompt(
         };
     }
 
+    let use_project = ctx.project_id.is_some_and(|id| {
+        state
+            .db
+            .get_project_prompts(id)
+            .map(|links| {
+                links
+                    .iter()
+                    .any(|l| l.enabled && l.prompt_app_type == app.as_str())
+            })
+            .unwrap_or(false)
+    }) && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let path = match crate::prompt_files::project_prompt_file_path(project_root, app) {
+            Ok(p) => p,
+            Err(e) => {
+                return EffectiveItemState {
+                    check_name: check_name.into(),
+                    configured_state: configured.into(),
+                    effective_state: UNCHECKED.into(),
+                    effective_detail: Some(e.to_string()),
+                    live_path: None,
+                };
+            }
+        };
+        let expected = expected_project_prompt_body(state, project_id, app).unwrap_or_default();
+        return effective_from_managed_text(check_name, configured, &expected, &path, support);
+    }
+
     let path = match crate::prompt_files::prompt_file_path(app) {
         Ok(p) => p,
         Err(e) => {
@@ -446,7 +539,7 @@ fn scan_prompt(
     };
 
     let expected = expected_prompt_content(state, app).unwrap_or_default();
-    effective_from_text(check_name, configured, &expected, &path, AssetSupport::Supported)
+    effective_from_managed_text(check_name, configured, &expected, &path, support)
 }
 
 fn scan_ignore(
@@ -454,6 +547,7 @@ fn scan_ignore(
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     if support == AssetSupport::Unsupported {
         return EffectiveItemState {
@@ -487,17 +581,285 @@ fn scan_ignore(
         }
     };
     let expected = expected_ignore_content(db, app).unwrap_or_default();
-    effective_from_text("ignore_rules", configured, &expected, &path, AssetSupport::Supported)
+
+    // 项目级 ignore：当存在项目上下文时，额外检查项目根目录的 ignore 文件
+    let project_result = if let (Some(project_id), Some(project_path)) =
+        (ctx.project_id, ctx.project_path)
+    {
+        let project_root = std::path::Path::new(project_path);
+        match crate::prompt_files::project_ignore_file_path(project_root, app) {
+            Ok(proj_path) => {
+                let proj_expected =
+                    expected_project_ignore_content(db, project_id, app).unwrap_or_default();
+                if proj_expected.is_empty() && !proj_path.is_file() {
+                    None
+                } else {
+                    let proj_state = effective_from_text(
+                        "ignore_rules",
+                        configured,
+                        &proj_expected,
+                        &proj_path,
+                        AssetSupport::Supported,
+                    );
+                    Some(proj_state)
+                }
+            }
+            Err(_) => None,
+        }
+    } else {
+        None
+    };
+
+    let mut global = effective_from_text(
+        "ignore_rules",
+        configured,
+        &expected,
+        &path,
+        AssetSupport::Supported,
+    );
+
+    // 项目级 ignore 结果合并：drifted > effective，并附加项目路径信息
+    if let Some(proj) = project_result {
+        let proj_drifted = proj.effective_state == DRIFTED;
+        let proj_live = proj.live_path.clone();
+        if proj_drifted {
+            global = proj;
+        }
+        if let Some(ref proj_live_path) = proj_live {
+            global.live_path = Some(format!(
+                "全局: {} | 项目: {}",
+                path.display(),
+                proj_live_path
+            ));
+        }
+    }
+
+    global
 }
 
-fn scan_permissions(db: &Database, configured: &str, support: AssetSupport) -> EffectiveItemState {
-    let expected = expected_permissions_json(db).unwrap_or(json!({}));
+/// 项目级期望 ignore 内容（仅包含关联到该项目的规则）
+fn expected_project_ignore_content(
+    db: &Database,
+    project_id: &str,
+    app: &AppType,
+) -> Result<String, AppError> {
+    let rules = db.get_all_ignore_rules()?;
+    let links = db
+        .get_project_asset_links(project_id, Some(crate::database::ASSET_IGNORE))
+        .unwrap_or_default();
+    let linked_ids: std::collections::HashSet<&str> = links
+        .iter()
+        .filter(|l| l.enabled)
+        .map(|l| l.asset_id.as_str())
+        .collect();
+
+    if linked_ids.is_empty() {
+        return Ok(String::new());
+    }
+
+    let patterns: Vec<&str> = rules
+        .iter()
+        .filter(|r| linked_ids.contains(r.id.as_str()) && r.is_enabled_for(app))
+        .map(|r| r.pattern.as_str())
+        .collect();
+    Ok(if patterns.is_empty() {
+        String::new()
+    } else {
+        patterns.join("\n") + "\n"
+    })
+}
+
+fn scan_permissions(
+    state: &AppState,
+    app: &AppType,
+    configured: &str,
+    support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
+) -> EffectiveItemState {
+    let use_project = ctx.project_id.is_some_and(|id| {
+        crate::services::project_config_sync::project_has_asset_links(
+            &state.db, id, "permission", app,
+        )
+    }) && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let config_path = match app {
+            AppType::Claude => crate::prompt_files::project_claude_settings_path(project_root),
+            AppType::Codex => crate::prompt_files::project_codex_config_path(project_root),
+            AppType::Gemini => crate::prompt_files::project_gemini_settings_path(project_root),
+            AppType::OpenCode => crate::prompt_files::project_opencode_config_path(project_root),
+            AppType::Hermes => crate::prompt_files::project_hermes_config_path(project_root),
+            _ => {
+                return EffectiveItemState {
+                    check_name: "permissions".into(),
+                    configured_state: configured.into(),
+                    effective_state: NOT_APPLICABLE.into(),
+                    effective_detail: Some("当前目标 CLI 不支持项目级 Permissions 生效态扫描".into()),
+                    live_path: None,
+                };
+            }
+        };
+        let lists = crate::services::project_config_sync::expected_project_permission_lists(
+            &state.db,
+            project_id,
+            app,
+        )
+        .unwrap_or_else(|_| crate::services::permission_sync::PermissionLists {
+            allow: vec![],
+            deny: vec![],
+            auto_approve: vec![],
+        });
+        return effective_from_project_resync(
+            "permissions",
+            configured,
+            support,
+            &config_path,
+            |tmp_path| crate::services::permission_sync::sync_permissions_at_path(&lists, app, tmp_path),
+        );
+    }
+
+    let expected = expected_permissions_json(&state.db).unwrap_or(json!({}));
     effective_from_json_field("permissions", configured, &expected, "permissions", support)
 }
 
-fn scan_hooks(db: &Database, configured: &str, support: AssetSupport) -> EffectiveItemState {
-    let expected = expected_hooks_json(db).unwrap_or(json!({}));
+fn scan_hooks(
+    state: &AppState,
+    app: &AppType,
+    configured: &str,
+    support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
+) -> EffectiveItemState {
+    let use_project = ctx.project_id.is_some_and(|id| {
+        crate::services::project_config_sync::project_has_asset_links(&state.db, id, "hook", app)
+    }) && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let config_path = match app {
+            AppType::Claude => crate::prompt_files::project_claude_settings_path(project_root),
+            AppType::Codex => crate::prompt_files::project_codex_config_path(project_root),
+            AppType::Gemini => crate::prompt_files::project_gemini_settings_path(project_root),
+            AppType::Hermes => crate::prompt_files::project_hermes_config_path(project_root),
+            _ => {
+                return EffectiveItemState {
+                    check_name: "hooks_configured".into(),
+                    configured_state: configured.into(),
+                    effective_state: NOT_APPLICABLE.into(),
+                    effective_detail: Some("当前目标 CLI 不支持项目级 Hooks 生效态扫描".into()),
+                    live_path: None,
+                };
+            }
+        };
+        let hooks = crate::services::project_config_sync::expected_project_hooks(
+            &state.db,
+            project_id,
+            app,
+        )
+        .unwrap_or_default();
+        return effective_from_project_resync(
+            "hooks_configured",
+            configured,
+            support,
+            &config_path,
+            |tmp_path| crate::services::hook_sync::sync_hooks_at_path(&hooks, app, tmp_path),
+        );
+    }
+
+    let expected = expected_hooks_json(&state.db).unwrap_or(json!({}));
     effective_from_json_field("hooks_configured", configured, &expected, "hooks", support)
+}
+
+fn effective_from_project_resync<F>(
+    check_name: &str,
+    configured: &str,
+    support: AssetSupport,
+    live_path: &std::path::Path,
+    sync_fn: F,
+) -> EffectiveItemState
+where
+    F: FnOnce(&std::path::Path) -> Result<(), AppError>,
+{
+    if support == AssetSupport::Unsupported {
+        return EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: NOT_APPLICABLE.into(),
+            effective_detail: Some("当前目标 CLI 不支持此项".into()),
+            live_path: None,
+        };
+    }
+    if configured == UNCONFIGURED {
+        return EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: NOT_APPLICABLE.into(),
+            effective_detail: None,
+            live_path: None,
+        };
+    }
+
+    let actual = if live_path.is_file() {
+        std::fs::read_to_string(live_path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    let tmp_dir = match tempfile::tempdir() {
+        Ok(d) => d,
+        Err(e) => {
+            return EffectiveItemState {
+                check_name: check_name.into(),
+                configured_state: configured.into(),
+                effective_state: UNCHECKED.into(),
+                effective_detail: Some(e.to_string()),
+                live_path: Some(live_path.display().to_string()),
+            };
+        }
+    };
+    let tmp_path = tmp_dir.path().join(
+        live_path
+            .file_name()
+            .map(|s| s.to_string_lossy().to_string())
+            .unwrap_or_else(|| "config.tmp".to_string()),
+    );
+    if !actual.is_empty() {
+        let _ = std::fs::write(&tmp_path, &actual);
+    }
+    if let Err(e) = sync_fn(&tmp_path) {
+        return EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: UNCHECKED.into(),
+            effective_detail: Some(e.to_string()),
+            live_path: Some(live_path.display().to_string()),
+        };
+    }
+    let expected = if tmp_path.is_file() {
+        std::fs::read_to_string(&tmp_path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+
+    if compare_text(&expected, &actual) {
+        EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: EFFECTIVE.into(),
+            effective_detail: None,
+            live_path: Some(live_path.display().to_string()),
+        }
+    } else {
+        EffectiveItemState {
+            check_name: check_name.into(),
+            configured_state: configured.into(),
+            effective_state: DRIFTED.into(),
+            effective_detail: Some("项目配置与 OpenSunstar 库不一致".into()),
+            live_path: Some(live_path.display().to_string()),
+        }
+    }
 }
 
 fn aggregate_effective_state(
@@ -599,10 +961,11 @@ fn expected_agent_payload(
 }
 
 fn scan_skills(
-    db: &Database,
+    state: &AppState,
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     let check_name = "skills_configured";
     if support == AssetSupport::Unsupported {
@@ -624,6 +987,70 @@ fn scan_skills(
         };
     }
 
+    let use_project = ctx
+        .project_id
+        .is_some_and(|id| crate::services::project_config_sync::project_has_skills(&state.db, id))
+        && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let live_root = match crate::prompt_files::project_skills_dir(project_root, app) {
+            Ok(p) => p,
+            Err(e) => {
+                return EffectiveItemState {
+                    check_name: check_name.into(),
+                    configured_state: configured.into(),
+                    effective_state: UNCHECKED.into(),
+                    effective_detail: Some(e.to_string()),
+                    live_path: None,
+                };
+            }
+        };
+        let ssot_dir = match SkillService::get_ssot_dir() {
+            Ok(p) => p,
+            Err(e) => {
+                return EffectiveItemState {
+                    check_name: check_name.into(),
+                    configured_state: configured.into(),
+                    effective_state: UNCHECKED.into(),
+                    effective_detail: Some(e.to_string()),
+                    live_path: None,
+                };
+            }
+        };
+        let expected_dirs = crate::services::project_config_sync::expected_project_skill_directories(
+            &state.db,
+            project_id,
+            app,
+        )
+        .unwrap_or_default();
+
+        let mut drifted = Vec::new();
+        for directory in &expected_dirs {
+            let source = ssot_dir.join(directory);
+            let dest = live_root.join(directory);
+            if !dest.exists() {
+                drifted.push(directory.clone());
+                continue;
+            }
+            let source_hash = SkillService::compute_dir_hash(&source).ok();
+            let dest_hash = SkillService::compute_dir_hash(&dest).ok();
+            if source_hash != dest_hash {
+                drifted.push(directory.clone());
+            }
+        }
+
+        return aggregate_effective_state(
+            check_name,
+            configured,
+            Some(live_root.display().to_string()),
+            drifted,
+            "无项目启用的 Skills",
+        );
+    }
+
+    let db = &state.db;
     let live_root = match SkillService::get_app_skills_dir(app) {
         Ok(p) => p,
         Err(e) => {
@@ -681,10 +1108,11 @@ fn scan_skills(
 }
 
 fn scan_commands(
-    db: &Database,
+    state: &AppState,
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     let check_name = "commands_configured";
     if support == AssetSupport::Unsupported {
@@ -706,6 +1134,72 @@ fn scan_commands(
         };
     }
 
+    let use_project = ctx.project_id.is_some_and(|id| {
+        state
+            .db
+            .get_project_asset_links(id, Some("command"))
+            .map(|links| {
+                links
+                    .iter()
+                    .any(|l| l.enabled && l.asset_app_type == app.as_str())
+            })
+            .unwrap_or(false)
+    }) && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let live_root = match crate::prompt_files::project_commands_dir(project_root, app) {
+            Ok(p) => p,
+            Err(e) => {
+                return EffectiveItemState {
+                    check_name: check_name.into(),
+                    configured_state: configured.into(),
+                    effective_state: UNCHECKED.into(),
+                    effective_detail: Some(e.to_string()),
+                    live_path: None,
+                };
+            }
+        };
+
+        let expected = crate::services::project_config_sync::expected_project_commands(
+            &state.db,
+            project_id,
+            app,
+        )
+        .unwrap_or_default();
+
+        let mut drifted = Vec::new();
+        for (name, content) in &expected {
+            let path = match crate::prompt_files::project_command_file_path(project_root, app, name)
+            {
+                Ok(p) => p,
+                Err(_) => {
+                    drifted.push(name.clone());
+                    continue;
+                }
+            };
+            let actual = if path.is_file() {
+                crate::services::marker_merge::strip_managed_command_marker(
+                    &std::fs::read_to_string(&path).unwrap_or_default(),
+                )
+            } else {
+                String::new()
+            };
+            if !compare_text(content, &actual) {
+                drifted.push(name.clone());
+            }
+        }
+
+        return aggregate_effective_state(
+            check_name,
+            configured,
+            Some(live_root.display().to_string()),
+            drifted,
+            "无项目启用的 Commands",
+        );
+    }
+
     let live_root = match commands_live_root(app) {
         Ok(p) => p,
         Err(e) => {
@@ -719,7 +1213,8 @@ fn scan_commands(
         }
     };
 
-    let enabled: Vec<_> = db
+    let enabled: Vec<_> = state
+        .db
         .get_all_commands()
         .unwrap_or_default()
         .into_values()
@@ -755,10 +1250,11 @@ fn scan_commands(
 }
 
 fn scan_subagents(
-    db: &Database,
+    state: &AppState,
     app: &AppType,
     configured: &str,
     support: AssetSupport,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveItemState {
     let check_name = "subagents_configured";
     if support == AssetSupport::Unsupported {
@@ -789,6 +1285,63 @@ fn scan_subagents(
         };
     }
 
+    let use_project = ctx.project_id.is_some_and(|id| {
+        crate::services::project_config_sync::project_has_asset_links(
+            &state.db, id, "subagent", app,
+        )
+    }) && ctx.project_path.is_some();
+
+    if use_project {
+        let project_id = ctx.project_id.unwrap();
+        let project_root = std::path::Path::new(ctx.project_path.unwrap());
+        let live_root = match crate::prompt_files::project_agents_dir(project_root, app) {
+            Ok(p) => p,
+            Err(e) => {
+                return EffectiveItemState {
+                    check_name: check_name.into(),
+                    configured_state: configured.into(),
+                    effective_state: UNCHECKED.into(),
+                    effective_detail: Some(e.to_string()),
+                    live_path: None,
+                };
+            }
+        };
+        let expected = crate::services::project_config_sync::expected_project_subagents(
+            &state.db,
+            project_id,
+            app,
+        )
+        .unwrap_or_default();
+
+        let mut drifted = Vec::new();
+        for (name, content) in &expected {
+            let path = match crate::prompt_files::project_agent_file_path(project_root, app, name) {
+                Ok(p) => p,
+                Err(_) => {
+                    drifted.push(name.clone());
+                    continue;
+                }
+            };
+            let actual = if path.is_file() {
+                strip_managed_subagent_marker(&std::fs::read_to_string(&path).unwrap_or_default())
+            } else {
+                String::new()
+            };
+            if !compare_text(content, &actual) {
+                drifted.push(name.clone());
+            }
+        }
+
+        return aggregate_effective_state(
+            check_name,
+            configured,
+            Some(live_root.display().to_string()),
+            drifted,
+            "无项目启用的 Subagents",
+        );
+    }
+
+    let db = &state.db;
     let live_root = match agents_live_root(app) {
         Ok(p) => p,
         Err(e) => {
@@ -879,11 +1432,120 @@ fn target_app_to_type(target_app: &str) -> AppType {
     }
 }
 
+/// Optional project context for project-level file comparisons (L2).
+#[derive(Debug, Clone, Copy, Default)]
+pub struct EffectiveScanContext<'a> {
+    pub project_path: Option<&'a str>,
+    pub project_id: Option<&'a str>,
+}
+
+fn effective_from_managed_text(
+    check_name: &str,
+    configured: &str,
+    expected_body: &str,
+    live_path: &std::path::Path,
+    support: AssetSupport,
+) -> EffectiveItemState {
+    if support == AssetSupport::Unsupported {
+        return EffectiveItemState {
+            check_name: check_name.to_string(),
+            configured_state: configured.to_string(),
+            effective_state: NOT_APPLICABLE.to_string(),
+            effective_detail: Some("当前目标 CLI 不支持此项文件写回".into()),
+            live_path: None,
+        };
+    }
+    if configured == UNCONFIGURED {
+        return EffectiveItemState {
+            check_name: check_name.to_string(),
+            configured_state: UNCONFIGURED.to_string(),
+            effective_state: NOT_APPLICABLE.to_string(),
+            effective_detail: None,
+            live_path: None,
+        };
+    }
+
+    let actual_full = if live_path.is_file() {
+        std::fs::read_to_string(live_path).unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let actual_body = extract_markdown_section(&actual_full, PROMPT_SECTION_ID)
+        .filter(|s| !s.is_empty())
+        .unwrap_or(actual_full);
+
+    let path_str = live_path.display().to_string();
+    if compare_text(expected_body, &actual_body) {
+        EffectiveItemState {
+            check_name: check_name.to_string(),
+            configured_state: configured.to_string(),
+            effective_state: EFFECTIVE.to_string(),
+            effective_detail: None,
+            live_path: Some(path_str),
+        }
+    } else {
+        EffectiveItemState {
+            check_name: check_name.to_string(),
+            configured_state: configured.to_string(),
+            effective_state: DRIFTED.to_string(),
+            effective_detail: Some(
+                "项目级 Prompt 文件的 OpenSunstar 管理段与库内容不一致".into(),
+            ),
+            live_path: Some(path_str),
+        }
+    }
+}
+
+fn expected_project_mcp_map(
+    db: &Database,
+    project_id: &str,
+) -> Result<HashMap<String, Value>, AppError> {
+    let links = db.get_project_mcp_servers(project_id)?;
+    let all = db.get_all_mcp_servers()?;
+    let mut map = HashMap::new();
+    for link in links.into_iter().filter(|l| l.enabled) {
+        if let Some(server) = all.get(&link.config_id) {
+            if server.apps.claude {
+                map.insert(link.config_id.clone(), server.server.clone());
+            }
+        }
+    }
+    Ok(map)
+}
+
+fn expected_project_prompt_body(
+    state: &AppState,
+    project_id: &str,
+    app: &AppType,
+) -> Result<String, AppError> {
+    let links = state
+        .db
+        .get_project_prompts(project_id)?
+        .into_iter()
+        .filter(|l| l.enabled && l.prompt_app_type == app.as_str())
+        .collect::<Vec<_>>();
+    let prompts = state.db.get_prompts(app.as_str())?;
+    let mut parts = Vec::new();
+    for link in links {
+        if let Some(prompt) = prompts.get(&link.prompt_id) {
+            if prompt.is_fragment {
+                continue;
+            }
+            let content = PromptService::resolve_effective_content(state, app, prompt)?;
+            if !content.trim().is_empty() {
+                parts.push(content);
+            }
+        }
+    }
+    Ok(parts.join("\n\n"))
+}
+
 /// 扫描全部 readiness 检查项的生效态，并与 readiness 明细合并
 pub fn scan_effective_states(
     state: &AppState,
     readiness_details: &[AgentReadinessItem],
     target_app: Option<&str>,
+    ctx: EffectiveScanContext<'_>,
 ) -> EffectiveScanResult {
     let app_id = normalize_target_app(target_app);
     let app = target_app_to_type(app_id);
@@ -897,11 +1559,11 @@ pub fn scan_effective_states(
             .unwrap_or(AssetSupport::Supported);
 
         let item = match detail.check_name.as_str() {
-            "mcp_enabled" => scan_mcp(&state.db, &app, configured, support),
-            "prompt_files" => scan_prompt(state, &app, configured, support),
-            "ignore_rules" => scan_ignore(&state.db, &app, configured, support),
-            "permissions" => scan_permissions(&state.db, configured, support),
-            "hooks_configured" => scan_hooks(&state.db, configured, support),
+            "mcp_enabled" => scan_mcp(&state.db, &app, configured, support, ctx),
+            "prompt_files" => scan_prompt(state, &app, configured, support, ctx),
+            "ignore_rules" => scan_ignore(&state.db, &app, configured, support, ctx),
+            "permissions" => scan_permissions(state, &app, configured, support, ctx),
+            "hooks_configured" => scan_hooks(state, &app, configured, support, ctx),
             "recent_updates" => EffectiveItemState {
                 check_name: detail.check_name.clone(),
                 configured_state: configured.to_string(),
@@ -909,9 +1571,9 @@ pub fn scan_effective_states(
                 effective_detail: Some("维护度指标无磁盘生效态".into()),
                 live_path: None,
             },
-            "skills_configured" => scan_skills(&state.db, &app, configured, support),
-            "commands_configured" => scan_commands(&state.db, &app, configured, support),
-            "subagents_configured" => scan_subagents(&state.db, &app, configured, support),
+            "skills_configured" => scan_skills(state, &app, configured, support, ctx),
+            "commands_configured" => scan_commands(state, &app, configured, support, ctx),
+            "subagents_configured" => scan_subagents(state, &app, configured, support, ctx),
             other => unchecked_item(other, configured, "暂未实现生效态扫描"),
         };
         items.push(item);

@@ -58,7 +58,12 @@ export function PermissionFormPanel({
         id,
         permissionType,
         toolPattern: toolPattern.trim(),
-        enabledClaude: true,
+        enabledClaude: initialData?.enabledClaude ?? true,
+        enabledCodex: initialData?.enabledCodex ?? false,
+        enabledGemini: initialData?.enabledGemini ?? false,
+        enabledOpencode: initialData?.enabledOpencode ?? false,
+        enabledHermes: initialData?.enabledHermes ?? false,
+        enabledOpenclaw: initialData?.enabledOpenclaw ?? false,
         description: description.trim() || undefined,
         sortIndex: initialData?.sortIndex ?? 0,
         createdAt: initialData?.createdAt ?? now,
@@ -90,8 +95,9 @@ export function PermissionFormPanel({
     >
       <div className="space-y-4 max-w-2xl">
         <p className="text-sm text-muted-foreground">
-          {t("permissions.claudeOnlyNote", {
-            defaultValue: "当前仅同步到 Claude Code settings.json permissions 字段",
+          {t("permissions.multiCliNote", {
+            defaultValue:
+              "默认同步到 Claude Code；保存后可在列表中切换 Codex、Gemini、OpenCode、OpenClaw 等目标。",
           })}
         </p>
         <div className="space-y-2">

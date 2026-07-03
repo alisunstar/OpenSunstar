@@ -9,7 +9,8 @@ use crate::ai::agent_readiness::{
     AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
-    merge_effective_into_details, scan_effective_states, EffectiveScanResult,
+    merge_effective_into_details, scan_effective_states, EffectiveScanContext, EffectiveScanResult,
+    RepairAssetDriftResult, RepairProjectDriftResult, DRIFTED,
 };
 use crate::ai::client::{estimate_cost, AIClient};
 use crate::ai::project_id::{resolve_canonical_project_id, PORTFOLIO_PROJECT_ID};
@@ -935,6 +936,124 @@ fn detect_prompt_files(project_path: &str) -> Vec<String> {
         .collect()
 }
 
+struct ProjectReadinessContext {
+    sqlite_id: Option<String>,
+    effective_target_app: Option<String>,
+    details: Vec<crate::ai::types::AgentReadinessItem>,
+}
+
+fn build_project_readiness_context(
+    db: &Database,
+    project_path: &str,
+    target_app: Option<String>,
+) -> ProjectReadinessContext {
+    let sqlite_id = db.get_project_id_by_path(project_path).ok().flatten();
+    let project_target_app = sqlite_id
+        .as_deref()
+        .and_then(|id| db.get_project(id).ok().flatten())
+        .and_then(|p| p.target_app.clone());
+    let effective_target_app = project_target_app.or(target_app);
+
+    let mcp_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_mcp(id).ok())
+        .unwrap_or(0);
+    let skills_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_skills(id).ok())
+        .unwrap_or(0);
+    let db_prompt_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_prompts(id).ok())
+        .unwrap_or(0);
+    let prompt_files = detect_prompt_files(project_path);
+    let commands_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
+        .unwrap_or(0);
+    let hooks_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "hook").ok())
+        .unwrap_or(0);
+    let ignore_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "ignore").ok())
+        .unwrap_or(0);
+    let permissions_project_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "permission").ok())
+        .unwrap_or(0);
+    let subagents_count = sqlite_id
+        .as_deref()
+        .and_then(|id| db.count_enabled_project_assets(id, "subagent").ok())
+        .unwrap_or(0);
+    let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
+    let permissions_global_count = db.count_global_permissions().unwrap_or(0);
+
+    let max_legacy_ts = sqlite_id
+        .as_deref()
+        .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
+    let max_links_ts = sqlite_id
+        .as_deref()
+        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
+    let max_ts = match (max_legacy_ts, max_links_ts) {
+        (Some(a), Some(b)) => Some(a.max(b)),
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (None, None) => None,
+    };
+    let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
+    let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
+
+    let (_, details) = compute_readiness_items(&ReadinessCheckInput {
+        mcp_project_count: mcp_count,
+        has_repo_mcp: detect_repo_mcp_file(project_path),
+        skills_count,
+        prompt_db_count: db_prompt_count,
+        prompt_files,
+        commands_count,
+        hooks_count,
+        ignore_project_count,
+        ignore_global_count,
+        permissions_project_count,
+        permissions_global_count,
+        subagents_count,
+        recent_update_within_90d,
+        target_app: effective_target_app.clone(),
+    });
+
+    ProjectReadinessContext {
+        sqlite_id,
+        effective_target_app,
+        details,
+    }
+}
+
+fn scan_project_effective_for_details(
+    state: &AppState,
+    project_path: &str,
+    sqlite_id: Option<&str>,
+    target_app: Option<&str>,
+    details: &[crate::ai::types::AgentReadinessItem],
+) -> EffectiveScanResult {
+    scan_effective_states(
+        state,
+        details,
+        target_app,
+        EffectiveScanContext {
+            project_path: Some(project_path),
+            project_id: sqlite_id,
+        },
+    )
+}
+
+fn effective_item_for_check<'a>(
+    scan: &'a EffectiveScanResult,
+    check_name: &str,
+) -> Option<&'a crate::ai::asset_effective_state::EffectiveItemState> {
+    scan.items.iter().find(|i| i.check_name == check_name)
+}
+
 /// 就绪度评分的输入指纹：纳入项目关联配置与全局规则，配置变更后自动失效缓存
 fn compute_agent_readiness_input_hash(
     db: &Database,
@@ -1045,11 +1164,16 @@ pub async fn get_agent_readiness_score(
     let sqlite_id = db.get_project_id_by_path(&project_path).ok().flatten();
     let sqlite_id_ref = sqlite_id.as_deref();
 
+    let project_target_app = sqlite_id_ref
+        .and_then(|id| db.get_project(id).ok().flatten())
+        .and_then(|p| p.target_app.clone());
+    let effective_target_app = project_target_app.clone().or(target_app.clone());
+
     let input_hash = compute_agent_readiness_input_hash(
         &db,
         &project_path,
         sqlite_id_ref,
-        target_app.as_deref(),
+        effective_target_app.as_deref(),
     );
 
     // 1. 检查缓存
@@ -1060,7 +1184,15 @@ pub async fn get_agent_readiness_score(
                 parsed.evaluated_at = Some(cached.created_at);
             }
             if do_scan {
-                let scan = scan_effective_states(&state, &parsed.details, target_app.as_deref());
+                let scan = scan_effective_states(
+                    &state,
+                    &parsed.details,
+                    effective_target_app.as_deref(),
+                    EffectiveScanContext {
+                        project_path: Some(&project_path),
+                        project_id: sqlite_id_ref,
+                    },
+                );
                 merge_effective_into_details(&mut parsed.details, &scan);
                 parsed.is_cached = false;
             }
@@ -1134,11 +1266,19 @@ pub async fn get_agent_readiness_score(
         permissions_global_count,
         subagents_count,
         recent_update_within_90d,
-        target_app: target_app.clone(),
+        target_app: effective_target_app.clone(),
     });
 
     if do_scan {
-        let scan = scan_effective_states(&state, &details, target_app.as_deref());
+        let scan = scan_effective_states(
+            &state,
+            &details,
+            effective_target_app.as_deref(),
+            EffectiveScanContext {
+                project_path: Some(&project_path),
+                project_id: sqlite_id_ref,
+            },
+        );
         merge_effective_into_details(&mut details, &scan);
     }
 
@@ -1203,7 +1343,7 @@ pub async fn get_agent_readiness_score(
         llm_suggestion,
         is_cached: false,
         evaluated_at: Some(now),
-        target_app: target_app.clone(),
+        target_app: effective_target_app.clone(),
     };
 
     // 5. 缓存结果（24h TTL；不缓存生效态字段，避免磁盘漂移导致陈旧）
@@ -1230,6 +1370,13 @@ pub async fn get_agent_readiness_score(
     };
     let _ = db.upsert_ai_insight(&cache_row);
 
+    crate::services::project_artifacts::export_readiness_artifacts(
+        &db,
+        &project_path,
+        target_app.as_deref(),
+        &result,
+    );
+
     Ok(result)
 }
 
@@ -1240,78 +1387,155 @@ pub async fn scan_project_effective_state(
     project_path: String,
     target_app: Option<String>,
 ) -> Result<EffectiveScanResult, String> {
-    let db = state.db.clone();
-    let sqlite_id = db.get_project_id_by_path(&project_path).ok().flatten();
+    let ctx = build_project_readiness_context(&state.db, &project_path, target_app);
+    Ok(scan_project_effective_for_details(
+        &state,
+        &project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    ))
+}
 
-    let mcp_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_mcp(id).ok())
-        .unwrap_or(0);
-    let skills_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_skills(id).ok())
-        .unwrap_or(0);
-    let db_prompt_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_prompts(id).ok())
-        .unwrap_or(0);
-    let prompt_files = detect_prompt_files(&project_path);
-    let commands_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
-        .unwrap_or(0);
-    let hooks_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_assets(id, "hook").ok())
-        .unwrap_or(0);
-    let ignore_project_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_assets(id, "ignore").ok())
-        .unwrap_or(0);
-    let permissions_project_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_assets(id, "permission").ok())
-        .unwrap_or(0);
-    let subagents_count = sqlite_id
-        .as_deref()
-        .and_then(|id| db.count_enabled_project_assets(id, "subagent").ok())
-        .unwrap_or(0);
-    let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
-    let permissions_global_count = db.count_global_permissions().unwrap_or(0);
+/// 漂移一键修复：按检查项写回项目级配置并复扫验证（P0-B）
+fn repair_asset_drift_inner(
+    state: &AppState,
+    project_path: &str,
+    check_name: &str,
+    target_app: Option<String>,
+) -> Result<RepairAssetDriftResult, String> {
+    let ctx = build_project_readiness_context(&state.db, project_path, target_app);
+    let before_scan = scan_project_effective_for_details(
+        state,
+        project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    );
+    let before = effective_item_for_check(&before_scan, check_name)
+        .ok_or_else(|| format!("未知检查项: {check_name}"))?;
 
-    let max_legacy_ts = sqlite_id
-        .as_deref()
-        .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
-    let max_links_ts = sqlite_id
-        .as_deref()
-        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
-    let max_ts = match (max_legacy_ts, max_links_ts) {
-        (Some(a), Some(b)) => Some(a.max(b)),
-        (Some(a), None) => Some(a),
-        (None, Some(b)) => Some(b),
-        (None, None) => None,
-    };
-    let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
-    let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
+    if before.effective_state != DRIFTED {
+        return Ok(RepairAssetDriftResult {
+            check_name: check_name.to_string(),
+            before_state: before.effective_state.clone(),
+            after_state: before.effective_state.clone(),
+            repaired: false,
+            effective_detail: before.effective_detail.clone(),
+            live_path: before.live_path.clone(),
+            scanned_at: before_scan.scanned_at,
+        });
+    }
 
-    let (_, details) = compute_readiness_items(&ReadinessCheckInput {
-        mcp_project_count: mcp_count,
-        has_repo_mcp: detect_repo_mcp_file(&project_path),
-        skills_count,
-        prompt_db_count: db_prompt_count,
-        prompt_files,
-        commands_count,
-        hooks_count,
-        ignore_project_count,
-        ignore_global_count,
-        permissions_project_count,
-        permissions_global_count,
-        subagents_count,
-        recent_update_within_90d,
-        target_app: target_app.clone(),
-    });
+    crate::services::project_config_sync::sync_asset_for_project_path(
+        state,
+        project_path,
+        check_name,
+    )
+    .map_err(|e| e.to_string())?;
 
-    Ok(scan_effective_states(&state, &details, target_app.as_deref()))
+    if let Some(ref project_id) = ctx.sqlite_id {
+        crate::ai::readiness_cache::invalidate_agent_readiness_for_project(
+            &state.db,
+            project_id,
+            Some(project_path),
+        );
+        crate::services::project_artifacts::refresh_baseline_snapshot_for_project_id(
+            &state.db,
+            project_id,
+            None,
+        );
+        if check_name == "skills_configured" {
+            crate::services::project_artifacts::refresh_skill_registry_for_project_id(
+                &state.db,
+                project_id,
+            );
+        }
+    }
+
+    let after_scan = scan_project_effective_for_details(
+        state,
+        project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    );
+    let after = effective_item_for_check(&after_scan, check_name)
+        .ok_or_else(|| format!("未知检查项: {check_name}"))?;
+
+    Ok(RepairAssetDriftResult {
+        check_name: check_name.to_string(),
+        before_state: before.effective_state.clone(),
+        after_state: after.effective_state.clone(),
+        repaired: after.effective_state != DRIFTED,
+        effective_detail: after.effective_detail.clone(),
+        live_path: after.live_path.clone(),
+        scanned_at: after_scan.scanned_at,
+    })
+}
+
+#[tauri::command]
+pub async fn repair_asset_drift(
+    state: State<'_, AppState>,
+    project_path: String,
+    check_name: String,
+    target_app: Option<String>,
+) -> Result<RepairAssetDriftResult, String> {
+    repair_asset_drift_inner(&state, &project_path, &check_name, target_app)
+}
+
+/// 修复项目内全部漂移项（逐项写回 + 复扫）
+#[tauri::command]
+pub async fn repair_project_drift(
+    state: State<'_, AppState>,
+    project_path: String,
+    target_app: Option<String>,
+) -> Result<RepairProjectDriftResult, String> {
+    let ctx = build_project_readiness_context(&state.db, &project_path, target_app.clone());
+    let initial_scan = scan_project_effective_for_details(
+        &state,
+        &project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    );
+    let drifted: Vec<String> = initial_scan
+        .items
+        .iter()
+        .filter(|i| i.effective_state == DRIFTED)
+        .map(|i| i.check_name.clone())
+        .collect();
+
+    let mut items = Vec::with_capacity(drifted.len());
+    for check_name in drifted {
+        let result = repair_asset_drift_inner(
+            &state,
+            &project_path,
+            &check_name,
+            ctx.effective_target_app.clone(),
+        )?;
+        items.push(result);
+    }
+
+    let final_scan = scan_project_effective_for_details(
+        &state,
+        &project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    );
+    let still_drifted_count = final_scan
+        .items
+        .iter()
+        .filter(|i| i.effective_state == DRIFTED)
+        .count() as u32;
+
+    Ok(RepairProjectDriftResult {
+        repaired_count: items.iter().filter(|i| i.repaired).count() as u32,
+        still_drifted_count,
+        items,
+        scanned_at: final_scan.scanned_at,
+    })
 }
 
 /// 提交 AI 洞察的用户反馈（有用 / 无用）

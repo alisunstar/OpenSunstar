@@ -69,21 +69,27 @@ pub fn asset_support(asset_type: &str, app: &str) -> AssetSupport {
         ("prompt", _) => AssetSupport::Supported,
 
         // Commands
-        ("command", "claude-desktop") | ("command", "codex") | ("command", "openclaw") => {
+        ("command", "claude-desktop") | ("command", "openclaw") => {
             AssetSupport::Unsupported
         }
         ("command", _) => AssetSupport::Supported,
 
-        // Hooks — 仅 Claude Code 写回
+        // Hooks
         ("hook", "claude") => AssetSupport::Supported,
+        ("hook", "codex") | ("hook", "gemini") | ("hook", "hermes") => AssetSupport::Supported,
         ("hook", _) => AssetSupport::Unsupported,
 
         // Ignore
         ("ignore", "claude-desktop") | ("ignore", "openclaw") => AssetSupport::Unsupported,
         ("ignore", _) => AssetSupport::Supported,
 
-        // Permissions — 仅 Claude Code 写回
-        ("permission", "claude") => AssetSupport::Supported,
+        // Permissions
+        ("permission", "claude")
+        | ("permission", "codex")
+        | ("permission", "gemini")
+        | ("permission", "opencode")
+        | ("permission", "openclaw") => AssetSupport::Supported,
+        ("permission", "hermes") => AssetSupport::Partial,
         ("permission", _) => AssetSupport::Unsupported,
 
         // Subagents
@@ -102,10 +108,10 @@ mod tests {
     use super::*;
 
     #[test]
-    fn codex_commands_unsupported() {
+    fn codex_commands_supported() {
         assert_eq!(
             asset_support("command", "codex"),
-            AssetSupport::Unsupported
+            AssetSupport::Supported
         );
     }
 
@@ -115,8 +121,24 @@ mod tests {
     }
 
     #[test]
-    fn gemini_hooks_unsupported() {
-        assert_eq!(asset_support("hook", "gemini"), AssetSupport::Unsupported);
+    fn gemini_hooks_supported() {
+        assert_eq!(asset_support("hook", "gemini"), AssetSupport::Supported);
+    }
+
+    #[test]
+    fn codex_permissions_supported() {
+        assert_eq!(
+            asset_support("permission", "codex"),
+            AssetSupport::Supported
+        );
+    }
+
+    #[test]
+    fn hermes_permissions_partial() {
+        assert_eq!(
+            asset_support("permission", "hermes"),
+            AssetSupport::Partial
+        );
     }
 
     #[test]

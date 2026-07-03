@@ -28,9 +28,11 @@ import type { StageKey } from "@/hooks/useProjectStages";
 
 import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
 
-import { SummaryCard } from "./SummaryCard";
+import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 
 import { cn } from "@/lib/utils";
+
+import { SummaryCard } from "./SummaryCard";
 
 
 
@@ -52,7 +54,7 @@ export interface TodayWorkspaceProps {
 
   progressMap: Map<string, number>;
 
-  agentReadinessMap: Map<string, number>;
+  agentReadinessMap: Map<string, AgentReadinessBatchEntry>;
 
   assetMap: Map<string, ProjectAssetCounts>;
 
@@ -190,7 +192,8 @@ export function TodayWorkspace({
 
     for (const project of projects) {
 
-      const readiness = agentReadinessMap.get(project.id);
+      const readinessEntry = agentReadinessMap.get(project.id);
+      const readiness = readinessEntry?.score;
 
       if (typeof readiness === "number") {
 
@@ -249,6 +252,22 @@ export function TodayWorkspace({
             max: AGENT_READINESS_MAX,
 
             defaultValue: `就绪分 ${readiness}/${AGENT_READINESS_MAX}`,
+
+          }),
+
+        );
+
+      }
+
+      if (readinessEntry && readinessEntry.driftCount > 0) {
+
+        reasons.push(
+
+          t("workspace.dashboard.reasonDrift", {
+
+            count: readinessEntry.driftCount,
+
+            defaultValue: `配置漂移 ${readinessEntry.driftCount} 项`,
 
           }),
 

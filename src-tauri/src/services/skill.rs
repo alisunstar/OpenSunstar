@@ -1713,6 +1713,28 @@ impl SkillService {
         crate::settings::get_skill_sync_method()
     }
 
+    /// 同步 Skill 到指定 skills 根目录（项目级写回）
+    pub fn sync_to_skills_root(directory: &str, skills_root: &Path) -> Result<()> {
+        if !skills_root.exists() {
+            fs::create_dir_all(skills_root)?;
+        }
+        let ssot_dir = Self::get_ssot_dir()?;
+        let source = ssot_dir.join(directory);
+        Self::validate_sync_source_dir(&source, directory)?;
+        let dest = skills_root.join(directory);
+        Self::replace_dest_with_copy(&source, &dest, directory)?;
+        Ok(())
+    }
+
+    /// 从指定 skills 根目录移除 Skill 投影
+    pub fn remove_from_skills_root(directory: &str, skills_root: &Path) -> Result<()> {
+        let dest = skills_root.join(directory);
+        if dest.exists() {
+            Self::remove_path(&dest)?;
+        }
+        Ok(())
+    }
+
     /// 同步 Skill 到应用目录（使用 symlink 或 copy）
     ///
     /// 根据配置和平台选择最佳同步方式：
@@ -2184,8 +2206,8 @@ impl SkillService {
         Ok(meta)
     }
 
-    /// 从 SKILL.md 读取名称和描述，不存在则用目录名兜底
-    fn read_skill_name_desc(skill_md: &Path, fallback_name: &str) -> (String, Option<String>) {
+    /// 从 SKILL.md 读取名称和描述（供项目工件导出等模块复用）
+    pub fn read_skill_name_desc(skill_md: &Path, fallback_name: &str) -> (String, Option<String>) {
         if skill_md.exists() {
             match Self::parse_skill_metadata_static(skill_md) {
                 Ok(meta) => (
