@@ -25,10 +25,14 @@ flatpak-build/
 flatpak-repo/
 .worktrees/
 .spec-workflow/
+/.superpowers
 copilot-api
 .history
 CODEBUDDY.md
 .github
+!.github/
+!.github/workflows/
+!.github/workflows/release.yml
 mainWindow.js
 
 # Internal docs in docs/ root — keep locally, do not publish to GitHub
