@@ -1,18 +1,5 @@
 # Security Policy / 安全策略
 
-## Supported Versions / 支持的版本
-
-Only the latest release of OpenSunstar receives security updates.
-
-仅最新版本的 OpenSunstar 会收到安全更新。
-
-| Version / 版本 | Supported / 是否支持 |
-|----------------|---------------------|
-| Latest 3.x     | ✅ Yes / 是          |
-| < 3.0          | ❌ No / 否           |
-
-## Reporting a Vulnerability / 报告漏洞
-
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
 **请不要通过公开的 GitHub Issue 报告安全漏洞。**
