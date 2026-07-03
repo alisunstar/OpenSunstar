@@ -71,7 +71,7 @@ cd src-tauri && cargo fmt --check && cargo clippy && cargo test
 ## Pull Request Guidelines
 
 1. **Open an issue first** for new features — PRs for features that are not a good fit may be closed.
-2. **Fork and branch** — Create a feature branch from `main` (e.g., `feat/my-feature` or `fix/issue-123`).
+2. **Fork and branch** — Create a feature branch from `master` (e.g., `feat/my-feature` or `fix/issue-123`).
 3. **Keep PRs focused** — One feature or fix per PR. Avoid unrelated changes.
 4. **Follow the PR template** — Fill in the summary, related issue, and checklist.
 
