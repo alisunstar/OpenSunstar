@@ -35,6 +35,11 @@ CODEBUDDY.md
 !.github/workflows/release.yml
 mainWindow.js
 
+# Local release / tooling artifacts (do not commit)
+.filter-internal-docs.txt
+.git-internal-docs-rm.txt
+tsc_output.txt
+
 # Internal docs in docs/ root — keep locally, do not publish to GitHub
 /docs/*
 !/docs/kanban.md
