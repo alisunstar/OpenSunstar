@@ -321,6 +321,21 @@ pub fn detect_all_projects(
     Ok(result_map)
 }
 
+/// Load persisted detection results for all projects that have been scanned before.
+pub fn get_all_saved_detections(
+    db: &Arc<Database>,
+) -> Result<HashMap<String, Vec<SddDetectionResult>>, AppError> {
+    let projects = db.sdd_list_all_projects()?;
+    let mut result_map = HashMap::new();
+    for (project_id, _) in projects {
+        let results = get_detection_results(db, &project_id)?;
+        if !results.is_empty() {
+            result_map.insert(project_id, results);
+        }
+    }
+    Ok(result_map)
+}
+
 /// Recommend a preset based on detection results (Track A → B linkage).
 pub fn recommend_preset_from_detections(results: &[SddDetectionResult]) -> Option<String> {
     let detected_ids: Vec<&str> = results

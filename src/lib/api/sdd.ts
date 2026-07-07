@@ -50,4 +50,18 @@ export const sddApi = {
       { projectId },
     );
   },
+
+  async getAllSavedDetections(): Promise<
+    Record<string, SddDetectionResult[]>
+  > {
+    return await invoke<Record<string, SddDetectionResult[]>>(
+      "sdd_get_all_saved_detections_cmd",
+    );
+  },
+
+  async recommendPreset(projectId: string): Promise<string | null> {
+    return await invoke<string | null>("sdd_recommend_preset_cmd", {
+      projectId,
+    });
+  },
 };

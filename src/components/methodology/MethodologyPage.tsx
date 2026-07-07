@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
   AlertCircle,
+  ArrowRight,
   BookOpen,
   CheckCircle2,
   ChefHat,
@@ -19,6 +20,12 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectFlowOrchestratorPanel } from "@/components/projects/ProjectFlowOrchestratorPanel";
 import { ProjectRecipeComposer } from "@/components/projects/ProjectRecipeComposer";
@@ -59,6 +66,42 @@ function installTypeLabel(type: string): string {
 /** projectId → descriptorId → detection result */
 type AllDetections = Record<string, Record<string, SddDetectionResult>>;
 
+function groupDetections(
+  allResults: Record<string, SddDetectionResult[]>,
+): AllDetections {
+  const grouped: AllDetections = {};
+  for (const [projectId, results] of Object.entries(allResults)) {
+    const map: Record<string, SddDetectionResult> = {};
+    for (const r of results) {
+      map[r.descriptorId] = r;
+    }
+    grouped[projectId] = map;
+  }
+  return grouped;
+}
+
+function isDetectionPositive(result: SddDetectionResult): boolean {
+  return (
+    result.detected &&
+    (result.confidence === "verified" || result.confidence === "inferred")
+  );
+}
+
+function presetLabelKey(presetId: string): string {
+  switch (presetId) {
+    case "full":
+      return "methodology.presetFull";
+    case "standard":
+      return "methodology.presetStandard";
+    case "mvp":
+      return "methodology.presetMvp";
+    case "review-only":
+      return "methodology.presetReviewOnly";
+    default:
+      return presetId;
+  }
+}
+
 interface MethodologyPageProps {
   projects: Project[];
 }
@@ -68,14 +111,16 @@ interface MethodologyPageProps {
 /** Aggregate detection status across all scanned projects for one framework. */
 function AggregateDetectionBadge({
   perProject,
-  totalProjects,
+  scannedProjectCount,
+  hasScannedAny,
 }: {
   perProject: Array<{ project: Project; result: SddDetectionResult }>;
-  totalProjects: number;
+  scannedProjectCount: number;
+  hasScannedAny: boolean;
 }) {
   const { t } = useTranslation();
 
-  if (perProject.length === 0) {
+  if (!hasScannedAny) {
     return (
       <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground border border-border/50">
         {t("methodology.notScanned", { defaultValue: "未扫描" })}
@@ -97,7 +142,7 @@ function AggregateDetectionBadge({
         {t("methodology.detectedInProjects", {
           defaultValue: "{{detected}}/{{total}} 项目已检测到",
           detected: verifiedCount,
-          total: totalProjects,
+          total: scannedProjectCount,
         })}
       </span>
     );
@@ -110,7 +155,7 @@ function AggregateDetectionBadge({
         {t("methodology.inferredInProjects", {
           defaultValue: "{{inferred}}/{{total}} 项目可能使用",
           inferred: inferredCount,
-          total: totalProjects,
+          total: scannedProjectCount,
         })}
       </span>
     );
@@ -121,7 +166,7 @@ function AggregateDetectionBadge({
       <XCircle className="w-3 h-3" />
       {t("methodology.absentInAll", {
         defaultValue: "{{total}} 项目均未检测到",
-        total: totalProjects,
+        total: scannedProjectCount,
       })}
     </span>
   );
@@ -130,16 +175,22 @@ function AggregateDetectionBadge({
 function MethodologyCard({
   descriptor,
   perProjectDetections,
-  totalProjects,
+  scannedProjectCount,
+  hasScannedAny,
+  recommendedPreset,
+  onGoToOrchestration,
 }: {
   descriptor: SddDescriptorSummary;
   perProjectDetections: Array<{
     project: Project;
     result: SddDetectionResult;
   }>;
-  totalProjects: number;
+  scannedProjectCount: number;
+  hasScannedAny: boolean;
+  recommendedPreset?: string | null;
+  onGoToOrchestration?: (projectId: string, presetId?: string) => void;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const colorClass =
     FRAMEWORK_COLORS[descriptor.id] ??
     "from-gray-500/20 to-gray-600/10 border-gray-500/30";
@@ -164,6 +215,17 @@ function MethodologyCard({
     return signals.slice(0, 6); // cap display
   }, [perProjectDetections]);
 
+  const primaryDetectedProject = useMemo(
+    () =>
+      perProjectDetections.find((entry) =>
+        isDetectionPositive(entry.result),
+      )?.project,
+    [perProjectDetections],
+  );
+
+  const showOrchestrationCta =
+    hasScannedAny && primaryDetectedProject && onGoToOrchestration;
+
   return (
     <div
       className={cn(
@@ -182,7 +244,8 @@ function MethodologyCard({
         </div>
         <AggregateDetectionBadge
           perProject={perProjectDetections}
-          totalProjects={totalProjects}
+          scannedProjectCount={scannedProjectCount}
+          hasScannedAny={hasScannedAny}
         />
       </div>
 
@@ -205,6 +268,37 @@ function MethodologyCard({
               </span>
             </div>
           ))}
+        </div>
+      )}
+
+      {showOrchestrationCta && (
+        <div className="space-y-2 pt-1 border-t border-border/40">
+          {recommendedPreset && (
+            <p className="text-[10px] text-muted-foreground">
+              {t("methodology.recommendedPreset", {
+                defaultValue: "推荐档位：{{preset}}",
+                preset: t(presetLabelKey(recommendedPreset), {
+                  defaultValue: recommendedPreset,
+                }),
+              })}
+            </p>
+          )}
+          <Button
+            size="sm"
+            variant="secondary"
+            className="h-7 w-full text-xs"
+            onClick={() =>
+              onGoToOrchestration?.(
+                primaryDetectedProject.id,
+                recommendedPreset ?? undefined,
+              )
+            }
+          >
+            {t("methodology.goToOrchestration", {
+              defaultValue: "去预设编排",
+            })}
+            <ArrowRight className="w-3 h-3 ml-1" />
+          </Button>
         </div>
       )}
 
@@ -333,11 +427,17 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
   const [descriptors, setDescriptors] = useState<SddDescriptorSummary[]>([]);
   const [allDetections, setAllDetections] = useState<AllDetections>({});
   const [loading, setLoading] = useState(true);
+  const [loadingSaved, setLoadingSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [activeTab, setActiveTab] = useState("market");
 
   // Tab 2 orchestration: selected project for flow config
   const [orchestrationProjectId, setOrchestrationProjectId] = useState("");
+  const [orchestrationInitialPreset, setOrchestrationInitialPreset] =
+    useState<string | undefined>();
+  const [presetRecommendations, setPresetRecommendations] = useState<
+    Record<string, string | null>
+  >({});
 
   const loadDescriptors = useCallback(async () => {
     setLoading(true);
@@ -351,26 +451,42 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
     }
   }, []);
 
+  const applyDetectionResults = useCallback(
+    (allResults: Record<string, SddDetectionResult[]>) => {
+      setAllDetections(groupDetections(allResults));
+    },
+    [],
+  );
+
+  const loadSavedDetections = useCallback(async () => {
+    if (projects.length === 0) {
+      setAllDetections({});
+      return;
+    }
+    setLoadingSaved(true);
+    try {
+      const saved = await sddApi.getAllSavedDetections();
+      applyDetectionResults(saved);
+    } catch (e) {
+      console.error("[MethodologyPage] load saved detections failed", e);
+    } finally {
+      setLoadingSaved(false);
+    }
+  }, [applyDetectionResults, projects.length]);
+
   useEffect(() => {
     void loadDescriptors();
   }, [loadDescriptors]);
 
-  // ── 缺陷3 修复：扫描所有项目后展示全部结果（项目×框架矩阵）──
+  useEffect(() => {
+    void loadSavedDetections();
+  }, [loadSavedDetections]);
+
   const handleScanAll = async () => {
     setScanning(true);
     try {
       const allResults = await sddApi.detectAllProjects();
-      // allResults: Record<projectId, SddDetectionResult[]>
-      // 转换为 AllDetections: projectId → descriptorId → result
-      const grouped: AllDetections = {};
-      for (const [projectId, results] of Object.entries(allResults)) {
-        const map: Record<string, SddDetectionResult> = {};
-        for (const r of results) {
-          map[r.descriptorId] = r;
-        }
-        grouped[projectId] = map;
-      }
-      setAllDetections(grouped);
+      applyDetectionResults(allResults);
 
       const scannedCount = Object.keys(allResults).length;
       toast.success(
@@ -386,20 +502,25 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
     }
   };
 
-  // 统计至少在一个项目中被检测到（verified）的框架数
+  const scannedProjectCount = useMemo(
+    () => Object.keys(allDetections).length,
+    [allDetections],
+  );
+  const hasScannedAny = scannedProjectCount > 0;
+
+  // 统计至少在一个项目中被检测到（verified / inferred）的框架数
   const detectedFrameworkCount = useMemo(() => {
     let count = 0;
     for (const d of descriptors) {
-      const detectedInAny = Object.values(allDetections).some(
-        (projMap) =>
-          projMap[d.id]?.detected && projMap[d.id]?.confidence === "verified",
-      );
+      const detectedInAny = Object.values(allDetections).some((projMap) => {
+        const result = projMap[d.id];
+        return result ? isDetectionPositive(result) : false;
+      });
       if (detectedInAny) count++;
     }
     return count;
   }, [descriptors, allDetections]);
 
-  // 为每个框架收集跨项目的检测结果
   const getPerProjectDetections = useCallback(
     (descriptorId: string) => {
       const result: Array<{ project: Project; result: SddDetectionResult }> =
@@ -418,10 +539,93 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
     [projects, allDetections],
   );
 
-  const hasScanned = Object.keys(allDetections).length > 0;
-  const totalScannedProjects = Object.keys(allDetections).length;
+  const detectedDescriptors = useMemo(
+    () =>
+      descriptors.filter((d) => {
+        const perProject = getPerProjectDetections(d.id);
+        return perProject.some((entry) => isDetectionPositive(entry.result));
+      }),
+    [descriptors, getPerProjectDetections],
+  );
 
-  if (loading) {
+  const catalogDescriptors = useMemo(() => {
+    if (!hasScannedAny || detectedFrameworkCount === 0) {
+      return descriptors;
+    }
+    const detectedIds = new Set(detectedDescriptors.map((d) => d.id));
+    return descriptors.filter((d) => !detectedIds.has(d.id));
+  }, [
+    descriptors,
+    detectedDescriptors,
+    detectedFrameworkCount,
+    hasScannedAny,
+  ]);
+
+  useEffect(() => {
+    if (!hasScannedAny || detectedDescriptors.length === 0) {
+      setPresetRecommendations({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const next: Record<string, string | null> = {};
+      for (const descriptor of detectedDescriptors) {
+        const primaryProject = getPerProjectDetections(descriptor.id).find(
+          (entry) => isDetectionPositive(entry.result),
+        )?.project;
+        if (!primaryProject) continue;
+        try {
+          next[descriptor.id] = await sddApi.recommendPreset(
+            primaryProject.id,
+          );
+        } catch {
+          next[descriptor.id] = null;
+        }
+      }
+      if (!cancelled) {
+        setPresetRecommendations(next);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [detectedDescriptors, getPerProjectDetections, hasScannedAny]);
+
+  const handleGoToOrchestration = useCallback(
+    (projectId: string, presetId?: string) => {
+      setOrchestrationProjectId(projectId);
+      setOrchestrationInitialPreset(presetId);
+      setActiveTab("orchestration");
+    },
+    [],
+  );
+
+  const handleGoToRecipe = useCallback(() => {
+    if (projects.length > 0 && !orchestrationProjectId) {
+      setOrchestrationProjectId(projects[0].id);
+    }
+    setActiveTab("recipe");
+  }, [orchestrationProjectId, projects]);
+
+  const renderFrameworkCards = (items: SddDescriptorSummary[]) => (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((d) => (
+        <MethodologyCard
+          key={d.id}
+          descriptor={d}
+          perProjectDetections={getPerProjectDetections(d.id)}
+          scannedProjectCount={scannedProjectCount}
+          hasScannedAny={hasScannedAny}
+          recommendedPreset={presetRecommendations[d.id]}
+          onGoToOrchestration={handleGoToOrchestration}
+        />
+      ))}
+    </div>
+  );
+
+  if (loading || loadingSaved) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -513,8 +717,100 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             value="market"
             className="flex-1 min-h-0 overflow-y-auto space-y-4"
           >
-            {/* UX-1: Guidance when nothing detected */}
-            {hasScanned && detectedFrameworkCount === 0 && (
+            {!hasScannedAny && projects.length > 0 && (
+              <div className="rounded-lg border border-border/60 bg-muted/20 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex gap-3 flex-1">
+                  <BookOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {t("methodology.scanPromptTitle", {
+                        defaultValue: "尚未扫描项目中的方法论框架",
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t("methodology.scanPromptBody", {
+                        defaultValue:
+                          "点击「扫描所有项目」进行只读探测，或直接进入预设编排 / 自定义编排——无需先安装或检测框架。",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={scanning}
+                    onClick={handleScanAll}
+                  >
+                    {scanning ? (
+                      <Loader2 className="w-4 h-4 animate-spin mr-1.5" />
+                    ) : (
+                      <RefreshCw className="w-4 h-4 mr-1.5" />
+                    )}
+                    {t("methodology.scanAll", { defaultValue: "扫描所有项目" })}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => handleGoToOrchestration(projects[0]?.id ?? "")}
+                  >
+                    {t("methodology.goToOrchestration", {
+                      defaultValue: "去预设编排",
+                    })}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleGoToRecipe}>
+                    {t("methodology.goToRecipe", {
+                      defaultValue: "自定义编排",
+                    })}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {hasScannedAny &&
+              detectedFrameworkCount === 0 &&
+              projects.length > 0 && (
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div className="flex gap-3 flex-1">
+                  <Workflow className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-foreground">
+                      {t("methodology.directOrchestrationTitle", {
+                        defaultValue: "不依赖框架也可开始编排",
+                      })}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {t("methodology.directOrchestrationHint", {
+                        defaultValue:
+                          "预设编排与自定义编排可独立使用，导出 workflow.profile.json 或 Recipe 文件。",
+                      })}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      handleGoToOrchestration(
+                        orchestrationProjectId || projects[0]?.id || "",
+                      )
+                    }
+                  >
+                    {t("methodology.goToOrchestration", {
+                      defaultValue: "去预设编排",
+                    })}
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleGoToRecipe}>
+                    {t("methodology.goToRecipe", {
+                      defaultValue: "自定义编排",
+                    })}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {hasScannedAny && detectedFrameworkCount === 0 && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
                 <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -533,17 +829,53 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
               </div>
             )}
 
-            {/* Framework cards grid */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {descriptors.map((d) => (
-                <MethodologyCard
-                  key={d.id}
-                  descriptor={d}
-                  perProjectDetections={getPerProjectDetections(d.id)}
-                  totalProjects={totalScannedProjects}
-                />
-              ))}
-            </div>
+            {detectedDescriptors.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {t("methodology.detectedFrameworks", {
+                      defaultValue: "已检测到的框架",
+                    })}
+                  </h3>
+                </div>
+                {renderFrameworkCards(detectedDescriptors)}
+              </div>
+            )}
+
+            {catalogDescriptors.length > 0 && (
+              <Accordion
+                type="single"
+                collapsible
+                defaultValue={
+                  hasScannedAny && detectedFrameworkCount > 0
+                    ? undefined
+                    : "catalog"
+                }
+                className="rounded-xl border border-border/60 bg-muted/10 px-4"
+              >
+                <AccordionItem value="catalog" className="border-none">
+                  <AccordionTrigger className="hover:no-underline py-4">
+                    <div className="text-left">
+                      <p className="text-sm font-semibold text-foreground">
+                        {t("methodology.recommendedFrameworks", {
+                          defaultValue: "框架参考目录",
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                        {t("methodology.recommendedFrameworksHint", {
+                          defaultValue:
+                            "受支持的开源方法论一览，供了解与选型参考（非安装向导）",
+                        })}
+                      </p>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-4">
+                    {renderFrameworkCards(catalogDescriptors)}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
 
             {descriptors.length === 0 && (
               <div className="flex flex-col items-center justify-center h-48 text-muted-foreground">
@@ -556,7 +888,6 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
               </div>
             )}
 
-            {/* Detection Matrix: project × framework */}
             <DetectionMatrix
               descriptors={descriptors}
               projects={projects}
@@ -627,8 +958,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
               {/* Embedded FlowOrchestrator panel when a project is selected */}
               {projects.length > 0 && orchestrationProjectId ? (
                 <ProjectFlowOrchestratorPanel
-                  key={orchestrationProjectId}
+                  key={`${orchestrationProjectId}-${orchestrationInitialPreset ?? "default"}`}
                   projectId={orchestrationProjectId}
+                  initialPresetId={orchestrationInitialPreset}
                 />
               ) : (
                 projects.length > 0 && (

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   CheckCircle2,
@@ -31,6 +31,7 @@ const PROJECT_TYPES = ["backend", "frontend", "cli"] as const;
 
 interface ProjectFlowOrchestratorPanelProps {
   projectId: string;
+  initialPresetId?: string;
 }
 
 function CompletenessBar({ value }: { value: number }) {
@@ -108,8 +109,10 @@ function SectionToggle({
 
 export function ProjectFlowOrchestratorPanel({
   projectId,
+  initialPresetId,
 }: ProjectFlowOrchestratorPanelProps) {
   const { t } = useTranslation();
+  const appliedInitialPreset = useRef(false);
 
   // --- Core state ---
   const [presets, setPresets] = useState<WorkflowPresetSummary[]>([]);
@@ -229,6 +232,24 @@ export function ProjectFlowOrchestratorPanel({
   useEffect(() => {
     void loadPresets();
   }, [loadPresets]);
+
+  useEffect(() => {
+    appliedInitialPreset.current = false;
+  }, [projectId]);
+
+  useEffect(() => {
+    if (
+      appliedInitialPreset.current ||
+      !initialPresetId ||
+      presets.length === 0
+    ) {
+      return;
+    }
+    if (presets.some((p) => p.id === initialPresetId)) {
+      setPresetId(initialPresetId);
+      appliedInitialPreset.current = true;
+    }
+  }, [initialPresetId, presets]);
 
   useEffect(() => {
     void refreshScan();

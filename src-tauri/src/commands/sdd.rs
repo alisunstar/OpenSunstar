@@ -52,3 +52,21 @@ pub async fn sdd_get_detection_results_cmd(
 ) -> Result<Vec<SddDetectionResult>, String> {
     sdd::get_detection_results(&state.db, &project_id).map_err(|e| e.to_string())
 }
+
+/// Get saved detection results for all previously scanned projects.
+#[tauri::command]
+pub async fn sdd_get_all_saved_detections_cmd(
+    state: State<'_, AppState>,
+) -> Result<HashMap<String, Vec<SddDetectionResult>>, String> {
+    sdd::get_all_saved_detections(&state.db).map_err(|e| e.to_string())
+}
+
+/// Recommend a workflow preset tier from saved detection results for a project.
+#[tauri::command]
+pub async fn sdd_recommend_preset_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<Option<String>, String> {
+    let results = sdd::get_detection_results(&state.db, &project_id).map_err(|e| e.to_string())?;
+    Ok(sdd::recommend_preset_from_detections(&results))
+}

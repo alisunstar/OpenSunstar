@@ -1748,6 +1748,8 @@ pub fn run() {
             commands::sdd_detect_project_cmd,
             commands::sdd_detect_all_projects_cmd,
             commands::sdd_get_detection_results_cmd,
+            commands::sdd_get_all_saved_detections_cmd,
+            commands::sdd_recommend_preset_cmd,
             commands::get_project_asset_links,
             commands::link_project_asset,
             commands::unlink_project_asset,
