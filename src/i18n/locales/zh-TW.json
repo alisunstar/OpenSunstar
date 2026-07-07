@@ -2817,8 +2817,8 @@
   },
   "methodology": {
     "sidebarSection": "專案設定",
-    "sidebar": "設定維度",
-    "title": "專案設定維度",
+    "sidebar": "方法論與編排",
+    "title": "方法論與編排",
     "subtitle": "方法論、流程預設、自訂編排、設計合約——四個獨立配置維度，按需選用，無先後依賴。框架偵測為唯讀，不修改專案檔案。",
     "scanAll": "掃描所有專案",
     "scanAllNoProjects": "請先新增專案再掃描",

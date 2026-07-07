@@ -19,7 +19,6 @@ import {
   Settings,
   Plus,
   FolderOpen,
-  FolderArchive,
   ExternalLink,
   Trash2,
   PanelLeftClose,
@@ -84,7 +83,6 @@ const AI_MODEL_VIEWS: PageView[] = [
   "simpleConnect",
   "sessions",
   "tokenStats",
-  "syncBackup",
 ];
 
 function isAgentConfigActive(view: PageView): boolean {
@@ -316,13 +314,13 @@ export function Sidebar({
               />
             </SidebarMenu>
 
-            {/* ▸ 项目配置维度（独立一级分组，与工作区/Agent配置/AI模型并列） */}
+            {/* ▸ 方法论与编排（独立一级分组，与工作区/Agent配置/AI模型并列） */}
             <SectionLabel>
               {t("methodology.sidebarSection", { defaultValue: "项目配置" })}
             </SectionLabel>
             <SidebarItem
               icon={<BookOpen className="w-4 h-4" />}
-              label={t("methodology.sidebar", { defaultValue: "配置维度" })}
+              label={t("methodology.sidebar", { defaultValue: "方法论与编排" })}
               active={activeView === "methodology"}
               onClick={() => onNavigate("methodology")}
             />
@@ -429,12 +427,6 @@ export function Sidebar({
               onClick={() => onNavigate("tokenStats")}
             />
 
-            <SidebarItem
-              icon={<FolderArchive className="w-4 h-4" />}
-              label={t("sidebar.syncBackup", { defaultValue: "同步备份" })}
-              active={activeView === "syncBackup"}
-              onClick={() => onNavigate("syncBackup")}
-            />
           </>
         )}
       </nav>

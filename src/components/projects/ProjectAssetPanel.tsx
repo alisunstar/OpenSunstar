@@ -153,23 +153,6 @@ export function ProjectAssetPanel({
     });
   }, [scrollToSection, loading, globalLoading]);
 
-  const notifyChanged = () => onConfigChanged?.();
-
-  if (loading || globalLoading) {
-    return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground">
-        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-        {t("common.loading", { defaultValue: "加载中..." })}
-      </div>
-    );
-  }
-
-  const mcpLinkedIds = new Set(mcp.links.map((l) => l.config_id));
-  const skillLinkedIds = new Set(skills.links.map((l) => l.config_id));
-  const promptLinkedIds = new Set(
-    prompts.links.map((l) => `${l.prompt_id}:${l.prompt_app_type}`),
-  );
-
   const promptRows = useMemo(() => {
     const byKey = new Map<string, { id: string; name: string; appType: AppId }>();
     for (const item of promptCatalog) {
@@ -203,6 +186,23 @@ export function ProjectAssetPanel({
     }
     return rows;
   }, [promptCatalog, prompts.links, project?.target_app]);
+
+  const notifyChanged = () => onConfigChanged?.();
+
+  if (loading || globalLoading) {
+    return (
+      <div className="flex items-center justify-center py-8 text-muted-foreground">
+        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+        {t("common.loading", { defaultValue: "加载中..." })}
+      </div>
+    );
+  }
+
+  const mcpLinkedIds = new Set(mcp.links.map((l) => l.config_id));
+  const skillLinkedIds = new Set(skills.links.map((l) => l.config_id));
+  const promptLinkedIds = new Set(
+    prompts.links.map((l) => `${l.prompt_id}:${l.prompt_app_type}`),
+  );
 
   const setSectionRef =
     (section: ProjectAssetSection) => (el: HTMLElement | null) => {

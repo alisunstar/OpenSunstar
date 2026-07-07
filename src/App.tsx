@@ -39,7 +39,6 @@ import { QuickStartPage } from "@/components/quickStart/QuickStartPage";
 import { DeepLinkImportDialog } from "@/components/DeepLinkImportDialog";
 import { SettingsPageContent } from "@/components/settings/SettingsPage";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { SyncBackupPage } from "@/components/sync/SyncBackupPage";
 import { TokenStatsPage } from "@/components/usage/TokenStatsPage";
 import { MethodologyPage } from "@/components/methodology/MethodologyPage";
 import { KanbanPage } from "@/components/kanban/KanbanPage";
@@ -75,7 +74,6 @@ export type PageView =
   | "skills"
   | "skillsDiscovery"
   | "sessions"
-  | "syncBackup"
   | "kanban"
   | "tokenStats"
   | "methodology"
@@ -113,7 +111,6 @@ const VALID_VIEWS: PageView[] = [
   "skills",
   "skillsDiscovery",
   "sessions",
-  "syncBackup",
   "kanban",
   "tokenStats",
   "methodology",
@@ -137,8 +134,9 @@ const getInitialApp = (): AppId => {
 };
 
 const getInitialView = (): PageView => {
-  const saved = localStorage.getItem(VIEW_STORAGE_KEY) as PageView | null;
-  if (saved && VALID_VIEWS.includes(saved)) return saved;
+  const saved = localStorage.getItem(VIEW_STORAGE_KEY);
+  if (saved === "syncBackup") return "settings";
+  if (saved && VALID_VIEWS.includes(saved as PageView)) return saved as PageView;
   return "kanban";
 };
 
@@ -166,10 +164,12 @@ const PAGE_META: Record<PageView, PageMeta> = {
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
   skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "Discover Skills" },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
-  syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "Sync Backup" },
   kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
-  methodology: { titleKey: "methodology.title", defaultTitle: "Project Configuration Dimensions" },
+  methodology: {
+    titleKey: "methodology.title",
+    defaultTitle: "Methodology & Orchestration",
+  },
   settings: { titleKey: "common.settings", defaultTitle: "Settings" },
 };
 
@@ -442,8 +442,6 @@ function App() {
             appId={effectiveTargetApp}
           />
         );
-      case "syncBackup":
-        return <SyncBackupPage />;
       case "kanban":
         return (
           <KanbanPage
@@ -681,7 +679,6 @@ return <MethodologyPage projects={projects} />;
   // 是否隐藏内容区顶栏（设置页 / 看板页自带 header）
   const hideContentHeader =
     currentView === "settings" ||
-    currentView === "syncBackup" ||
     currentView === "tokenStats" ||
     currentView === "kanban";
 

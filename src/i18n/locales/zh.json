@@ -3606,8 +3606,8 @@
   },
   "methodology": {
     "sidebarSection": "项目配置",
-    "sidebar": "配置维度",
-    "title": "项目配置维度",
+    "sidebar": "方法论与编排",
+    "title": "方法论与编排",
     "subtitle": "方法论、流程预设、自定义编排、设计合约——四个独立配置维度，按需选用，无先后依赖。框架探测为只读，不修改项目文件。",
     "scanAll": "扫描所有项目",
     "scanAllNoProjects": "请先添加项目再扫描",

@@ -441,7 +441,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           <div>
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              {t("methodology.title", { defaultValue: "项目配置维度" })}
+              {t("methodology.title", { defaultValue: "方法论与编排" })}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {t("methodology.subtitle", {

@@ -3532,8 +3532,8 @@
   },
   "methodology": {
     "sidebarSection": "Project Config",
-    "sidebar": "Dimensions",
-    "title": "Project Configuration Dimensions",
+    "sidebar": "Methodology & Orchestration",
+    "title": "Methodology & Orchestration",
     "subtitle": "Methodology, Preset Orchestration, Custom Orchestration, Design Contract — four independent configuration dimensions. Use as needed, no sequential dependency. Framework detection is read-only and does not modify project files.",
     "scanAll": "Scan all projects",
     "scanAllNoProjects": "Add a project first to scan",
