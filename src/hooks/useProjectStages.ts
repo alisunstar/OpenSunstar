@@ -1,51 +1,42 @@
-import { useState, useCallback, useEffect } from "react";
+import { useMemo, useCallback } from "react";
+import { projectsApi } from "@/lib/api/projects";
 
 export type StageKey = "mvp" | "rapid" | "stable";
 
-const STORAGE_KEY = "OpenSunstar-project-stages";
+type BoardProject = {
+  id: string;
+  stage?: string;
+  mvp_progress?: number | null;
+};
 
-function loadStages(): Map<string, StageKey> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Map();
-    return new Map(JSON.parse(raw));
-  } catch {
-    return new Map();
-  }
-}
-
-function saveStages(map: Map<string, StageKey>): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...map]));
-}
-
-export function useProjectStages() {
-  const [stages, setStages] = useState<Map<string, StageKey>>(() => loadStages());
-
-  useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === STORAGE_KEY) setStages(loadStages());
-    };
-    const handleCustom = () => setStages(loadStages());
-    window.addEventListener("storage", handleStorage);
-    window.addEventListener("project-stages-changed", handleCustom);
-    return () => {
-      window.removeEventListener("storage", handleStorage);
-      window.removeEventListener("project-stages-changed", handleCustom);
-    };
-  }, []);
+export function useProjectStages(
+  projects: BoardProject[],
+  onProjectsReload: () => void | Promise<void>,
+) {
+  const stages = useMemo(() => {
+    const map = new Map<string, StageKey>();
+    for (const project of projects) {
+      const stage = (project.stage as StageKey | undefined) ?? "mvp";
+      map.set(project.id, stage);
+    }
+    return map;
+  }, [projects]);
 
   const getStage = useCallback(
     (projectId: string): StageKey => stages.get(projectId) ?? "mvp",
     [stages],
   );
 
-  const setStage = useCallback((projectId: string, stage: StageKey) => {
-    const next = new Map(stages);
-    next.set(projectId, stage);
-    saveStages(next);
-    setStages(next);
-    window.dispatchEvent(new Event("project-stages-changed"));
-  }, [stages]);
+  const setStage = useCallback(
+    async (projectId: string, stage: StageKey) => {
+      const project = projects.find((p) => p.id === projectId);
+      const mvpProgress = project?.mvp_progress ?? null;
+      await projectsApi.updateBoardMetadata(projectId, stage, mvpProgress);
+      await onProjectsReload();
+      window.dispatchEvent(new Event("project-stages-changed"));
+    },
+    [projects, onProjectsReload],
+  );
 
   return { stages, getStage, setStage };
 }

@@ -41,6 +41,7 @@ import { SettingsPageContent } from "@/components/settings/SettingsPage";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SyncBackupPage } from "@/components/sync/SyncBackupPage";
 import { TokenStatsPage } from "@/components/usage/TokenStatsPage";
+import { MethodologyPage } from "@/components/methodology/MethodologyPage";
 import { KanbanPage } from "@/components/kanban/KanbanPage";
 import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
@@ -77,6 +78,7 @@ export type PageView =
   | "syncBackup"
   | "kanban"
   | "tokenStats"
+  | "methodology"
   | "settings";
 
 // ── 常量 ──────────────────────────────────────────
@@ -93,6 +95,7 @@ const VALID_APPS: AppId[] = [
   "codex",
   "gemini",
   "opencode",
+  "openclaw",
   "hermes",
 ];
 
@@ -113,6 +116,7 @@ const VALID_VIEWS: PageView[] = [
   "syncBackup",
   "kanban",
   "tokenStats",
+  "methodology",
   "settings",
 ];
 
@@ -162,10 +166,11 @@ const PAGE_META: Record<PageView, PageMeta> = {
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
   skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "Discover Skills" },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
-  syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "同步备份" },
-  kanban: { titleKey: "workspace.title", defaultTitle: "工作区" },
+  syncBackup: { titleKey: "sidebar.syncBackup", defaultTitle: "Sync Backup" },
+  kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
-  settings: { titleKey: "common.settings", defaultTitle: "设置" },
+  methodology: { titleKey: "methodology.title", defaultTitle: "Project Configuration Dimensions" },
+  settings: { titleKey: "common.settings", defaultTitle: "Settings" },
 };
 
 /** Agent 资产页顶栏标题：与侧栏一致，固定英文 */
@@ -219,7 +224,7 @@ function App() {
   }, []);
 
   // ── 项目管理 ────────────────────────────────
-  const { projects, add: addProject, remove: removeProject } = useProjects();
+  const { projects, add: addProject, remove: removeProject, reload: reloadProjects } = useProjects();
 
   // ── localStorage 同步 ──────────────────────
   useEffect(() => {
@@ -383,8 +388,8 @@ function App() {
       case "mcpDiscovery":
         return (
           <ErrorBoundary
-            fallbackTitle="发现 MCP 页面加载失败"
-            fallbackDescription="MCP 注册表页面渲染出错，可能是数据异常或网络问题。"
+            fallbackTitle={t("errors.mcpPageLoadFailed")}
+            fallbackDescription={t("errors.mcpPageLoadDescription")}
             onGoBack={() => setCurrentView("mcp")}
           >
             <McpDiscoveryPage ref={mcpDiscoveryPageRef} />
@@ -461,10 +466,13 @@ function App() {
             onClearSelection={() => setSelectedProjectId(null)}
             onOpenSettings={openAiProviderSettings}
             onNavigate={(view) => setCurrentView(view)}
+            onProjectsReload={reloadProjects}
           />
         );
       case "tokenStats":
         return <TokenStatsPage />;
+case "methodology":
+return <MethodologyPage projects={projects} />;
       case "settings":
         return (
           <SettingsPageContent
@@ -773,8 +781,8 @@ function App() {
 
             {/* 页面主体 */}
             <ErrorBoundary
-              fallbackTitle="页面加载失败"
-              fallbackDescription="当前视图渲染过程中发生了未预期的错误，请尝试切换到其他页面或刷新。"
+              fallbackTitle={t("errors.pageLoadFailed")}
+              fallbackDescription={t("errors.pageLoadFailedDescription")}
               onGoBack={() => setCurrentView("mcp")}
             >
               <div

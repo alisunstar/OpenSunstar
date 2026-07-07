@@ -48,7 +48,7 @@ export function useAIInsight({
   const fetch = useCallback(
     async (forceRefresh: boolean) => {
       if (!enabled || !context) return;
-      const config = buildProviderConfig();
+      const config = await buildProviderConfig();
       if (!config) return;
 
       abortRef.current = false;
@@ -118,7 +118,7 @@ export function useAIHealth({
   const fetch = useCallback(
     async (forceRefresh: boolean) => {
       if (!enabled || !context) return;
-      const config = buildProviderConfig();
+      const config = await buildProviderConfig();
       if (!config) {
         // 即使没有 AI 配置，也可以返回规则评分（不需要 AI 调用）
         // 但当前后端实现需要 config，所以跳过
@@ -192,7 +192,7 @@ export function useAIRisk({
   const fetch = useCallback(
     async (forceRefresh: boolean) => {
       if (!enabled || !context) return;
-      const config = buildProviderConfig();
+      const config = await buildProviderConfig();
       if (!config) return;
 
       abortRef.current = false;
@@ -231,7 +231,7 @@ interface UseNLQueryReturn {
   error: string | null;
   costEstimate: number;
   queryLogId: number | null;
-  ask: (query: string, contexts: ProjectContextInput[]) => void;
+  ask: (query: string, contexts: ProjectContextInput[]) => void | Promise<void>;
 }
 
 /**
@@ -248,8 +248,8 @@ export function useNLQuery(): UseNLQueryReturn {
   const costCtx = useAICostOptional();
 
   const ask = useCallback(
-    (query: string, contexts: ProjectContextInput[]) => {
-      const config = buildProviderConfig();
+    async (query: string, contexts: ProjectContextInput[]) => {
+      const config = await buildProviderConfig();
       if (!config || !query.trim()) return;
 
       abortRef.current = false;
@@ -324,7 +324,7 @@ export function useAgentReadiness(
   const fetch = useCallback(
     async (options?: { scanEffective?: boolean; forceRefresh?: boolean }) => {
       if (!enabled || !projectPath) return;
-      const config = buildProviderConfig();
+      const config = await buildProviderConfig();
 
       const scanEffective =
         options?.scanEffective ?? scanEffectiveRef.current;

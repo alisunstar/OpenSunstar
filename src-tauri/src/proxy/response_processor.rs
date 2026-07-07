@@ -1029,6 +1029,8 @@ mod tests {
             codex_chat_history: Arc::new(CodexChatHistoryStore::default()),
             app_handle: None,
             failover_manager: Arc::new(FailoverSwitchManager::new(db)),
+            auth_token: "test-proxy-token".to_string(),
+            rate_limiter: Arc::new(super::super::rate_limiter::RateLimiter::new(1000)),
         }
     }
 

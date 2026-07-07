@@ -471,6 +471,7 @@ impl ProxyService {
             address: status.address,
             port: status.port,
             started_at: chrono::Utc::now().to_rfc3339(),
+            auth_token: server.auth_token().to_string(),
         })
     }
 
@@ -508,6 +509,7 @@ impl ProxyService {
                     port: status.port,
                     // 无法精确取回首次启动时间，返回当前时间用于 UI 展示即可
                     started_at: chrono::Utc::now().to_rfc3339(),
+                    auth_token: server.auth_token().to_string(),
                 });
             }
             log::warn!(

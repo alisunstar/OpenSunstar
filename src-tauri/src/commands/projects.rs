@@ -39,6 +39,19 @@ pub async fn delete_project(state: State<'_, AppState>, id: String) -> Result<bo
     state.db.delete_project(&id).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+pub async fn update_project_board_metadata(
+    state: State<'_, AppState>,
+    project_id: String,
+    stage: String,
+    mvp_progress: Option<i32>,
+) -> Result<(), String> {
+    state
+        .db
+        .update_project_board_metadata(&project_id, &stage, mvp_progress)
+        .map_err(|e| e.to_string())
+}
+
 // ========== Project × MCP ==========
 
 #[tauri::command]

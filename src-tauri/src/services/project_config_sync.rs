@@ -1040,6 +1040,8 @@ mod tests {
             updated_at: now,
             target_app: None,
             blueprint_id: None,
+            stage: "mvp".into(),
+            mvp_progress: None,
         })
         .unwrap();
         id

@@ -7,6 +7,7 @@ import { StagePicker } from "./StagePicker";
 import { AgentReadinessPanel } from "./AgentReadinessPanel";
 import { ProjectAssetPanel } from "@/components/projects/ProjectAssetPanel";
 import { ProjectBlueprintPanel } from "@/components/projects/ProjectBlueprintPanel";
+import { ProjectFlowOrchestratorPanel } from "@/components/projects/ProjectFlowOrchestratorPanel";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { Project } from "@/types/project";
 import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
@@ -612,6 +613,7 @@ export function ProjectDetailSheet({
                   handleConfigChanged();
                 }}
               />
+              <ProjectFlowOrchestratorPanel projectId={project.id} />
               <AgentReadinessPanel
                 data={readinessData}
                 isLoading={readinessLoading}

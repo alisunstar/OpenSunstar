@@ -1,9 +1,14 @@
 param(
-  [Parameter(Mandatory = $true)]
+  [Parameter(Mandatory = $false)]
   [string]$Version
 )
 
 $ErrorActionPreference = "Stop"
+
+if (-not $Version) {
+  $Version = node -e "process.stdout.write(require('./package.json').version)"
+  Write-Host "No version arg; using package.json version: $Version"
+}
 
 $normalized = $Version
 if ($normalized.StartsWith("v")) {

@@ -1,5 +1,5 @@
 //! 项目看板后端：代码统计（tokei）+ Git 分析 + 文件浏览
-//! 从 AIControls v0.2.1 移植
+
 
 use serde::Serialize;
 use std::path::Path;

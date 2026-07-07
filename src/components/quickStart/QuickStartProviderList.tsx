@@ -10,9 +10,13 @@ import { cn } from "@/lib/utils";
 
 interface QuickStartProviderListProps {
   appId: QuickStartAppId;
+  onOpenManage?: () => void;
 }
 
-export function QuickStartProviderList({ appId }: QuickStartProviderListProps) {
+export function QuickStartProviderList({
+  appId,
+  onOpenManage,
+}: QuickStartProviderListProps) {
   const { t } = useTranslation();
   const { data } = useProvidersQuery(appId);
   const switchMutation = useSwitchProviderMutation(appId);
@@ -94,6 +98,17 @@ export function QuickStartProviderList({ appId }: QuickStartProviderListProps) {
           );
         })}
       </ul>
+      {onOpenManage && (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          className="h-auto px-0 text-xs"
+          onClick={onOpenManage}
+        >
+          {t("quickStart.openManage", { defaultValue: "管理全部供应商 →" })}
+        </Button>
+      )}
     </div>
   );
 }

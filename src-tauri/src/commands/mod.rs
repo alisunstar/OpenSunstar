@@ -3,8 +3,13 @@
 mod auth;
 mod balance;
 mod blueprint;
+mod flow_orchestrator;
+mod recipe_composer;
+mod design_contract;
+mod sdd;
 pub mod bridge;
 mod ai_insight;
+mod ai_provider_settings;
 mod codex_oauth;
 mod coding_plan;
 pub mod agent;
@@ -54,8 +59,13 @@ pub use onboarding::*;
 
 pub use auth::*;
 pub use ai_insight::*;
+pub use ai_provider_settings::*;
 pub use balance::*;
 pub use blueprint::*;
+pub use flow_orchestrator::*;
+pub use recipe_composer::*;
+pub use design_contract::*;
+pub use sdd::*;
 pub use bridge::*;
 pub use codex_oauth::*;
 pub use coding_plan::*;

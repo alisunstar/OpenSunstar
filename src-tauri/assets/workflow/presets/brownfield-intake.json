@@ -1,0 +1,29 @@
+{
+  "id": "brownfield-intake",
+  "name": "Brownfield Intake",
+  "nameZh": "棕地接入",
+  "description": "Lateral I-intel-scan + A-architect; establishes CONTEXT and ARCHITECTURE before changes.",
+  "r3Tier": "standard",
+  "modules": ["openspec-change", "bmad-context", "skills-entry"],
+  "stages": [
+    {
+      "id": "I-intel-scan",
+      "name": "Intel Scan",
+      "prompt": "I-intel-scan.md",
+      "artifacts": [{ "file": "CONTEXT.md", "scope": "specs-root", "optional": false }]
+    },
+    {
+      "id": "A-architect",
+      "name": "Architect",
+      "prompt": "A-architect.md",
+      "dependsOn": ["I-intel-scan"],
+      "artifacts": [{ "file": "ARCHITECTURE.md", "scope": "specs-root", "optional": false }]
+    }
+  ],
+  "paths": {
+    "frontend": ["I-intel-scan", "A-architect"],
+    "backend": ["I-intel-scan", "A-architect"],
+    "cli": ["I-intel-scan", "A-architect"],
+    "mvp": ["I-intel-scan"]
+  }
+}

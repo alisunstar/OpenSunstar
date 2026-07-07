@@ -1,52 +1,49 @@
-import { useState, useCallback, useEffect } from "react";
+import { useMemo, useCallback } from "react";
+import { projectsApi } from "@/lib/api/projects";
 
-const STORAGE_KEY = "OpenSunstar-project-progress";
+type BoardProject = {
+  id: string;
+  stage?: string;
+  mvp_progress?: number | null;
+};
 
-function loadProgress(): Map<string, number> {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Map();
-    return new Map(JSON.parse(raw));
-  } catch {
-    return new Map();
-  }
-}
-
-function saveProgress(map: Map<string, number>): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify([...map]));
-}
-
-export function useProjectProgress() {
-  const [progress, setProgress] = useState<Map<string, number>>(() => loadProgress());
-
-  useEffect(() => {
-    const handler = () => setProgress(loadProgress());
-    window.addEventListener("project-progress-changed", handler);
-    return () => window.removeEventListener("project-progress-changed", handler);
-  }, []);
+export function useProjectProgress(
+  projects: BoardProject[],
+  onProjectsReload: () => void | Promise<void>,
+) {
+  const progress = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const project of projects) {
+      if (
+        project.mvp_progress !== null &&
+        project.mvp_progress !== undefined &&
+        project.mvp_progress > 0
+      ) {
+        map.set(project.id, project.mvp_progress);
+      }
+    }
+    return map;
+  }, [projects]);
 
   const getProgress = useCallback(
     (projectId: string): number | undefined => {
       const val = progress.get(projectId);
-      return val !== undefined ? val : undefined; // 未设置 → undefined，不显示进度条
+      return val !== undefined ? val : undefined;
     },
     [progress],
   );
 
   const setProjectProgress = useCallback(
-    (projectId: string, value: number) => {
+    async (projectId: string, value: number) => {
       const clamped = Math.max(0, Math.min(100, Math.round(value)));
-      const next = new Map(progress);
-      if (clamped === 0) {
-        next.delete(projectId);
-      } else {
-        next.set(projectId, clamped);
-      }
-      saveProgress(next);
-      setProgress(next);
+      const project = projects.find((p) => p.id === projectId);
+      const stage = (project?.stage as "mvp" | "rapid" | "stable") ?? "mvp";
+      const mvpProgress = clamped === 0 ? null : clamped;
+      await projectsApi.updateBoardMetadata(projectId, stage, mvpProgress);
+      await onProjectsReload();
       window.dispatchEvent(new Event("project-progress-changed"));
     },
-    [progress],
+    [projects, onProjectsReload],
   );
 
   return { progress, getProgress, setProjectProgress };

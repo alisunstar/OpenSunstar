@@ -118,6 +118,13 @@ pub enum AuditSource {
         repo: String,
         skill_name: String,
     },
+    DesignContractInstall {
+        contract_name: String,
+    },
+    RecipeInstall {
+        recipe_name: String,
+        change_id: String,
+    },
 }
 
 // ── 审计上下文 ──────────────────────────────────────────

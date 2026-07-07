@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Cloud, CloudOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
@@ -13,17 +14,18 @@ interface SyncInfo {
   backend: "webdav" | "s3" | "none";
 }
 
-function formatRelativeTime(timestamp: number): string {
+function formatRelativeTime(timestamp: number, t: (key: string, options?: Record<string, unknown>) => string): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - timestamp;
 
-  if (diff < 60) return "刚刚";
-  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
-  return `${Math.floor(diff / 86400)}天前`;
+  if (diff < 60) return t("sync.justNow");
+  if (diff < 3600) return t("sync.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400) return t("sync.hoursAgo", { count: Math.floor(diff / 3600) });
+  return t("sync.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
 export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
+  const { t } = useTranslation();
   const [syncInfo, setSyncInfo] = useState<SyncInfo>({
     state: "idle",
     lastSyncAt: null,
@@ -123,27 +125,27 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
     idle: {
       icon: <Cloud className="w-3 h-3" />,
       color: "text-muted-foreground",
-      label: "等待变更",
+      label: t("sync.waiting"),
     },
     syncing: {
       icon: <Loader2 className="w-3 h-3 animate-spin" />,
       color: "text-blue-500",
-      label: "同步中...",
+      label: t("sync.syncing"),
     },
     success: {
       icon: <CheckCircle2 className="w-3 h-3" />,
       color: "text-green-500",
-      label: "已同步",
+      label: t("sync.synced"),
     },
     error: {
       icon: <AlertCircle className="w-3 h-3" />,
       color: "text-red-500",
-      label: "同步失败",
+      label: t("sync.failed"),
     },
     disabled: {
       icon: <CloudOff className="w-3 h-3" />,
       color: "text-muted-foreground",
-      label: "未启用",
+      label: t("sync.disabled"),
     },
   };
 
@@ -153,7 +155,7 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
     return (
       <div
         className={cn("flex justify-center py-1.5", config.color)}
-        title={`${config.label}${syncInfo.lastSyncAt ? ` · ${formatRelativeTime(syncInfo.lastSyncAt)}` : ""}`}
+        title={`${config.label}${syncInfo.lastSyncAt ? ` · ${formatRelativeTime(syncInfo.lastSyncAt, t)}` : ""}`}
       >
         {config.icon}
       </div>
@@ -170,7 +172,7 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
       </span>
       {syncInfo.lastSyncAt && syncInfo.state !== "syncing" && (
         <span className="ml-auto text-muted-foreground/60 shrink-0">
-          {formatRelativeTime(syncInfo.lastSyncAt)}
+          {formatRelativeTime(syncInfo.lastSyncAt, t)}
         </span>
       )}
     </div>

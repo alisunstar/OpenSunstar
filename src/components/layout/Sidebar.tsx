@@ -19,6 +19,7 @@ import {
   Settings,
   Plus,
   FolderOpen,
+  FolderArchive,
   ExternalLink,
   Trash2,
   PanelLeftClose,
@@ -79,7 +80,12 @@ const AGENT_CONFIG_VIEWS: PageView[] = [
   "convert",
 ];
 
-const AI_MODEL_VIEWS: PageView[] = ["simpleConnect", "sessions", "tokenStats"];
+const AI_MODEL_VIEWS: PageView[] = [
+  "simpleConnect",
+  "sessions",
+  "tokenStats",
+  "syncBackup",
+];
 
 function isAgentConfigActive(view: PageView): boolean {
   return AGENT_CONFIG_VIEWS.includes(view);
@@ -226,6 +232,14 @@ export function Sidebar({
               accent={aiModelActive}
               collapsed
             />
+            <SidebarItem
+              icon={<BookOpen className="w-4 h-4" />}
+              label=""
+              active={activeView === "methodology"}
+              onClick={() => onNavigate("methodology")}
+              accent={activeView === "methodology"}
+              collapsed
+            />
           </div>
         ) : (
           <>
@@ -301,6 +315,17 @@ export function Sidebar({
                 accent={false}
               />
             </SidebarMenu>
+
+            {/* ▸ 项目配置维度（独立一级分组，与工作区/Agent配置/AI模型并列） */}
+            <SectionLabel>
+              {t("methodology.sidebarSection", { defaultValue: "项目配置" })}
+            </SectionLabel>
+            <SidebarItem
+              icon={<BookOpen className="w-4 h-4" />}
+              label={t("methodology.sidebar", { defaultValue: "配置维度" })}
+              active={activeView === "methodology"}
+              onClick={() => onNavigate("methodology")}
+            />
 
             <SectionLabel>
               {t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
@@ -402,6 +427,13 @@ export function Sidebar({
               label={t("sidebar.tokenStats", { defaultValue: "AI Tokens" })}
               active={activeView === "tokenStats"}
               onClick={() => onNavigate("tokenStats")}
+            />
+
+            <SidebarItem
+              icon={<FolderArchive className="w-4 h-4" />}
+              label={t("sidebar.syncBackup", { defaultValue: "同步备份" })}
+              active={activeView === "syncBackup"}
+              onClick={() => onNavigate("syncBackup")}
             />
           </>
         )}

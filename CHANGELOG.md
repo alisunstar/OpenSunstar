@@ -5,6 +5,28 @@ All notable changes to OpenSunstar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+<!-- Add changes here during development. `pnpm release:patch` promotes this section to a versioned release. -->
+## [1.1.2] - 2026-07-08
+
+### Fixed
+
+- **Quick Start:** Restored provider edit/delete via「管理供应商」tab (`ExpertProviderPanel`)
+- **Quick Start:** Fixed misleading「前往供应商管理」button (now opens manage tab; proxy settings labeled correctly)
+- **Portfolio:** Project stage and MVP progress now persist in SQLite (`projects.stage`, `projects.mvp_progress`); migrates from localStorage on first launch
+- **Docs:** Restored `docs/kanban.md`; fixed dead links across README and user manual
+
+### Changed
+
+- **AI insight keys:** Migrated from localStorage to OS Keychain (DeepSeek / GLM / Custom)
+- **Sidebar:** Added「同步备份」entry for `SyncBackupPage`
+- **Versioning:** Aligned app version with 1.1.x release line (`1.1.2`); added `docs/VERSIONING.md` and `get_build_info` (app + schema version)
+
+### Database
+
+- Schema v28: `projects.stage`, `projects.mvp_progress`
+
 ## [0.1.0] - 2026-06-19
 
 **Initial public release.** OpenSunstar is a native desktop app for managing AI coding CLI tools — provider switching, Agent configuration, and multi-repo portfolio insights in one place.

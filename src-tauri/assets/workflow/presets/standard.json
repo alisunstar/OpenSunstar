@@ -1,0 +1,119 @@
+{
+  "id": "standard",
+  "name": "Standard",
+  "nameZh": "标准流程",
+  "description": "Brownfield-friendly full loop; skips 2a-ui-design for non-frontend projects.",
+  "r3Tier": "standard",
+  "modules": [
+    "openspec-change",
+    "spec-kit-cascade",
+    "bmad-context",
+    "gstack-conductor",
+    "taskmaster-tasks",
+    "superpowers-tdd",
+    "gstack-roles",
+    "skills-entry"
+  ],
+  "stages": [
+    {
+      "id": "0-change",
+      "name": "Change",
+      "prompt": "0-change.md",
+      "artifacts": [{ "file": "CHANGE.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "1-requirement",
+      "name": "Requirement",
+      "prompt": "1-requirement.md",
+      "dependsOn": ["0-change"],
+      "artifacts": [
+        { "file": "REQUIREMENT.md", "scope": "change", "optional": false },
+        { "file": "CONTEXT.md", "scope": "change", "optional": true }
+      ]
+    },
+    {
+      "id": "2-design",
+      "name": "Design",
+      "prompt": "2-design.md",
+      "dependsOn": ["1-requirement"],
+      "artifacts": [{ "file": "DESIGN.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "2a-ui-design",
+      "name": "UI Design",
+      "prompt": "2a-ui-design.md",
+      "dependsOn": ["2-design"],
+      "skipWhen": { "projectType": ["backend", "cli"] },
+      "artifacts": [{ "file": "UI-DESIGN.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "3-task",
+      "name": "Task",
+      "prompt": "3-task.md",
+      "dependsOn": ["2-design", "2a-ui-design"],
+      "artifacts": [{ "file": "TASK.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "4-dev",
+      "name": "Dev",
+      "prompt": "4-dev.md",
+      "dependsOn": ["3-task"],
+      "artifacts": []
+    },
+    {
+      "id": "5-test",
+      "name": "Test",
+      "prompt": "5-test.md",
+      "dependsOn": ["4-dev"],
+      "artifacts": [{ "file": "TEST.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "6-review",
+      "name": "Review",
+      "prompt": "6-review.md",
+      "dependsOn": ["5-test"],
+      "artifacts": [{ "file": "REVIEW.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "7-integration",
+      "name": "Integration",
+      "prompt": "7-integration.md",
+      "dependsOn": ["6-review"],
+      "artifacts": [{ "file": "UAT.md", "scope": "change", "optional": true }]
+    }
+  ],
+  "paths": {
+    "frontend": [
+      "0-change",
+      "1-requirement",
+      "2-design",
+      "2a-ui-design",
+      "3-task",
+      "4-dev",
+      "5-test",
+      "6-review",
+      "7-integration"
+    ],
+    "backend": [
+      "0-change",
+      "1-requirement",
+      "2-design",
+      "3-task",
+      "4-dev",
+      "5-test",
+      "6-review",
+      "7-integration"
+    ],
+    "cli": [
+      "0-change",
+      "1-requirement",
+      "2-design",
+      "3-task",
+      "4-dev",
+      "5-test",
+      "6-review",
+      "7-integration"
+    ],
+    "mvp": ["1-requirement", "2-design", "3-task", "4-dev"]
+  }
+}

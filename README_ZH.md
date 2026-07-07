@@ -4,7 +4,7 @@
 
 ### Claude Code / Codex / Gemini CLI 等 AI 编程工具的一站式桌面管理器
 
-[![Version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.2-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
@@ -107,7 +107,7 @@
 | :------: | :--------: |
 | ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
-> **v0.1.0** 为首次公开发布版本，可日常使用；工作区与 AI 资产闭环能力仍在持续迭代。
+> **v1.1.2** — 1.1.x 正式线首个对齐版本；修复供应商管理、看板持久化与 AI 密钥安全等问题。
 
 ---
 
@@ -235,7 +235,7 @@
 | 用户手册（日本語） | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | 用户手册（Deutsch） | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | 工作区模块说明 | [docs/kanban.md](docs/kanban.md) |
-| v0.1.0 发布说明 | [docs/release-notes/v0.1.0-zh.md](docs/release-notes/v0.1.0-zh.md) |
+| v1.1.2 发布说明 | [docs/release-notes/v1.1.2-zh.md](docs/release-notes/v1.1.2-zh.md) |
 
 ### 开发
 

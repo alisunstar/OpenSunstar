@@ -42,10 +42,14 @@ import { QuickStartCustomFields } from "./QuickStartCustomFields";
 import { QuickStartAdvancedPanel } from "./QuickStartAdvancedPanel";
 import { QuickStartVerifyBlock } from "./QuickStartVerifyBlock";
 import { QuickStartProviderList } from "./QuickStartProviderList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ExpertProviderPanel } from "@/components/simpleConnect/ExpertProviderPanel";
 
 interface QuickStartPageProps {
   onOpenSettings?: () => void;
 }
+
+type QuickStartTab = "wizard" | "manage";
 
 const EMPTY_FIELDS: QuickStartFormFields = {
   apiKey: "",
@@ -58,6 +62,7 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
+  const [pageTab, setPageTab] = useState<QuickStartTab>("wizard");
   const [activeApp, setActiveApp] = useState<QuickStartAppId>("claude");
   const [step, setStep] = useState<QuickStartStep>(1);
   const [searchQuery, setSearchQuery] = useState("");
@@ -273,8 +278,30 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
             })}
           </p>
         </div>
-        <QuickStartAppTabs activeApp={activeApp} onChange={handleAppChange} />
       </div>
+
+      <Tabs
+        value={pageTab}
+        onValueChange={(value) => setPageTab(value as QuickStartTab)}
+      >
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="wizard">
+            {t("quickStart.tabs.wizard", { defaultValue: "快速接入" })}
+          </TabsTrigger>
+          <TabsTrigger value="manage">
+            {t("quickStart.tabs.manage", { defaultValue: "管理供应商" })}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="manage" className="mt-6 space-y-4">
+          <ExpertProviderPanel
+            onSwitchToSimple={() => setPageTab("wizard")}
+            onOpenSettings={onOpenSettings}
+          />
+        </TabsContent>
+
+        <TabsContent value="wizard" className="mt-6 space-y-6">
+          <QuickStartAppTabs activeApp={activeApp} onChange={handleAppChange} />
 
       <div className="flex items-center gap-2">
         {([1, 2, 3] as QuickStartStep[]).map((s, idx) => (
@@ -509,16 +536,24 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
                 </div>
               )}
 
-            <QuickStartProviderList appId={activeApp} />
+            <QuickStartProviderList
+              appId={activeApp}
+              onOpenManage={() => setPageTab("manage")}
+            />
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
               <Button variant="outline" onClick={resetWizard}>
                 {t("quickStart.addAnother", { defaultValue: "再接入一个" })}
               </Button>
+              <Button variant="outline" onClick={() => setPageTab("manage")}>
+                {t("quickStart.openManage", {
+                  defaultValue: "管理全部供应商",
+                })}
+              </Button>
               {onOpenSettings && (
-                <Button variant="outline" onClick={onOpenSettings}>
-                  {t("quickStart.openSettings", {
-                    defaultValue: "前往供应商管理",
+                <Button variant="ghost" onClick={onOpenSettings}>
+                  {t("quickStart.openProxySettings", {
+                    defaultValue: "代理与故障队列设置",
                   })}
                 </Button>
               )}
@@ -526,6 +561,8 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
           </motion.div>
         )}
       </AnimatePresence>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

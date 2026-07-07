@@ -15,6 +15,8 @@ export interface Project {
   updated_at: number;
   target_app?: string | null;
   blueprint_id?: string | null;
+  stage?: string;
+  mvp_progress?: number | null;
 }
 
 /** 项目关联的配置项（MCP/Skills） */
@@ -60,6 +62,19 @@ export const projectsApi = {
   /** 删除项目（级联删除关联） */
   async delete(id: string): Promise<boolean> {
     return await invoke("delete_project", { id });
+  },
+
+  /** 更新看板阶段与 MVP 进度 */
+  async updateBoardMetadata(
+    projectId: string,
+    stage: string,
+    mvpProgress: number | null,
+  ): Promise<void> {
+    return await invoke("update_project_board_metadata", {
+      projectId,
+      stage,
+      mvpProgress,
+    });
   },
 
   async setTargetApp(

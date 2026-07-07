@@ -1,6 +1,6 @@
 [package]
 name = "OpenSunstar"
-version = "0.1.0"
+version = "1.1.2"
 description = "OpenSunstar - Extension Manager for AI Coding Assistants"
 authors = ["Jason Young"]
 license = "MIT"

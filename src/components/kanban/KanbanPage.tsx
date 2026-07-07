@@ -74,6 +74,7 @@ interface KanbanPageProps {
   onNavigate?: (view: PageView) => void;
   onPortfolioDataChanged?: () => void;
   targetApp?: AppId;
+  onProjectsReload?: () => void | Promise<void>;
 }
 
 // ── 主组件 ─────────────────────────────────────
@@ -92,11 +93,13 @@ export function KanbanPage({
   onNavigate,
   onPortfolioDataChanged,
   targetApp = "claude",
+  onProjectsReload,
 }: KanbanPageProps) {
   const { t } = useTranslation();
-  const { stages, getStage, setStage } = useProjectStages();
+  const reloadProjects = onProjectsReload ?? (() => undefined);
+  const { stages, getStage, setStage } = useProjectStages(projects, reloadProjects);
   const { progress: progressMap, getProgress, setProjectProgress } =
-    useProjectProgress();
+    useProjectProgress(projects, reloadProjects);
   const [internalDetailId, setInternalDetailId] = useState<string | null>(null);
   const [detailInitialTab, setDetailInitialTab] = useState<
     "overview" | "aiAssets"

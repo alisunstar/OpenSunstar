@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [ $# -lt 1 ]; then
-  echo "Usage: ./scripts/release-tag.sh <version>"
-  echo "Example: ./scripts/release-tag.sh 0.1.1"
-  exit 1
+# Version is optional: when omitted, it is read from package.json (source of truth).
+if [ $# -ge 1 ]; then
+  raw_version="$1"
+else
+  raw_version="$(node -e "process.stdout.write(require('./package.json').version)")"
+  echo "No version arg; using package.json version: $raw_version"
 fi
-
-raw_version="$1"
 version="${raw_version#v}"
 tag="v${version}"
 

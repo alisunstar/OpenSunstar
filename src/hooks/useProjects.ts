@@ -11,7 +11,7 @@ import {
   projectsApi,
   type Project as DbProject,
 } from "@/lib/api/projects";
-import { clearProjectBoardMetadata } from "@/lib/projectBoardMetadata";
+import { migrateBoardMetadataToDb } from "@/lib/migrateProjectBoardMetadata";
 
 const DB_MIGRATED_KEY = "OpenSunstar-projects-db-sync-v1";
 
@@ -24,15 +24,22 @@ function toDb(project: Project): DbProject {
     git_remote_url: null,
     created_at: created,
     updated_at: Date.now(),
+    stage: "mvp",
+    mvp_progress: null,
   };
 }
 
-function fromDb(row: DbProject): Project {
+function fromDb(row: DbProject): Project & {
+  stage?: string;
+  mvp_progress?: number | null;
+} {
   return {
     id: row.id,
     name: row.name,
     path: row.path,
     addedAt: new Date(row.created_at).toISOString(),
+    stage: row.stage ?? "mvp",
+    mvp_progress: row.mvp_progress ?? null,
   };
 }
 
@@ -48,13 +55,16 @@ async function migrateLocalToDb(): Promise<void> {
   localStorage.setItem(DB_MIGRATED_KEY, "1");
 }
 
-async function loadFromDbOrLocal(): Promise<Project[]> {
+async function loadFromDbOrLocal(): Promise<
+  (Project & { stage?: string; mvp_progress?: number | null })[]
+> {
   await migrateLocalToDb();
   const dbRows = await projectsApi.getAll();
   if (dbRows.length > 0) {
-    const mapped = dbRows.map(fromDb);
-    persistProjectsLocal(mapped);
-    return mapped;
+    await migrateBoardMetadataToDb(dbRows);
+    const refreshed = (await projectsApi.getAll()).map(fromDb);
+    persistProjectsLocal(refreshed);
+    return refreshed;
   }
   const local = loadProjects();
   for (const project of local) {
@@ -68,7 +78,9 @@ async function loadFromDbOrLocal(): Promise<Project[]> {
 }
 
 export function useProjects() {
-  const [projects, setProjects] = useState<Project[]>(() => loadProjects());
+  const [projects, setProjects] = useState<
+    (Project & { stage?: string; mvp_progress?: number | null })[]
+  >(() => loadProjects());
   const [ready, setReady] = useState(false);
 
   const reload = useCallback(async () => {
@@ -110,22 +122,26 @@ export function useProjects() {
         console.warn("[useProjects] upsert failed", e);
       }
       window.dispatchEvent(new Event("projects-changed"));
+      await reload();
       return project;
     },
-    [],
+    [reload],
   );
 
-  const remove = useCallback(async (id: string) => {
-    removeProjectLocal(id);
-    clearProjectBoardMetadata(id);
-    setProjects(loadProjects());
-    try {
-      await projectsApi.delete(id);
-    } catch (e) {
-      console.warn("[useProjects] delete failed", e);
-    }
-    window.dispatchEvent(new Event("projects-changed"));
-  }, []);
+  const remove = useCallback(
+    async (id: string) => {
+      removeProjectLocal(id);
+      setProjects(loadProjects());
+      try {
+        await projectsApi.delete(id);
+      } catch (e) {
+        console.warn("[useProjects] delete failed", e);
+      }
+      window.dispatchEvent(new Event("projects-changed"));
+      await reload();
+    },
+    [reload],
+  );
 
-  return { projects, add, remove, ready };
+  return { projects, add, remove, ready, reload };
 }

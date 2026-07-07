@@ -105,6 +105,8 @@ pub struct ProxyServerInfo {
     pub address: String,
     pub port: u16,
     pub started_at: String,
+    /// 代理认证令牌 — CLI 工具须携带此令牌访问代理
+    pub auth_token: String,
 }
 
 /// 各应用的接管状态（是否改写该应用的 Live 配置指向本地代理）

@@ -24,6 +24,16 @@ pub struct Project {
     /// 最近应用的 Blueprint id（S2-11）
     #[serde(skip_serializing_if = "Option::is_none")]
     pub blueprint_id: Option<String>,
+    /// 看板阶段：mvp | rapid | stable
+    #[serde(default = "default_project_stage")]
+    pub stage: String,
+    /// MVP 进度 0–100；None 表示未设置
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mvp_progress: Option<i32>,
+}
+
+fn default_project_stage() -> String {
+    "mvp".to_string()
 }
 
 fn map_project_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
@@ -36,11 +46,13 @@ fn map_project_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
         updated_at: row.get(5)?,
         target_app: row.get(6)?,
         blueprint_id: row.get(7)?,
+        stage: row.get::<_, String>(8).unwrap_or_else(|_| "mvp".to_string()),
+        mvp_progress: row.get(9)?,
     })
 }
 
 const PROJECT_SELECT: &str =
-    "SELECT id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id";
+    "SELECT id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id, stage, mvp_progress";
 
 /// 项目关联的配置项（通用中间表行）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,8 +132,8 @@ impl Database {
     pub fn upsert_project(&self, project: &Project) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         conn.execute(
-            "INSERT INTO projects (id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            "INSERT INTO projects (id, name, path, git_remote_url, created_at, updated_at, target_app, blueprint_id, stage, mvp_progress)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
              ON CONFLICT(id) DO UPDATE SET
                 name = excluded.name,
                 path = excluded.path,
@@ -138,6 +150,8 @@ impl Database {
                 project.updated_at,
                 project.target_app,
                 project.blueprint_id,
+                project.stage,
+                project.mvp_progress,
             ],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
@@ -186,6 +200,47 @@ impl Database {
             params![project_id, blueprint_id, now],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
+        Ok(())
+    }
+
+    /// 更新看板阶段与 MVP 进度
+    pub fn update_project_board_metadata(
+        &self,
+        project_id: &str,
+        stage: &str,
+        mvp_progress: Option<i32>,
+    ) -> Result<(), AppError> {
+        let normalized_stage = match stage {
+            "mvp" | "rapid" | "stable" => stage,
+            other => {
+                return Err(AppError::InvalidInput(format!(
+                    "无效的项目阶段: {other}（允许: mvp, rapid, stable）"
+                )));
+            }
+        };
+
+        if let Some(progress) = mvp_progress {
+            if !(0..=100).contains(&progress) {
+                return Err(AppError::InvalidInput(format!(
+                    "MVP 进度必须在 0–100 之间，收到: {progress}"
+                )));
+            }
+        }
+
+        let conn = lock_conn!(self.conn);
+        let now = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_secs() as i64;
+        let affected = conn
+            .execute(
+                "UPDATE projects SET stage = ?2, mvp_progress = ?3, updated_at = ?4 WHERE id = ?1",
+                params![project_id, normalized_stage, mvp_progress, now],
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        if affected == 0 {
+            return Err(AppError::InvalidInput(format!("项目不存在: {project_id}")));
+        }
         Ok(())
     }
 

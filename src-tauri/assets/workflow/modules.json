@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "modules": [
+    {
+      "id": "openspec-change",
+      "name": "OpenSpec Change Isolation",
+      "nameZh": "OpenSpec 变更隔离",
+      "source": "OpenSpec",
+      "description": "Per-change folder under .specs/, archive pattern, brownfield-first.",
+      "capabilities": ["change-isolation", "archive", "brownfield"]
+    },
+    {
+      "id": "spec-kit-cascade",
+      "name": "Spec-Kit Cascade",
+      "nameZh": "Spec-Kit 级联规格",
+      "source": "spec-kit",
+      "description": "0→1→2→3 artifact cascade, Given/When/Then AC, ADR in DESIGN.",
+      "capabilities": ["ac-format", "adr", "spec-first"]
+    },
+    {
+      "id": "bmad-context",
+      "name": "BMAD Context Layers",
+      "nameZh": "BMAD 上下文分层",
+      "source": "BMAD-METHOD",
+      "description": "CONTEXT.md rules layer + ARCHITECTURE.md structure layer.",
+      "capabilities": ["context-layer", "architecture-layer", "a-evolve"]
+    },
+    {
+      "id": "gstack-conductor",
+      "name": "GStack Conductor",
+      "nameZh": "GStack 编排指挥",
+      "source": "gstack",
+      "description": "Role-based workflow conductor: Think→Plan→Build→Review→Test→Ship→Reflect via SKILL.md routing.",
+      "capabilities": ["conductor-routing", "role-workflow", "slash-commands"]
+    },
+    {
+      "id": "taskmaster-tasks",
+      "name": "Task Master Tasks",
+      "nameZh": "Task Master 任务块",
+      "source": "claude-task-master",
+      "description": "TASK.md XML blocks with verify, done, depends_on.",
+      "capabilities": ["task-xml", "verify", "depends-on"]
+    },
+    {
+      "id": "superpowers-tdd",
+      "name": "Superpowers TDD",
+      "nameZh": "Superpowers TDD",
+      "source": "superpowers",
+      "description": "RED→GREEN→REFACTOR in dev stage, review skills.",
+      "capabilities": ["tdd", "review-skills", "brainstorm"]
+    },
+    {
+      "id": "gstack-roles",
+      "name": "GStack Roles",
+      "nameZh": "GStack 角色红线",
+      "source": "gstack",
+      "description": "Architect/Dev/Reviewer boundaries, multi-lens review.",
+      "capabilities": ["role-boundaries", "qa-lens"]
+    },
+    {
+      "id": "skills-entry",
+      "name": "Skills Entry Router",
+      "nameZh": "Skills 单入口",
+      "source": "skills",
+      "description": "GO.md-style single @ entry and on-demand prompt loading.",
+      "capabilities": ["single-entry", "prompt-router"]
+    }
+  ]
+}

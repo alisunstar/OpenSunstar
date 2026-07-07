@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { buildProviderConfig, type AIProviderConfig } from "@/api/aiInsight";
 
 /**
@@ -6,17 +6,26 @@ import { buildProviderConfig, type AIProviderConfig } from "@/api/aiInsight";
  * 用于看板页面决定是否启用 AI 功能。
  */
 export function useAIConfig() {
-  const [configured, setConfigured] = useState<boolean>(
-    () => buildProviderConfig() !== null,
-  );
+  const [configured, setConfigured] = useState(false);
+  const configRef = useRef<AIProviderConfig | null>(null);
 
-  const refresh = useCallback(() => {
-    setConfigured(buildProviderConfig() !== null);
+  const refresh = useCallback(async () => {
+    const config = await buildProviderConfig();
+    configRef.current = config;
+    setConfigured(config !== null);
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const getConfig = useCallback((): AIProviderConfig | null => {
+    return configRef.current;
   }, []);
 
   return {
     aiConfigured: configured,
     refreshConfig: refresh,
-    getConfig: buildProviderConfig as () => AIProviderConfig | null,
+    getConfig,
   };
 }

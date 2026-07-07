@@ -1,6 +1,6 @@
 {
   "name": "OpenSunstar",
-  "version": "0.1.0",
+  "version": "1.1.2",
   "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
@@ -18,6 +18,9 @@
     "website:publish": "node scripts/website-publish.mjs",
     "brand:sync": "python scripts/sync-brand-assets.py && pnpm tauri icon app-icon.png",
     "release:bump": "node scripts/release-bump.mjs",
+    "release:patch": "node scripts/release-bump.mjs patch",
+    "release:minor": "node scripts/release-bump.mjs minor",
+    "release:major": "node scripts/release-bump.mjs major",
     "release:tag": "bash scripts/release-tag.sh",
     "release:tag:win": "powershell -ExecutionPolicy Bypass -File scripts/release-tag.ps1"
   },

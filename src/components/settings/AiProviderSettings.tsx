@@ -65,29 +65,31 @@ export function AiProviderSettings() {
 
   // ── 初始化 ────────────────────────────────
   useEffect(() => {
-    setProvider(getAiProvider());
-    const ds = getDeepseekSettings();
-    setDsConfigured(ds.apiKeyConfigured);
-    const glm = getGlmSettings();
-    setGlmConfigured(glm.apiKeyConfigured);
-    setGlmUrl(glm.apiUrl);
-    setGlmModel(glm.model);
-    const custom = getCustomProviderSettings();
-    setCustomConfigured(custom.apiKeyConfigured);
-    setCustomUrl(custom.apiUrl);
-    setCustomModel(custom.model);
+    void (async () => {
+      setProvider(await getAiProvider());
+      const ds = await getDeepseekSettings();
+      setDsConfigured(ds.apiKeyConfigured);
+      const glm = await getGlmSettings();
+      setGlmConfigured(glm.apiKeyConfigured);
+      setGlmUrl(glm.apiUrl);
+      setGlmModel(glm.model);
+      const custom = await getCustomProviderSettings();
+      setCustomConfigured(custom.apiKeyConfigured);
+      setCustomUrl(custom.apiUrl);
+      setCustomModel(custom.model);
+    })();
   }, []);
 
   // ── 操作 ──────────────────────────────────
-  const handleProviderChange = (p: AiProvider) => {
-    saveAiProvider(p);
+  const handleProviderChange = async (p: AiProvider) => {
+    await saveAiProvider(p);
     setProvider(p);
   };
 
-  const handleSaveDs = () => {
+  const handleSaveDs = async () => {
     setBusy(true);
-    saveDeepseekSettings(dsKey);
-    setDsConfigured(dsKey.trim().length > 0);
+    const configured = await saveDeepseekSettings(dsKey);
+    setDsConfigured(configured);
     setDsKey("");
     setBusy(false);
     toast.success(
@@ -98,15 +100,15 @@ export function AiProviderSettings() {
   const handleTestDs = async () => {
     setBusy(true);
     setDsTestResult(null);
-    const r = await testDeepseekConnection();
+    const r = await testDeepseekConnection(dsKey || undefined);
     setDsTestResult(r);
     setBusy(false);
   };
 
-  const handleSaveGlm = () => {
+  const handleSaveGlm = async () => {
     setBusy(true);
-    saveGlmSettings(glmKey, glmUrl, glmModel);
-    setGlmConfigured(glmKey.trim().length > 0);
+    const configured = await saveGlmSettings(glmKey, glmUrl, glmModel);
+    setGlmConfigured(configured);
     setGlmKey("");
     setBusy(false);
     toast.success(
@@ -117,15 +119,23 @@ export function AiProviderSettings() {
   const handleTestGlm = async () => {
     setBusy(true);
     setGlmTestResult(null);
-    const r = await testGlmConnection();
+    const r = await testGlmConnection(
+      glmKey || undefined,
+      glmUrl,
+      glmModel,
+    );
     setGlmTestResult(r);
     setBusy(false);
   };
 
-  const handleSaveCustom = () => {
+  const handleSaveCustom = async () => {
     setBusy(true);
-    saveCustomProviderSettings(customKey, customUrl, customModel);
-    setCustomConfigured(customKey.trim().length > 0);
+    const configured = await saveCustomProviderSettings(
+      customKey,
+      customUrl,
+      customModel,
+    );
+    setCustomConfigured(configured);
     setCustomKey("");
     setBusy(false);
     toast.success(t("aiProvider.saved", { defaultValue: "自定义配置已保存" }));
@@ -134,7 +144,11 @@ export function AiProviderSettings() {
   const handleTestCustom = async () => {
     setBusy(true);
     setCustomTestResult(null);
-    const r = await testCustomProviderConnection();
+    const r = await testCustomProviderConnection(
+      customKey || undefined,
+      customUrl,
+      customModel,
+    );
     setCustomTestResult(r);
     setBusy(false);
   };

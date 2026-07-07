@@ -4,7 +4,7 @@
 
 ### The All-in-One Desktop Manager for AI Coding CLI Tools
 
-[![Version](https://img.shields.io/badge/version-v0.1.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.2-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
@@ -107,7 +107,7 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 | :---------: | :-------------: |
 | ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v0.1.0** — first public release. Daily use ready; workspace and AI asset lifecycle features are actively evolving.
+> **v1.1.2** — first stable-line release on the 1.1.x track; provider management, portfolio persistence, and AI key security improvements.
 
 ---
 
@@ -235,7 +235,7 @@ Data is fetched from skills.sh and cached locally (~6 hours). The UI shows last 
 | User manual (日本語) | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | User manual (Deutsch) | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | Workspace module | [docs/kanban.md](docs/kanban.md) |
-| Release notes v0.1.0 | [docs/release-notes/v0.1.0-en.md](docs/release-notes/v0.1.0-en.md) |
+| Release notes v1.1.2 | [docs/release-notes/v1.1.2-en.md](docs/release-notes/v1.1.2-en.md) |
 
 ### Development
 

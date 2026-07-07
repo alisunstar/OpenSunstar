@@ -43,7 +43,7 @@ export function AIWeeklyReport({
     setReport(null);
     setCopied(false);
 
-    const config = buildProviderConfig();
+    const config = await buildProviderConfig();
     if (!config) {
       setError("未配置 AI 提供方，请先在设置中配置 AI Key。");
       setLoading(false);

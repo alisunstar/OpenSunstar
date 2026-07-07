@@ -19,7 +19,7 @@ use super::{
 };
 use crate::database::Database;
 use axum::{
-    extract::DefaultBodyLimit,
+    extract::{DefaultBodyLimit, State},
     routing::{any, get, post},
     Router,
 };
@@ -48,6 +48,10 @@ pub struct ProxyState {
     pub app_handle: Option<tauri::AppHandle>,
     /// 故障转移切换管理器
     pub failover_manager: Arc<FailoverSwitchManager>,
+    /// 代理认证令牌 — 每次启动随机生成，所有请求须携带此令牌
+    pub auth_token: String,
+    /// 速率限制器 — 防止本地进程滥用 API 配额
+    pub rate_limiter: Arc<super::rate_limiter::RateLimiter>,
 }
 
 /// 代理HTTP服务器
@@ -81,6 +85,8 @@ impl ProxyServer {
             codex_chat_history: Arc::new(CodexChatHistoryStore::default()),
             app_handle,
             failover_manager,
+            auth_token: format!("proxy-{}", uuid::Uuid::new_v4()),
+            rate_limiter: Arc::new(super::rate_limiter::RateLimiter::new(100)),
         };
 
         Self {
@@ -101,6 +107,17 @@ impl ProxyServer {
             format!("{}:{}", self.config.listen_address, self.config.listen_port)
                 .parse()
                 .map_err(|e| ProxyError::BindFailed(format!("无效的地址: {e}")))?;
+
+        // P1-6: 安全校验 — 拒绝非回环地址，防止代理暴露到整个网络
+        if !addr.ip().is_loopback() {
+            log::warn!(
+                "[{}] 代理将监听于非回环地址 {}，存在安全风险",
+                log_srv::STARTED,
+                addr.ip()
+            );
+            // 非回环地址须配合认证令牌使用，此处仅警告不阻断
+            // 因为用户可能有意将代理暴露给局域网内的其他设备
+        }
 
         // 创建关闭通道
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
@@ -219,6 +236,7 @@ impl ProxyServer {
             address: self.config.listen_address.clone(),
             port: actual_port,
             started_at: chrono::Utc::now().to_rfc3339(),
+            auth_token: self.state.auth_token.clone(),
         })
     }
 
@@ -276,7 +294,12 @@ impl ProxyServer {
         status
     }
 
-    /// 更新某个应用类型当前“目标供应商”（用于 UI 展示 active_targets）
+    /// 获取代理认证令牌
+    pub fn auth_token(&self) -> &str {
+        &self.state.auth_token
+    }
+
+    /// 更新某个应用类型当前”目标供应商”（用于 UI 展示 active_targets）
     ///
     /// 注意：这不代表该供应商一定已经处理过请求，而是用于“热切换/启用故障转移立即切 P1”
     /// 等场景下，让 UI 能立刻反映最新目标。
@@ -289,10 +312,16 @@ impl ProxyServer {
     }
 
     fn build_router(&self) -> Router {
-        Router::new()
-            // 健康检查
+        use axum::middleware;
+
+        // ── 公开路由（无需认证） ──
+        let public = Router::new()
             .route("/health", get(handlers::health_check))
             .route("/status", get(handlers::get_status))
+            .with_state(self.state.clone());
+
+        // ── 受保护路由（须携带 auth_token） ──
+        let protected = Router::new()
             // Claude API (支持带前缀和不带前缀两种格式)
             .route("/v1/messages", post(handlers::handle_messages))
             .route("/claude/v1/messages", post(handlers::handle_messages))
@@ -356,7 +385,13 @@ impl ProxyServer {
             .route("/gemini/v1/*path", any(handlers::handle_gemini))
             // 提高默认请求体大小限制（避免 413 Payload Too Large）
             .layer(DefaultBodyLimit::max(200 * 1024 * 1024))
-            .with_state(self.state.clone())
+            .layer(middleware::from_fn_with_state(
+                self.state.clone(),
+                proxy_auth_middleware,
+            ))
+            .with_state(self.state.clone());
+
+        public.merge(protected)
     }
 
     /// 在不重启服务的情况下更新运行时配置
@@ -391,5 +426,65 @@ impl ProxyServer {
             .provider_router
             .reset_provider_breaker(provider_id, app_type)
             .await;
+    }
+}
+
+// ── 代理认证 + 速率限制中间件 ──────────────────────────────
+//
+// 所有受保护路由必须通过此中间件。验证逻辑：
+// 1. 速率限制检查（滑动窗口，默认 100 req/s）
+// 2. 从 Authorization: Bearer <token> 或 x-api-key 头提取令牌
+// 3. 与 ProxyState.auth_token 比对
+// 4. 不匹配则返回 401，被限流则返回 429
+
+async fn proxy_auth_middleware(
+    State(state): State<ProxyState>,
+    req: axum::extract::Request,
+    next: axum::middleware::Next,
+) -> axum::response::Response {
+    use http::StatusCode;
+
+    // ── 速率限制 ──
+    if !state.rate_limiter.try_acquire() {
+        log::warn!("[ProxyAuth] 速率限制触发，拒绝请求");
+        return axum::response::Response::builder()
+            .status(StatusCode::TOO_MANY_REQUESTS)
+            .header("Content-Type", "application/json")
+            .header("Retry-After", "1")
+            .body(axum::body::Body::from(
+                r#"{"type":"proxy_error","error":{"type":"rate_limit_exceeded","message":"Too many requests. Please retry after 1 second."}}"#,
+            ))
+            .unwrap();
+    }
+
+    // ── 认证令牌验证 ──
+    let auth_header = req
+        .headers()
+        .get(http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "));
+
+    let api_key = req
+        .headers()
+        .get("x-api-key")
+        .and_then(|v| v.to_str().ok());
+
+    let token = auth_header.or(api_key);
+
+    match token {
+        Some(t) if t == state.auth_token => next.run(req).await,
+        _ => {
+            log::warn!(
+                "[ProxyAuth] 未授权的代理访问请求 (path: {})",
+                req.uri().path()
+            );
+            axum::response::Response::builder()
+                .status(StatusCode::UNAUTHORIZED)
+                .header("Content-Type", "application/json")
+                .body(axum::body::Body::from(
+                    r#"{"type":"proxy_error","error":{"type":"authentication_error","message":"Unauthorized: invalid or missing auth token. Use the proxy auth token from OpenSunstar settings."}}"#,
+                ))
+                .unwrap()
+        }
     }
 }

@@ -6,7 +6,6 @@
  */
 
 import { invoke } from "@tauri-apps/api/core";
-import { getAiProvider } from "./deepseek";
 
 // ── 类型（对齐 Rust 后端 ai::types）──────────────
 
@@ -247,75 +246,14 @@ export interface ContributorSummary {
   commits: number;
 }
 
-// ── 存储 key（对齐 deepseek.ts）────────────────
-
-const DEEPSEEK_KEY = "OpenSunstar-deepseek-key";
-const GLM_KEY = "OpenSunstar-glm";
-const CUSTOM_KEY = "OpenSunstar-custom";
-
-function safeGet(key: string): string | null {
-  try { return localStorage.getItem(key); } catch { return null; }
-}
-
 // ── 配置构建 ──────────────────────────────────
 
 /**
- * 从 localStorage 读取当前 AI 提供方配置，构建 Rust 后端所需的 AIProviderConfig。
+ * 从 Keychain + SQLite 构建 Rust 后端所需的 AIProviderConfig。
  * 返回 null 表示未配置任何 AI Key。
  */
-export function buildProviderConfig(): AIProviderConfig | null {
-  const provider = getAiProvider();
-
-  switch (provider) {
-    case "deepseek": {
-      const key = safeGet(DEEPSEEK_KEY)?.trim();
-      if (!key) return null;
-      return {
-        provider: "deepseek",
-        api_key: key,
-        api_url: "https://api.deepseek.com/v1/chat/completions",
-        model: "deepseek-chat",
-      };
-    }
-    case "glm": {
-      let raw: string | null = null;
-      try { raw = safeGet(GLM_KEY); } catch { /* ignore */ }
-      if (!raw) return null;
-      try {
-        const parsed = JSON.parse(raw);
-        const key = parsed._key?.trim();
-        if (!key) return null;
-        return {
-          provider: "glm",
-          api_key: key,
-          api_url: parsed.apiUrl || "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
-          model: parsed.model || "GLM-5.1",
-        };
-      } catch {
-        return null;
-      }
-    }
-    case "custom": {
-      let raw: string | null = null;
-      try { raw = safeGet(CUSTOM_KEY); } catch { /* ignore */ }
-      if (!raw) return null;
-      try {
-        const parsed = JSON.parse(raw);
-        const key = parsed._key?.trim();
-        if (!key) return null;
-        return {
-          provider: "custom",
-          api_key: key,
-          api_url: parsed.apiUrl || "https://api.openai.com/v1/chat/completions",
-          model: parsed.model || "gpt-4o",
-        };
-      } catch {
-        return null;
-      }
-    }
-    default:
-      return null;
-  }
+export async function buildProviderConfig(): Promise<AIProviderConfig | null> {
+  return invoke<AIProviderConfig | null>("build_ai_insight_provider_config");
 }
 
 // ── 项目上下文构建 ──────────────────────────────

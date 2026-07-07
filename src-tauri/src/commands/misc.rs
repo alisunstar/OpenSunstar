@@ -50,6 +50,22 @@ pub async fn copy_text_to_clipboard(text: String) -> Result<bool, String> {
     .map_err(|e| format!("剪贴板任务执行失败: {e}"))?
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BuildInfo {
+    pub app_version: String,
+    pub schema_version: i32,
+}
+
+/// 返回应用 SemVer 与 SQLite schema 版本（二者独立演进）
+#[tauri::command]
+pub fn get_build_info() -> BuildInfo {
+    BuildInfo {
+        app_version: env!("CARGO_PKG_VERSION").to_string(),
+        schema_version: crate::database::SCHEMA_VERSION,
+    }
+}
+
 /// 检查更新
 #[tauri::command]
 pub async fn check_for_updates(handle: AppHandle) -> Result<bool, String> {

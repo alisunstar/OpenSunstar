@@ -338,6 +338,10 @@ impl Database {
         // 29. AI 成本日志表（项目看板 AI 调用追踪）
         Self::create_ai_cost_log_table(conn)?;
 
+        // 30. SDD 框架描述符目录 + 项目探测结果
+        Self::create_sdd_descriptors_table(conn)?;
+        Self::create_project_sdd_detections_table(conn)?;
+
         // 尝试添加 live_takeover_active 列到 proxy_config 表
         let _ = conn.execute(
             "ALTER TABLE proxy_config ADD COLUMN live_takeover_active INTEGER NOT NULL DEFAULT 0",
@@ -558,6 +562,27 @@ impl Database {
                         );
                         Self::migrate_v24_to_v25(conn)?;
                         Self::set_user_version(conn, 25)?;
+                    }
+                    25 => {
+                        log::info!(
+                            "迁移数据库从 v25 到 v26（SDD 框架探测：sdd_descriptors + project_sdd_detections）"
+                        );
+                        Self::migrate_v25_to_v26(conn)?;
+                        Self::set_user_version(conn, 26)?;
+                    }
+                    26 => {
+                        log::info!(
+                            "迁移数据库从 v26 到 v27（修正 install_type：BMAD→npm, Superpowers→plugin, Spec Kit→uvx）"
+                        );
+                        Self::migrate_v26_to_v27(conn)?;
+                        Self::set_user_version(conn, 27)?;
+                    }
+                    27 => {
+                        log::info!(
+                            "迁移数据库从 v27 到 v28（projects 增加 stage / mvp_progress）"
+                        );
+                        Self::migrate_v27_to_v28(conn)?;
+                        Self::set_user_version(conn, 28)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1807,6 +1832,106 @@ impl Database {
             .map_err(|e| AppError::Database(format!("删除 project_prompts 失败: {e}")))?;
 
         log::info!("v24 -> v25 迁移完成：8 类资产统一至 project_asset_links");
+        Ok(())
+    }
+
+    /// v25 -> v26: SDD 框架探测表（sdd_descriptors + project_sdd_detections）+ 7 框架种子数据
+    fn migrate_v25_to_v26(conn: &Connection) -> Result<(), AppError> {
+        Self::create_sdd_descriptors_table(conn)?;
+        Self::create_project_sdd_detections_table(conn)?;
+
+        // Seed 7 framework descriptors (idempotent via INSERT OR IGNORE)
+        let seed_descriptors = [
+            ("bmad-method", "BMAD-METHOD", "v6.10.0", "linear", "npm",
+             "BMAD 全栈方法论：角色驱动 + 上下文分层",
+             "BMAD full-stack methodology: role-driven + context-layered",
+             "https://github.com/bmad-method/BMAD-METHOD"),
+            ("task-master", "Task Master AI", "0.43.1", "linear", "npm",
+             "AI 驱动的任务拆解与执行管理",
+             "AI-driven task decomposition and execution management",
+             "https://github.com/eyecuelab/taskmaster"),
+            ("superpowers", "Superpowers", "v6.1.1", "linear", "plugin",
+             "TDD + 角色工作流 + 技能路由",
+             "TDD + role workflow + skill routing",
+             "https://github.com/obra/superpowers"),
+            ("gstack", "gstack", "1.58.5.0", "linear", "file_copy",
+             "GStack 编排指挥：Think→Plan→Build→Review→Test→Ship→Reflect",
+             "GStack conductor: Think→Plan→Build→Review→Test→Ship→Reflect",
+             "https://github.com/garrytan/gstack"),
+            ("openspec", "OpenSpec", "v1.5.0", "linear", "file_copy",
+             "变更驱动的规格文档管理（ADR + CHANGE）",
+             "Change-driven specification document management (ADR + CHANGE)",
+             "https://github.com/Fission-AI/OpenSpec"),
+            ("spec-kit", "Spec Kit", "v0.12.4", "linear", "uvx",
+             "规格工具链：AC 格式 + 级联文档",
+             "Specification toolchain: AC format + cascading docs",
+             "https://github.com/nicholasgriffintn/spec-kit"),
+            ("flow-kit", "flow-kit", "unversioned", "linear", "file_copy",
+             "纯 Markdown AI 编程流程（39 文件模板体系）",
+             "Pure markdown AI programming flow (39-file template system)",
+             "https://github.com/rihebty/flow-kit"),
+        ];
+
+        for (id, name, version, phase, install, desc_zh, desc_en, repo) in &seed_descriptors {
+            let signals_json = match *id {
+                "bmad-method" => r#"[".bmad/"]"#,
+                "task-master" => r#"["task-master in package.json"]"#,
+                "superpowers" => r#"[".superpowers/", "superpowers in package.json"]"#,
+                "gstack" => r#"[".gstack/", "SKILL.md gstack routing"]"#,
+                "openspec" => r#"[".openspec/"]"#,
+                "spec-kit" => r#"[".spec-kit/", "spec-kit in package.json"]"#,
+                "flow-kit" => r#"["flow-kit/", "flow-kit/GO.md"]"#,
+                _ => "[]",
+            };
+            let descriptor_json = format!(
+                r#"{{"id":"{}","name":"{}","version":"{}","phase_model":"{}"}}"#,
+                id, name, version, phase
+            );
+            conn.execute(
+                "INSERT OR IGNORE INTO sdd_descriptors
+                    (id, name, version, phase_model, probe_signals, install_type, risk_tier,
+                     description_zh, description_en, repo_url, descriptor_json)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'read_only', ?7, ?8, ?9, ?10)",
+                rusqlite::params![
+                    id, name, version, phase, signals_json, install,
+                    desc_zh, desc_en, repo, descriptor_json,
+                ],
+            )
+            .map_err(|e| AppError::Database(format!("seed sdd_descriptors {id} 失败: {e}")))?;
+        }
+
+        log::info!("v25 -> v26 迁移完成：SDD 框架探测表 + 7 框架种子数据");
+        Ok(())
+    }
+
+    /// v26 → v27: 修正 sdd_descriptors.install_type 字段值。
+    ///
+    /// 经人工验收查证：
+    /// - BMAD-METHOD: file_copy → npm（官方安装方式为 `npx bmad-method install`）
+    /// - Superpowers: file_copy → plugin（走 Claude Code 原生插件协议）
+    /// - Spec Kit: npm → uvx（Python/uv 驱动，`uvx --from git+...specify init`）
+    fn migrate_v26_to_v27(conn: &Connection) -> Result<(), AppError> {
+        let updates = [
+            ("npm", "bmad-method"),
+            ("plugin", "superpowers"),
+            ("uvx", "spec-kit"),
+        ];
+        for (new_type, id) in &updates {
+            conn.execute(
+                "UPDATE sdd_descriptors SET install_type = ?1 WHERE id = ?2",
+                rusqlite::params![new_type, id],
+            )
+            .map_err(|e| AppError::Database(format!("修正 install_type for {id} 失败: {e}")))?;
+        }
+        log::info!("v26 -> v27 迁移完成：修正 BMAD→npm, Superpowers→plugin, Spec Kit→uvx");
+        Ok(())
+    }
+
+    /// v27 → v28: 看板阶段与 MVP 进度迁入 SQLite projects 表
+    fn migrate_v27_to_v28(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(conn, "projects", "stage", "TEXT NOT NULL DEFAULT 'mvp'")?;
+        Self::add_column_if_missing(conn, "projects", "mvp_progress", "INTEGER")?;
+        log::info!("v27 -> v28 迁移完成：projects 增加 stage、mvp_progress");
         Ok(())
     }
 
@@ -3372,6 +3497,61 @@ impl Database {
             }
         }
         Ok(false)
+    }
+
+    /// 30. SDD 框架描述符目录（7 个方法论框架的元数据）
+    fn create_sdd_descriptors_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS sdd_descriptors (
+                id              TEXT PRIMARY KEY,
+                name            TEXT NOT NULL,
+                version         TEXT NOT NULL,
+                phase_model     TEXT NOT NULL DEFAULT 'linear',
+                probe_signals   TEXT NOT NULL DEFAULT '[]',
+                install_type    TEXT NOT NULL DEFAULT 'file_copy',
+                risk_tier       TEXT NOT NULL DEFAULT 'read_only',
+                description_zh  TEXT,
+                description_en  TEXT,
+                repo_url        TEXT,
+                star_count      INTEGER,
+                last_verified   TEXT,
+                descriptor_json TEXT NOT NULL DEFAULT '{}'
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 sdd_descriptors 表失败: {e}")))?;
+        Ok(())
+    }
+
+    /// 31. 项目 × SDD 框架探测结果（只读探测，每项目每框架一行）
+    fn create_project_sdd_detections_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS project_sdd_detections (
+                id              TEXT PRIMARY KEY,
+                project_id      TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+                descriptor_id   TEXT NOT NULL REFERENCES sdd_descriptors(id),
+                detected        INTEGER NOT NULL DEFAULT 0,
+                confidence      TEXT NOT NULL DEFAULT 'absent',
+                signal_matches  TEXT,
+                detected_at     TEXT NOT NULL DEFAULT (datetime('now')),
+                UNIQUE(project_id, descriptor_id)
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 project_sdd_detections 表失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sdd_detections_project
+             ON project_sdd_detections(project_id)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_sdd_detections_project 失败: {e}")))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_sdd_detections_descriptor
+             ON project_sdd_detections(descriptor_id)",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 idx_sdd_detections_descriptor 失败: {e}")))?;
+        Ok(())
     }
 
     fn add_column_if_missing(

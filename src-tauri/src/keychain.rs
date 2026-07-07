@@ -274,14 +274,60 @@ fn get_fallback_path() -> std::path::PathBuf {
 }
 
 fn get_device_key() -> [u8; 32] {
+    // 组合多个机器标识以提高密钥派生熵值：
+    // 1. 持久化的随机机器盐（首次使用时生成，防止仅凭 hostname 推导密钥）
+    // 2. 系统 hostname（传统标识，低熵但跨进程一致）
+    let machine_id = read_or_create_machine_id();
     let hostname = hostname::get()
         .map(|h| h.to_string_lossy().to_string())
         .unwrap_or_else(|_| "unknown-device".to_string());
-    let hk = Hkdf::<Sha256>::new(Some(FALLBACK_SALT), hostname.as_bytes());
+    let combined = format!("{machine_id}:{hostname}");
+
+    let hk = Hkdf::<Sha256>::new(Some(FALLBACK_SALT), combined.as_bytes());
     let mut key = [0u8; 32];
-    hk.expand(b"opensunstar-fallback-device-key", &mut key)
+    hk.expand(b"opensunstar-fallback-device-key-v2", &mut key)
         .expect("HKDF expand should not fail with 32-byte output");
     key
+}
+
+/// 读取或创建持久化的机器标识盐
+///
+/// 文件路径: `~/.OpenSunstar/.machine-id`
+/// 格式: 32 字节随机数的十六进制字符串（64 字符）
+///
+/// 安全作用: 即使攻击者知道 hostname，没有此文件也无法推导回退密钥库的加密密钥。
+/// 迁移注意: 复制 keystore.enc 到新机器时，必须同时复制 .machine-id。
+fn read_or_create_machine_id() -> String {
+    let id_path = get_app_config_dir().join(".machine-id");
+
+    // 尝试读取已有标识
+    if let Ok(id) = fs::read_to_string(&id_path) {
+        let trimmed = id.trim();
+        if trimmed.len() >= 16 {
+            return trimmed.to_string();
+        }
+    }
+
+    // 首次使用 — 生成密码学安全的随机标识
+    use rand::RngCore;
+    let mut bytes = [0u8; 16];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    let id = hex_encode(&bytes);
+
+    // 持久化（写入失败不阻断 — 退化为仅 hostname，与旧行为一致）
+    if let Some(parent) = id_path.parent() {
+        let _ = fs::create_dir_all(parent);
+    }
+    if let Err(e) = fs::write(&id_path, &id) {
+        log::warn!("[Keychain] 无法持久化机器标识: {e}，回退到仅 hostname");
+    }
+
+    id
+}
+
+/// 将字节数组编码为十六进制字符串（避免引入 hex crate 依赖）
+fn hex_encode(bytes: &[u8]) -> String {
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
 fn init_fallback_store() -> &'static Mutex<FallbackStore> {

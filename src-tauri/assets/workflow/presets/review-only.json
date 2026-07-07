@@ -1,0 +1,22 @@
+{
+  "id": "review-only",
+  "name": "Review Only",
+  "nameZh": "仅审查",
+  "description": "Single-point 6-review flow; requires existing code diff context.",
+  "r3Tier": "quick",
+  "modules": ["superpowers-tdd", "gstack-roles"],
+  "stages": [
+    {
+      "id": "6-review",
+      "name": "Review",
+      "prompt": "6-review.md",
+      "artifacts": [{ "file": "REVIEW.md", "scope": "change", "optional": false }]
+    }
+  ],
+  "paths": {
+    "frontend": ["6-review"],
+    "backend": ["6-review"],
+    "cli": ["6-review"],
+    "mvp": ["6-review"]
+  }
+}

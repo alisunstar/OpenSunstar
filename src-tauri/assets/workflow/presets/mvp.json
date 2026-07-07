@@ -1,0 +1,46 @@
+{
+  "id": "mvp",
+  "name": "MVP",
+  "nameZh": "MVP 快速交付",
+  "description": "REQUIREMENT → DESIGN-lite → TASK → DEV. Artifacts required but stages compressed.",
+  "r3Tier": "quick",
+  "modules": ["openspec-change", "spec-kit-cascade", "gstack-conductor", "taskmaster-tasks", "superpowers-tdd"],
+  "stages": [
+    {
+      "id": "1-requirement",
+      "name": "Requirement",
+      "prompt": "1-requirement.md",
+      "artifacts": [
+        { "file": "REQUIREMENT.md", "scope": "change", "optional": false },
+        { "file": "CONTEXT.md", "scope": "change", "optional": true }
+      ]
+    },
+    {
+      "id": "2-design",
+      "name": "Design Lite",
+      "prompt": "2-design.md",
+      "dependsOn": ["1-requirement"],
+      "artifacts": [{ "file": "DESIGN.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "3-task",
+      "name": "Task",
+      "prompt": "3-task.md",
+      "dependsOn": ["2-design"],
+      "artifacts": [{ "file": "TASK.md", "scope": "change", "optional": false }]
+    },
+    {
+      "id": "4-dev",
+      "name": "Dev",
+      "prompt": "4-dev.md",
+      "dependsOn": ["3-task"],
+      "artifacts": []
+    }
+  ],
+  "paths": {
+    "frontend": ["1-requirement", "2-design", "3-task", "4-dev"],
+    "backend": ["1-requirement", "2-design", "3-task", "4-dev"],
+    "cli": ["1-requirement", "2-design", "3-task", "4-dev"],
+    "mvp": ["1-requirement", "2-design", "3-task", "4-dev"]
+  }
+}
