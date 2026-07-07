@@ -4,7 +4,7 @@
 
 ### Claude Code / Codex / Gemini CLI 等 AI 编程工具的一站式桌面管理器
 
-[![Version](https://img.shields.io/badge/version-v1.1.2-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)

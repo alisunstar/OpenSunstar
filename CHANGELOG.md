@@ -5,10 +5,27 @@ All notable changes to OpenSunstar are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
 ## [Unreleased]
 
-<!-- Add changes here during development. `pnpm release:patch` promotes this section to a versioned release. -->
-## [1.1.2] - 2026-07-08
+
+## [1.1.3] - 2026-07-08
+
+### Changed
+
+- **方法论与编排：** 侧边栏「配置维度」更名为「方法论与编排」
+- **方法论框架 Tab：** 进入页面自动恢复上次扫描结果；检测到框架后展示「去预设编排」入口及推荐流程档位
+- **方法论框架 Tab：** 未检测框架收进「框架参考目录」折叠区；区分「未扫描」与「已扫描但未检测到」
+- **自定义编排（Recipe Composer）：** 阶段图默认适应窗口宽度，支持「实际大小 / 适应宽度」切换
+- **自定义编排（Recipe Composer）：** 字段、占位符、图例、按钮及提示文案全面中文化（zh / en / zh-TW / ja）
+- **导航：** 移除侧栏重复的「同步备份」入口，统一在「设置 → 高级」管理
+
+### Fixed
+
+- **AI 资产配置：** 修复工作区「去配置」进入项目资产配置时 React #310 崩溃（Hooks 顺序）
+- **方法论框架 Tab：** 修复刷新后扫描结果不恢复、未扫描时误显示「N 项目均未检测到」
+
+## [1.1.2] - 2026-07-07
 
 ### Fixed
 
