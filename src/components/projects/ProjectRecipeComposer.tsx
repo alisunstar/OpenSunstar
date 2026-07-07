@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   ChefHat,
   ChevronDown,
@@ -9,6 +10,8 @@ import {
   FileText,
   FolderOpen,
   Loader2,
+  Maximize2,
+  Minimize2,
   Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +32,7 @@ import {
   type WorkflowPreset,
   type WorkflowPresetSummary,
 } from "@/lib/api/flowOrchestrator";
+import { cn } from "@/lib/utils";
 
 const PROJECT_TYPES = ["backend", "frontend", "cli"] as const;
 
@@ -45,6 +49,22 @@ const NODE_GAP_Y = 16;
 const LATERAL_GAP = 24;
 
 function StageGraphSVG({ graph }: { graph: StageGraph }) {
+  const { t } = useTranslation();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerW, setContainerW] = useState(0);
+  const [fitToWidth, setFitToWidth] = useState(true);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      setContainerW(width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   if (graph.nodes.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
@@ -96,14 +116,52 @@ function StageGraphSVG({ graph }: { graph: StageGraph }) {
     return "fill-muted stroke-border";
   };
 
+  // Available inner width (container padding is 8px each side).
+  const availableW = containerW > 0 ? containerW - 16 : 0;
+  const fitScale =
+    availableW > 0 && svgW > availableW ? availableW / svgW : 1;
+  const overflows = svgW > availableW && availableW > 0;
+  // When fitting, scale the whole graph down so it's fully visible.
+  const renderW = fitToWidth ? svgW * fitScale : svgW;
+  const renderH = fitToWidth ? svgH * fitScale : svgH;
+
   return (
-    <div className="overflow-x-auto border border-border/50 rounded-lg bg-background/30 p-2">
+    <div
+      ref={containerRef}
+      className={cn(
+        "border border-border/50 rounded-lg bg-background/30 p-2",
+        fitToWidth ? "overflow-x-hidden" : "overflow-x-auto",
+      )}
+    >
+      {overflows && (
+        <div className="flex justify-end mb-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-[10px] text-muted-foreground"
+            onClick={() => setFitToWidth((v) => !v)}
+          >
+            {fitToWidth ? (
+              <>
+                <Maximize2 className="w-3 h-3 mr-1" />
+                {t("recipeComposer.actualSize", { defaultValue: "实际大小" })}
+              </>
+            ) : (
+              <>
+                <Minimize2 className="w-3 h-3 mr-1" />
+                {t("recipeComposer.fitWidth", { defaultValue: "适应宽度" })}
+              </>
+            )}
+          </Button>
+        </div>
+      )}
       <svg
-        width={svgW}
-        height={svgH}
+        width={renderW}
+        height={renderH}
         viewBox={`0 0 ${svgW} ${svgH}`}
-        className="min-w-full"
-        style={{ minWidth: svgW }}
+        preserveAspectRatio="xMinYMin meet"
+        style={fitToWidth ? undefined : { minWidth: svgW }}
       >
         <defs>
           <marker
@@ -185,7 +243,7 @@ function StageGraphSVG({ graph }: { graph: StageGraph }) {
               y={pipelineH + 14}
               className="fill-muted-foreground text-[10px] font-medium"
             >
-              Lateral (cross-cutting)
+              {t("recipeComposer.lateral", { defaultValue: "横向（跨领域）" })}
             </text>
             {graph.lateralNodes.map((node, i) => {
               const x = NODE_GAP_X + i * (NODE_W / 2 + 16);
@@ -221,19 +279,19 @@ function StageGraphSVG({ graph }: { graph: StageGraph }) {
       <div className="flex gap-4 mt-2 px-1 text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-emerald-200 dark:bg-emerald-800 border border-emerald-400" />
-          Standalone
+          {t("recipeComposer.legendStandalone", { defaultValue: "独立" })}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-blue-200 dark:bg-blue-800 border border-blue-400" />
-          Semi-standalone
+          {t("recipeComposer.legendSemi", { defaultValue: "半独立" })}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-amber-200 dark:bg-amber-800 border border-amber-400" />
-          Branch
+          {t("recipeComposer.legendBranch", { defaultValue: "分支" })}
         </span>
         <span className="flex items-center gap-1">
           <span className="inline-block w-3 h-3 rounded bg-muted border border-border" />
-          No artifacts
+          {t("recipeComposer.legendNoArtifacts", { defaultValue: "无产物" })}
         </span>
       </div>
     </div>
@@ -284,6 +342,7 @@ function Section({
 export function ProjectRecipeComposer({
   projectId,
 }: ProjectRecipeComposerProps) {
+  const { t } = useTranslation();
   // --- Shared state ---
   const [presets, setPresets] = useState<WorkflowPresetSummary[]>([]);
   const [modules, setModules] = useState<WorkflowModule[]>([]);
@@ -439,7 +498,12 @@ export function ProjectRecipeComposer({
         buildParams(),
       );
       setPreviewContent(content);
-      toast.success(`Recipe "${recipeName}" exported to .opensunstar/recipe/`);
+      toast.success(
+        t("recipeComposer.toastExported", {
+          defaultValue: 'Recipe「{{name}}」已导出到 .opensunstar/recipe/',
+          name: recipeName,
+        }),
+      );
       // Refresh saved recipes
       const list = await recipeComposerApi.listSavedRecipes(projectId);
       setSavedRecipes(list);
@@ -458,15 +522,25 @@ export function ProjectRecipeComposer({
     }
     try {
       await navigator.clipboard.writeText(previewContent);
-      toast.success("Recipe content copied to clipboard");
+      toast.success(
+        t("recipeComposer.toastCopied", {
+          defaultValue: "Recipe 内容已复制到剪贴板",
+        }),
+      );
     } catch {
-      toast.error("Failed to copy");
+      toast.error(
+        t("recipeComposer.toastCopyFailed", { defaultValue: "复制失败" }),
+      );
     }
   }, [previewContent, handlePreview]);
 
   const handleInstallPreview = useCallback(async () => {
     if (!changeId.trim()) {
-      toast.error("请填写 Change ID（如 feat-auth）");
+      toast.error(
+        t("recipeComposer.toastChangeIdRequired", {
+          defaultValue: "请填写 Change ID（如 feat-auth）",
+        }),
+      );
       return;
     }
     setInstalling(true);
@@ -495,8 +569,16 @@ export function ProjectRecipeComposer({
       );
       setInstallResult(result);
       toast.success(
-        `Recipe 已安装到项目：创建 ${result.filesCreated.length} 个文件` +
-        (result.filesSkipped.length > 0 ? `，跳过 ${result.filesSkipped.length} 个已存在文件` : ""),
+        t("recipeComposer.toastInstalled", {
+          defaultValue: "Recipe 已安装到项目：创建 {{created}} 个文件",
+          created: result.filesCreated.length,
+        }) +
+          (result.filesSkipped.length > 0
+            ? t("recipeComposer.installedSkipped", {
+                defaultValue: "，跳过 {{skipped}} 个已存在文件",
+                skipped: result.filesSkipped.length,
+              })
+            : ""),
       );
     } catch (e) {
       toast.error(String(e));
@@ -511,7 +593,12 @@ export function ProjectRecipeComposer({
       try {
         await recipeComposerApi.deleteSavedRecipe(projectId, name);
         setSavedRecipes((prev) => prev.filter((n) => n !== name));
-        toast.success(`Recipe "${name}" deleted`);
+        toast.success(
+          t("recipeComposer.toastDeleted", {
+            defaultValue: 'Recipe「{{name}}」已删除',
+            name,
+          }),
+        );
       } catch (e) {
         toast.error(String(e));
       }
@@ -519,11 +606,28 @@ export function ProjectRecipeComposer({
     [projectId],
   );
 
+  const projectTypeLabel = (pt: (typeof PROJECT_TYPES)[number]) => {
+    switch (pt) {
+      case "backend":
+        return t("recipeComposer.projectTypeBackend", {
+          defaultValue: "后端",
+        });
+      case "frontend":
+        return t("recipeComposer.projectTypeFrontend", {
+          defaultValue: "前端",
+        });
+      case "cli":
+        return t("recipeComposer.projectTypeCli", { defaultValue: "命令行" });
+      default:
+        return pt;
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 p-4 text-xs text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Loading recipe composer...
+        {t("recipeComposer.loading", { defaultValue: "加载编排器中..." })}
       </div>
     );
   }
@@ -534,10 +638,14 @@ export function ProjectRecipeComposer({
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <ChefHat className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-semibold">Recipe Composer</h3>
+          <h3 className="text-sm font-semibold">
+            {t("recipeComposer.title", { defaultValue: "自定义编排器" })}
+          </h3>
         </div>
         <span className="text-[10px] text-muted-foreground">
-          YAML+Markdown hybrid
+          {t("recipeComposer.hybrid", {
+            defaultValue: "YAML+Markdown 混合格式",
+          })}
         </span>
       </div>
 
@@ -545,7 +653,7 @@ export function ProjectRecipeComposer({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
-            Preset
+            {t("recipeComposer.preset", { defaultValue: "流程档位" })}
           </label>
           <select
             className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
@@ -561,7 +669,7 @@ export function ProjectRecipeComposer({
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
-            Project Type
+            {t("recipeComposer.projectType", { defaultValue: "项目类型" })}
           </label>
           <select
             className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
@@ -572,7 +680,7 @@ export function ProjectRecipeComposer({
           >
             {PROJECT_TYPES.map((pt) => (
               <option key={pt} value={pt}>
-                {pt}
+                {projectTypeLabel(pt)}
               </option>
             ))}
           </select>
@@ -583,32 +691,43 @@ export function ProjectRecipeComposer({
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
-            Recipe Name
+            {t("recipeComposer.recipeName", { defaultValue: "Recipe 名称" })}
           </label>
           <input
             className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
             value={recipeName}
             onChange={(e) => setRecipeName(e.target.value)}
-            placeholder="My Recipe"
+            placeholder={t("recipeComposer.recipeNamePlaceholder", {
+              defaultValue: "我的 Recipe",
+            })}
           />
         </div>
         <div className="space-y-1">
           <label className="text-[10px] font-medium text-muted-foreground uppercase">
-            Description
+            {t("recipeComposer.description", { defaultValue: "描述" })}
           </label>
           <input
             className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
             value={recipeDescription}
             onChange={(e) => setRecipeDescription(e.target.value)}
-            placeholder="Recipe composed from standard preset"
+            placeholder={t("recipeComposer.descriptionPlaceholder", {
+              defaultValue: "基于标准流程编排的 Recipe",
+            })}
           />
         </div>
       </div>
 
       {/* Stage Graph */}
       <Section
-        label="Stage Graph"
-        count={stageGraph ? `${stageGraph.nodes.length} nodes` : undefined}
+        label={t("recipeComposer.stageGraph", { defaultValue: "阶段图" })}
+        count={
+          stageGraph
+            ? t("recipeComposer.nodesCount", {
+                defaultValue: "{{count}} 个节点",
+                count: stageGraph.nodes.length,
+              })
+            : undefined
+        }
         expanded={graphExpanded}
         onToggle={() => setGraphExpanded(!graphExpanded)}
       >
@@ -617,7 +736,7 @@ export function ProjectRecipeComposer({
 
       {/* Module multi-select */}
       <Section
-        label="Modules"
+        label={t("recipeComposer.modules", { defaultValue: "模块" })}
         count={`${selectedModules.size}/${modules.length}`}
         expanded={modulesExpanded}
         onToggle={() => setModulesExpanded(!modulesExpanded)}
@@ -643,8 +762,12 @@ export function ProjectRecipeComposer({
 
       {/* Stage trimmer */}
       <Section
-        label="Stages"
-        count={`${enabledStages.size}/${resolvedStages.length} enabled`}
+        label={t("recipeComposer.stages", { defaultValue: "阶段" })}
+        count={t("recipeComposer.stagesEnabled", {
+          defaultValue: "{{enabled}}/{{total}} 已启用",
+          enabled: enabledStages.size,
+          total: resolvedStages.length,
+        })}
         expanded={stagesExpanded}
         onToggle={() => setStagesExpanded(!stagesExpanded)}
       >
@@ -672,13 +795,15 @@ export function ProjectRecipeComposer({
       {/* Notes */}
       <div className="space-y-1">
         <label className="text-[10px] font-medium text-muted-foreground uppercase">
-          Notes (optional)
+          {t("recipeComposer.notes", { defaultValue: "备注（可选）" })}
         </label>
         <textarea
           className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs min-h-[48px] resize-y"
           value={recipeNotes}
           onChange={(e) => setRecipeNotes(e.target.value)}
-          placeholder="Custom notes for this recipe..."
+          placeholder={t("recipeComposer.notesPlaceholder", {
+            defaultValue: "为该 Recipe 添加自定义备注...",
+          })}
           rows={2}
         />
       </div>
@@ -686,13 +811,15 @@ export function ProjectRecipeComposer({
       {/* Change ID input */}
       <div className="space-y-1">
         <label className="text-[10px] font-medium text-muted-foreground uppercase">
-          Change ID
+          {t("recipeComposer.changeId", { defaultValue: "Change ID" })}
         </label>
         <input
           className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-xs"
           value={changeId}
           onChange={(e) => setChangeId(e.target.value)}
-          placeholder="e.g. feat-auth, fix-login-bug"
+          placeholder={t("recipeComposer.changeIdPlaceholder", {
+            defaultValue: "如 feat-auth、fix-login-bug",
+          })}
         />
       </div>
 
@@ -710,7 +837,7 @@ export function ProjectRecipeComposer({
           ) : (
             <Eye className="h-3.5 w-3.5 mr-1" />
           )}
-          Preview
+          {t("recipeComposer.preview", { defaultValue: "预览" })}
         </Button>
         <Button
           size="sm"
@@ -720,7 +847,7 @@ export function ProjectRecipeComposer({
           className="text-xs"
         >
           <Copy className="h-3.5 w-3.5 mr-1" />
-          Copy
+          {t("recipeComposer.copy", { defaultValue: "复制" })}
         </Button>
         <Button
           size="sm"
@@ -733,7 +860,7 @@ export function ProjectRecipeComposer({
           ) : (
             <Download className="h-3.5 w-3.5 mr-1" />
           )}
-          Export Recipe
+          {t("recipeComposer.export", { defaultValue: "导出 Recipe" })}
         </Button>
         <Button
           size="sm"
@@ -746,7 +873,7 @@ export function ProjectRecipeComposer({
           ) : (
             <FolderOpen className="h-3.5 w-3.5 mr-1" />
           )}
-          Install to Project
+          {t("recipeComposer.install", { defaultValue: "安装到项目" })}
         </Button>
       </div>
 
@@ -756,9 +883,15 @@ export function ProjectRecipeComposer({
           <div className="flex items-center gap-2">
             <FolderOpen className="h-4 w-4 text-emerald-500" />
             <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
-              Installed: {installResult.filesCreated.length} files created
+              {t("recipeComposer.installedSummary", {
+                defaultValue: "已安装：创建 {{created}} 个文件",
+                created: installResult.filesCreated.length,
+              })}
               {installResult.filesSkipped.length > 0 &&
-                `, ${installResult.filesSkipped.length} skipped (already exist)`}
+                t("recipeComposer.installedSkipped", {
+                  defaultValue: "，跳过 {{skipped}} 个已存在文件",
+                  skipped: installResult.filesSkipped.length,
+                })}
             </span>
           </div>
           <div className="space-y-1 pl-6">
@@ -769,7 +902,7 @@ export function ProjectRecipeComposer({
             ))}
             {installResult.filesSkipped.map((f) => (
               <div key={f} className="text-[10px] text-muted-foreground font-mono">
-                ~ {f} (exists)
+                ~ {f} {t("recipeComposer.exists", { defaultValue: "(已存在)" })}
               </div>
             ))}
           </div>
@@ -781,7 +914,9 @@ export function ProjectRecipeComposer({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-              Preview (YAML+Markdown hybrid)
+              {t("recipeComposer.previewTitle", {
+                defaultValue: "预览（YAML+Markdown 混合格式）",
+              })}
             </span>
             <Button
               size="sm"
@@ -789,7 +924,7 @@ export function ProjectRecipeComposer({
               className="h-5 px-1.5 text-[10px]"
               onClick={() => setPreviewExpanded(false)}
             >
-              Collapse
+              {t("recipeComposer.collapse", { defaultValue: "收起" })}
             </Button>
           </div>
           <pre className="text-[10px] leading-relaxed bg-muted/50 border border-border/50 rounded-lg p-3 overflow-x-auto max-h-[400px] overflow-y-auto whitespace-pre-wrap break-words">
@@ -802,7 +937,10 @@ export function ProjectRecipeComposer({
       {savedRecipes.length > 0 && (
         <div className="space-y-1.5">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase">
-            Saved Recipes ({savedRecipes.length})
+            {t("recipeComposer.savedRecipes", {
+              defaultValue: "已保存的 Recipe",
+            })}{" "}
+            ({savedRecipes.length})
           </span>
           <div className="space-y-1">
             {savedRecipes.map((name) => (
