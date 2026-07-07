@@ -70,6 +70,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Prepare release build (signing optional)
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: node scripts/prepare-release-build.mjs
+
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
