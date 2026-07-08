@@ -11,7 +11,7 @@
 
 **Repository:** [github.com/alisunstar/OpenSunstar](https://github.com/alisunstar/OpenSunstar)
 
-[English](README.md) | [中文](README_ZH.md) | [日本語](README_JA.md) | Deutsch | [Changelog](CHANGELOG.md)
+[English](README.md) | [中文](README_ZH.md) | [繁體中文](docs/user-manual/zh-TW/README.md) | [日本語](README_JA.md) | Deutsch | [Changelog](CHANGELOG.md)
 
 </div>
 

@@ -1,0 +1,19 @@
+{
+  "source": "en",
+  "generatedAt": "2026-07-08",
+  "sourceKeyCount": 3161,
+  "locales": {
+    "ja": {
+      "missing": 507,
+      "extra": 34
+    },
+    "zh": {
+      "missing": 0,
+      "extra": 66
+    },
+    "zh-TW": {
+      "missing": 0,
+      "extra": 36
+    }
+  }
+}

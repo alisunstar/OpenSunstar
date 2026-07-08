@@ -50,6 +50,9 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      - name: i18n key alignment
+        run: pnpm i18n:check
+
       - name: Unit tests
         run: pnpm test:unit
 

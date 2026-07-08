@@ -819,7 +819,37 @@
       "defaultCostMultiplierRequired": "預設倍率不能為空",
       "defaultCostMultiplierInvalid": "預設倍率格式不正確"
     },
-    "saveFailedGeneric": "儲存失敗，請重試"
+    "saveFailedGeneric": "儲存失敗，請重試",
+    "manualInstallCommands": "手動安裝命令",
+    "updateAllTools": "全部升級（{{count}}）",
+    "currentVersion": "當前版本",
+    "latestVersion": "最新版本",
+    "updateAvailableShort": "可升級",
+    "toolInstall": "安裝",
+    "toolUpdate": "升級",
+    "toolReady": "已就緒",
+    "toolActionDone": "{{count}} 個工具{{action}}完成",
+    "toolActionPartial": "{{succeeded}} 個{{action}}成功，{{failed}} 個失敗",
+    "toolActionFailed": "安裝/升級命令執行失敗",
+    "toolNotRunnable": "已安裝但無法運行（未探測到版本）",
+    "toolActionVersionUnchangedTitle": "版本沒有變化",
+    "toolActionVersionUnchanged": "仍是 {{version}}（最新：{{latest}}）。上游升級器可能報告成功但沒有實際更新。",
+    "toolActionInstalledNotRunnable": "已安裝，但當前環境無法運行，請檢查",
+    "installedNotRunnable": "已安裝·無法運行",
+    "toolCheckEnv": "請檢查運行環境",
+    "toolDiagnose": "診斷安裝衝突",
+    "toolDiagnosing": "診斷中…",
+    "toolConflictTitle": "檢測到多處安裝",
+    "toolConflictHint": "命令行實際使用標「默認」的那處；升級可能寫到了別處。",
+    "toolConflictDefault": "默認",
+    "toolConflictNotRunnable": "無法運行",
+    "toolDiagnoseNoConflict": "未發現安裝衝突",
+    "toolDiagnoseFailed": "診斷失敗",
+    "toolUpgradeConfirmTitle": "確認升級位置",
+    "toolUpgradeConfirmHint": "檢測到多處安裝。本次升級不會全部更新，具體作用的位置以下方各項為準。",
+    "toolUpgradeWillRun": "將執行：",
+    "toolUpgradeConfirmBtn": "確認升級",
+    "toolUpgradeUnanchoredHint": "無法確定命令行實際使用哪處，將執行默認升級命令（可能裝到 PATH 上第一個 npm）。"
   },
   "apps": {
     "claude": "Claude",
@@ -902,7 +932,11 @@
     "messageCopied": "已複製訊息內容",
     "conversationHistory": "對話紀錄",
     "expandContent": "展開完整內容",
-    "collapseContent": "收起"
+    "collapseContent": "收起",
+    "exportSelected": "批量導出",
+    "batchExporting": "導出中...",
+    "batchExportSuccess": "已導出 {{count}} 個會話",
+    "batchExportFailed": "批量導出失敗，請稍後重試"
   },
   "console": {
     "providerSwitchReceived": "收到供應商切換事件：",
@@ -1726,6 +1760,20 @@
         "name": "@upstash/context7-mcp",
         "description": "Context7 文件搜尋工具，提供最新的函式庫文件和程式碼範例，設定 key 會有更高限額"
       }
+    },
+    "discovery": {
+      "title": "發現 MCP",
+      "searchPlaceholder": "輸入關鍵字搜索 MCP 服務器...",
+      "totalFound": "找到 {{count}} 個服務器",
+      "alreadyInstalled": "已安裝 {{count}} 個",
+      "noResults": "未找到與 \"{{query}}\" 相關的服務器",
+      "noServers": "暫無可用服務器",
+      "official": "官方",
+      "installed": "已安裝",
+      "install": "安裝",
+      "remotes": "連接方式",
+      "website": "網站",
+      "repository": "倉庫"
     }
   },
   "prompts": {
@@ -1767,6 +1815,15 @@
     "confirm": {
       "deleteTitle": "確認刪除",
       "deleteMessage": "確定要刪除提示詞 \"{{name}}\" 嗎？"
+    },
+    "fragment": {
+      "isFragment": "規則片段",
+      "parent": "所屬 Prompt",
+      "selectParent": "選擇父 Prompt",
+      "priority": "優先級（高者優先合併）",
+      "targets": "目標工具（逗號分隔，* 表示全部）",
+      "globs": "文件 Glob（JSON 數組）",
+      "badge": "片段"
     }
   },
   "workspace": {
@@ -1808,6 +1865,55 @@
       "searching": "搜尋中...",
       "searchFailed": "搜尋失敗",
       "matchCount": "{{count}} 處相符"
+    },
+    "subtitle": "每日開工先看進度與 AI 資產配置，再進入項目看板迭代",
+    "sidebar": {
+      "section": "工作區",
+      "currentProjectAssets": "{{name}} · AI 配置"
+    },
+    "tabs": {
+      "label": "工作區視圖",
+      "dashboard": "今日工作臺",
+      "board": "項目看板",
+      "assetsMatrix": "AI 資產總覽"
+    },
+    "dashboard": {
+      "title": "今日工作臺",
+      "subtitle": "共 {{count}} 個項目 · 優先關注進度與 AI 資產配置",
+      "attentionCount": "待關注項目",
+      "attentionHint": "就緒不足或資產缺失",
+      "avgReadiness": "平均就緒分",
+      "missingMcp": "缺 MCP 項目",
+      "activeProjects": "近 {{days}} 天活躍",
+      "activeHint": "有 Git 提交",
+      "queueTitle": "建議優先處理",
+      "allGood": "各項目配置狀態良好，可直接進入迭代。",
+      "configureAssets": "配置資產",
+      "reasonReadiness": "就緒分 {{score}}/{{max}}",
+      "reasonDrift": "配置漂移 {{count}} 項",
+      "reasonMcp": "未關聯 MCP",
+      "reasonSkills": "未配置 Skills",
+      "reasonPrompts": "未關聯 Prompts",
+      "reasonProgress": "MVP 進度 {{progress}}%",
+      "lastUpdated": "上次更新",
+      "updatedJustNow": "剛剛更新",
+      "updatedMinutesAgo": "{{count}} 分鐘前更新",
+      "updatedHoursAgo": "{{count}} 小時前更新",
+      "updatedAt": "更新於 {{time}}",
+      "refreshing": "正在刷新…",
+      "loading": "正在彙總項目就緒與資產數據…",
+      "mvpBehindHint": "{{count}} 個 MVP 項目進度低於 50%，建議優先推進。"
+    },
+    "assetsMatrix": {
+      "title": "AI 資產總覽",
+      "subtitle": "按項目查看 MCP / Skills / Prompts 關聯與就緒狀態",
+      "loading": "正在彙總各項目 AI 資產…",
+      "project": "項目",
+      "stage": "階段",
+      "readiness": "就緒",
+      "progress": "進度",
+      "refreshing": "更新中",
+      "subtitle8": "按項目查看 8 類 AI 資產關聯數量與就緒狀態（項目級啟用子集）"
     }
   },
   "openclaw": {
@@ -2109,7 +2215,10 @@
     "searchPlaceholder": "搜尋技能名稱或儲存庫名稱...",
     "searchSource": {
       "repos": "儲存庫",
-      "skillssh": "skills.sh"
+      "skillssh": "skills.sh",
+      "all": "全部",
+      "leaderboardAllTime": "全站總榜",
+      "leaderboardTrending": "24h 趨勢"
     },
     "skillssh": {
       "searchPlaceholder": "搜尋 skills.sh（至少 2 個字元）...",
@@ -2176,7 +2285,46 @@
       "successSingle": "技能 {{name}} 已安裝",
       "successMultiple": "成功安裝 {{count}} 個技能",
       "noSkillsFound": "ZIP 檔案中未找到技能（需包含 SKILL.md 檔案）"
-    }
+    },
+    "leaderboard": {
+      "allTimeTitle": "全站總榜",
+      "trendingTitle": "24h 趨勢",
+      "allTimeDesc": "與 skills.sh 官網 All Time 排行榜 TOP50 對齊（歷史總安裝量）",
+      "trendingDesc": "與 skills.sh 官網 Trending (24h) 排行榜 TOP50 對齊",
+      "syncedAt": "同步於 {{time}}",
+      "fromCache": "本地緩存",
+      "registryTotal": "全站累計 {{count}} 次安裝",
+      "loading": "正在同步 skills.sh 官方排行榜…",
+      "error": "無法同步 skills.sh 官方排行榜",
+      "empty": "暫無排行榜數據",
+      "syncPolicy": "非實時數據 · 默認每 {{hours}} 小時從 skills.sh 同步 · 點擊刷新可立即更新",
+      "nextSyncAt": "下次自動同步約 {{time}}",
+      "refreshNow": "立即從 skills.sh 同步",
+      "pageRange": "{{range}} · 第 {{page}}/{{totalPages}} 頁（共 {{total}} 條）"
+    },
+    "all": {
+      "searchPlaceholder": "輸入關鍵詞搜索所有來源（倉庫 / skills.sh / ClawHub）...",
+      "searching": "正在搜索多個來源...",
+      "typeToSearch": "輸入關鍵詞搜索 skills.sh 和 ClawHub 技能",
+      "typeToSearchMore": "輸入關鍵詞可搜索更多來源",
+      "mergedCount": "共 {{total}} 個結果"
+    },
+    "clawhub": {
+      "searchPlaceholder": "搜索 ClawHub（至少 2 個字符）...",
+      "loading": "正在搜索 ClawHub...",
+      "noResults": "未找到 \"{{query}}\" 相關技能",
+      "resultCount": "共 {{count}} 個結果",
+      "poweredBy": "由 ClawHub 提供",
+      "installViaCli": "ClawHub 技能請通過 CLI 安裝",
+      "installSuccess": "{{slug}} 安裝成功",
+      "installFailed": "ClawHub 技能安裝失敗",
+      "installing": "正在安裝..."
+    },
+    "batchUninstall": "卸載",
+    "batchUninstallTitle": "批量卸載",
+    "batchUninstallConfirm": "確定要卸載 {{count}} 個技能嗎？",
+    "batchUninstallSuccess": "成功卸載 {{count}} 個技能",
+    "batchUninstallPartial": "卸載完成：{{success}} 成功，{{fail}} 失敗"
   },
   "deeplink": {
     "confirmImport": "確認匯入供應商設定",
@@ -2279,7 +2427,36 @@
     "skillsFailedDescription": "請開啟 Skills 頁面點擊「匯入現有」手動匯入（或重新啟動後再試）。"
   },
   "agents": {
-    "title": "Agent"
+    "title": "Agent",
+    "subtitle": "同步到 Claude / Gemini / OpenCode 的 agents 目錄（Markdown）",
+    "empty": "暫無 Subagent",
+    "emptyHint": "創建自定義 Subagent 並同步到 ~/.claude/agents/ 等目錄",
+    "add": "添加 Subagent",
+    "edit": "編輯 Subagent",
+    "count": "共 {{count}} 個 Subagent",
+    "loadFailed": "加載 Subagent 失敗",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "toggleFailed": "切換同步目標失敗",
+    "geminiHint": "Gemini 需在 settings.json 中開啟 experimental.enableSubagents 後生效",
+    "codexHint": "已轉換為 TOML 並寫入 ~/.codex/agents/{name}.toml",
+    "syncDisabled": {
+      "hermes": "暫不支持文件同步"
+    },
+    "confirm": {
+      "deleteTitle": "刪除 Subagent",
+      "deleteMessage": "確定刪除 Subagent \"{{name}}\"？已同步的文件將被清理。"
+    },
+    "form": {
+      "name": "名稱",
+      "description": "描述",
+      "content": "定義（Markdown + YAML frontmatter）",
+      "syncTargets": "同步到",
+      "geminiNote": "Gemini 需在 settings.json 開啟 experimental.enableSubagents",
+      "codexNote": "Codex 將自動把 Markdown 轉為 TOML 寫入 ~/.codex/agents/"
+    }
   },
   "modelTest": {
     "testProvider": "測試模型"
@@ -2967,7 +3144,14 @@
     "confirmInstall": "確認安裝"
   },
   "sidebar": {
-    "syncBackup": "同步備份"
+    "syncBackup": "同步備份",
+    "kanban": "項目AI看板",
+    "tokenStats": "AI Tokens",
+    "section": {
+      "projects": "項目",
+      "monitor": "運行監控",
+      "aiModels": "AI模型"
+    }
   },
   "sync": {
     "waiting": "等待變更",
@@ -2979,5 +3163,573 @@
     "minutesAgo": "{{count}}分鐘前",
     "hoursAgo": "{{count}}小時前",
     "daysAgo": "{{count}}天前"
+  },
+  "dryRun": {
+    "title": "預覽模式（Dry Run）",
+    "description": "開啟後，Prompt 激活等寫入操作將先顯示 Diff 預覽，確認後才實際寫入",
+    "settingsTitle": "預覽模式（Dry Run）",
+    "settingsDescription": "寫入前預覽 Diff，確認後再應用到磁盤",
+    "confirmWrite": "確認寫入",
+    "promptActivationTitle": "Prompt 激活預覽",
+    "promptActivationDesc": "預覽模式已開啟，確認後將寫入目標文件",
+    "current": "當前文件",
+    "after": "激活後"
+  },
+  "commands": {
+    "title": "Commands",
+    "manage": "命令",
+    "empty": "暫無自定義命令",
+    "add": "添加命令",
+    "edit": "編輯命令",
+    "count": "共 {{count}} 個命令",
+    "loadFailed": "加載命令失敗",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "toggleFailed": "切換同步目標失敗",
+    "confirm": {
+      "deleteTitle": "刪除命令",
+      "deleteMessage": "確定刪除命令 \"{{name}}\"？已同步的文件將被清理。"
+    },
+    "form": {
+      "name": "命令名稱",
+      "description": "描述",
+      "content": "命令內容（Markdown）",
+      "arguments": "參數定義（JSON）",
+      "syncTargets": "同步到"
+    },
+    "variableHelp": {
+      "title": "模板變量",
+      "arguments": "Claude Code / Gemini 用戶輸入參數佔位符",
+      "codexNote": "Codex 不支持獨立命令文件，勾選後不會寫入磁盤。"
+    }
+  },
+  "hooks": {
+    "title": "Hooks",
+    "empty": "暫無生命週期鉤子",
+    "add": "添加鉤子",
+    "edit": "編輯鉤子",
+    "count": "共 {{count}} 個鉤子",
+    "loadFailed": "加載鉤子失敗",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "syncSuccess": "已同步到 Claude Code",
+    "syncFailed": "同步失敗",
+    "syncNow": "同步到 Claude",
+    "claudeOnlyNote": "當前僅支持同步到 Claude Code（settings.json hooks 字段）",
+    "timeoutLabel": "超時 {{seconds}}s",
+    "confirm": {
+      "deleteTitle": "刪除鉤子",
+      "deleteMessage": "確定刪除此鉤子？settings.json 將同步更新。"
+    },
+    "form": {
+      "eventType": "事件類型",
+      "toolPattern": "工具匹配（glob）",
+      "hookCommand": "Shell 命令",
+      "timeout": "超時（秒，1-300）",
+      "description": "描述"
+    },
+    "eventType": {
+      "PreToolUse": "工具調用前",
+      "PostToolUse": "工具調用後",
+      "Notification": "通知",
+      "Stop": "停止"
+    }
+  },
+  "convert": {
+    "title": "Convert",
+    "subtitle": "在 Claude / Codex / Gemini 等工具間遷移 Prompt、MCP、Skill 與 Command 配置",
+    "sourceApp": "源工具",
+    "targetApp": "目標工具",
+    "contentType": "配置類型",
+    "skill": "Skills",
+    "command": "Commands",
+    "selectTarget": "選擇目標工具",
+    "notFound": "文件不存在",
+    "loadFailed": "檢測源配置失敗",
+    "previewing": "生成預覽…",
+    "warnings": "轉換提示",
+    "unmapped": "未映射章節: {{section}}",
+    "sourcePreview": "源內容",
+    "convertedPreview": "轉換後",
+    "overwrite": "覆蓋已存在的目標文件（寫入前會自動備份 .bak.opensunstar）",
+    "apply": "確認寫入",
+    "applySuccess": "配置已寫入目標工具",
+    "applyFailed": "寫入失敗",
+    "steps": {
+      "source": "選擇源",
+      "previewSource": "預覽源",
+      "previewTarget": "預覽轉換",
+      "confirm": "確認寫入"
+    }
+  },
+  "ignore": {
+    "title": "Ignore",
+    "empty": "暫無忽略規則",
+    "emptyHint": "添加 glob 規則後，將同步到 .claudeignore、.codexignore 等文件",
+    "add": "添加規則",
+    "edit": "編輯忽略規則",
+    "count": "共 {{count}} 條規則",
+    "loadFailed": "加載忽略規則失敗",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "toggleFailed": "切換同步目標失敗",
+    "importGitignore": "從 .gitignore 導入",
+    "importSuccess": "已導入 {{count}} 條規則",
+    "importFailed": "導入失敗",
+    "syncNow": "同步到工具",
+    "syncSuccess": "已同步到各工具 ignore 文件",
+    "syncFailed": "同步失敗",
+    "confirm": {
+      "deleteTitle": "刪除規則",
+      "deleteMessage": "確定刪除此忽略規則？相關 ignore 文件將同步更新。"
+    },
+    "form": {
+      "pattern": "Glob 模式",
+      "description": "描述",
+      "syncTargets": "同步到"
+    }
+  },
+  "permissions": {
+    "title": "Permissions",
+    "empty": "暫無工具權限規則",
+    "emptyHint": "管理 Claude Code 的 allow/deny 工具列表，可與 Hooks 共存於 settings.json",
+    "add": "添加權限",
+    "edit": "編輯權限",
+    "count": "共 {{count}} 條權限",
+    "loadFailed": "加載權限失敗",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失敗",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "syncNow": "同步到 Claude",
+    "syncSuccess": "已同步到 Claude settings.json",
+    "syncFailed": "同步失敗",
+    "presets": "預設模板：",
+    "presetApplied": "預設已應用",
+    "presetFailed": "應用預設失敗",
+    "claudeOnlyNote": "當前僅同步到 Claude Code settings.json permissions 字段",
+    "confirm": {
+      "deleteTitle": "刪除權限",
+      "deleteMessage": "確定刪除此權限規則？settings.json 將同步更新。"
+    },
+    "form": {
+      "type": "權限類型",
+      "toolPattern": "工具匹配",
+      "description": "描述"
+    },
+    "type": {
+      "allowedTools": "允許",
+      "deniedTools": "拒絕",
+      "autoApprove": "自動批准"
+    }
+  },
+  "simpleConnect": {
+    "nav": "快速接入",
+    "pageTitle": "快速接入",
+    "tabSimple": "快速接入",
+    "tabExpert": "高級 Provider",
+    "title": "快速接入",
+    "subtitle": "粘貼 API Key，三步即可在 CLI 中用起來",
+    "step1": "供應商",
+    "step2": "密鑰",
+    "step3": "應用",
+    "supplier": "供應商",
+    "customSupplier": "自定義 OpenAI 兼容",
+    "cliTool": "CLI 工具",
+    "model": "模型",
+    "modelPlaceholder": "先拉取模型列表",
+    "fetchModels": "拉取模型列表",
+    "apply": "應用配置",
+    "applySuccess": "{{tool}} 配置已應用",
+    "applySuccessMulti": "{{tools}} 配置已應用",
+    "modelsLoaded": "已加載 {{count}} 個模型",
+    "poolProxy": "本地代理 :{{port}} 已啟用",
+    "keyRequired": "請先在 Keychain 中保存 API Key",
+    "keyRequiredHint": "保存主 Key 後才能進入應用步驟",
+    "customBaseRequired": "請先填寫自定義 API Base URL",
+    "modelsFallback": "拉取失敗，已使用預設模型 {{model}}",
+    "toolStatusTitle": "CLI 配置狀態",
+    "toolStatusLoading": "讀取 CLI 狀態…",
+    "toolCleared": "{{tool}} 已清除快速接入配置",
+    "clearTool": "清除 {{tool}}",
+    "wizardNav": "快速接入步驟",
+    "summaryStep": "步驟 {{step}}/3",
+    "step3Hint": "選擇 CLI 與模型後應用；詳情見下方摺疊面板",
+    "step3Sections": {
+      "statusSection": "CLI 配置狀態",
+      "runtimeSection": "密鑰池運行態",
+      "usageSection": "用量概覽（只讀）"
+    },
+    "supplierChangeTitle": "切換供應商？",
+    "supplierChangeBody": "切換後將使用新的 upstream；已保存的 Key 仍對應原供應商命名空間。應用配置時會自動備份並重寫 CLI。",
+    "supplierChangeConfirm": "繼續切換",
+    "supplierChangedApply": "已切換供應商並寫入 CLI；原配置已備份",
+    "pickSupplier": "選擇供應商",
+    "pickCli": "選擇要配置的 CLI",
+    "customBase": "API Base URL",
+    "customSupplierHint": "任意 OpenAI-compatible Base URL",
+    "openWebsite": "官網",
+    "keySaved": "Key 已保存",
+    "keyMissing": "未保存 Key",
+    "poolBadge": "密鑰池 ×{{count}}",
+    "keySavedToast": "API Key 已安全存入 Keychain",
+    "keyReadyHint": "主 Key 已就緒，可進入下一步",
+    "poolKeyAdded": "備用 Key 已添加",
+    "applyTo": "應用到 {{tool}}",
+    "modelsLoading": "正在拉取模型…",
+    "toolStatusCount": "{{configured}}/{{total}} 已配置",
+    "backToSimple": "返回快速接入",
+    "openProxySettings": "代理與故障隊列設置",
+    "proxyRunning": "主代理運行中",
+    "cliGeneric": "CLI 配置",
+    "expertNoticeTitle": "Expert Provider（精簡保留）",
+    "expertNoticeBody": "故障隊列、代理接管、Universal 等高級能力仍在此管理。默認推薦先用「快速接入」。",
+    "pool": {
+      "step2Hint": "輸入 API Key 並保存，CLI 將通過本地代理安全訪問",
+      "enable": "開啟密鑰池",
+      "enableHint": "多 Key 加權輪詢 + 429 階梯冷卻；CLI 始終寫 local token，真實 Key 僅存 Keychain",
+      "securityNote": "密鑰僅寫入系統 Keychain，不會出現在配置文件或日誌中。CLI 通過本地代理 token 訪問。",
+      "required": "必需",
+      "primaryKey": "API Key",
+      "keyPlaceholder": "sk-...",
+      "primary": "主 Key",
+      "extra": "備用 Key",
+      "extraKey": "添加備用 Key",
+      "supplierHint": "Key 存儲於 Keychain：simple-connect/{{supplier}}/…"
+    },
+    "poolHealth": {
+      "title": "密鑰池運行時",
+      "running": "代理運行中",
+      "stopped": "代理未啟動",
+      "idleHint": "應用配置後將啟動本地代理，此處顯示 Key 成功/失敗與冷卻狀態",
+      "available": "可用",
+      "cooling": "冷卻中",
+      "cooldownSecs": "{{secs}}s"
+    },
+    "usage": {
+      "title": "用量概覽（只讀）",
+      "input": "輸入",
+      "output": "輸出",
+      "sessions": "會話條數",
+      "proxyPort": "代理 :{{port}}",
+      "proxySession": "本次會話",
+      "byTool": "按 CLI 拆分",
+      "empty": "暫無本地會話用量數據"
+    },
+    "import": {
+      "title": "確認導入 API Key",
+      "description": "密鑰將寫入 Keychain，不會出現在配置文件中。導入前會校驗 Key 有效性。",
+      "label": "標籤",
+      "supplier": "供應商",
+      "warning": "請確認鏈接來源可信。可在快速接入中禁用 URL 導入。",
+      "confirm": "確認導入",
+      "importing": "導入中…",
+      "success": "已導入 {{count}} 個 Key 到 Keychain",
+      "duplicates": "跳過 {{count}} 個重複 Key",
+      "parseError": "導入鏈接解析失敗"
+    },
+    "advanced": {
+      "title": "高級",
+      "verifyKey": "保存前校驗 Key",
+      "verifyKeyHint": "調用 /v1/models 驗證；關閉後僅高級用戶手動導入",
+      "deeplinkImport": "允許 URL 導入 Key",
+      "deeplinkImportHint": "beeapi:// / OpenSunstar://simple-connect/import"
+    },
+    "backupAudit": {
+      "title": "備份目錄安全掃描",
+      "files": "已掃描 {{count}} 個文件",
+      "clean": "未發現明文 Key",
+      "suspicious": "{{count}} 處可疑內容",
+      "hint": "掃描 simple-connect/backups 下 CLI 配置備份，確保無 sk- 明文落盤。"
+    },
+    "privacy": {
+      "bannerShort": "本地優先 · 密鑰存系統 Keychain · 無遙測",
+      "viewDetails": "查看安全與隱私說明",
+      "title": "安全與隱私說明",
+      "intro": "快速接入遵循「數據留在本機、密鑰不進配置文件、網絡由你指定」的原則。以下為快速接入範圍內的處理方式。",
+      "close": "知道了",
+      "sections": {
+        "localFirst": {
+          "title": "本地優先",
+          "body": "供應商選擇、模型緩存、CLI 配置狀態與用量統計等偏好均保存在本機應用數據目錄。寫入 CLI 前會自動備份原配置到本地 simple-connect/backups，可在 Step 2 高級區掃描備份是否含明文密鑰。"
+        },
+        "keychain": {
+          "title": "憑據存系統 Keychain",
+          "body": "API Key 僅寫入操作系統密鑰鏈（Windows DPAPI / macOS Keychain / Linux libsecret），不會出現在 JSON、TOML、環境變量或應用日誌中。CLI 側僅注入 sc-local-* 本地代理令牌；真實 Key 僅在本地代理進程內從 Keychain 讀取。"
+        },
+        "network": {
+          "title": "網絡直連你選的供應商",
+          "body": "模型拉取、Key 校驗（若開啟）與 upstream 請求均從本機直接發往你選擇的 API Base。本地代理（127.0.0.1:17172）僅在本機環回地址監聽，用於密鑰池與 CLI 統一入口，不對外網暴露。"
+        },
+        "noTelemetry": {
+          "title": "無遙測、無賬號綁定",
+          "body": "快速接入不會向 OpenSunstar 官方或第三方上報 API Key、對話內容、模型調用明細或設備指紋。用量面板數據來自本機 CLI 會話日誌與本地代理計數，僅供你在本機查看。"
+        },
+        "yourControl": {
+          "title": "你可自行控制的風險項",
+          "body": "URL 導入 Key 僅在確認鏈接來源可信時啟用，可在 Step 2 高級區關閉。選擇自定義供應商時，請自行評估第三方 Base URL 的可信度與隱私政策。"
+        }
+      }
+    }
+  },
+  "quickStart": {
+    "nav": "快速接入",
+    "title": "快速接入",
+    "subtitle": "三步完成接入：選供應商 → 填 Key → 一鍵啟用",
+    "tabs": {
+      "wizard": "快速接入",
+      "manage": "管理供應商"
+    },
+    "openManage": "管理全部供應商",
+    "openProxySettings": "代理與故障隊列設置",
+    "searchPlaceholder": "搜索供應商名稱或網址…",
+    "noResults": "未找到匹配的供應商",
+    "official": "官方",
+    "officialDesc": "官方供應商需通過瀏覽器登錄或訂閱授權，無法在快速接入中僅填 Key 完成。請前往供應商管理完成 OAuth / 官方配置。",
+    "partner": "合作伙伴",
+    "apiKeyLabel": "API Key",
+    "apiKeyPlaceholder": "粘貼你的 API Key",
+    "keychainHint": "Key 將安全存儲於系統鑰匙串（Windows Credential Manager / macOS Keychain），不會明文落盤",
+    "getKey": "獲取 API Key",
+    "apply": "一鍵啟用",
+    "success": "接入成功！已切換為當前供應商",
+    "doneTitle": "接入成功！",
+    "doneDesc": "供應商已配置完成並切換為當前生效。現在可以在 Claude Code 中直接使用了。",
+    "doneDescApp": "{{app}} 已配置並切換為當前供應商。",
+    "proxyRunningHint": "Claude Code 的請求經本地代理（127.0.0.1:15721）轉發。請保持 OpenSunstar 運行，關閉應用後 Claude Code 將無法連接。",
+    "proxyRunningHintDesktop": "Claude Desktop 經本地代理轉發。請保持 OpenSunstar 運行，關閉應用後將無法連接。",
+    "addAnother": "再接入一個",
+    "openSettings": "前往供應商管理",
+    "firstProviderHint": "檢測到這是你的第一個供應商，如需啟動代理請在設置中確認",
+    "verify": "驗證 Key",
+    "verifyOk": "Key 有效！",
+    "verifyOkAnthropic": "Key 有效（該供應商不提供模型列表 API，將使用預設默認模型）",
+    "verifyOkWithModels": "Key 有效，已獲取 {{count}} 個模型",
+    "verifyOkNoModelList": "Key 有效（模型列表拉取失敗，將使用預設默認模型）",
+    "verifyHint": "Anthropic 協議驗證會消耗約 1 token；OpenAI 兼容網關驗證成功後可展開模型列表",
+    "modelsList": "可用模型（{{count}}）",
+    "myProviders": "我的供應商",
+    "switch": "切換",
+    "apps": {
+      "claude": "Claude Code",
+      "claudeDesktop": "Claude Desktop",
+      "codex": "Codex",
+      "gemini": "Gemini"
+    },
+    "category": {
+      "custom": "自定義"
+    },
+    "gemini": {
+      "cnOfficialHint": "Phase 1 暫不提供中國官方精選卡片。請使用 OpenRouter 聚合網關，或通過「自定義配置」填寫國內 Gemini 兼容端點。"
+    },
+    "custom": {
+      "cardTitle": "自定義配置",
+      "cardSubtitle": "自填 Base URL 與模型",
+      "hint": "自定義網關：填寫最小必填項即可接入，高級配置可在供應商管理中編輯。",
+      "name": "供應商名稱",
+      "namePlaceholder": "例如：我的 DeepSeek 網關",
+      "baseUrl": "Base URL",
+      "defaultModel": "默認模型",
+      "geminiModel": "模型 ID",
+      "defaultName": "自定義供應商"
+    },
+    "advanced": {
+      "title": "高級選項",
+      "subtitle": "大多數場景保持默認即可",
+      "upstreamModel": "上游模型",
+      "defaultModel": "默認模型",
+      "apiFormat": "API 格式"
+    },
+    "badge": {
+      "current": "當前",
+      "proxy": "本地路由"
+    },
+    "warn": {
+      "clearFailed": "清除舊快速接入標記失敗，若切換仍報錯請手動在設置中清除",
+      "takeoverFailed": "供應商已添加，但代理接管開啟失敗。請在設置-本地路由中手動開啟對應應用接管"
+    },
+    "error": {
+      "emptyKey": "請填寫 API Key",
+      "failed": "接入失敗，請檢查 API Key 或網絡後重試",
+      "noBaseUrl": "請填寫 Base URL",
+      "noModel": "請填寫默認模型"
+    }
+  },
+  "kanban": {
+    "subtitle": "以 AI 驅動的全局多視角，多項目組合矩陣：全生命週期管理、項目健康評估、動態成本監控",
+    "scanning": "正在掃描 {{done}}/{{total}} 個項目…",
+    "refresh": "刷新指標",
+    "addProject": "添加項目",
+    "searchPlaceholder": "搜索項目…",
+    "confirmRemoveTitle": "從項目AI看板中移除？",
+    "confirmRemove": "將移除「{{name}}」；不會刪除磁盤上的倉庫文件，階段與進度等本地看板數據也會清除。",
+    "confirmRemoveBtn": "移除",
+    "removed": "已移除「{{name}}」",
+    "commits7dHint": "近 7 天共 {{count}} 次提交",
+    "commitsWindowHint": "近 {{days}} 天共 {{count}} 次提交",
+    "noRecentActivity": "近 7 天無提交",
+    "noRecentActivityWindow": "近 {{days}} 天無提交",
+    "stageDistribution": "階段分佈",
+    "activity": {
+      "veryHigh": "很高",
+      "high": "高",
+      "medium": "中等",
+      "low": "低"
+    },
+    "detail": {
+      "tabs": "項目詳情",
+      "overview": "概覽",
+      "aiAssets": "AI 資產配置",
+      "projectAssets": "本項目啟用的資產",
+      "projectAssetsHint": "勾選後僅對當前項目生效；全局庫在側欄維護，項目關聯僅存於本地數據庫。"
+    },
+    "readiness": {
+      "title": "Agent 配置就緒",
+      "loading": "正在評估配置就緒度…",
+      "hint": "點擊下方條目可直達對應配置；項目級資產在本頁「AI 資產配置」中關聯。",
+      "configure": "去配置",
+      "configureGlobal": "前往全局配置",
+      "manage": "管理",
+      "openAssetsTab": "打開 AI 資產配置",
+      "completedSection": "已完成 {{count}} 項",
+      "badgeTooltip": "Agent 配置就緒 {{score}}/{{max}} · 點擊查看詳情",
+      "scanEffective": "生效態掃描",
+      "forApp": "按 {{app}} 計分",
+      "status": {
+        "global_only": "來源：全局基線",
+        "detected_only": "來源：倉庫探測",
+        "partial": "部分 CLI 支持"
+      },
+      "effective": {
+        "configured": "已配置",
+        "effective": "已生效",
+        "drifted": "未生效",
+        "unconfigured": "未配置",
+        "unchecked": "暫未比對"
+      },
+      "driftBadge": "{{count}} 項配置漂移",
+      "driftShort": "漂移 {{count}}",
+      "repairDrift": "一鍵修復",
+      "repairSuccess": "已寫回並驗證生效",
+      "repairFailed": "修復後仍存在漂移",
+      "repairError": "修復請求失敗，請稍後重試",
+      "repairNoop": "當前項無需修復"
+    },
+    "governance": {
+      "title": "治理總覽",
+      "forApp": "目標 CLI：{{app}}",
+      "scannedProjects": "已掃描項目",
+      "ofTotal": "共 {{total}} 個",
+      "driftProjects": "漂移項目",
+      "driftItems": "{{count}} 項待修復",
+      "effectiveRate": "生效率",
+      "comparableItems": "{{count}} 項可比對",
+      "effectiveItems": "已生效項",
+      "portfolioScope": "組合層彙總",
+      "driftBreakdown": "漂移分佈（按資產類型）",
+      "allEffective": "可比對資產均已生效，組合層治理狀態良好。",
+      "awaitingScan": "就緒度掃描完成後將顯示治理指標。",
+      "repairConfirmTitle": "確認寫回修復？",
+      "repairConfirmProjectTitle": "確認修復全部漂移？",
+      "repairConfirmAssetIntro": "將把 OpenSunstar 庫中的「{{label}}」寫回目標 CLI（{{app}}）對應的項目級文件，可能覆蓋你在 IDE/終端裡手動改過的內容。",
+      "repairConfirmProjectIntro": "將修復項目「{{name}}」的全部 {{count}} 項漂移：逐項寫回 OpenSunstar 庫內容到目標 CLI（{{app}}），可能覆蓋外部手動修改。",
+      "repairConfirmDetail": "漂移說明：{{detail}}",
+      "repairConfirmPath": "目標路徑：{{path}}",
+      "repairConfirmProceed": "確認後將立即寫回並復掃驗證；此操作不可自動撤銷。",
+      "repairConfirmAction": "確認寫回",
+      "repairConfirmProjectAction": "確認修復全部"
+    },
+    "portfolioDrift": {
+      "allClear": "組合層生效態巡檢：未發現配置漂移。",
+      "title": "{{projects}} 個項目存在配置漂移（共 {{items}} 項）",
+      "forApp": "目標 CLI：{{app}}",
+      "itemCount": "{{count}} 項漂移",
+      "repairAll": "修復全部漂移",
+      "repairAllSuccess": "已修復 {{count}} 項漂移並驗證生效",
+      "repairPartial": "已修復 {{fixed}} 項，仍有 {{remaining}} 項漂移",
+      "repairNone": "未發現可修復的漂移項"
+    }
+  },
+  "projectConfig": {
+    "hint": "為當前項目勾選要啟用的 MCP、Skills 與 Prompts。全局資產庫在側欄 Agent 配置中維護。",
+    "mcpServers": "MCP 服務器",
+    "skills": "Skills",
+    "prompts": "Prompts",
+    "noMcp": "暫無 MCP 服務器",
+    "noSkills": "暫無已安裝的 Skills",
+    "noPrompts": "暫無 Prompts",
+    "goToMcp": "前往 MCP 管理",
+    "goToSkills": "前往 Skills 管理",
+    "goToPrompts": "前往 Prompts 管理",
+    "commands": "Commands",
+    "hooks": "Hooks",
+    "ignore": "Ignore 規則",
+    "permissions": "Permissions",
+    "subagents": "Subagents",
+    "noCommands": "暫無 Commands",
+    "noHooks": "暫無 Hooks",
+    "noIgnore": "暫無 Ignore 規則",
+    "noPermissions": "暫無 Permissions",
+    "noSubagents": "暫無 Subagents",
+    "goToCommands": "前往 Commands 管理",
+    "goToHooks": "前往 Hooks 管理",
+    "goToIgnore": "前往 Ignore 管理",
+    "goToPermissions": "前往 Permissions 管理",
+    "goToSubagents": "前往 Subagents 管理"
+  },
+  "projectAssets": {
+    "hint": "為當前項目勾選要啟用的 AI 資產子集。關聯僅寫入 OpenSunstar 本地庫，不會自動修改項目倉庫文件；寫入各 CLI 仍由側欄全局資產管理。",
+    "partialHint": "部分 CLI 支持有限制，懸停標籤查看說明",
+    "globalBaselineHint": "全局庫已有 {{count}} 條規則作為安全基線；可為當前項目單獨勾選啟用子集。",
+    "switchAllUnsupported": "當前資產類型在所有目標 CLI 上均不支持同步，無法為項目啟用",
+    "support": {
+      "claudeDesktop": "Claude Desktop 暫不參與此類資產同步",
+      "openclawMcp": "OpenClaw 當前不支持 MCP 同步",
+      "openclawSkills": "OpenClaw 當前不支持 Skills 同步",
+      "openclawCommands": "OpenClaw 當前不支持 Commands 同步",
+      "openclawIgnore": "OpenClaw 當前不支持 Ignore 同步",
+      "openclawSubagents": "OpenClaw 當前不支持 Subagents 同步",
+      "codexCommands": "Codex 不支持獨立 slash command 文件",
+      "codexSubagent": "Codex 通過 TOML 轉換寫入 ~/.codex/agents/",
+      "hooksClaudeOnly": "Hooks 當前僅 Claude Code 支持寫回",
+      "permissionsClaudeOnly": "Permissions 當前僅 Claude Code 支持寫回",
+      "hermesSubagents": "Hermes 不支持 Subagent 文件同步"
+    }
+  },
+  "board": {
+    "summary": {
+      "title": "項目總覽",
+      "totalProjects": "總項目數",
+      "totalCodeLines": "總代碼行數",
+      "linesUnit": "行",
+      "avgActivity": "平均活躍度（{{days}} 天）",
+      "commitsInWindow": "近 {{days}} 天提交",
+      "thisWeek": "近 7 天提交",
+      "windowLabel": "Git 活躍統計週期",
+      "daysUnit": "天",
+      "updatesUnit": "次"
+    },
+    "duplicateCleanup": "重複資產檢測"
+  },
+  "projectBlueprint": {
+    "title": "項目基線 Blueprint",
+    "hint": "選擇模板一鍵關聯全局庫資產；合併模式僅新增關聯，不刪除已有配置。",
+    "loading": "加載 Blueprint…",
+    "exportSnapshot": "導出快照",
+    "targetCli": "項目目標 CLI",
+    "targetDefault": "沿用看板默認",
+    "saveTarget": "保存",
+    "previewing": "生成預覽…",
+    "previewTitle": "預覽：將新增 {{count}} 項關聯（{{name}}）",
+    "apply": "應用 Blueprint",
+    "applied": "已應用「{{name}}」，關聯 {{count}} 項資產",
+    "targetSaved": "項目目標 CLI 已保存",
+    "snapshotExported": "基線快照已導出：{{path}}"
   }
 }
