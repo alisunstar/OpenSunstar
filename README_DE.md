@@ -84,7 +84,7 @@ Teams ohne AI-CLI, Nutzer nur mit offiziellem Abo, PMs die Jira/Linear-Kanban br
 | ------- | ------------ |
 | **7 CLI-Tools** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
 | **Schnellstart** | Kuratiert für 4 Apps |
-| **60+ Presets** | Vollständige Bibliothek in Einstellungen |
+| **7+ Presets** | Kuratiert für Schnellzugriff; weitere in Einstellungen (inkl. Relays) |
 | **Agent-Konfig** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
 | **Workspace** | Today WS · Board · Asset-Übersicht · Readiness |
 | **Discovery** | skills.sh · Smithery · ClawHub · ModelScope |
@@ -256,11 +256,7 @@ Siehe [CONTRIBUTING.md](CONTRIBUTING.md). Sponsoren: [SUPPORT.md](SUPPORT.md)
 
 ### Danksagung
 
-OpenSunstar ist **kein** offizieller Fork oder Wartungsprojekt von [cc-switch](https://github.com/farion1231/cc-switch) und **nicht** mit den cc-switch-Maintainern verbunden.
-
-Teile der Codebasis (Anbieterverwaltung, Agent-Konfiguration, lokaler Proxy u. a.) stammen von cc-switch unter dessen [MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE) (`Copyright (c) 2025 Jason Young`). Die **Jason Young**-Nennung in upstream README-/Lizenzmaterialien stammt von cc-switch und bedeutet **nicht**, dass OpenSunstar vom ursprünglichen cc-switch-Maintainer betrieben wird.
-
-Wir danken der cc-switch-Community. OpenSunstar entwickelt sich unabhängig weiter — Schwerpunkt: **Workspace-Governance, projektbezogene AI-Assets, Agent Readiness**.
+OpenSunstar baut auf dem Open-Source-Projekt [cc-switch](https://github.com/farion1231/cc-switch) auf. OpenSunstar wird unabhängig weiterentwickelt — verankert in strategischer Positionierung, Wertversprechen und Produktnarrative.
 
 ### Lizenz
 

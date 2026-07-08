@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenSunstar — 一站式统一管理您的 AI 编程工具工作流</title>
+    <title>OpenSunstar — 一站式 AI 编程工作流工程化配置平台</title>
     <meta
       name="description"
-      content="OpenSunstar 是一站式 AI 编程工具统一桌面管理器。可视化切换 API 供应商、统一管理 MCP/Skills/Prompts 等 Agent 扩展配置并跨设备同步，提供项目 AI 看板洞察多仓库研发健康度。支持 Windows/macOS/Linux，全本地运行零遥测。"
+      content="OpenSunstar 是跨多项目组合矩阵的 AI 就绪度驾驶舱：AI 工作区、方法论与工作流编排、跨工具 Agent 配置双向同步、API 快速一键接入、上下文管理与 AI 用量成本管控。支持 Windows/macOS/Linux，全本地运行。"
     />
     <meta name="theme-color" content="#0d1117" />
     <link rel="icon" href="assets/icon.png" type="image/png" />
@@ -16,11 +16,11 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=6" />
-    <meta property="og:title" content="OpenSunstar — 一站式统一管理您的 AI 编程工具工作流" />
+    <link rel="stylesheet" href="css/style.css?v=7" />
+    <meta property="og:title" content="OpenSunstar — 一站式 AI 编程工作流工程化配置平台" />
     <meta
       property="og:description"
-      content="七个 AI CLI 工具、一个统一管理器。预设 DeepSeek/OpenRouter/GLM/Anthropic/自定义 5 大供应商，MCP/Skills/Prompts 统一配置与同步，多仓库项目 AI 看板，全平台覆盖。"
+      content="AI 就绪度驾驶舱：工作区治理、方法论与编排、Agent 配置同步、快速接入、上下文与用量管理。7 个 CLI 工具，7+ 精选供应商预设。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://opensunstar.github.io/" />
@@ -59,7 +59,7 @@
             href="https://github.com/alisunstar/OpenSunstar/releases/latest"
             target="_blank"
             rel="noopener"
-            >下载 v0.1.0</a
+            >下载 v1.1.3</a
           >
         </div>
       </div>
@@ -73,12 +73,10 @@
           <span class="dot"></span>
           开源 · MIT License · Tauri 2 原生桌面
         </div>
-        <h1 class="hero-title">七个 AI CLI<br />一站式管理与同步</h1>
+        <h1 class="hero-title">AI 编程工作流<br />工程化配置平台</h1>
         <p class="subtitle">
-          告别手动编辑 JSON/TOML 配置文件。OpenSunstar 让你在同一界面中：可视化切换
-          API 供应商并自动同步到 7 个 CLI、统一管理 MCP/Skills/Prompts
-          等 Agent 扩展配置并跨设备同步、通过本地代理实现高可用与自动故障转移、用项目 AI
-          看板洞察多仓库研发健康度。全本地运行，零遥测。
+          <strong>跨多项目组合矩阵的 AI 就绪度驾驶舱。</strong>
+          一站式完成基于项目的方法论与工作流编排，以及跨工具、跨设备的 Agent 配置双向同步——从 AI 工作区、快速接入、上下文管理到用量成本，全在侧边栏一级菜单直达。
         </p>
         <div class="hero-actions">
           <a
@@ -98,10 +96,10 @@
           >
         </div>
         <div class="hero-meta">
-          <span>✓ Windows / macOS / Linux</span>
-          <span>✓ 5 种常用预设（DeepSeek · OpenRouter · GLM · Anthropic · 自定义 OpenAI 兼容）</span>
-          <span>✓ 本地代理 · 故障转移 · 三态熔断</span>
-          <span>✓ 简中 / 繁中 / EN / 日</span>
+          <span>✓ 7 个 AI CLI 工具</span>
+          <span>✓ 7+ 精选供应商预设（可自定义更多，含中转站）</span>
+          <span>✓ 工作区 · 方法论与编排 · Agent 配置 · Context · AI Tokens</span>
+          <span>✓ 简中 / 繁中 / EN / 日 · 全本地 · 零遥测</span>
         </div>
         <div class="hero-preview">
           <div class="app-mock" aria-label="OpenSunstar 界面示意（非真实截图）">
@@ -166,58 +164,64 @@
     <section id="architecture">
       <div class="container">
         <div class="section-header">
-          <span class="section-label">Architecture</span>
-          <h2 class="section-title">三层能力，渐进增强</h2>
+          <span class="section-label">Product Map</span>
+          <h2 class="section-title">对齐侧边栏，四大能力域</h2>
           <p class="section-desc">
-            从 API 接入到 Agent 配置，再到多项目组合洞察——每一层可独立使用，也可组合成完整的
-            AI 编程工作流。
+            从 AI 工作区治理到方法论编排，从 Agent 配置同步到 API 接入与用量管理——每一域可独立使用，也可组合成完整 AI 编程工作流。
           </p>
         </div>
         <div class="card-grid card-grid-3">
           <article class="card">
-            <div class="card-icon teal">🔌</div>
-            <h3>快速接入</h3>
+            <div class="card-icon gold">📊</div>
+            <h3>AI 工作区</h3>
             <p>
-              SimpleConnect 三步向导：选供应商 → 填 API Key → 一键应用到 CLI。内置
-              DeepSeek、OpenRouter、智谱 GLM、Anthropic 官方、自定义 OpenAI 兼容五种预设。密钥加密存入 OS Keychain（AES-256-GCM），支持密钥池加权轮询与 429 阶梯冷却。
+              多 Git 仓库 AI 就绪度驾驶舱：今日工作台、项目看板、AI 资产总览矩阵。按项目查看 Agent 就绪度评分，一键跳转补齐 MCP / Skills / Prompts 等资产缺口。
             </p>
             <div class="card-tags">
-              <span class="tag">SimpleConnect</span>
-              <span class="tag">Keychain 加密</span>
-              <span class="tag">DeepLink 导入</span>
+              <span class="tag">今日工作台</span>
+              <span class="tag">项目看板</span>
+              <span class="tag">AI 资产总览</span>
             </div>
-            <p class="card-meta">5 种预设 / OS Keychain</p>
+            <p class="card-meta">就绪度驾驶舱</p>
+          </article>
+          <article class="card">
+            <div class="card-icon teal">🧭</div>
+            <h3>方法论与编排</h3>
+            <p>
+              方法论框架只读探测（spec-kit / flow-kit 等）→ 预设编排导出 workflow.profile.json → 自定义 Recipe 阶段图 → 设计合约生成 DESIGN.md。四 Tab 独立可用，无先后依赖。
+            </p>
+            <div class="card-tags">
+              <span class="tag">框架探测</span>
+              <span class="tag">预设编排</span>
+              <span class="tag">自定义 Recipe</span>
+            </div>
+            <p class="card-meta">项目级 SDD 编排</p>
           </article>
           <article class="card">
             <div class="card-icon orange">⚡</div>
-            <h3>Agent 配置中心</h3>
+            <h3>Agent 配置</h3>
             <p>
-              9 大模块统一管理：MCP 服务器发现与启停、Skills 一键安装（GitHub / ZIP / ClawHub
-              / ModelScope）、Prompts & Rules 跨工具同步（CLAUDE.md / AGENTS.md /
-              GEMINI.md）、Commands / Hooks / Ignore / Permissions 统一配置。双向同步到 7
-              个 CLI，55+ 安全审计规则保障 Skills 安装安全。
+              MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — 9 大模块统一管理，按应用双向同步到 7 个 CLI。Skills 安装前 55+ 规则安全审计。
             </p>
             <div class="card-tags">
               <span class="tag">MCP 管理</span>
               <span class="tag">Skills 审计</span>
-              <span class="tag">配置转换</span>
+              <span class="tag">跨工具同步</span>
             </div>
             <p class="card-meta">9 大模块 · 双向同步</p>
           </article>
           <article class="card">
-            <div class="card-icon gold">📊</div>
-            <h3>项目 AI 看板</h3>
+            <div class="card-icon teal">🔌</div>
+            <h3>AI 模型</h3>
             <p>
-              多 Git 仓库 AI 驾驶舱：三阶段管理视图（MVP / Rapid / Stable）、AI
-              健康评分、项目组合活跃度矩阵、AI 风险自动识别。AI 周报自动生成，集成 AI
-              成本面板与用量追踪，支持自然语言查询。
+              <strong>快速接入</strong>：7+ 精选预设（官方 · 国产 · OpenRouter · 自定义），支持设置中扩展更多供应商（含中转站）。<strong>Context</strong> 会话管理。<strong>AI Tokens</strong> 用量统计与预算告警。
             </p>
             <div class="card-tags">
-              <span class="tag">AI 健康评分</span>
-              <span class="tag">NL 查询</span>
-              <span class="tag">成本面板</span>
+              <span class="tag">Quick Connect</span>
+              <span class="tag">Context</span>
+              <span class="tag">AI Tokens</span>
             </div>
-            <p class="card-meta">三阶段管理 · AI 周报</p>
+            <p class="card-meta">接入 · 上下文 · 用量</p>
           </article>
         </div>
       </div>
@@ -227,25 +231,39 @@
       <div class="container">
         <div class="section-header">
           <span class="section-label">Design Philosophy</span>
-          <h2 class="section-title">配置不该成为阻力</h2>
+          <h2 class="section-title">编排 → 配置 → 接入 → 洞察</h2>
           <p class="section-desc">
-            现代 AI 编程依赖多个 CLI，每个都有自己的配置格式。OpenSunstar
-            用可视化界面替代手工编辑，用可靠存储替代脆弱的复制粘贴。
+            以项目为中心的方法论与工作流编排，配合跨工具 Agent 配置同步与 API 快速接入，形成可观测、可迭代的 AI 编程闭环。
           </p>
         </div>
         <div class="lifecycle">
-          <article class="phase-card" style="--phase-color: #58a6ff">
+          <article class="phase-card" style="--phase-color: #d29922">
             <div class="phase-header">
-              <span class="phase-emoji">🔌</span>
+              <span class="phase-emoji">📊</span>
               <div>
-                <span class="phase-en">Connect</span>
-                <h4>接入</h4>
+                <span class="phase-en">Workspace</span>
+                <h4>工作区</h4>
               </div>
             </div>
-            <p>选供应商 → 安全存储 Key → 一键应用到 7 个 CLI。支持 DeepLink 协议一键导入配置</p>
+            <p>今日工作台 · 项目看板 · AI 资产总览 · 就绪度评分 · 按项目补齐 Agent 资产</p>
             <div class="phase-tags">
-              <span class="phase-tag">simple-connect</span>
-              <span class="phase-tag">deepseek</span>
+              <span class="phase-tag">readiness</span>
+              <span class="phase-tag">assets-matrix</span>
+            </div>
+          </article>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <article class="phase-card" style="--phase-color: #58a6ff">
+            <div class="phase-header">
+              <span class="phase-emoji">🧭</span>
+              <div>
+                <span class="phase-en">Orchestrate</span>
+                <h4>编排</h4>
+              </div>
+            </div>
+            <p>方法论框架探测 → 预设编排 → 自定义 Recipe → 设计合约，按项目导出工作流配置</p>
+            <div class="phase-tags">
+              <span class="phase-tag">methodology</span>
+              <span class="phase-tag">recipe</span>
             </div>
           </article>
           <span class="flow-arrow" aria-hidden="true">→</span>
@@ -257,47 +275,32 @@
                 <h4>配置</h4>
               </div>
             </div>
-            <p>9 大配置模块统一面板：MCP/Skills/Prompts/Commands/Hooks/Ignore/Permissions/Subagent/Convert，双向同步与跨设备迁移</p>
+            <p>MCP/Skills/Prompts/Commands/Hooks 等 9 大模块，跨 7 个 CLI 双向同步与跨设备迁移</p>
             <div class="phase-tags">
-              <span class="phase-tag">mcp-sync</span>
-              <span class="phase-tag">skills-import</span>
+              <span class="phase-tag">agent-sync</span>
+              <span class="phase-tag">skills-audit</span>
             </div>
           </article>
           <span class="flow-arrow" aria-hidden="true">→</span>
           <article class="phase-card" style="--phase-color: #00b96b">
             <div class="phase-header">
-              <span class="phase-emoji">🔄</span>
+              <span class="phase-emoji">🔌</span>
               <div>
-                <span class="phase-en">Switch</span>
-                <h4>切换</h4>
+                <span class="phase-en">Connect</span>
+                <h4>接入</h4>
               </div>
             </div>
-            <p>主界面/系统托盘即时切换供应商与 Agent 配置。Claude Code 支持热切换，本地代理自动故障转移 + 三态熔断保障高可用</p>
+            <p>7+ 精选供应商快速接入 · Context 会话管理 · AI Tokens 用量与预算 · 本地代理高可用</p>
             <div class="phase-tags">
-              <span class="phase-tag">tray-switch</span>
-              <span class="phase-tag">hot-reload</span>
-            </div>
-          </article>
-          <span class="flow-arrow" aria-hidden="true">→</span>
-          <article class="phase-card" style="--phase-color: #d29922">
-            <div class="phase-header">
-              <span class="phase-emoji">📊</span>
-              <div>
-                <span class="phase-en">Insight</span>
-                <h4>洞察</h4>
-              </div>
-            </div>
-            <p>用量统计与 Token 仪表盘、预算告警、多项目 AI 健康评分与风险分析、AI 周报自动生成、自然语言查询多仓库状态</p>
-            <div class="phase-tags">
-              <span class="phase-tag">portfolio-7d</span>
-              <span class="phase-tag">ai-weekly</span>
+              <span class="phase-tag">quick-connect</span>
+              <span class="phase-tag">ai-tokens</span>
             </div>
           </article>
         </div>
         <div class="loop-footer">
           <div class="loop-line"></div>
           <p class="loop-text">
-            研发闭环 — 接入 → 配置 → 切换 → 洞察，四步串联 AI 编程全流程，一站式统一管理您的 AI 编程工具工作流
+            工作区 → 编排 → 配置 → 接入 — 以项目为中心的 AI 编程工作流闭环
           </p>
         </div>
       </div>
@@ -307,18 +310,36 @@
       <div class="container">
         <div class="section-header">
           <span class="section-label">Features</span>
-          <h2 class="section-title">十大模块，覆盖 AI 编程全生命周期</h2>
+          <h2 class="section-title">核心模块，覆盖 AI 编程工作流全链路</h2>
           <p class="section-desc">
-            API 接入、Agent 配置、本地代理、项目看板、用量统计、会话管理、云同步、跨平台、安全隐私 — 一次配齐。
+            AI 工作区、方法论与编排、Agent 配置、快速接入、上下文管理、AI 用量成本 — 对齐侧边栏一级菜单，一次配齐。
           </p>
         </div>
         <div class="feature-list">
           <div class="feature-item">
+            <div class="fi-icon">📊</div>
+            <div>
+              <strong>AI 工作区 — 就绪度驾驶舱</strong>
+              <span
+                >今日工作台、项目看板、AI 资产总览矩阵。Agent 就绪度评分，按项目一键跳转补齐 MCP / Skills / Prompts 缺口。AI 周报与自然语言查询。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🧭</div>
+            <div>
+              <strong>方法论与编排</strong>
+              <span
+                >框架只读探测 → 预设编排（workflow.profile.json）→ 自定义 Recipe 阶段图 → 设计合约（DESIGN.md）。四 Tab 独立可用。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
             <div class="fi-icon">🔄</div>
             <div>
-              <strong>多 CLI 统一管理与供应商热切换</strong>
+              <strong>API 快速一键接入</strong>
               <span
-                >7 个工具、5 种常用预设，拖拽排序、导入导出、系统托盘快速切换。密钥池加权轮询、429 阶梯冷却。通用配置片段保留插件与扩展数据，切换不丢配置。</span
+                >7+ 精选预设（官方 · 国产 · OpenRouter · 自定义），支持设置中扩展更多供应商（含中转站）。密钥 OS Keychain 加密，系统托盘热切换。</span
               >
             </div>
           </div>
@@ -342,33 +363,29 @@
             </div>
           </div>
           <div class="feature-item">
+            <div class="fi-icon">💬</div>
+            <div>
+              <strong>Context 上下文管理</strong>
+              <span
+                >浏览、搜索与恢复多 CLI 会话历史。跨项目、跨工具上下文一站式管理。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
             <div class="fi-icon">💰</div>
             <div>
-              <strong>用量统计与预算管理</strong>
+              <strong>AI Tokens 用量与成本</strong>
               <span
-                >AI Tokens 仪表盘，按供应商/模型分组统计。请求日志追踪、自定义模型定价、预算告警实时推送。成本一目了然。</span
+                >按供应商/模型分组统计，请求日志追踪，自定义模型定价，预算告警实时推送。</span
               >
             </div>
           </div>
           <div class="feature-item">
             <div class="fi-icon">☁️</div>
             <div>
-              <strong>云同步与备份</strong>
+              <strong>云同步与备份（设置）</strong>
               <span
-                >WebDAV / S3 / GitHub Gist 三通道云同步。支持自定义配置目录（Dropbox / OneDrive
-                / iCloud）。自动备份保留 10 份快照，支持导入/导出
-                SQLite。OpenSunstar:// DeepLink 协议一键导入全量配置。</span
-              >
-            </div>
-          </div>
-          <div class="feature-item">
-            <div class="fi-icon">📈</div>
-            <div>
-              <strong>项目 AI 看板</strong>
-              <span
-                >多 Git 仓库驾驶舱：三阶段管理（MVP / Rapid / Stable）、AI
-                健康评分、项目组合矩阵、AI 风险分析、自然语言查询。AI
-                周报自动生成，集成成本面板。</span
+                >WebDAV / S3 / GitHub Gist 三通道云同步。自动备份保留 10 份快照，OpenSunstar:// DeepLink 一键导入全量配置。</span
               >
             </div>
           </div>
@@ -430,7 +447,7 @@
 
         <div class="platform-panel active" id="platform-windows">
           <p style="color: var(--text-secondary); margin-bottom: 16px">
-            从 Releases 下载 <code>OpenSunstar-v0.1.0-Windows.msi</code> 安装包，或
+            从 Releases 下载 <code>OpenSunstar-v1.1.3-Windows.msi</code> 安装包，或
             Portable 绿色版解压即用。
           </p>
           <div class="code-block">
@@ -470,7 +487,7 @@
             <code
               ><span class="comment"># Debian / Ubuntu</span><br /><span
                 class="cmd"
-                >sudo dpkg -i OpenSunstar-v0.1.0-Linux.deb</span
+                >sudo dpkg -i OpenSunstar-v1.1.3-Linux.deb</span
               ><br /><br /><span class="comment"># Arch (paru)</span><br /><span
                 class="cmd"
                 >paru -S OpenSunstar-bin</span
@@ -591,7 +608,7 @@
               OpenSunstar
             </a>
             <p>
-              一站式统一管理您的 AI 编程工具工作流（AI CLI切换&同步，Agent扩展配置&同步和项目AI看板）
+              一站式 AI 编程工作流工程化配置平台 — 工作区就绪度驾驶舱、方法论与编排、Agent 配置同步、快速接入与用量管理
             </p>
           </div>
           <div class="footer-col">
@@ -671,7 +688,7 @@
         </div>
         <div class="footer-bottom">
           <span>© 2026 OpenSunstar · MIT License</span>
-          <span>Built with Tauri 2 · v0.1.0</span>
+          <span>Built with Tauri 2 · v1.1.3</span>
         </div>
       </div>
     </footer>

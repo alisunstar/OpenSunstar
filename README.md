@@ -2,7 +2,7 @@
 
 # OpenSunstar
 
-### The All-in-One Desktop Manager for AI Coding CLI Tools
+### The All-in-One Platform for AI Coding Workflow Engineering
 
 [![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -38,7 +38,47 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 
 ## 1. What is OpenSunstar
 
-**OpenSunstar** is a cross-platform native desktop app (Tauri 2 + React) for the AI coding CLI era. It unifies **provider onboarding, agent configuration, and multi-project governance** — moving from “edit config files by hand” to “see project health, fill asset gaps, and keep shipping.”
+**OpenSunstar** is a cross-platform native desktop app (Tauri 2 + React) — **the all-in-one platform to manage your AI coding workflow engineering configuration**.
+
+> **An AI readiness cockpit across a multi-project portfolio matrix**: methodology & workflow orchestration per project, plus bidirectional Agent configuration sync across tools and devices.
+
+Move from “edit config files by hand” to “see project health, orchestrate workflows, fill asset gaps, and keep shipping.”
+
+### Product map (aligned with the sidebar)
+
+#### Workspace — AI readiness cockpit
+
+| Entry | Capability |
+| ----- | ---------- |
+| **Today Workspace** | First glance: todos, readiness gaps, portfolio overview |
+| **Project Board** | Multi-repo stages, commit activity, AI portfolio reports |
+| **AI Assets Overview** | Project × asset matrix (MCP / Skills / Prompts / Cmd / Hooks …) |
+| **Project · AI Config** | Enable/link agent assets per repo, jump to fix gaps |
+
+#### Project Config — Methodology & Orchestration
+
+| Tab | Capability |
+| --- | ---------- |
+| **Methodology Framework** | Read-only SDD framework detection (spec-kit, flow-kit, …) |
+| **Preset Orchestration** | Flow tiers, modules & stages → `workflow.profile.json` |
+| **Custom Orchestration** | Visual stage graph + Recipe (YAML+Markdown hybrid) |
+| **Design Contract** | Brand templates → `DESIGN.md` + DTCG tokens |
+
+#### Agent Config — cross-tool bidirectional sync
+
+MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — unified install, audit, and per-app sync to 7 CLIs.
+
+#### AI Models
+
+| Entry | Capability |
+| ----- | ---------- |
+| **Quick Connect** | 3-step wizard: pick supplier → enter key → apply to CLI |
+| **Context** | Browse, search, and restore conversation sessions |
+| **AI Tokens** | Usage stats, budget alerts, custom model pricing |
+
+#### Settings
+
+Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme & language, and more.
 
 ### Target users
 
@@ -61,14 +101,14 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 
 ### Core use cases (8 scenarios)
 
-1. **Quick Start onboarding** — curated wizard for Claude Code / Desktop / Codex / Gemini (Official · CN · OpenRouter · Custom)
-2. **Multi-tool provider switching** — main UI or system tray; Claude Code supports hot-switch
-3. **Unified agent assets** — MCP, Skills, Prompts, Commands, Hooks, Ignore, Permissions, Subagents
-4. **MCP & Skills discovery** — Smithery registry, skills.sh official leaderboard (All-time / 24h Trending TOP 50)
-5. **Multi-repo project governance** — Today Workspace, Project Board, AI Assets Overview matrix
-6. **Per-project asset completion** — Agent Readiness score + jump to fix missing MCP / Skills / Prompts
-7. **Usage & cost control** — Token stats, budget alerts, AI investment & portfolio weekly reports
-8. **Backup & cross-device sync** — WebDAV / S3-compatible / Gist, Deep Link imports
+1. **AI workspace governance** — Today Workspace, Project Board, AI Assets Overview, readiness scoring
+2. **Methodology & workflow orchestration** — framework detection, preset orchestration, custom Recipe, design contract
+3. **One-click API access** — curated Quick Connect for Claude Code / Desktop / Codex / Gemini
+4. **Cross-tool Agent sync** — 9 agent modules with bidirectional sync
+5. **Context management** — multi-CLI session browse, search, and restore
+6. **AI usage & cost** — Token dashboard, budget alerts, investment reports
+7. **MCP & Skills discovery** — Smithery, skills.sh leaderboard, ClawHub, ModelScope
+8. **Backup & cross-device sync** — WebDAV / S3 / Gist, Deep Link import
 
 ### Six pain points we solve
 
@@ -86,11 +126,11 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 | Feature | Description |
 | ------- | ----------- |
 | **7 CLI tools** | Claude Code · Claude Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
-| **Quick Start wizard** | Curated 4-app flow: Official / CN Official / Aggregator / Custom |
-| **60+ provider presets** | Full library in Settings; Quick Start shows a curated subset |
-| **Agent configuration** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
-| **Local proxy & HA** | Format conversion, failover, circuit breaker, request rectifier |
-| **Workspace governance** | Today Workspace · Project Board · AI Assets Overview · Agent Readiness |
+| **Quick Connect** | 7+ curated presets (Official · CN · Aggregator · Custom); add more in Settings (incl. relays) |
+| **Methodology & Orchestration** | Framework detection · preset orchestration · custom Recipe · design contract |
+| **Agent configuration** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert |
+| **AI workspace** | Today Workspace · Project Board · AI Assets Overview · Agent Readiness |
+| **Context & usage** | Context sessions · AI Tokens dashboard · budget alerts |
 | **Skills / MCP discovery** | skills.sh leaderboard · Smithery · ClawHub · ModelScope · GitHub |
 | **Secret storage** | OS Keychain first, SQLite atomic writes |
 | **Sync & backup** | WebDAV / S3 / Gist · auto-backup · Deep Link import |
@@ -107,7 +147,7 @@ English | [中文](README_ZH.md) | [日本語](README_JA.md) | [Deutsch](README_
 | :---------: | :-------------: |
 | ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.2** — first stable-line release on the 1.1.x track; provider management, portfolio persistence, and AI key security improvements.
+> **v1.1.3** — Methodology & Orchestration UX, Recipe Composer localization and stage-graph fit; AI asset panel crash fix.
 
 ---
 
@@ -235,7 +275,7 @@ Data is fetched from skills.sh and cached locally (~6 hours). The UI shows last 
 | User manual (日本語) | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | User manual (Deutsch) | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | Workspace module | [docs/kanban.md](docs/kanban.md) |
-| Release notes v1.1.2 | [docs/release-notes/v1.1.2-en.md](docs/release-notes/v1.1.2-en.md) |
+| Release notes v1.1.3 | [docs/release-notes/v1.1.3-en.md](docs/release-notes/v1.1.3-en.md) |
 
 ### Development
 
@@ -264,11 +304,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Partner and sponsor info: [SUPPORT.md](S
 
 ### Acknowledgements
 
-OpenSunstar is **not** an official fork or maintenance project of [cc-switch](https://github.com/farion1231/cc-switch) and is **not affiliated with** the cc-switch maintainers.
-
-Portions of the codebase (provider management, agent configuration, local proxy, and related foundations) are derived from cc-switch under its [MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE) (`Copyright (c) 2025 Jason Young`). The **Jason Young** attribution appearing in upstream README / license materials comes from cc-switch; it **does not** indicate that OpenSunstar is operated by the original cc-switch maintainer.
-
-We thank the cc-switch community for their open-source work. OpenSunstar evolves independently, with a focus on **workspace governance, project-scoped AI assets, and Agent Readiness**.
+OpenSunstar builds upon the open-source [cc-switch](https://github.com/farion1231/cc-switch) project. OpenSunstar will continue to evolve independently, anchored to its strategic positioning, value proposition, and product narrative.
 
 ### License
 

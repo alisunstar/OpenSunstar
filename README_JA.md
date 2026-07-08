@@ -70,7 +70,7 @@ AI CLI 非利用チーム、単一公式サブスクのみのユーザー、Jira
 | ---- | ---- |
 | **7 CLI ツール** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
 | **クイックスタート** | 4 アプリ厳選ウィザード |
-| **60+ プリセット** | 設定で全量利用可 |
+| **7+ プリセット** | クイック接続向け厳選；設定でカスタム追加（リレー含む） |
 | **Agent 設定** | MCP · Skills · Prompts 等 8 モジュール |
 | **ワークスペース** | 今日の WS · ボード · 資産概要 · Readiness |
 
@@ -240,11 +240,7 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 ### 謝辞
 
-OpenSunstar は [cc-switch](https://github.com/farion1231/cc-switch) の公式フォークまたは保守プロジェクト**ではなく**、cc-switch 保守チームとの**提携・所属関係はありません**。
-
-一部の基盤機能（プロバイダー管理、Agent 設定、ローカルプロキシ等）は cc-switch 由来で、[MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE)（`Copyright (c) 2025 Jason Young`）に従います。README / ライセンスに現れる **Jason Young** 表記は cc-switch 上流の慣例であり、OpenSunstar が cc-switch 原保守者により運営されていることを**意味しません**。
-
-cc-switch コミュニティの OSS 貢献に感謝します。OpenSunstar は**ワークスペースガバナンス、プロジェクト単位 AI 資産、Agent Readiness** 等を中心に独立して進化しています。
+OpenSunstar は [cc-switch](https://github.com/farion1231/cc-switch) オープンソースプロジェクトの上に成り立っています。OpenSunstar は戦略的定位・価値提案・プロダクト叙事に沿って、独立した進化とイテレーションを続けます。
 
 ### ライセンス
 

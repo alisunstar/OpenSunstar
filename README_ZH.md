@@ -2,7 +2,7 @@
 
 # OpenSunstar
 
-### Claude Code / Codex / Gemini CLI 等 AI 编程工具的一站式桌面管理器
+### 一站式统一管理你的 AI 编程工作流工程化配置平台
 
 [![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -38,7 +38,47 @@
 
 ## 一. 什么是 OpenSunstar
 
-**OpenSunstar** 是基于 Tauri 2 + React 的跨平台原生桌面应用，面向 AI 编程 CLI 时代，把**供应商接入、Agent 配置、多项目治理**收敛到一处——从「改配置文件」升级为「看清项目、补齐资产、持续交付」。
+**OpenSunstar** 是基于 Tauri 2 + React 的跨平台原生桌面应用——**一站式统一管理你的 AI 编程工作流工程化配置平台**。
+
+> **跨多项目组合矩阵的 AI 就绪度驾驶舱**：一站式帮你完成基于项目的方法论与工作流编排，以及跨工具、跨设备的 Agent 配置双向同步。
+
+从「改配置文件」升级为「看清项目、编排流程、补齐资产、持续交付」。
+
+### 产品能力地图（对齐侧边栏）
+
+#### 工作区 — AI 就绪度驾驶舱
+
+| 入口 | 能力 |
+| ---- | ---- |
+| **今日工作台** | 开机第一眼：待办、就绪度缺口、组合概览 |
+| **项目看板** | 多 Git 仓库阶段、提交活跃度、AI 组合报告 |
+| **AI 资产总览** | 项目 × 资产矩阵（MCP / Skills / Prompts / Cmd / Hooks …） |
+| **项目 · AI 配置** | 按仓库启用/关联 Agent 资产，直达补齐 |
+
+#### 项目配置 — 方法论与编排
+
+| Tab | 能力 |
+| --- | ---- |
+| **方法论框架** | 只读探测 spec-kit / flow-kit 等 SDD 框架，推荐后续编排 |
+| **预设编排** | 流程档位、模块与阶段，导出 `workflow.profile.json` |
+| **自定义编排** | 可视化阶段图 + Recipe，YAML+Markdown 混合格式 |
+| **设计合约** | 品牌模板 → `DESIGN.md` + DTCG tokens |
+
+#### Agent 配置 — 跨工具双向同步
+
+MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — 统一安装、审计与按应用同步到 7 个 CLI。
+
+#### AI 模型
+
+| 入口 | 能力 |
+| ---- | ---- |
+| **快速接入** | 三步向导：选供应商 → 填 Key → 一键应用到 CLI |
+| **Context** | 会话上下文浏览、搜索与恢复 |
+| **AI Tokens** | 用量统计、预算告警、自定义模型定价 |
+
+#### 设置
+
+供应商管理、云同步与备份（WebDAV / S3 / Gist）、代理与高可用、主题与语言等。
 
 ### OpenSunstar 目标用户精准画像
 
@@ -61,14 +101,14 @@
 
 ### 核心适用场景（8 大场景）
 
-1. **三步快速接入** — Claude Code / Desktop / Codex / Gemini 精选向导（官方 · 国产 · OpenRouter · 自定义）
-2. **多工具供应商切换** — 主界面或系统托盘一键切换，Claude Code 支持热切换
-3. **统一 Agent 资产配置** — MCP / Skills / Prompts / Commands / Hooks / Ignore / Permissions / Subagents
-4. **MCP & Skills 发现安装** — Smithery 注册表、skills.sh 官方排行榜（全站总榜 / 24h 趋势 TOP 50）
-5. **多 Git 仓库项目治理** — 今日工作台、项目看板、AI 资产总览矩阵
-6. **按项目补齐 AI 资产** — Agent 就绪度评分 + 缺 MCP / Skills / Prompts 直达配置
-7. **用量与成本管控** — Token 统计、预算告警、AI 投入报告与组合周报
-8. **配置备份与跨设备同步** — WebDAV / S3 兼容 / Gist，Deep Link 一键导入
+1. **AI 工作区治理** — 今日工作台、项目看板、AI 资产总览与就绪度评分
+2. **方法论与工作流编排** — 框架探测、预设编排、自定义 Recipe、设计合约
+3. **API 快速一键接入** — Claude Code / Desktop / Codex / Gemini 精选向导
+4. **跨工具 Agent 配置同步** — MCP / Skills / Prompts 等 9 大模块双向同步
+5. **上下文管理** — 多 CLI 会话浏览、搜索与恢复
+6. **AI 用量与成本** — Token 仪表盘、预算告警、投入报告
+7. **MCP & Skills 发现安装** — Smithery、skills.sh 排行榜、ClawHub、ModelScope
+8. **配置备份与跨设备同步** — WebDAV / S3 / Gist，Deep Link 一键导入
 
 ### 解决的 6 大具体痛点
 
@@ -86,11 +126,11 @@
 | 特性 | 说明 |
 | ---- | ---- |
 | **7 个 CLI 工具** | Claude Code · Claude Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
-| **快速接入向导** | 四应用精选：Official / CN Official / Aggregator / Custom |
-| **60+ 供应商预设** | 设置中完整预设库；快速接入为精选子集 |
-| **Agent 配置管理** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
-| **本地代理与高可用** | 格式转换、故障转移、熔断器、请求整流 |
-| **工作区治理** | 今日工作台 · 项目看板 · AI 资产总览 · Agent 就绪度 |
+| **快速接入向导** | 7+ 精选预设（官方 · 国产 · 聚合 · 自定义）；支持在设置中自定义更多供应商（含中转站） |
+| **方法论与编排** | 框架探测 · 预设编排 · 自定义 Recipe · 设计合约 |
+| **Agent 配置管理** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert |
+| **AI 工作区** | 今日工作台 · 项目看板 · AI 资产总览 · Agent 就绪度 |
+| **上下文与用量** | Context 会话管理 · AI Tokens 仪表盘 · 预算告警 |
 | **Skills / MCP 发现** | skills.sh 排行榜 · Smithery · ClawHub · ModelScope · GitHub |
 | **密钥安全** | OS Keychain 优先，SQLite 原子写入 |
 | **云同步与备份** | WebDAV / S3 / Gist · 自动备份 · Deep Link 导入 |
@@ -107,7 +147,7 @@
 | :------: | :--------: |
 | ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.2** — 1.1.x 正式线首个对齐版本；修复供应商管理、看板持久化与 AI 密钥安全等问题。
+> **v1.1.3** — 方法论与编排 UX 增强、自定义编排中文化与阶段图适配；修复 AI 资产配置崩溃。
 
 ---
 
@@ -235,7 +275,7 @@
 | 用户手册（日本語） | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | 用户手册（Deutsch） | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | 工作区模块说明 | [docs/kanban.md](docs/kanban.md) |
-| v1.1.2 发布说明 | [docs/release-notes/v1.1.2-zh.md](docs/release-notes/v1.1.2-zh.md) |
+| v1.1.3 发布说明 | [docs/release-notes/v1.1.3-zh.md](docs/release-notes/v1.1.3-zh.md) |
 
 ### 开发
 
@@ -264,11 +304,7 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 ### 致谢
 
-OpenSunstar **并非** [cc-switch](https://github.com/farion1231/cc-switch) 的官方分支或维护项目，与 cc-switch 维护团队**无隶属或授权关系**。
-
-本项目部分基础能力（供应商管理、Agent 配置、本地代理等）源自 cc-switch 代码库，遵循其 [MIT License](https://github.com/farion1231/cc-switch/blob/main/LICENSE)（`Copyright (c) 2025 Jason Young`）。README / 文档中出现的 **Jason Young** 署名惯例亦来自 cc-switch 上游，**不代表** OpenSunstar 由 cc-switch 原维护者运营。
-
-感谢 cc-switch 社区的开源贡献。OpenSunstar 在此基础上独立演进，侧重**工作区治理、项目级 AI 资产与 Agent 就绪度**等差异化能力。
+OpenSunstar 的诞生离不开 [cc-switch](https://github.com/farion1231/cc-switch) 开放源代码项目。OpenSunstar 将始终坚定独立演进和迭代，锚定战略定位、价值主张和产品叙事。
 
 ### 许可证
 
