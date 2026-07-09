@@ -7,6 +7,7 @@ license = "MIT"
 repository = "https://github.com/alisunstar/OpenSunstar"
 edition = "2021"
 rust-version = "1.85.0"
+default-run = "OpenSunstar"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
