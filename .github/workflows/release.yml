@@ -90,3 +90,77 @@ jobs:
             - Includes updater metadata and signatures for desktop updates.
           releaseDraft: false
           prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+
+  build-os-cli:
+    name: Build os CLI (${{ matrix.artifact_name }})
+    needs: build-and-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            artifact_name: os-macos-aarch64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: os-macos-x86_64
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            artifact_name: os-linux-x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: os-windows-x86_64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential pkg-config libssl-dev \
+            libgtk-3-dev librsvg2-dev libayatana-appindicator3-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev \
+            || sudo apt-get install -y libwebkit2gtk-4.0-dev
+
+      - name: Create frontend dist placeholder
+        run: mkdir -p dist
+
+      - name: Build os CLI (with TUI)
+        run: cargo build --release --features tui --bin os --manifest-path src-tauri/Cargo.toml --target ${{ matrix.target }}
+
+      - name: Package artifact (Unix)
+        if: matrix.os != 'windows-latest'
+        run: |
+          TAG="${{ github.ref_name || inputs.tag }}"
+          NAME="OpenSunstar-${TAG}-${{ matrix.artifact_name }}"
+          BIN="src-tauri/target/${{ matrix.target }}/release/os"
+          chmod +x "$BIN"
+          tar -czf "${NAME}.tar.gz" -C "src-tauri/target/${{ matrix.target }}/release" os
+          echo "ARCHIVE=${NAME}.tar.gz" >> "$GITHUB_ENV"
+
+      - name: Package artifact (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name || inputs.tag }}"
+          $name = "OpenSunstar-${tag}-${{ matrix.artifact_name }}.zip"
+          $bin = "src-tauri/target/${{ matrix.target }}/release/os.exe"
+          Compress-Archive -Path $bin -DestinationPath $name -Force
+          echo "ARCHIVE=$name" >> $env:GITHUB_ENV
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name || inputs.tag }}
+          files: ${{ env.ARCHIVE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -100,3 +100,6 @@ jobs:
 
       - name: Run tests
         run: cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build os CLI (smoke)
+        run: cargo build --release --features tui --bin os --manifest-path src-tauri/Cargo.toml

@@ -8,7 +8,7 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.4-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
@@ -24,6 +24,7 @@ English | [中文](README_ZH.md) | [繁體中文](docs/user-manual/zh-TW/README.
 ## Table of Contents
 
 - [1. What is OpenSunstar](#1-what-is-opensunstar)
+  - [GUI + CLI(TUI) dual-mode](#gui--clitui-dual-mode)
   - [Target users](#target-users)
   - [Core use cases (8 scenarios)](#core-use-cases-8-scenarios)
   - [Six pain points we solve](#six-pain-points-we-solve)
@@ -47,6 +48,29 @@ English | [中文](README_ZH.md) | [繁體中文](docs/user-manual/zh-TW/README.
 > **An AI readiness cockpit across a multi-project portfolio matrix**: methodology & workflow orchestration per project, plus bidirectional Agent configuration sync across tools and devices.
 
 Move from “edit config files by hand” to “see project health, orchestrate workflows, fill asset gaps, and keep shipping.”
+
+### GUI + CLI(TUI) dual-mode
+
+OpenSunstar ships **two independent entry points** that share the same data under `~/.OpenSunstar/`:
+
+| Mode | Entry | Best for |
+| ---- | ----- | -------- |
+| **Desktop GUI** | OpenSunstar app | Visual provider/asset/workspace management, local proxy & HA |
+| **CLI `os`** | Terminal commands + **full-screen TUI dashboard** | Agents, CI, SSH/headless, scripting (`--json`) |
+
+**Run CLI without starting the GUI** — `os` bootstraps `OpenSunstar.db` on first use (`os config bootstrap` or automatic). Governance, provider switch, and the TUI work standalone.
+
+**Shared state, not isolated silos** — changes in GUI or CLI both read/write the same SQLite DB and live CLI configs.
+
+| Capability | CLI-only | Notes |
+| ---------- | -------- | ----- |
+| Drift / readiness / flow / project | ✅ | Agent-native `--json` |
+| Provider switch (writes live config) | ✅ | `os provider switch` |
+| Full-screen TUI dashboard | ✅ | Run `os` in an interactive terminal |
+| Advanced local proxy `:15721` | ⚠️ | Proxy process is started by the **desktop app** today |
+| WebDAV/S3 auto-sync pull | ⚠️ | Use GUI or `os sync` export; full pull via GUI |
+
+> **Dual-mode, independently startable; data is unified.** For proxy takeover (Claude Code / Codex / Gemini), keep the desktop app running until headless `os proxy` ships.
 
 ### Product map (aligned with the sidebar)
 
@@ -139,6 +163,7 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | **Secret storage** | OS Keychain first, SQLite atomic writes |
 | **Sync & backup** | WebDAV / S3 / Gist · auto-backup · Deep Link import |
 | **Cross-platform** | Windows · macOS · Linux · dark/light themes · i18n |
+| **CLI `os` + TUI** | Standalone binary · governance · provider switch · full-screen dashboard |
 
 ### Supported CLI tools
 
@@ -151,13 +176,13 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | :---------: | :-------------: |
 | ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.3** — Methodology & Orchestration UX, Recipe Composer localization and stage-graph fit; AI asset panel crash fix.
+> **v1.1.4** — OpenSunstar CLI (`os`) with full-screen TUI, standalone bootstrap, provider switch, and Release artifacts for all platforms.
 
 ---
 
 ## 2. Installation
 
-### Download (recommended)
+### Desktop GUI (recommended for visual management)
 
 Get the latest build from [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releases/latest).
 
@@ -168,6 +193,35 @@ Get the latest build from [GitHub Releases](https://github.com/alisunstar/OpenSu
 | **Linux** | `.deb` · `.rpm` · `.AppImage` · AUR `OpenSunstar-bin` |
 
 **Requirements:** Windows 10+ · macOS 12+ · Ubuntu 22.04+ / Debian 11+ / Fedora 34+
+
+### OpenSunstar CLI (`os`) — standalone binary (no GUI required)
+
+Use **`os`** without the GUI for governance checks, provider switching, and a full-screen TUI dashboard. **No need to launch the desktop app first** — the CLI creates `~/.OpenSunstar/OpenSunstar.db` on first run.
+
+| Platform | Release asset |
+| -------- | ------------- |
+| **Windows** | `OpenSunstar-v*-os-windows-x86_64.zip` (`os.exe`) |
+| **macOS** | `OpenSunstar-v*-os-macos-aarch64.tar.gz` / `os-macos-x86_64` |
+| **Linux** | `OpenSunstar-v*-os-linux-x86_64.tar.gz` |
+
+```bash
+# Windows: unzip OpenSunstar-v*-os-windows-x86_64.zip, add os.exe to PATH
+# macOS/Linux: tar -xzf OpenSunstar-v*-os-*.tar.gz && sudo mv os /usr/local/bin/
+
+# First run (creates ~/.OpenSunstar/OpenSunstar.db)
+os config bootstrap --yes
+
+# Full-screen TUI dashboard (interactive terminal — run with no subcommand)
+os
+
+# Common commands
+os doctor --json
+os drift check --json
+os provider list --app claude
+os provider switch --app claude --id <provider-id> --yes
+```
+
+See [AGENTS.md](AGENTS.md) for Agent integration.
 
 ### Build from source
 
@@ -190,7 +244,7 @@ See [Development](#development) in the appendix.
 
 For official providers (Anthropic / OpenAI / Google), Quick Start links you to **Settings → Provider management** for browser login.
 
-> **Proxy note:** For Claude Code, Codex, Gemini, and Claude Desktop, keep OpenSunstar running while using the CLI — requests route through the local proxy.
+> **Proxy note:** When **proxy takeover** is enabled for Claude Code, Codex, Gemini, or Claude Desktop, keep the **desktop app** running so the local proxy on `:15721` stays up. Pure governance and `os provider switch` do not require the GUI.
 
 ### Switch providers
 

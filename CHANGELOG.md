@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.4] - 2026-07-09
+
+### Added
+
+- **OpenSunstar CLI (`os`)**: standalone binary with governance commands (`drift`, `readiness`, `flow`, `project`, `provider`, …)
+- **Full-screen TUI dashboard**: run `os` in an interactive terminal (build with `--features tui`)
+- **CLI bootstrap**: `os config bootstrap` / `os doctor --init` / auto-init on first DB access — no GUI required
+- **Release CI**: GitHub Release attachments `OpenSunstar-v*-os-{platform}` for Windows / macOS / Linux
+- **Dual-mode docs**: README and website sections for GUI + CLI(TUI) independent startup with shared `~/.OpenSunstar` data
+
+### Changed
+
+- **`os provider switch`**: now calls full `ProviderService::switch` (writes live CLI config, proxy hot-switch when takeover is active)
+
+### Notes
+
+- Advanced local proxy (`:15721`) still requires the desktop app process; governance and provider switch work CLI-only.
+
+
 ## [1.1.3] - 2026-07-08
 
 ### Changed

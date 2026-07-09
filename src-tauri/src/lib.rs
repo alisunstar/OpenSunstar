@@ -49,11 +49,13 @@ mod usage_script;
 mod project_metrics;
 mod ai;
 
+pub mod cli_api;
+
 pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig, SkillApps};
 pub use codex_config::{get_codex_auth_path, get_codex_config_path, write_codex_live_atomic};
 pub use commands::open_provider_terminal;
 pub use commands::*;
-pub use config::{get_claude_mcp_path, get_claude_settings_path, read_json_file};
+pub use config::{get_app_config_dir, get_claude_mcp_path, get_claude_settings_path, read_json_file};
 pub use database::Database;
 pub use deeplink::{import_provider_from_deeplink, parse_deeplink_url, DeepLinkImportRequest};
 pub use error::AppError;
@@ -71,6 +73,37 @@ pub use services::{
 };
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
+
+// CLI 需要的 AI 治理类型
+pub use ai::asset_effective_state::{
+    EffectiveItemState, EffectiveScanContext, EffectiveScanResult, RepairAssetDriftResult,
+    RepairProjectDriftResult,
+};
+pub use ai::types::AgentReadinessItem;
+
+// CLI Phase B/C 类型重导出（供 `os` CLI 二进制直接引用，无需访问私有模块）
+pub use database::Project;
+pub use database::ProjectAllAssetCounts;
+pub use cli_api::ProjectContext;
+pub use services::flow_orchestrator::{
+    FlowConfig, FlowConfigGate, FlowConfigRules, FlowConfigStage, SpecsChangeIndex,
+    SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetPaths,
+    WorkflowPresetSummary, WorkflowProfile, WorkflowStage, WorkflowStageSkipWhen,
+};
+pub use services::recipe_composer::{
+    CompositionRecipe, InstallResult as RecipeInstallResult, RecipeArtifact, RecipeComposeParams,
+    RecipeInstallPlan, RecipeRule, RecipeStage, StageGraph, StageGraphEdge, StageGraphNode,
+};
+pub use services::design_contract::{
+    DesignContract, DesignContractParams, DesignElevation, DesignColors, DesignGuardrail,
+    DesignInstallPlan, DesignInstallResult, DesignShapes, DesignSpacing, DesignTypography,
+    ImportResult as DesignImportResult, InstallAuditFinding, InstallAuditSummary,
+    InstallFileEntry,
+};
+pub use services::sdd::{SddDescriptorSummary, SddDetectionResult, SignalMatch};
+pub use services::blueprint::{Blueprint, BlueprintApplyPreview, BlueprintLinkAction};
+pub use services::provider::{VerifyKeyResult, VerifyProtocol};
+
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 

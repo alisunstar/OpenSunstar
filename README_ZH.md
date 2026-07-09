@@ -6,7 +6,7 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.3-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.4-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
@@ -22,6 +22,7 @@
 ## 目录
 
 - [一. 什么是 OpenSunstar](#一-什么是-opensunstar)
+  - [GUI + CLI(TUI) 双模态](#gui--clitui-双模态)
   - [OpenSunstar 目标用户精准画像](#opensunstar-目标用户精准画像)
   - [核心适用场景（8 大场景）](#核心适用场景8-大场景)
   - [解决的 6 大具体痛点](#解决的-6-大具体痛点)
@@ -45,6 +46,29 @@
 > **跨多项目组合矩阵的 AI 就绪度驾驶舱**：一站式帮你完成基于项目的方法论与工作流编排，以及跨工具、跨设备的 Agent 配置双向同步。
 
 从「改配置文件」升级为「看清项目、编排流程、补齐资产、持续交付」。
+
+### GUI + CLI(TUI) 双模态
+
+OpenSunstar 提供 **两种可独立启动的入口**，共用 `~/.OpenSunstar/` 下的同一套数据：
+
+| 模态 | 入口 | 适合场景 |
+| ---- | ---- | -------- |
+| **桌面 GUI** | OpenSunstar 应用 | 可视化供应商/资产/工作区、本地代理与高可用 |
+| **CLI `os`** | 终端命令 + **全屏 TUI 仪表盘** | Agent、CI、SSH/无头环境、脚本化（`--json`） |
+
+**无需先开 GUI 即可使用 CLI** — 首次运行 `os` 会自动初始化数据库（亦可 `os config bootstrap`）。
+
+**数据同源，非两套孤岛** — GUI 与 CLI 读写同一 SQLite 与 live 配置，任一入口的修改对另一入口可见。
+
+| 能力 | 仅 CLI 可用 | 说明 |
+| ---- | ----------- | ---- |
+| 漂移 / 就绪度 / 编排 / 项目 | ✅ | Agent 原生 `--json` |
+| 供应商切换（写 live 配置） | ✅ | `os provider switch` |
+| 全屏 TUI 仪表盘 | ✅ | 交互终端直接运行 `os` |
+| 高级本地代理 `:15721` | ⚠️ | 代理进程目前由**桌面应用**拉起 |
+| WebDAV/S3 自动同步 pull | ⚠️ | 完整 pull 仍需 GUI；CLI 可 export |
+
+> **双模态、可独立启动；数据统一。** 代理接管场景（Claude Code / Codex / Gemini）请保持桌面应用运行，直至 headless `os proxy` 落地。
 
 ### 产品能力地图（对齐侧边栏）
 
@@ -137,6 +161,7 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | **密钥安全** | OS Keychain 优先，SQLite 原子写入 |
 | **云同步与备份** | WebDAV / S3 / Gist · 自动备份 · Deep Link 导入 |
 | **跨平台桌面** | Windows · macOS · Linux · 深色/浅色主题 · 多语言 |
+| **CLI `os` + TUI** | 独立二进制 · 治理编排 · 供应商切换 · 全屏仪表盘 |
 
 ### 支持的 CLI 工具
 
@@ -149,13 +174,13 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | :------: | :--------: |
 | ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.3** — 方法论与编排 UX 增强、自定义编排中文化与阶段图适配；修复 AI 资产配置崩溃。
+> **v1.1.4** — 发布 OpenSunstar CLI（`os`）及全屏 TUI：独立 bootstrap、供应商全链路切换、全平台 Release 附件。
 
 ---
 
 ## 二. 安装指南
 
-### 下载安装（推荐）
+### 桌面 GUI（推荐可视化管理工作流）
 
 从 [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releases/latest) 获取最新构建。
 
@@ -166,6 +191,35 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | **Linux** | `.deb` · `.rpm` · `.AppImage` · AUR `OpenSunstar-bin` |
 
 **系统要求：** Windows 10+ · macOS 12+ · Ubuntu 22.04+ / Debian 11+ / Fedora 34+
+
+### OpenSunstar CLI (`os`) — 独立命令行工具（无需 GUI）
+
+无需安装或启动 GUI，即可使用 **`os`** 完成治理诊断、供应商切换与全屏 TUI 仪表盘。**首次运行会自动创建** `~/.OpenSunstar/OpenSunstar.db`。
+
+| 平台 | Release 附件 |
+| ---- | ------------ |
+| **Windows** | `OpenSunstar-v*-os-windows-x86_64.zip`（内含 `os.exe`） |
+| **macOS** | `OpenSunstar-v*-os-macos-aarch64.tar.gz` / `os-macos-x86_64` |
+| **Linux** | `OpenSunstar-v*-os-linux-x86_64.tar.gz` |
+
+```bash
+# Windows: 解压 OpenSunstar-v*-os-windows-x86_64.zip，将 os.exe 加入 PATH
+# macOS/Linux: tar -xzf OpenSunstar-v*-os-*.tar.gz && sudo mv os /usr/local/bin/
+
+# 首次使用（创建 ~/.OpenSunstar/OpenSunstar.db）
+os config bootstrap --yes
+
+# 全屏 TUI 治理仪表盘（交互终端，直接运行 os）
+os
+
+# 常用命令
+os doctor --json
+os drift check --json
+os provider list --app claude
+os provider switch --app claude --id <provider-id> --yes
+```
+
+完整 Agent 集成说明见仓库根目录 [AGENTS.md](AGENTS.md)。
 
 ### 源码构建
 
@@ -188,7 +242,7 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 
 官方供应商（Anthropic / OpenAI / Google）需在 **设置 → 供应商管理** 中完成浏览器登录。
 
-> **代理提示：** Claude Code、Codex、Gemini、Claude Desktop 使用时请**保持 OpenSunstar 运行**，CLI 请求经本地代理转发。
+> **代理提示：** 若已为 Claude Code / Codex / Gemini 等启用**代理接管**，请保持**桌面应用**运行以维持 `:15721` 本地代理。纯治理与 `os provider switch` 不依赖 GUI。
 
 ### 切换供应商
 
