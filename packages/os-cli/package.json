@@ -1,0 +1,41 @@
+{
+  "name": "opensunstar-os",
+  "version": "1.1.4",
+  "description": "OpenSunstar CLI (os) — governance, provider switch, and TUI dashboard",
+  "license": "MIT",
+  "author": "Jason Young",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alisunstar/OpenSunstar.git",
+    "directory": "packages/os-cli"
+  },
+  "homepage": "https://github.com/alisunstar/OpenSunstar#opensunstar-cli-os--standalone-binary-no-gui-required",
+  "bugs": {
+    "url": "https://github.com/alisunstar/OpenSunstar/issues"
+  },
+  "keywords": [
+    "opensunstar",
+    "cli",
+    "ai",
+    "claude",
+    "codex",
+    "gemini",
+    "agent",
+    "tui"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "type": "module",
+  "bin": {
+    "os": "./bin/os.js"
+  },
+  "files": [
+    "bin",
+    "lib",
+    "scripts"
+  ],
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  }
+}

@@ -202,9 +202,24 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | **macOS** | `OpenSunstar-v*-os-macos-aarch64.tar.gz` / `os-macos-x86_64` |
 | **Linux** | `OpenSunstar-v*-os-linux-x86_64.tar.gz` |
 
+**安装方式（任选其一）：**
+
+| 方式 | 命令 |
+| ---- | ---- |
+| **npm / pnpm** | `npm install -g opensunstar-os` |
+| **GitHub Release** | 下载上表附件，解压后将 `os` / `os.exe` 加入 PATH |
+| **Scoop**（Windows） | `scoop install opensunstar-os`（见 [distrib/scoop](distrib/scoop)） |
+| **Winget**（Windows） | `winget install OpenSunstar.OpenSunstarCLI`（见 [distrib/winget](distrib/winget)） |
+
+> `opensunstar-os` 为 Node 薄包装：安装时从 GitHub Release 拉取原生二进制，**非** TypeScript 重写的 CLI。详见 [docs/cli-distribution-p1.md](docs/cli-distribution-p1.md)。
+
 ```bash
-# Windows: 解压 OpenSunstar-v*-os-windows-x86_64.zip，将 os.exe 加入 PATH
-# macOS/Linux: tar -xzf OpenSunstar-v*-os-*.tar.gz && sudo mv os /usr/local/bin/
+# npm 全局安装（推荐 Agent / CI）
+npm install -g opensunstar-os
+
+# 或手动：解压 Release 附件后加入 PATH
+# Windows: OpenSunstar-v*-os-windows-x86_64.zip → os.exe
+# macOS/Linux: tar -xzf OpenSunstar-v*-os-*.tar.gz → os
 
 # 首次使用（创建 ~/.OpenSunstar/OpenSunstar.db）
 os config bootstrap --yes

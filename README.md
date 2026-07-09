@@ -204,9 +204,22 @@ Use **`os`** without the GUI for governance checks, provider switching, and a fu
 | **macOS** | `OpenSunstar-v*-os-macos-aarch64.tar.gz` / `os-macos-x86_64` |
 | **Linux** | `OpenSunstar-v*-os-linux-x86_64.tar.gz` |
 
+**Install options (pick one):**
+
+| Method | Command |
+| ------ | ------- |
+| **npm / pnpm** | `npm install -g opensunstar-os` |
+| **GitHub Release** | Download asset above, unzip, add `os` / `os.exe` to PATH |
+| **Scoop** (Windows) | `scoop install opensunstar-os` — see [distrib/scoop](distrib/scoop) |
+| **Winget** (Windows) | `winget install OpenSunstar.OpenSunstarCLI` — see [distrib/winget](distrib/winget) |
+
+> `opensunstar-os` is a thin Node wrapper that downloads the native binary from GitHub Releases on install — not a JS reimplementation. See [docs/cli-distribution-p1.md](docs/cli-distribution-p1.md).
+
 ```bash
-# Windows: unzip OpenSunstar-v*-os-windows-x86_64.zip, add os.exe to PATH
-# macOS/Linux: tar -xzf OpenSunstar-v*-os-*.tar.gz && sudo mv os /usr/local/bin/
+# npm global install (good for agents / CI)
+npm install -g opensunstar-os
+
+# or manual: unzip Release asset and add to PATH
 
 # First run (creates ~/.OpenSunstar/OpenSunstar.db)
 os config bootstrap --yes

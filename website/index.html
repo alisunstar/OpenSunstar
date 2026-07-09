@@ -523,15 +523,16 @@
 
         <div class="platform-panel active" id="platform-windows">
           <p style="color: var(--text-secondary); margin-bottom: 16px">
-            从 Releases 下载 <code>OpenSunstar-v1.1.4-Windows.msi</code>（GUI）或
-            <code>OpenSunstar-v*-os-windows-x86_64.zip</code>（仅 CLI）。
+            GUI：<code>OpenSunstar-v1.1.4-Windows.msi</code> · CLI：
+            <code>npm install -g opensunstar-os</code> 或 Release 附件
+            <code>OpenSunstar-v*-os-windows-x86_64.zip</code>
           </p>
           <div class="code-block">
             <button class="copy-btn" type="button">复制</button>
             <code
-              ># 1. 下载并安装 MSI 或解压 Portable<br /># 2. 启动 OpenSunstar →
-              快速接入 → 选择供应商 → 应用配置<br /># 3. 重启终端（Claude Code
-              可热切换，无需重启）</code
+              ># CLI（npm，安装时自动拉取 Release 二进制）<br />npm install -g
+              opensunstar-os<br />os doctor --json<br /><br /># GUI：下载 MSI →
+              快速接入 → 应用配置</code
             >
           </div>
         </div>
