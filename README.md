@@ -9,6 +9,7 @@
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
 [![Version](https://img.shields.io/badge/version-v1.1.4-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
@@ -208,7 +209,7 @@ Use **`os`** without the GUI for governance checks, provider switching, and a fu
 
 | Method | Command |
 | ------ | ------- |
-| **npm / pnpm** | `npm install -g opensunstar-os` |
+| **npm / pnpm** | `npm install -g opensunstar-os` — [npmjs.com/package/opensunstar-os](https://www.npmjs.com/package/opensunstar-os) |
 | **GitHub Release** | Download asset above, unzip, add `os` / `os.exe` to PATH |
 | **Scoop** (Windows) | `scoop install opensunstar-os` — see [distrib/scoop](distrib/scoop) |
 | **Winget** (Windows) | `winget install OpenSunstar.OpenSunstarCLI` — see [distrib/winget](distrib/winget) |

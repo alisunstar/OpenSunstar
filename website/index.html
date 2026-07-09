@@ -16,7 +16,7 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/style.css?v=7" />
+    <link rel="stylesheet" href="css/style.css?v=8" />
     <meta property="og:title" content="OpenSunstar — 一站式 AI 编程工作流工程化配置平台" />
     <meta
       property="og:description"
@@ -497,7 +497,8 @@
           <span class="section-label">Quick Start</span>
           <h2 class="section-title">🚀 快速开始</h2>
           <p class="section-desc">
-            选择你的平台：安装桌面 GUI，或仅下载 CLI <code>os</code> 附件。首次启动会自动导入现有 CLI 配置。
+            安装桌面 GUI，或通过 <code>npm install -g opensunstar-os</code> 仅安装 CLI
+            <code>os</code>。首次使用会自动导入或 bootstrap 现有 CLI 配置。
           </p>
         </div>
 
@@ -506,10 +507,10 @@
             ><span class="check">✓</span> Windows 10+ / macOS 12+ / Ubuntu 22.04+</span
           >
           <span class="prereq-item"
-            ><span class="check">✓</span> 无需 Node.js（原生安装包）</span
+            ><span class="check">✓</span> GUI 安装包无需 Node.js</span
           >
           <span class="prereq-item"
-            ><span class="check">✓</span> CLI `os` 可单独下载，无需 GUI</span
+            ><span class="check">✓</span> CLI：<code>npm i -g opensunstar-os</code>（Node 18+）</span
           >
         </div>
 
@@ -539,31 +540,37 @@
 
         <div class="platform-panel" id="platform-macos">
           <p style="color: var(--text-secondary); margin-bottom: 16px">
-            推荐 Homebrew 安装；亦可通过 DMG 手动安装（已通过 Apple 公证）。
+            GUI：<code>brew install --cask OpenSunstar</code> 或 DMG · CLI：
+            <code>npm install -g opensunstar-os</code>
           </p>
           <div class="code-block">
             <button class="copy-btn" type="button">复制</button>
             <code
-              ><span class="comment"># Homebrew（推荐）</span><br /><span
+              ><span class="comment"># CLI（npm，推荐 Agent / CI）</span><br /><span
                 class="cmd"
-                >brew install --cask OpenSunstar</span
-              ><br /><br /><span class="comment"># 更新</span><br /><span
-                class="cmd"
-                >brew upgrade --cask OpenSunstar</span
-              ></code
+                >npm install -g opensunstar-os</span
+              ><br /><span class="cmd">os doctor --json</span><br /><br /><span
+                class="comment"
+                ># GUI — Homebrew</span
+              ><br /><span class="cmd">brew install --cask OpenSunstar</span
+              ><br /><span class="cmd">brew upgrade --cask OpenSunstar</span></code
             >
           </div>
         </div>
 
         <div class="platform-panel" id="platform-linux">
           <p style="color: var(--text-secondary); margin-bottom: 16px">
-            支持 .deb / .rpm / AppImage；Arch 用户可通过 AUR 安装。
+            GUI：.deb / .rpm / AppImage · CLI：<code>npm install -g opensunstar-os</code>
           </p>
           <div class="code-block">
             <button class="copy-btn" type="button">复制</button>
             <code
-              ><span class="comment"># Debian / Ubuntu</span><br /><span
-                class="cmd"
+              ><span class="comment"># CLI（npm）</span><br /><span class="cmd"
+                >npm install -g opensunstar-os</span
+              ><br /><span class="cmd">os drift check --json</span><br /><br /><span
+                class="comment"
+                ># GUI — Debian / Ubuntu</span
+              ><br /><span class="cmd"
                 >sudo dpkg -i OpenSunstar-v1.1.4-Linux.deb</span
               ><br /><br /><span class="comment"># Arch (paru)</span><br /><span
                 class="cmd"
@@ -576,12 +583,23 @@
         <div class="download-cards">
           <div class="download-card">
             <h4>⌨️ CLI `os`</h4>
-            <p>独立命令行 + 全屏 TUI。Release 附件 os-*（Windows zip / macOS·Linux tar.gz）。</p>
+            <p>
+              <code>npm install -g opensunstar-os</code>（v1.1.4）— 安装时自动拉取 Release
+              原生二进制；亦可从 Release 下载 os-* 附件。
+            </p>
+            <a
+              class="btn btn-primary"
+              href="https://www.npmjs.com/package/opensunstar-os"
+              target="_blank"
+              rel="noopener"
+              >npm 安装 opensunstar-os →</a
+            >
             <a
               class="btn btn-secondary"
               href="https://github.com/alisunstar/OpenSunstar/blob/main/AGENTS.md"
               target="_blank"
               rel="noopener"
+              style="margin-top: 8px"
               >Agent 集成 AGENTS.md →</a
             >
           </div>
@@ -629,6 +647,25 @@
           <h2 class="section-title">常见问题</h2>
         </div>
         <div class="faq-list">
+          <details class="faq-item">
+            <summary>如何用 npm 安装 CLI `os`？</summary>
+            <p>
+              全局安装：<code>npm install -g opensunstar-os</code>（需 Node.js 18+）。包名
+              <a href="https://www.npmjs.com/package/opensunstar-os" target="_blank" rel="noopener"
+                >opensunstar-os</a
+              >
+              为 Node 薄包装，安装时从 GitHub Release 下载对应平台的 Rust 原生二进制。验证：<code
+                >os --version</code
+              >。也可从
+              <a
+                href="https://github.com/alisunstar/OpenSunstar/releases/latest"
+                target="_blank"
+                rel="noopener"
+                >Releases</a
+              >
+              手动下载 os-* 附件。
+            </p>
+          </details>
           <details class="faq-item">
             <summary>CLI `os` 需要先启动桌面 GUI 吗？</summary>
             <p>

@@ -7,7 +7,7 @@
 | 方式 | 状态 | 说明 |
 |------|------|------|
 | GitHub Release 直链 | ✅ 已上线 | `OpenSunstar-v*-os-*.zip` / `.tar.gz` |
-| `npm install -g opensunstar-os` | ✅ 本 PR | Node 薄包装，postinstall 拉 Release 二进制 |
+| `npm install -g opensunstar-os` | ✅ 已上线 v1.1.4 | Node 薄包装，postinstall 拉 Release 二进制 |
 | Scoop | 📋 模板就绪 | `distrib/scoop/opensunstar-os.json` |
 | Winget | 📋 模板就绪 | `distrib/winget/OpenSunstar.OpenSunstarCLI/` |
 | Homebrew formula（仅 CLI） | ⏳ P2 | GUI 已有 `brew install --cask OpenSunstar` |
