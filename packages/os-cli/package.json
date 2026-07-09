@@ -28,7 +28,7 @@
   },
   "type": "module",
   "bin": {
-    "os": "./bin/os.js"
+    "os": "bin/os.js"
   },
   "files": [
     "bin",
