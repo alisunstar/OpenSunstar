@@ -74,6 +74,8 @@ pub(crate) struct SyncManifest {
     pub encrypted: Option<bool>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub key_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub kdf_salt: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -114,18 +116,17 @@ pub(crate) fn build_local_snapshot(
     let db_sql_plain = sql_string.into_bytes();
 
     // Encrypt db.sql if sync master key is available (E2EE)
-    let (db_sql, encrypted, key_id) = match crate::keychain::get_sync_master_key() {
+    let (db_sql, encrypted, key_id, kdf_salt) = match crate::keychain::get_sync_master_key() {
         Ok(Some(master_key)) => {
-            let snapshot_salt = sha256_hex(&db_sql_plain);
-            let derived_key =
-                crate::keychain::derive_snapshot_key(&master_key, &snapshot_salt)?;
+            let snapshot_salt = random_snapshot_kdf_salt();
+            let derived_key = crate::keychain::derive_snapshot_key(&master_key, &snapshot_salt)?;
             let encrypted_bytes = crate::keychain::encrypt_data(&derived_key, &db_sql_plain)?;
             let kid = sha256_hex(&master_key)[..16].to_string();
-            (encrypted_bytes, Some(true), Some(kid))
+            (encrypted_bytes, Some(true), Some(kid), Some(snapshot_salt))
         }
         _ => {
             log::info!("Sync master key not available, uploading db.sql in plaintext");
-            (db_sql_plain, None, None)
+            (db_sql_plain, None, None, None)
         }
     };
 
@@ -170,6 +171,7 @@ pub(crate) fn build_local_snapshot(
         snapshot_id,
         encrypted,
         key_id,
+        kdf_salt,
     };
     let manifest_bytes =
         serde_json::to_vec_pretty(&manifest).map_err(|e| AppError::JsonSerialize { source: e })?;
@@ -346,7 +348,7 @@ pub(crate) fn apply_snapshot_with_manifest(
     manifest: Option<&SyncManifest>,
 ) -> Result<(), AppError> {
     let decrypted_sql: Vec<u8>;
-    let actual_db_sql = if manifest.map_or(false, |m| m.encrypted == Some(true)) {
+    let actual_db_sql = if let Some(manifest) = manifest.filter(|m| m.encrypted == Some(true)) {
         let master_key = crate::keychain::get_sync_master_key()?.ok_or_else(|| {
             localized(
                 "sync.master_key_missing",
@@ -354,8 +356,8 @@ pub(crate) fn apply_snapshot_with_manifest(
                 "Sync master key not found. Cannot decrypt the encrypted database snapshot. Please ensure the sync master key is configured on this device.",
             )
         })?;
-        let snapshot_salt = sha256_hex(db_sql);
-        let derived_key = crate::keychain::derive_snapshot_key(&master_key, &snapshot_salt)?;
+        let snapshot_salt = encrypted_snapshot_kdf_salt(manifest)?;
+        let derived_key = crate::keychain::derive_snapshot_key(&master_key, snapshot_salt)?;
         decrypted_sql = crate::keychain::decrypt_data(&derived_key, db_sql)?;
         &decrypted_sql
     } else {
@@ -396,6 +398,27 @@ pub(crate) fn sha256_hex(bytes: &[u8]) -> String {
     let mut hasher = Sha256::new();
     hasher.update(bytes);
     format!("{:x}", hasher.finalize())
+}
+
+fn random_snapshot_kdf_salt() -> String {
+    let mut bytes = [0u8; 32];
+    use rand::RngCore;
+    rand::thread_rng().fill_bytes(&mut bytes);
+    sha256_hex(&bytes)
+}
+
+fn encrypted_snapshot_kdf_salt(manifest: &SyncManifest) -> Result<&str, AppError> {
+    manifest
+        .kdf_salt
+        .as_deref()
+        .filter(|salt| !salt.trim().is_empty())
+        .ok_or_else(|| {
+            localized(
+                "sync.kdf_salt_missing",
+                "远端加密快照缺少密钥派生盐，无法安全解密。请在源设备使用新版 OpenSunstar 重新上传同步快照。",
+                "The encrypted remote snapshot is missing its key-derivation salt. Re-upload the sync snapshot from the source device with a newer OpenSunstar version.",
+            )
+        })
 }
 
 pub(crate) fn detect_system_device_name() -> Option<String> {
@@ -469,6 +492,53 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{Mutex, OnceLock};
+    use tempfile::{tempdir, TempDir};
+
+    fn sync_roundtrip_mutex() -> &'static Mutex<()> {
+        static MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
+        MUTEX.get_or_init(|| Mutex::new(()))
+    }
+
+    fn prepare_sync_test_home(name: &str) -> TempDir {
+        let home = tempdir().expect("create sync test home");
+        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", home.path());
+        std::env::set_var("HOME", home.path());
+        #[cfg(windows)]
+        std::env::set_var("USERPROFILE", home.path());
+        crate::settings::update_settings(crate::settings::AppSettings::default())
+            .expect("reset settings");
+        let skills_dir =
+            crate::services::skill::SkillService::get_ssot_dir().expect("create skills ssot dir");
+        std::fs::write(
+            skills_dir.join(format!("{name}.md")),
+            format!("# {name}\n\nsync test skill\n"),
+        )
+        .expect("write test skill");
+        home
+    }
+
+    fn seeded_memory_db(marker_value: &str) -> crate::database::Database {
+        let db = crate::database::Database::memory().expect("memory db");
+        db.init_default_official_providers()
+            .expect("seed official providers");
+        db.set_setting("sync_roundtrip_marker", marker_value)
+            .expect("write marker setting");
+        db
+    }
+
+    fn parse_snapshot_manifest(snapshot: &LocalSnapshot) -> SyncManifest {
+        serde_json::from_slice(&snapshot.manifest_bytes).expect("parse snapshot manifest")
+    }
+
+    fn assert_marker(db: &crate::database::Database, expected: &str) {
+        assert_eq!(
+            db.get_setting("sync_roundtrip_marker")
+                .expect("read marker setting")
+                .as_deref(),
+            Some(expected)
+        );
+    }
 
     fn artifact(sha256: &str, size: u64) -> ArtifactMeta {
         ArtifactMeta {
@@ -546,6 +616,7 @@ mod tests {
             snapshot_id: "snap-1".to_string(),
             encrypted: None,
             key_id: None,
+            kdf_salt: None,
         }
     }
 
@@ -608,6 +679,172 @@ mod tests {
             effective_db_compat_version(&manifest, RemoteLayout::Current),
             None
         );
+    }
+
+    #[test]
+    fn encrypted_snapshot_requires_manifest_kdf_salt() {
+        let mut manifest =
+            manifest_with(PROTOCOL_FORMAT, PROTOCOL_VERSION, Some(DB_COMPAT_VERSION));
+        manifest.encrypted = Some(true);
+        let err = encrypted_snapshot_kdf_salt(&manifest)
+            .expect_err("encrypted snapshot without kdf_salt should be rejected");
+        assert!(err.to_string().contains("密钥派生盐") || err.to_string().contains("salt"));
+    }
+
+    #[test]
+    fn encrypted_snapshot_uses_manifest_kdf_salt() {
+        let mut manifest =
+            manifest_with(PROTOCOL_FORMAT, PROTOCOL_VERSION, Some(DB_COMPAT_VERSION));
+        manifest.encrypted = Some(true);
+        manifest.kdf_salt = Some("fixed-test-salt".to_string());
+        assert_eq!(
+            encrypted_snapshot_kdf_salt(&manifest).expect("kdf salt"),
+            "fixed-test-salt"
+        );
+    }
+
+    #[test]
+    fn encrypted_snapshot_roundtrip_depends_on_manifest_kdf_salt() {
+        let mut manifest =
+            manifest_with(PROTOCOL_FORMAT, PROTOCOL_VERSION, Some(DB_COMPAT_VERSION));
+        manifest.encrypted = Some(true);
+        manifest.kdf_salt = Some("fixed-test-salt".to_string());
+
+        let master_key = vec![7u8; 32];
+        let plaintext = b"CREATE TABLE test(id INTEGER);";
+        let salt = encrypted_snapshot_kdf_salt(&manifest).expect("manifest salt");
+        let key = crate::keychain::derive_snapshot_key(&master_key, salt).expect("derive key");
+        let encrypted = crate::keychain::encrypt_data(&key, plaintext).expect("encrypt");
+        let decrypted = crate::keychain::decrypt_data(&key, &encrypted).expect("decrypt");
+        assert_eq!(decrypted, plaintext);
+
+        let wrong_legacy_salt = sha256_hex(&encrypted);
+        let wrong_key = crate::keychain::derive_snapshot_key(&master_key, &wrong_legacy_salt)
+            .expect("derive legacy bug key");
+        assert!(
+            crate::keychain::decrypt_data(&wrong_key, &encrypted).is_err(),
+            "ciphertext-derived salt must not be accepted for new encrypted snapshots"
+        );
+    }
+
+    #[test]
+    fn plaintext_snapshot_roundtrip_applies_db_and_skills() {
+        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
+        let _home = prepare_sync_test_home("plaintext-roundtrip");
+        crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
+
+        let source = seeded_memory_db("plaintext-ok");
+        let snapshot = build_local_snapshot(&source).expect("build plaintext snapshot");
+        let manifest = parse_snapshot_manifest(&snapshot);
+
+        assert_ne!(manifest.encrypted, Some(true));
+        assert!(std::str::from_utf8(&snapshot.db_sql)
+            .expect("plaintext db.sql should be utf8")
+            .contains("plaintext-ok"));
+
+        let target = seeded_memory_db("before-download");
+        apply_snapshot_with_manifest(
+            &target,
+            &snapshot.db_sql,
+            &snapshot.skills_zip,
+            Some(&manifest),
+        )
+        .expect("apply plaintext snapshot");
+
+        assert_marker(&target, "plaintext-ok");
+    }
+
+    #[test]
+    fn encrypted_snapshot_roundtrip_applies_with_matching_master_key() {
+        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
+        let _home = prepare_sync_test_home("encrypted-roundtrip");
+        let master_key = vec![42u8; 32];
+        crate::keychain::store_sync_master_key(&master_key).expect("store sync key");
+
+        let source = seeded_memory_db("encrypted-ok");
+        let snapshot = build_local_snapshot(&source).expect("build encrypted snapshot");
+        let manifest = parse_snapshot_manifest(&snapshot);
+
+        assert_eq!(manifest.encrypted, Some(true));
+        assert!(manifest
+            .kdf_salt
+            .as_deref()
+            .is_some_and(|salt| !salt.is_empty()));
+        assert!(
+            std::str::from_utf8(&snapshot.db_sql)
+                .map(|sql| !sql.contains("encrypted-ok"))
+                .unwrap_or(true),
+            "encrypted db.sql must not expose plaintext marker"
+        );
+
+        let target = seeded_memory_db("before-download");
+        apply_snapshot_with_manifest(
+            &target,
+            &snapshot.db_sql,
+            &snapshot.skills_zip,
+            Some(&manifest),
+        )
+        .expect("apply encrypted snapshot");
+
+        assert_marker(&target, "encrypted-ok");
+    }
+
+    #[test]
+    fn encrypted_snapshot_roundtrip_rejects_wrong_master_key() {
+        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
+        let _home = prepare_sync_test_home("wrong-key-roundtrip");
+        crate::keychain::store_sync_master_key(&[1u8; 32]).expect("store source sync key");
+
+        let source = seeded_memory_db("wrong-key-secret");
+        let snapshot = build_local_snapshot(&source).expect("build encrypted snapshot");
+        let manifest = parse_snapshot_manifest(&snapshot);
+        assert_eq!(manifest.encrypted, Some(true));
+
+        crate::keychain::store_sync_master_key(&[2u8; 32]).expect("replace sync key");
+        let target = seeded_memory_db("before-download");
+        let err = apply_snapshot_with_manifest(
+            &target,
+            &snapshot.db_sql,
+            &snapshot.skills_zip,
+            Some(&manifest),
+        )
+        .expect_err("wrong master key must reject encrypted snapshot");
+
+        assert!(
+            err.to_string().contains("Decryption failed")
+                || err.to_string().contains("解密")
+                || err.to_string().contains("invalid key"),
+            "unexpected error: {err}"
+        );
+        assert_marker(&target, "before-download");
+    }
+
+    #[test]
+    fn encrypted_snapshot_roundtrip_rejects_damaged_manifest_without_kdf_salt() {
+        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
+        let _home = prepare_sync_test_home("damaged-manifest-roundtrip");
+        crate::keychain::store_sync_master_key(&[3u8; 32]).expect("store sync key");
+
+        let source = seeded_memory_db("damaged-manifest-secret");
+        let snapshot = build_local_snapshot(&source).expect("build encrypted snapshot");
+        let mut manifest = parse_snapshot_manifest(&snapshot);
+        assert_eq!(manifest.encrypted, Some(true));
+        manifest.kdf_salt = None;
+
+        let target = seeded_memory_db("before-download");
+        let err = apply_snapshot_with_manifest(
+            &target,
+            &snapshot.db_sql,
+            &snapshot.skills_zip,
+            Some(&manifest),
+        )
+        .expect_err("damaged encrypted manifest must be rejected");
+
+        assert!(
+            err.to_string().contains("密钥派生盐") || err.to_string().contains("salt"),
+            "unexpected error: {err}"
+        );
+        assert_marker(&target, "before-download");
     }
 
     #[test]

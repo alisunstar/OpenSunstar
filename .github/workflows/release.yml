@@ -18,6 +18,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 concurrency:
   group: release-${{ github.ref_name || inputs.tag }}
@@ -58,16 +59,18 @@ jobs:
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
-        # Version read from package.json "packageManager" (pnpm@11.5.2)
+        with:
+          version: 11.5.2
+          run_install: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.95.0
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -135,7 +138,7 @@ jobs:
           ref: ${{ needs.resolve-tag.outputs.tag }}
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.95.0
         with:
           targets: ${{ matrix.target }}
 
@@ -198,11 +201,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .node-version
           registry-url: https://registry.npmjs.org
 
       - name: Sync npm package version
         run: node scripts/sync-os-cli-version.mjs
+
+      - name: Download os CLI release artifacts
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist/os-cli-artifacts
+          gh release download "${{ needs.resolve-tag.outputs.tag }}" \
+            --pattern "OpenSunstar-${{ needs.resolve-tag.outputs.tag }}-os-*" \
+            --dir dist/os-cli-artifacts
+
+      - name: Generate npm CLI checksums
+        run: node scripts/update-os-cli-checksums.mjs --artifacts-dir dist/os-cli-artifacts --tag ${{ needs.resolve-tag.outputs.tag }}
+
+      - name: Verify npm CLI package
+        run: node scripts/verify-os-cli-package.mjs --require-checksums
 
       - name: Publish to npm
         working-directory: packages/os-cli
@@ -211,6 +229,6 @@ jobs:
             echo "NPM_TOKEN secret not configured — skipping npm publish."
             exit 0
           fi
-          npm publish --access public
+          npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

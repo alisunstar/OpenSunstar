@@ -73,7 +73,7 @@ export function PortfolioDriftSummary({
         )}
       >
         {t("kanban.portfolioDrift.allClear", {
-          defaultValue: "组合层生效态巡检：未发现配置漂移。",
+          defaultValue: "组合层生效状态巡检：未发现配置不一致。",
         })}
         {scanLabel && (
           <span className="ml-2 text-xs text-muted-foreground inline-flex items-center gap-1">
@@ -98,7 +98,7 @@ export function PortfolioDriftSummary({
           {t("kanban.portfolioDrift.title", {
             projects: driftProjects.length,
             items: totalDriftItems,
-            defaultValue: `${driftProjects.length} 个项目存在配置漂移（共 ${totalDriftItems} 项）`,
+            defaultValue: `${driftProjects.length} 个项目存在配置不一致（共 ${totalDriftItems} 项）`,
           })}
         </div>
         <div className="text-[11px] text-muted-foreground">
@@ -129,7 +129,7 @@ export function PortfolioDriftSummary({
                 <span className="shrink-0 tabular-nums text-amber-700 dark:text-amber-400">
                   {t("kanban.portfolioDrift.itemCount", {
                     count: entry.driftCount,
-                    defaultValue: `${entry.driftCount} 项漂移`,
+                    defaultValue: `${entry.driftCount} 项待处理`,
                   })}
                 </span>
               </button>
@@ -140,7 +140,7 @@ export function PortfolioDriftSummary({
                   size="icon"
                   className="h-7 w-7 shrink-0"
                   title={t("kanban.portfolioDrift.repairAll", {
-                    defaultValue: "修复全部漂移",
+                    defaultValue: "修复全部待处理项",
                   })}
                   disabled={repairingProjectId === project.id}
                   onClick={() =>

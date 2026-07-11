@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { Sparkles, Settings2, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Sparkles, ChevronDown } from "lucide-react";
 import {
   getAICostSummary,
   type AICostSummary,
@@ -9,8 +8,6 @@ import {
 interface AIInsightPanelProps {
   projectCount: number;
   aiConfigured: boolean;
-  /** 跳转到 AI 设置页的回调 */
-  onOpenSettings?: () => void;
 }
 
 /** insight_type → 中文标签 */
@@ -35,7 +32,6 @@ function typeLabel(t: string): string {
 export function AIInsightPanel({
   projectCount,
   aiConfigured,
-  onOpenSettings,
 }: AIInsightPanelProps) {
   const [costSummary, setCostSummary] = useState<AICostSummary | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -47,37 +43,7 @@ export function AIInsightPanel({
     });
   }, [aiConfigured]);
 
-  // ── 未配置 AI: 引导卡片 ───────────────────────
-  if (!aiConfigured) {
-    return (
-      <div className="mb-4 rounded-xl border border-dashed border-primary/20 bg-primary/[0.03] p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-            <Sparkles className="h-4.5 w-4.5 text-primary/70" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground/90">
-              开启 AI 智能分析
-            </p>
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-              配置 AI 模型后，看板将为每个项目自动生成摘要和健康评分
-            </p>
-          </div>
-          {onOpenSettings && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 h-8 text-xs"
-              onClick={onOpenSettings}
-            >
-              <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              配置 AI
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (!aiConfigured) return null;
 
   // ── 已配置 AI: 成本统计条 + 可展开详情 ─────────────────────
   const cost = costSummary?.total_cost ?? 0;

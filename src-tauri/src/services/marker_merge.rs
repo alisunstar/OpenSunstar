@@ -197,6 +197,82 @@ pub fn is_managed_subagent_file(text: &str) -> bool {
         || first.starts_with("# opensunstar:managed-subagent")
 }
 
+// ── Ignore 文件标记 ───────────────────────────────────────
+
+/// gitignore 风格注释标记，CLI 工具将 `#` 行视为注释不影响功能
+pub const MANAGED_IGNORE_MARKER: &str = "# opensunstar:managed-ignore";
+
+/// 在 ignore 文件内容前插入管理标记行。
+pub fn wrap_managed_ignore(body: &str) -> String {
+    if body.is_empty() {
+        format!("{MANAGED_IGNORE_MARKER}\n")
+    } else {
+        format!("{MANAGED_IGNORE_MARKER}\n{}", body)
+    }
+}
+
+/// 剥离开头管理标记行（用于漂移检测比较）。
+pub fn strip_managed_ignore_marker(text: &str) -> String {
+    let first_line_end = text.find('\n');
+    if let Some(pos) = first_line_end {
+        let first_line = &text[..pos];
+        if first_line.trim() == MANAGED_IGNORE_MARKER {
+            return text[pos + 1..].to_string();
+        }
+    } else if text.trim() == MANAGED_IGNORE_MARKER {
+        return String::new();
+    }
+    text.to_string()
+}
+
+/// 判断文件是否由 OpenSunstar 管理（首行含管理标记）。
+pub fn is_managed_ignore_file(text: &str) -> bool {
+    text.lines()
+        .next()
+        .is_some_and(|l| l.trim() == MANAGED_IGNORE_MARKER)
+}
+
+// ── 伴生标记文件（用于 JSON 等无法内嵌注释的格式） ─────────
+
+/// 在目标文件旁边创建一个 `.opensunstar` 伴生标记文件。
+pub fn create_companion_marker(path: &std::path::Path) {
+    let marker = path.with_extension(
+        format!(
+            "{}.opensunstar",
+            path.extension()
+                .map(|e| e.to_string_lossy())
+                .unwrap_or_default()
+        ),
+    );
+    let _ = std::fs::write(&marker, b"managed");
+}
+
+/// 检查目标文件是否有 `.opensunstar` 伴生标记文件。
+pub fn has_companion_marker(path: &std::path::Path) -> bool {
+    let marker = path.with_extension(
+        format!(
+            "{}.opensunstar",
+            path.extension()
+                .map(|e| e.to_string_lossy())
+                .unwrap_or_default()
+        ),
+    );
+    marker.is_file()
+}
+
+/// 删除目标文件的 `.opensunstar` 伴生标记文件。
+pub fn remove_companion_marker(path: &std::path::Path) {
+    let marker = path.with_extension(
+        format!(
+            "{}.opensunstar",
+            path.extension()
+                .map(|e| e.to_string_lossy())
+                .unwrap_or_default()
+        ),
+    );
+    let _ = std::fs::remove_file(&marker);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -245,5 +321,42 @@ mod tests {
         assert!(out.contains("gentle-ai:sdd"));
         assert!(out.contains("OpenSunstar prompt"));
         assert!(out.contains("# Top"));
+    }
+
+    #[test]
+    fn wrap_ignore_adds_marker() {
+        let wrapped = wrap_managed_ignore("node_modules\n*.log\n");
+        assert!(wrapped.starts_with(MANAGED_IGNORE_MARKER));
+        assert!(wrapped.contains("node_modules"));
+    }
+
+    #[test]
+    fn wrap_ignore_empty_body() {
+        let wrapped = wrap_managed_ignore("");
+        assert_eq!(wrapped, format!("{MANAGED_IGNORE_MARKER}\n"));
+    }
+
+    #[test]
+    fn strip_ignore_marker_roundtrip() {
+        let wrapped = wrap_managed_ignore("dist/\n.env\n");
+        let stripped = strip_managed_ignore_marker(&wrapped);
+        assert_eq!(stripped, "dist/\n.env\n");
+        assert!(!stripped.contains(MANAGED_IGNORE_MARKER));
+    }
+
+    #[test]
+    fn is_managed_ignore_detects_marker() {
+        let managed = wrap_managed_ignore("*.tmp\n");
+        assert!(is_managed_ignore_file(&managed));
+
+        let user_content = "# my ignore rules\nnode_modules\ndist/\n";
+        assert!(!is_managed_ignore_file(user_content));
+    }
+
+    #[test]
+    fn strip_ignore_preserves_unmarked_content() {
+        let user = "# custom\n*.log\n";
+        let stripped = strip_managed_ignore_marker(user);
+        assert_eq!(stripped, user);
     }
 }

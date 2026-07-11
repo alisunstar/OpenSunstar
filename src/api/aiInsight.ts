@@ -159,6 +159,7 @@ export type ReadinessItemStatus =
   | "partial"
   | "global_only"
   | "detected_only"
+  | "not_applicable"
   | "missing";
 
 export interface AgentReadinessItem {
@@ -206,6 +207,20 @@ export interface RepairProjectDriftResult {
   still_drifted_count: number;
   items: RepairAssetDriftResult[];
   scanned_at: number;
+}
+
+export interface RepairPreviewItem {
+  check_name: string;
+  label: string;
+  live_path?: string | null;
+  effective_detail?: string | null;
+  current_content: string;
+  is_safety_critical: boolean;
+}
+
+export interface RepairPreviewResult {
+  items: RepairPreviewItem[];
+  total_drifted: number;
 }
 
 export interface ProjectContextInput {
@@ -529,18 +544,36 @@ export async function repairAssetDrift(
   }
 }
 
-/** 修复项目内全部漂移项 */
+/** 修复项目内漂移项（可选指定 checkNames 选择性修复） */
 export async function repairProjectDrift(
   projectPath: string,
   targetApp?: string | null,
+  checkNames?: string[],
 ): Promise<RepairProjectDriftResult | null> {
   try {
     return await invoke<RepairProjectDriftResult>("repair_project_drift", {
       projectPath,
       targetApp: targetApp ?? null,
+      checkNames: checkNames ?? null,
     });
   } catch (e) {
     warn("repairProjectDrift failed", e);
+    return null;
+  }
+}
+
+/** 预览项目漂移修复：返回漂移项列表及当前文件内容摘要 */
+export async function previewRepairProjectDrift(
+  projectPath: string,
+  targetApp?: string | null,
+): Promise<RepairPreviewResult | null> {
+  try {
+    return await invoke<RepairPreviewResult>("preview_repair_project_drift", {
+      projectPath,
+      targetApp: targetApp ?? null,
+    });
+  } catch (e) {
+    warn("previewRepairProjectDrift failed", e);
     return null;
   }
 }

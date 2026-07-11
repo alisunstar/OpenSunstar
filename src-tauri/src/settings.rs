@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::{OnceLock, RwLock};
 
 use crate::app_config::AppType;
 use crate::error::AppError;
+use crate::keychain;
 use crate::services::skill::{SkillStorageLocation, SyncMethod};
 
 /// 自定义端点配置（历史兼容，实际存储在 provider.meta.custom_endpoints）
@@ -99,6 +101,9 @@ fn default_remote_root() -> String {
 fn default_profile() -> String {
     "default".to_string()
 }
+
+const WEBDAV_PASSWORD_KEY: &str = "sync/webdav/password";
+const S3_SECRET_ACCESS_KEY: &str = "sync/s3/secret_access_key";
 
 /// WebDAV 同步设置
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -505,6 +510,92 @@ impl Default for AppSettings {
     }
 }
 
+fn sync_credential_entry_key(base_key: &str) -> String {
+    if let Ok(test_home) = std::env::var("OPEN_SUNSTAR_TEST_HOME") {
+        let mut hasher = Sha256::new();
+        hasher.update(test_home.as_bytes());
+        let digest = format!("{:x}", hasher.finalize());
+        let namespace = digest.get(..16).unwrap_or(digest.as_str());
+        format!("test/{namespace}/{base_key}")
+    } else {
+        base_key.to_string()
+    }
+}
+
+fn webdav_password_entry_key() -> String {
+    sync_credential_entry_key(WEBDAV_PASSWORD_KEY)
+}
+
+fn s3_secret_access_key_entry_key() -> String {
+    sync_credential_entry_key(S3_SECRET_ACCESS_KEY)
+}
+
+fn protect_secret_for_storage(value: &mut String, entry_key: &str) -> Result<(), AppError> {
+    if value.is_empty() {
+        let _ = keychain::delete_secret(entry_key);
+        return Ok(());
+    }
+    if keychain::is_keychain_ref(value) {
+        return Ok(());
+    }
+
+    keychain::store_secret(entry_key, value)?;
+    *value = keychain::make_keychain_ref(entry_key);
+    Ok(())
+}
+
+fn resolve_secret_for_use(value: &mut String, field_name: &str) -> bool {
+    if !keychain::is_keychain_ref(value) {
+        return false;
+    }
+
+    match keychain::resolve_value(value) {
+        Ok(secret) => {
+            *value = secret;
+            false
+        }
+        Err(err) => {
+            log::warn!(
+                "无法解析同步凭据 {field_name} 的 Keychain 引用，已清空内存值并要求用户重新输入: {err}"
+            );
+            value.clear();
+            true
+        }
+    }
+}
+
+fn has_plain_sync_secret(settings: &AppSettings) -> bool {
+    settings
+        .webdav_sync
+        .as_ref()
+        .is_some_and(|sync| !sync.password.is_empty() && !keychain::is_keychain_ref(&sync.password))
+        || settings.s3_sync.as_ref().is_some_and(|s3| {
+            !s3.secret_access_key.is_empty() && !keychain::is_keychain_ref(&s3.secret_access_key)
+        })
+}
+
+fn protect_sync_secrets_for_storage(settings: &mut AppSettings) -> Result<(), AppError> {
+    if let Some(sync) = &mut settings.webdav_sync {
+        protect_secret_for_storage(&mut sync.password, &webdav_password_entry_key())?;
+    }
+    if let Some(s3) = &mut settings.s3_sync {
+        protect_secret_for_storage(&mut s3.secret_access_key, &s3_secret_access_key_entry_key())?;
+    }
+    Ok(())
+}
+
+fn resolve_sync_secrets_for_use(settings: &mut AppSettings) -> bool {
+    let mut cleared_unresolved_ref = false;
+    if let Some(sync) = &mut settings.webdav_sync {
+        cleared_unresolved_ref |= resolve_secret_for_use(&mut sync.password, "webdav.password");
+    }
+    if let Some(s3) = &mut settings.s3_sync {
+        cleared_unresolved_ref |=
+            resolve_secret_for_use(&mut s3.secret_access_key, "s3.secret_access_key");
+    }
+    cleared_unresolved_ref
+}
+
 impl AppSettings {
     fn settings_path() -> Option<PathBuf> {
         // settings.json 保留用于旧版本迁移和无数据库场景
@@ -588,6 +679,13 @@ impl AppSettings {
             match serde_json::from_str::<AppSettings>(&content) {
                 Ok(mut settings) => {
                     settings.normalize_paths();
+                    let needs_secret_migration = has_plain_sync_secret(&settings);
+                    let cleared_unresolved_ref = resolve_sync_secrets_for_use(&mut settings);
+                    if needs_secret_migration || cleared_unresolved_ref {
+                        if let Err(err) = save_settings_file(&settings) {
+                            log::warn!("迁移同步凭据到 Keychain 后回写 settings.json 失败: {err}");
+                        }
+                    }
                     settings
                 }
                 Err(err) => {
@@ -608,6 +706,8 @@ impl AppSettings {
 fn save_settings_file(settings: &AppSettings) -> Result<(), AppError> {
     let mut normalized = settings.clone();
     normalized.normalize_paths();
+    let _ = resolve_sync_secrets_for_use(&mut normalized);
+    protect_sync_secrets_for_storage(&mut normalized)?;
     let Some(path) = AppSettings::settings_path() else {
         return Err(AppError::Config("无法获取用户主目录".to_string()));
     };
@@ -668,13 +768,15 @@ fn resolve_override_path(raw: &str) -> PathBuf {
 }
 
 pub fn get_settings() -> AppSettings {
-    settings_store()
+    let mut settings = settings_store()
         .read()
         .unwrap_or_else(|e| {
             log::warn!("设置锁已毒化，使用恢复值: {e}");
             e.into_inner()
         })
-        .clone()
+        .clone();
+    let _ = resolve_sync_secrets_for_use(&mut settings);
+    settings
 }
 
 pub fn get_settings_for_frontend() -> AppSettings {
@@ -692,6 +794,7 @@ pub fn get_settings_for_frontend() -> AppSettings {
 pub fn update_settings(mut new_settings: AppSettings) -> Result<(), AppError> {
     new_settings.normalize_paths();
     save_settings_file(&new_settings)?;
+    let _ = resolve_sync_secrets_for_use(&mut new_settings);
 
     let mut guard = settings_store().write().unwrap_or_else(|e| {
         log::warn!("设置锁已毒化，使用恢复值: {e}");
@@ -713,6 +816,7 @@ where
     mutator(&mut next);
     next.normalize_paths();
     save_settings_file(&next)?;
+    let _ = resolve_sync_secrets_for_use(&mut next);
     *guard = next;
     Ok(())
 }
@@ -762,7 +866,8 @@ pub fn mark_codex_provider_template_migrated(
 /// 从文件重新加载设置到内存缓存
 /// 用于导入配置等场景，确保内存缓存与文件同步
 pub fn reload_settings() -> Result<(), AppError> {
-    let fresh_settings = AppSettings::load_from_file();
+    let mut fresh_settings = AppSettings::load_from_file();
+    let _ = resolve_sync_secrets_for_use(&mut fresh_settings);
     let mut guard = settings_store().write().unwrap_or_else(|e| {
         log::warn!("设置锁已毒化，使用恢复值: {e}");
         e.into_inner()
@@ -978,7 +1083,7 @@ pub fn get_preferred_terminal() -> Option<String> {
 
 /// 获取 WebDAV 同步设置
 pub fn get_webdav_sync_settings() -> Option<WebDavSyncSettings> {
-    settings_store().read().ok()?.webdav_sync.clone()
+    get_settings().webdav_sync
 }
 
 /// 保存 WebDAV 同步设置
@@ -1000,7 +1105,7 @@ pub fn update_webdav_sync_status(status: WebDavSyncStatus) -> Result<(), AppErro
 // ===== S3 同步设置管理函数 =====
 
 pub fn get_s3_sync_settings() -> Option<S3SyncSettings> {
-    settings_store().read().ok()?.s3_sync.clone()
+    get_settings().s3_sync
 }
 
 pub fn set_s3_sync_settings(settings: Option<S3SyncSettings>) -> Result<(), AppError> {
@@ -1021,6 +1126,7 @@ pub fn update_s3_sync_status(status: WebDavSyncStatus) -> Result<(), AppError> {
 mod tests {
     use super::*;
     use crate::app_config::AppType;
+    use serial_test::serial;
 
     #[test]
     fn visible_apps_old_settings_default_claude_desktop_visible() {
@@ -1051,5 +1157,130 @@ mod tests {
         .expect("visible apps");
 
         assert!(!visible.is_visible(&AppType::ClaudeDesktop));
+    }
+
+    #[test]
+    #[serial]
+    fn webdav_password_is_stored_as_keychain_ref_on_disk() {
+        let test_home = std::env::temp_dir().join("OpenSunstar-settings-webdav-keychain-test");
+        let _ = std::fs::remove_dir_all(&test_home);
+        std::fs::create_dir_all(&test_home).expect("create test home");
+        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
+
+        update_settings(AppSettings::default()).expect("reset settings");
+        set_webdav_sync_settings(Some(WebDavSyncSettings {
+            enabled: true,
+            base_url: "https://dav.example.com/dav/".to_string(),
+            username: "alice".to_string(),
+            password: "super-secret-webdav-p0".to_string(),
+            ..WebDavSyncSettings::default()
+        }))
+        .expect("save webdav settings");
+
+        let settings_path = test_home.join(".OpenSunstar").join("settings.json");
+        let content = std::fs::read_to_string(&settings_path).expect("read settings.json");
+        assert!(
+            !content.contains("super-secret-webdav-p0"),
+            "settings.json must not contain plaintext WebDAV password"
+        );
+        assert!(
+            content.contains("keychain://ref/"),
+            "settings.json should store a keychain reference"
+        );
+
+        let settings = get_webdav_sync_settings().expect("webdav settings");
+        assert_eq!(settings.password, "super-secret-webdav-p0");
+        let frontend = get_settings_for_frontend()
+            .webdav_sync
+            .expect("frontend webdav settings");
+        assert!(frontend.password.is_empty());
+
+        let _ = keychain::delete_secret(&webdav_password_entry_key());
+    }
+
+    #[test]
+    #[serial]
+    fn s3_secret_is_stored_as_keychain_ref_on_disk() {
+        let test_home = std::env::temp_dir().join("OpenSunstar-settings-s3-keychain-test");
+        let _ = std::fs::remove_dir_all(&test_home);
+        std::fs::create_dir_all(&test_home).expect("create test home");
+        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
+
+        update_settings(AppSettings::default()).expect("reset settings");
+        set_s3_sync_settings(Some(S3SyncSettings {
+            enabled: true,
+            region: "us-east-1".to_string(),
+            bucket: "opensunstar-test".to_string(),
+            access_key_id: "AKID".to_string(),
+            secret_access_key: "super-secret-s3-p0".to_string(),
+            ..S3SyncSettings::default()
+        }))
+        .expect("save s3 settings");
+
+        let settings_path = test_home.join(".OpenSunstar").join("settings.json");
+        let content = std::fs::read_to_string(&settings_path).expect("read settings.json");
+        assert!(
+            !content.contains("super-secret-s3-p0"),
+            "settings.json must not contain plaintext S3 secret"
+        );
+        assert!(
+            content.contains("keychain://ref/"),
+            "settings.json should store a keychain reference"
+        );
+
+        let settings = get_s3_sync_settings().expect("s3 settings");
+        assert_eq!(settings.secret_access_key, "super-secret-s3-p0");
+        let frontend = get_settings_for_frontend()
+            .s3_sync
+            .expect("frontend s3 settings");
+        assert!(frontend.secret_access_key.is_empty());
+
+        let _ = keychain::delete_secret(&s3_secret_access_key_entry_key());
+    }
+
+    #[test]
+    #[serial]
+    fn loading_legacy_plaintext_sync_secret_migrates_file_to_keychain_ref() {
+        let test_home =
+            std::env::temp_dir().join("OpenSunstar-settings-legacy-sync-migration-test");
+        let settings_dir = test_home.join(".OpenSunstar");
+        let settings_path = settings_dir.join("settings.json");
+        let _ = std::fs::remove_dir_all(&test_home);
+        std::fs::create_dir_all(&settings_dir).expect("create settings dir");
+        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
+
+        let legacy = serde_json::json!({
+            "webdavSync": {
+                "enabled": true,
+                "autoSync": false,
+                "baseUrl": "https://dav.example.com/dav/",
+                "username": "alice",
+                "password": "legacy-plaintext-webdav-p0",
+                "remoteRoot": "OpenSunstar-sync",
+                "profile": "default"
+            }
+        });
+        std::fs::write(
+            &settings_path,
+            serde_json::to_string_pretty(&legacy).expect("legacy json"),
+        )
+        .expect("write legacy settings");
+
+        reload_settings().expect("reload legacy settings");
+
+        let migrated = std::fs::read_to_string(&settings_path).expect("read migrated settings");
+        assert!(
+            !migrated.contains("legacy-plaintext-webdav-p0"),
+            "legacy plaintext password should be removed from settings.json"
+        );
+        assert!(
+            migrated.contains("keychain://ref/"),
+            "legacy plaintext password should be replaced by a keychain ref"
+        );
+
+        let settings = get_webdav_sync_settings().expect("webdav settings");
+        assert_eq!(settings.password, "legacy-plaintext-webdav-p0");
+
+        let _ = keychain::delete_secret(&webdav_password_entry_key());
     }
 }

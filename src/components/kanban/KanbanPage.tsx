@@ -46,11 +46,15 @@ import { AICostProvider } from "@/contexts/AICostContext";
 import { PortfolioDriftSummary } from "./PortfolioDriftSummary";
 import { GovernanceDashboard } from "./GovernanceDashboard";
 import { TodayWorkspace } from "./TodayWorkspace";
+import { PortfolioHealthSummary } from "./PortfolioHealthSummary";
+import { DashboardOnboarding } from "./DashboardOnboarding";
 import { ProjectAssetsMatrix } from "./ProjectAssetsMatrix";
 import { WorkspaceTabBar } from "./WorkspaceTabBar";
 import { usePortfolioAssetSummary } from "@/hooks/kanban/usePortfolioAssetSummary";
-import { repairProjectDrift } from "@/api/aiInsight";
+import { repairProjectDrift, previewRepairProjectDrift } from "@/api/aiInsight";
+import type { RepairPreviewResult } from "@/api/aiInsight";
 import { showRepairProjectFeedback } from "@/lib/repairFeedback";
+import { RepairPreviewDialog } from "./RepairPreviewDialog";
 import type { WorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
 import type { AppId } from "@/lib/api";
@@ -89,7 +93,6 @@ export function KanbanPage({
   onProjectRemove,
   onAddProject,
   onClearSelection,
-  onOpenSettings,
   onNavigate,
   onPortfolioDataChanged,
   targetApp = "claude",
@@ -106,6 +109,18 @@ export function KanbanPage({
   >("overview");
   const [portfolioRefreshToken, setPortfolioRefreshToken] = useState(0);
   const [repairingProjectId, setRepairingProjectId] = useState<string | null>(null);
+  const [repairPreviewOpen, setRepairPreviewOpen] = useState(false);
+  const [repairPreviewLoading, setRepairPreviewLoading] = useState(false);
+  const [repairPreviewData, setRepairPreviewData] =
+    useState<RepairPreviewResult | null>(null);
+  const [repairPreviewProject, setRepairPreviewProject] = useState<{
+    id: string;
+    name: string;
+    path: string;
+  } | null>(null);
+  const [repairSelectedNames, setRepairSelectedNames] = useState<Set<string>>(
+    new Set(),
+  );
   const [roiPanelOpen, setRoiPanelOpen] = useState(false);
   const [overviewWindowDays, setOverviewWindowDays] =
     useState<PortfolioOverviewWindowDays>(7);
@@ -128,6 +143,11 @@ export function KanbanPage({
 
   const { searchQuery, setSearchQuery, grouped, empty, noResults } =
     useKanbanFilters(projects, getStage);
+
+  // Reset search when switching tabs — prevents board search state leaking into dashboard
+  useEffect(() => {
+    setSearchQuery("");
+  }, [workspaceTab, setSearchQuery]);
 
   const { dupGroups, dupScanning, scanDuplicates, removeFromDupGroups } =
     useDuplicateProjectScan(projects);
@@ -196,19 +216,87 @@ export function KanbanPage({
 
   const handleRepairProjectDrift = useCallback(
     async (project: Project) => {
-      setRepairingProjectId(project.id);
+      // Step 1: open preview dialog and fetch drift items
+      setRepairPreviewProject({
+        id: project.id,
+        name: project.name,
+        path: project.path,
+      });
+      setRepairPreviewOpen(true);
+      setRepairPreviewLoading(true);
+      setRepairPreviewData(null);
+      setRepairSelectedNames(new Set());
+
       try {
-        const result = await repairProjectDrift(project.path, targetApp);
+        const preview = await previewRepairProjectDrift(
+          project.path,
+          targetApp,
+        );
+        setRepairPreviewData(preview);
+
+        // auto-select all items by default
+        if (preview && preview.items.length > 0) {
+          setRepairSelectedNames(
+            new Set(preview.items.map((i) => i.check_name)),
+          );
+        }
+      } finally {
+        setRepairPreviewLoading(false);
+      }
+    },
+    [targetApp],
+  );
+
+  const handleRepairPreviewConfirm = useCallback(
+    async (selectedNames: string[]) => {
+      if (!repairPreviewProject) return;
+      setRepairingProjectId(repairPreviewProject.id);
+      setRepairPreviewOpen(false);
+      try {
+        const result = await repairProjectDrift(
+          repairPreviewProject.path,
+          targetApp,
+          selectedNames.length > 0 ? selectedNames : undefined,
+        );
         const ok = showRepairProjectFeedback(result, t);
         if (ok || result) {
           bumpPortfolioRefresh();
         }
       } finally {
         setRepairingProjectId(null);
+        setRepairPreviewProject(null);
+        setRepairPreviewData(null);
       }
     },
-    [bumpPortfolioRefresh, targetApp, t],
+    [repairPreviewProject, targetApp, bumpPortfolioRefresh, t],
   );
+
+  const handleRepairPreviewCancel = useCallback(() => {
+    setRepairPreviewOpen(false);
+    setRepairPreviewProject(null);
+    setRepairPreviewData(null);
+    setRepairSelectedNames(new Set());
+  }, []);
+
+  const handleRepairToggleItem = useCallback((checkName: string) => {
+    setRepairSelectedNames((prev) => {
+      const next = new Set(prev);
+      if (next.has(checkName)) next.delete(checkName);
+      else next.add(checkName);
+      return next;
+    });
+  }, []);
+
+  const handleRepairSelectAll = useCallback(() => {
+    if (!repairPreviewData) return;
+    setRepairSelectedNames(
+      new Set(repairPreviewData.items.map((i) => i.check_name)),
+    );
+  }, [repairPreviewData]);
+
+  const handleRepairDeselectAll = useCallback(() => {
+    setRepairSelectedNames(new Set());
+  }, []);
 
   useEffect(() => {
     if (!projectDetailIntent) return;
@@ -264,10 +352,10 @@ export function KanbanPage({
     setDetailInitialTab(options?.assetsTab ? "aiAssets" : "overview");
   };
 
-  const closeDetail = () => {
+  const closeDetail = useCallback(() => {
     setInternalDetailId(null);
     onClearSelection?.();
-  };
+  }, [onClearSelection]);
 
   const handleOpenFolder = async (path: string) => {
     await revealPathInFolder(path, { alertOnError: true });
@@ -324,7 +412,7 @@ export function KanbanPage({
                   })
                 : t("workspace.subtitle", {
                     defaultValue:
-                      "每日开工先看进度与 AI 资产配置，再进入项目看板迭代",
+                      "监控汇总项目风险、进度与 AI 配置状态，帮助你先处理关键问题",
                   })}
             </p>
             {!empty && onWorkspaceTabChange && (
@@ -505,11 +593,24 @@ export function KanbanPage({
 
       {!empty && workspaceTab === "dashboard" && (
         <div className="px-6 pb-6 space-y-4">
+          <DashboardOnboarding />
+          <PortfolioHealthSummary
+            projects={projects}
+            agentReadinessMap={agentReadinessMap}
+            assetMap={assetMap}
+            loading={readinessLoading}
+            onOpenProject={openDetail}
+          />
           <GovernanceDashboard
             projects={projects}
             agentReadinessMap={agentReadinessMap}
             targetApp={targetApp}
             loading={readinessLoading}
+          />
+          <AICostStrip
+            aiConfigured={aiConfigured}
+            projectCount={totalCount}
+            onOpenRoiPanel={() => setRoiPanelOpen(true)}
           />
           <PortfolioDriftSummary
             projects={projects}
@@ -673,22 +774,26 @@ export function KanbanPage({
           {aiConfigured && portfolioPoints.length > 0 && (
             <AIPortfolioMatrix points={portfolioPoints} />
           )}
+
+          <AINLQueryBar
+            projectContexts={Array.from(projectContextsMap.values())}
+            aiConfigured={aiConfigured}
+            projectCount={totalCount}
+          />
         </div>
       )}
 
-      {!empty && (workspaceTab === "dashboard" || workspaceTab === "board") && (
+      {!empty && workspaceTab === "board" && (
         <div className="px-6 pb-2 space-y-2">
           <AICostStrip
             aiConfigured={aiConfigured}
             projectCount={totalCount}
             onOpenRoiPanel={() => setRoiPanelOpen(true)}
-            onOpenSettings={onOpenSettings}
           />
           <AINLQueryBar
             projectContexts={Array.from(projectContextsMap.values())}
             aiConfigured={aiConfigured}
             projectCount={totalCount}
-            onOpenSettings={onOpenSettings}
           />
         </div>
       )}
@@ -701,7 +806,7 @@ export function KanbanPage({
             progressMap={progressMap}
             agentReadinessMap={agentReadinessMap}
             assetMap={assetMap}
-            loading={assetSummaryLoading}
+            loading={readinessLoading}
             onOpenProject={openDetail}
           />
         </div>
@@ -808,6 +913,19 @@ export function KanbanPage({
         )}
       </AnimatePresence>
       <AICostPanel open={roiPanelOpen} onOpenChange={setRoiPanelOpen} />
+      <RepairPreviewDialog
+        open={repairPreviewOpen}
+        loading={repairPreviewLoading}
+        preview={repairPreviewData}
+        projectName={repairPreviewProject?.name ?? ""}
+        repairing={repairingProjectId === repairPreviewProject?.id}
+        selectedNames={repairSelectedNames}
+        onSelectAll={handleRepairSelectAll}
+        onDeselectAll={handleRepairDeselectAll}
+        onToggleItem={handleRepairToggleItem}
+        onConfirm={(names) => void handleRepairPreviewConfirm(names)}
+        onCancel={handleRepairPreviewCancel}
+      />
     </motion.div>
     </AICostProvider>
   );

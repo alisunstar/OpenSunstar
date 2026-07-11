@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Coins, Sparkles, ChevronRight } from "lucide-react";
+import { Coins, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getAICostSummary, type AICostSummary } from "@/api/aiInsight";
 import { useAICost } from "@/contexts/AICostContext";
@@ -9,7 +9,6 @@ interface AICostStripProps {
   aiConfigured: boolean;
   projectCount: number;
   onOpenRoiPanel?: () => void;
-  onOpenSettings?: () => void;
 }
 
 /**
@@ -19,7 +18,6 @@ export function AICostStrip({
   aiConfigured,
   projectCount,
   onOpenRoiPanel,
-  onOpenSettings,
 }: AICostStripProps) {
   const { lastCall, refreshToken } = useAICost();
   const [summary, setSummary] = useState<AICostSummary | null>(null);
@@ -31,23 +29,7 @@ export function AICostStrip({
     });
   }, [aiConfigured, refreshToken]);
 
-  if (!aiConfigured) {
-    return (
-      <div className="mb-3 rounded-xl border border-dashed border-primary/20 bg-primary/[0.03] p-3">
-        <div className="flex items-center gap-3">
-          <Sparkles className="h-4 w-4 text-primary/60 shrink-0" />
-          <p className="text-xs text-muted-foreground flex-1">
-            配置 AI 模型后，看板将追踪 AI 消耗与产出价值
-          </p>
-          {onOpenSettings && (
-            <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onOpenSettings}>
-              配置 AI
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (!aiConfigured) return null;
 
   const monthCost = summary?.total_cost ?? 0;
   const monthTokens = summary?.total_tokens ?? 0;

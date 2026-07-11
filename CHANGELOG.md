@@ -9,6 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.5] - 2026-07-11
+
+### Added
+
+- **Dashboard onboarding**: first-run guided tour for the AI workspace cockpit
+- **Portfolio health summary**: classify projects as ok / warn / alert / unscanned with actionable reasons
+- **Repair preview dialog**: preview drift repair impact before applying changes
+- **Website interactive demos**: dashboard / terminal / sync demos on the marketing site
+- **os-cli integrity**: SHA-256 checksums for Release binaries; npm publish verifies checksums and uses `--provenance`
+- **CI**: `os` smoke tests, npm package verify, llvm-cov tooling; CI now runs on `master`
+
+### Changed
+
+- **Project assets matrix**: richer readiness / drift presentation and repair entry points
+- **Cloud sync**: stronger Gist / WebDAV / S3 sync protocol and marker merge handling
+- **Keychain & settings**: more robust credential and settings persistence paths
+- **Release CI**: pin Rust 1.95.0 and Node via `.node-version`; generate os-cli checksums before npm publish
+- **Docs**: CONTRIBUTING, CLI distribution P1, and dual-mode install guidance updates
+
+### Fixed
+
+- **AI insight / readiness**: safer batch scoring and insight command error handling
+- **i18n**: expanded zh / zh-TW / en / ja strings for cockpit and repair flows
+
 ## [1.1.4] - 2026-07-09
 
 ### Added
@@ -26,7 +50,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 
 - Advanced local proxy (`:15721`) still requires the desktop app process; governance and provider switch work CLI-only.
-
 
 ## [1.1.3] - 2026-07-08
 

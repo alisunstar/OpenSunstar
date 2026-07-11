@@ -2057,7 +2057,7 @@
   },
   "workspace": {
     "title": "工作区",
-    "subtitle": "每日开工先看进度与 AI 资产配置，再进入项目看板迭代",
+    "subtitle": "监控汇总项目风险、进度与 AI 配置状态，帮助你先处理关键问题",
     "sidebar": {
       "section": "工作区",
       "currentProjectAssets": "{{name}} · AI 配置"
@@ -2081,7 +2081,7 @@
       "allGood": "各项目配置状态良好，可直接进入迭代。",
       "configureAssets": "配置资产",
       "reasonReadiness": "就绪分 {{score}}/{{max}}",
-      "reasonDrift": "配置漂移 {{count}} 项",
+      "reasonDrift": "配置不一致 {{count}} 项",
       "reasonMcp": "未关联 MCP",
       "reasonSkills": "未配置 Skills",
       "reasonPrompts": "未关联 Prompts",
@@ -2897,7 +2897,33 @@
     "degraded": "降级",
     "failed": "失败",
     "circuitOpen": "熔断",
-    "consecutiveFailures": "连续失败 {{count}} 次"
+    "consecutiveFailures": "连续失败 {{count}} 次",
+    "title": "配置状态",
+    "allClear": "所有项目 AI 配置状态正常。",
+    "scan": "重复检测",
+    "subtitle": "检测同名项目与重复路径，识别可能的冗余添加",
+    "noDuplicates": "未发现重复项目",
+    "level": {
+      "ok": "正常",
+      "warn": "需关注",
+      "alert": "异常",
+      "unscanned": "未扫描"
+    },
+    "reason": {
+      "drifted": "{{count}} 处配置与预期不一致",
+      "unscanned": "尚未完成 AI 配置状态扫描",
+      "detectedOnly": "{{items}} — 发现配置文件但未纳入管理",
+      "globalOnly": "{{items}} — 使用全局默认配置",
+      "noMcp": "未关联 MCP 服务器",
+      "noSkills": "未配置 Skills",
+      "noPrompts": "未关联 Prompts",
+      "lowScore": "配置完整度低（{{score}} 分）"
+    },
+    "action": {
+      "repair": "查看修复",
+      "configure": "配置资产",
+      "inspect": "查看项目"
+    }
   },
   "failover": {
     "enabled": "{{app}} 故障转移已启用",
@@ -3466,11 +3492,11 @@
         "unconfigured": "未配置",
         "unchecked": "暂未比对"
       },
-      "driftBadge": "{{count}} 项配置漂移",
-      "driftShort": "漂移 {{count}}",
-      "repairDrift": "一键修复",
+      "driftBadge": "{{count}} 项配置不一致",
+      "driftShort": "待处理 {{count}}",
+      "repairDrift": "修复配置",
       "repairSuccess": "已写回并验证生效",
-      "repairFailed": "修复后仍存在漂移",
+      "repairFailed": "修复后仍存在配置不一致",
       "repairError": "修复请求失败，请稍后重试",
       "repairNoop": "当前项无需修复"
     },
@@ -3479,34 +3505,40 @@
       "forApp": "目标 CLI：{{app}}",
       "scannedProjects": "已扫描项目",
       "ofTotal": "共 {{total}} 个",
-      "driftProjects": "漂移项目",
+      "driftProjects": "配置不一致项目",
       "driftItems": "{{count}} 项待修复",
       "effectiveRate": "生效率",
       "comparableItems": "{{count}} 项可比对",
       "effectiveItems": "已生效项",
       "portfolioScope": "组合层汇总",
-      "driftBreakdown": "漂移分布（按资产类型）",
+      "driftBreakdown": "配置不一致分布（按资产类型）",
       "allEffective": "可比对资产均已生效，组合层治理状态良好。",
       "awaitingScan": "就绪度扫描完成后将显示治理指标。",
       "repairConfirmTitle": "确认写回修复？",
-      "repairConfirmProjectTitle": "确认修复全部漂移？",
+      "repairConfirmProjectTitle": "确认修复全部不一致项？",
       "repairConfirmAssetIntro": "将把 OpenSunstar 库中的「{{label}}」写回目标 CLI（{{app}}）对应的项目级文件，可能覆盖你在 IDE/终端里手动改过的内容。",
-      "repairConfirmProjectIntro": "将修复项目「{{name}}」的全部 {{count}} 项漂移：逐项写回 OpenSunstar 库内容到目标 CLI（{{app}}），可能覆盖外部手动修改。",
-      "repairConfirmDetail": "漂移说明：{{detail}}",
+      "repairConfirmProjectIntro": "将修复项目「{{name}}」的全部 {{count}} 项配置不一致：逐项写回 OpenSunstar 库内容到目标 CLI（{{app}}），可能覆盖外部手动修改。",
+      "repairConfirmDetail": "不一致说明：{{detail}}",
       "repairConfirmPath": "目标路径：{{path}}",
       "repairConfirmProceed": "确认后将立即写回并复扫验证；此操作不可自动撤销。",
       "repairConfirmAction": "确认写回",
-      "repairConfirmProjectAction": "确认修复全部"
+      "repairConfirmProjectAction": "确认修复全部",
+      "tooltip": {
+        "scannedProjects": "已完成 AI 配置就绪度检查的项目数量",
+        "driftProjects": "至少有 1 项 AI 配置与 OpenSunstar 中保存的预期状态不一致，通常来自本地文件被外部修改或删除。",
+        "effectiveRate": "生效率 = 已生效项 ÷ 可比对项。\n已生效 = 配置已正确写入项目；可比对项 = 排除「不支持」后的有效检查项总数。",
+        "effectiveItems": "所有项目中，AI 配置已正确落地的检查项数量总和。"
+      }
     },
     "portfolioDrift": {
-      "allClear": "组合层生效态巡检：未发现配置漂移。",
-      "title": "{{projects}} 个项目存在配置漂移（共 {{items}} 项）",
+      "allClear": "组合层生效状态巡检：未发现配置不一致。",
+      "title": "{{projects}} 个项目存在配置不一致（共 {{items}} 项）",
       "forApp": "目标 CLI：{{app}}",
-      "itemCount": "{{count}} 项漂移",
-      "repairAll": "修复全部漂移",
-      "repairAllSuccess": "已修复 {{count}} 项漂移并验证生效",
-      "repairPartial": "已修复 {{fixed}} 项，仍有 {{remaining}} 项漂移",
-      "repairNone": "未发现可修复的漂移项"
+      "itemCount": "{{count}} 项待处理",
+      "repairAll": "修复全部待处理项",
+      "repairAllSuccess": "已修复 {{count}} 项配置不一致并验证生效",
+      "repairPartial": "已修复 {{fixed}} 项，仍有 {{remaining}} 项配置不一致",
+      "repairNone": "未发现可修复的配置不一致项"
     }
   },
   "projectConfig": {
@@ -3765,5 +3797,92 @@
     "minutesAgo": "{{count}}分钟前",
     "hoursAgo": "{{count}}小时前",
     "daysAgo": "{{count}}天前"
+  },
+  "onboarding": {
+    "title": "欢迎使用工作区",
+    "dismiss": "关闭引导",
+    "prev": "上一步",
+    "next": "下一步",
+    "done": "知道了",
+    "step1": {
+      "title": "配置状态 — 一眼看全局",
+      "desc": "顶部汇总所有项目的 AI 配置状态：正常、需关注、异常、未扫描会分开显示。"
+    },
+    "step2": {
+      "title": "需处理项目 — 快速定位",
+      "desc": "需要关注的项目会列在下方，附带人可读的原因说明。点击「查看修复」或「配置资产」即可直达操作。"
+    },
+    "step3": {
+      "title": "治理总览 — 深入指标",
+      "desc": "配置不一致项目、生效率、已生效项等详细数据在这里展示。将鼠标悬停在卡片上可查看说明。"
+    }
+  },
+  "repairPreview": {
+    "title": "配置修复预览",
+    "description": "项目「{{name}}」共 {{count}} 项配置不一致，勾选需要修复的项：",
+    "loading": "正在扫描待处理项…",
+    "empty": "未发现配置不一致，无需修复",
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "safetyHint": "{{count}} 项为安全关键项（Ignore/Permissions/Hooks），修复将覆盖访问控制或命令执行配置",
+    "safetyCriticalTooltip": "安全关键项：修复将覆盖访问控制或命令执行相关配置",
+    "safetyBadge": "安全关键",
+    "confirmAction": "修复选中项（{{count}}）",
+    "repairing": "修复中…"
+  },
+  "assetsMatrix": {
+    "title": "AI 配置状态",
+    "subtitle": "每个格子显示一类 AI 配置的短状态：已生效、不一致、缺失、全局、探测、未扫、不适用。点击查看详情。",
+    "project": "项目",
+    "stage": "阶段",
+    "score": "分数",
+    "loading": "正在扫描项目配置状态…",
+    "refreshing": "更新中",
+    "normal": "正常",
+    "attention": "需关注",
+    "abnormal": "异常",
+    "unscanned": "未扫描",
+    "hasIssue": "需处理",
+    "showProblemsOnly": "只看需处理",
+    "filterLabel": "项目状态筛选",
+    "filterAll": "全部",
+    "filterNeedsAction": "需处理",
+    "filterAbnormal": "异常",
+    "filterUnscanned": "未扫",
+    "allClear": "当前筛选下没有需要处理的项目",
+    "cellOk": "正常",
+    "cellEffective": "已生效",
+    "cellMismatch": "不一致",
+    "cellMissing": "缺失",
+    "cellGlobal": "全局",
+    "cellDetected": "探测",
+    "cellPartial": "部分",
+    "cellWarn": "需关注",
+    "cellCrit": "异常",
+    "cellUnscanned": "未扫",
+    "cellNA": "不适用",
+    "safetyBadge": "安全关键",
+    "noData": "暂无扫描数据",
+    "scanPending": "尚未完成扫描，当前状态不能判定为正常。",
+    "detailEffective": "配置已生效，与 OpenSunstar 库一致",
+    "detailDrifted": "配置与预期不一致，可能需要修复",
+    "detailUnscanned": "已发现配置，但暂未完成目标 CLI 生效状态比对",
+    "detailGlobal": "使用全局默认配置，项目级未自定义",
+    "detailDetected": "检测到仓库中有配置，但未被 OpenSunstar 管理",
+    "detailMissingSafety": "安全关键项未配置，建议尽快设置",
+    "detailMissing": "未配置此项，如果不需要可忽略",
+    "detailPartial": "部分配置，建议完善",
+    "detailNA": "当前目标 CLI 不支持此项",
+    "statusOk": "配置正常",
+    "statusWarn": "需要关注",
+    "statusCrit": "存在异常",
+    "statusUnscanned": "未完成扫描",
+    "statusNA": "不适用",
+    "stateDetail": "状态详情",
+    "driftDetail": "状态详情",
+    "checkDetail": "检查详情",
+    "filePath": "配置文件路径",
+    "viewProject": "查看项目资产",
+    "goRepair": "去修复"
   }
 }

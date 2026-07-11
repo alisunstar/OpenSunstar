@@ -20,11 +20,13 @@ function StatCard({
   value,
   sub,
   tone = "default",
+  tooltip,
 }: {
   label: string;
   value: string | number;
   sub?: string;
   tone?: "default" | "success" | "warning";
+  tooltip?: string;
 }) {
   const toneClass =
     tone === "success"
@@ -34,7 +36,7 @@ function StatCard({
         : "border-border/60 bg-card/40";
 
   return (
-    <div className={cn("rounded-xl border px-4 py-3", toneClass)}>
+    <div className={cn("rounded-xl border px-4 py-3", toneClass)} title={tooltip}>
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="text-xl font-bold tabular-nums mt-0.5">{value}</p>
       {sub && <p className="text-[10px] text-muted-foreground/80 mt-0.5">{sub}</p>}
@@ -98,10 +100,13 @@ export function GovernanceDashboard({
             total: stats.totalProjects,
             defaultValue: `共 ${stats.totalProjects} 个`,
           })}
+          tooltip={t("kanban.governance.tooltip.scannedProjects", {
+            defaultValue: "已完成 AI 配置就绪度检查的项目数量",
+          })}
         />
         <StatCard
           label={t("kanban.governance.driftProjects", {
-            defaultValue: "漂移项目",
+            defaultValue: "配置不一致项目",
           })}
           value={stats.driftProjects}
           sub={t("kanban.governance.driftItems", {
@@ -109,6 +114,10 @@ export function GovernanceDashboard({
             defaultValue: `${stats.totalDriftItems} 项待修复`,
           })}
           tone={stats.driftProjects > 0 ? "warning" : "success"}
+          tooltip={t("kanban.governance.tooltip.driftProjects", {
+            defaultValue:
+              "至少有 1 项 AI 配置与 OpenSunstar 中保存的预期状态不一致，通常来自本地文件被外部修改或删除。",
+          })}
         />
         <StatCard
           label={t("kanban.governance.effectiveRate", {
@@ -126,6 +135,9 @@ export function GovernanceDashboard({
                 ? "warning"
                 : "default"
           }
+          tooltip={t("kanban.governance.tooltip.effectiveRate", {
+            defaultValue: "生效率 = 已生效项 / 可比对项。已生效 = 配置已正确写入项目；可比对项 = 排除「不支持」后的有效检查项总数。",
+          })}
         />
         <StatCard
           label={t("kanban.governance.effectiveItems", {
@@ -136,6 +148,9 @@ export function GovernanceDashboard({
             defaultValue: "组合层汇总",
           })}
           tone="success"
+          tooltip={t("kanban.governance.tooltip.effectiveItems", {
+            defaultValue: "所有项目中，AI 配置已正确落地的检查项数量总和。",
+          })}
         />
       </div>
 
@@ -144,7 +159,7 @@ export function GovernanceDashboard({
           <div className="flex items-center gap-1.5 text-xs font-medium text-amber-800 dark:text-amber-200 mb-2">
             <ShieldAlert className="h-3.5 w-3.5" />
             {t("kanban.governance.driftBreakdown", {
-              defaultValue: "漂移分布（按资产类型）",
+              defaultValue: "配置不一致分布（按资产类型）",
             })}
           </div>
           <ul className="grid grid-cols-2 sm:grid-cols-4 gap-2">

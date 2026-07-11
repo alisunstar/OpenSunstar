@@ -18,8 +18,8 @@ use crate::services::webdav::{
 use crate::settings::{update_webdav_sync_status, WebDavSyncSettings, WebDavSyncStatus};
 
 use super::sync_protocol::{
-    apply_snapshot_with_manifest, build_local_snapshot, effective_db_compat_version,
-    localized, persist_sync_success_best_effort, sha256_hex, validate_artifact_size_limit,
+    apply_snapshot_with_manifest, build_local_snapshot, effective_db_compat_version, localized,
+    persist_sync_success_best_effort, sha256_hex, validate_artifact_size_limit,
     validate_manifest_compat, verify_artifact, ArtifactMeta, RemoteLayout, SyncManifest,
     DB_COMPAT_VERSION, MAX_MANIFEST_BYTES, MAX_SYNC_ARTIFACT_BYTES, PROTOCOL_VERSION,
     REMOTE_DB_SQL, REMOTE_MANIFEST, REMOTE_SKILLS_ZIP,
@@ -310,6 +310,10 @@ fn auth_for(settings: &WebDavSyncSettings) -> WebDavAuth {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::sync_test_support::{
+        assert_marker, prepare_sync_test_home, seeded_memory_db, start_object_store_server,
+        sync_e2e_async_mutex,
+    };
 
     #[test]
     fn remote_dir_segments_uses_current_layout() {
@@ -331,5 +335,90 @@ mod tests {
         };
         let segs = remote_dir_segments(&settings, RemoteLayout::Legacy);
         assert_eq!(segs, vec!["OpenSunstar-sync", "v2", "default"]);
+    }
+
+    fn mock_webdav_settings(base_url: &str) -> WebDavSyncSettings {
+        WebDavSyncSettings {
+            enabled: true,
+            base_url: base_url.to_string(),
+            username: "user".to_string(),
+            password: "pass".to_string(),
+            remote_root: "OpenSunstar-sync".to_string(),
+            profile: "default".to_string(),
+            ..WebDavSyncSettings::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn webdav_mock_backend_upload_download_roundtrip() {
+        let _guard = sync_e2e_async_mutex().lock().await;
+        let _home = prepare_sync_test_home("webdav-roundtrip");
+        crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
+        let server = start_object_store_server().await;
+
+        let source = seeded_memory_db("webdav-e2e-ok");
+        let mut upload_settings = mock_webdav_settings(&server.base_url);
+        upload(&source, &mut upload_settings)
+            .await
+            .expect("upload to mock webdav");
+
+        assert!(
+            server
+                .store
+                .get("OpenSunstar-sync/v2/db-v6/default/manifest.json")
+                .is_some(),
+            "manifest should be uploaded to current layout"
+        );
+        assert!(
+            server
+                .store
+                .get("OpenSunstar-sync/v2/db-v6/default/db.sql")
+                .is_some(),
+            "db.sql should be uploaded"
+        );
+        assert!(
+            server
+                .store
+                .get("OpenSunstar-sync/v2/db-v6/default/skills.zip")
+                .is_some(),
+            "skills.zip should be uploaded"
+        );
+
+        let target = seeded_memory_db("before-download");
+        let mut download_settings = mock_webdav_settings(&server.base_url);
+        let result = download(&target, &mut download_settings)
+            .await
+            .expect("download from mock webdav");
+
+        assert_eq!(result["status"], "downloaded");
+        assert_marker(&target, "webdav-e2e-ok");
+    }
+
+    #[tokio::test]
+    async fn webdav_mock_backend_rejects_corrupted_manifest() {
+        let _guard = sync_e2e_async_mutex().lock().await;
+        let _home = prepare_sync_test_home("webdav-corrupt-manifest");
+        crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
+        let server = start_object_store_server().await;
+
+        let source = seeded_memory_db("webdav-corrupt");
+        let mut settings = mock_webdav_settings(&server.base_url);
+        upload(&source, &mut settings)
+            .await
+            .expect("upload to mock webdav");
+        server.store.put(
+            "OpenSunstar-sync/v2/db-v6/default/manifest.json",
+            b"{not-json".to_vec(),
+        );
+
+        let target = seeded_memory_db("before-download");
+        let err = download(&target, &mut settings)
+            .await
+            .expect_err("corrupted manifest should fail");
+        assert!(
+            err.to_string().contains("manifest.json") || err.to_string().contains("JSON"),
+            "unexpected error: {err}"
+        );
+        assert_marker(&target, "before-download");
     }
 }

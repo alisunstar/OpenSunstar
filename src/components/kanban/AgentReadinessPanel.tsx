@@ -48,7 +48,7 @@ export interface AgentReadinessPanelProps {
   /** 触发生效态扫描（库 vs 磁盘） */
   onScanEffective?: () => void;
 
-  /** 漂移一键修复（P0-B） */
+  /** 配置不一致修复（P0-B） */
   onRepairDrift?: (checkName: string) => Promise<void>;
 
   repairingCheckName?: string | null;
@@ -241,7 +241,7 @@ export function AgentReadinessPanel({
             ) : (
               <Wrench className="h-3 w-3 mr-1" />
             )}
-            {t("kanban.readiness.repairDrift", { defaultValue: "一键修复" })}
+            {t("kanban.readiness.repairDrift", { defaultValue: "修复配置" })}
           </Button>
         )}
       </div>
@@ -638,4 +638,3 @@ export function AgentReadinessPanel({
   );
 
 }
-

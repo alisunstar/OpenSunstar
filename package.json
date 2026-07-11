@@ -1,6 +1,6 @@
 {
   "name": "OpenSunstar",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
@@ -21,6 +21,9 @@
     "release:sync-os-cli": "node scripts/sync-os-cli-version.mjs",
     "release:tag": "bash scripts/release-tag.sh",
     "release:tag:win": "powershell -ExecutionPolicy Bypass -File scripts/release-tag.ps1",
+    "dev:doctor": "node scripts/dev-doctor.mjs",
+    "os-cli:checksums": "node scripts/update-os-cli-checksums.mjs",
+    "os-cli:verify": "node scripts/verify-os-cli-package.mjs",
     "i18n:check": "node scripts/i18n-check.mjs",
     "i18n:check:list": "node scripts/i18n-check.mjs --list-missing",
     "i18n:check:strict": "node scripts/i18n-check.mjs --strict --list-missing",

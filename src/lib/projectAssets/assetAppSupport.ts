@@ -1,5 +1,4 @@
 import type { AppId } from "@/lib/api";
-import type { AppId } from "@/lib/api";
 import type { ProjectAssetType } from "@/types/projectAsset";
 
 export type AssetAppSupportStatus = "supported" | "partial" | "unsupported";

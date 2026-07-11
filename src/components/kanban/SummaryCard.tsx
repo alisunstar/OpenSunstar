@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils";
+
 export function SummaryCard({
   label,
   value,
@@ -15,7 +17,10 @@ export function SummaryCard({
     <div className="glass-card rounded-xl p-4">
       <div className="text-xs text-muted-foreground">{label}</div>
       <div
-        className={`text-2xl font-bold mt-1 flex items-baseline gap-1 ${color ?? "text-foreground"}`}
+        className={cn(
+          "text-2xl font-bold mt-1 flex items-baseline gap-1",
+          color ?? "text-foreground",
+        )}
       >
         {value}
         {unit && (

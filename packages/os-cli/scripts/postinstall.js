@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from "node:fs";
+import { expectedSha256ForAsset } from "../lib/checksums.js";
 import { downloadToFile } from "../lib/download.js";
 import {
   assertBinaryExists,
@@ -38,9 +39,7 @@ async function main() {
 
   const platformInfo = resolvePlatform();
   if (!platformInfo) {
-    console.warn(
-      `[opensunstar-os] Unsupported platform: ${describeHost()}.`,
-    );
+    console.warn(`[opensunstar-os] Unsupported platform: ${describeHost()}.`);
     console.warn(
       "[opensunstar-os] Install from GitHub Releases: https://github.com/alisunstar/OpenSunstar/releases",
     );
@@ -58,11 +57,16 @@ async function main() {
 
   const { file, url } = releaseAssetUrl(version, platformInfo);
   const archivePath = downloadCachePath(file);
+  const expectedSha256 = expectedSha256ForAsset(version, file);
 
   fs.mkdirSync(vendorDir(), { recursive: true });
 
   console.log(`[opensunstar-os] Downloading ${file} ...`);
-  await downloadToFile(url, archivePath);
+  await downloadToFile(url, archivePath, {
+    expectedSha256,
+    artifactName: file,
+  });
+  console.log(`[opensunstar-os] Verified SHA256 for ${file}.`);
 
   console.log(`[opensunstar-os] Extracting to ${vendorDir()} ...`);
   extractArchive(archivePath, vendorDir(), platformInfo.archiveExt);

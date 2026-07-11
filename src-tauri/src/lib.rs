@@ -1679,6 +1679,7 @@ pub fn run() {
             commands::scan_project_effective_state,
             commands::repair_asset_drift,
             commands::repair_project_drift,
+            commands::preview_repair_project_drift,
             commands::submit_insight_feedback,
             commands::submit_ai_query_feedback,
             // Session & usage export

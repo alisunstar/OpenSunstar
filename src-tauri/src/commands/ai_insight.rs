@@ -10,7 +10,8 @@ use crate::ai::agent_readiness::{
 };
 use crate::ai::asset_effective_state::{
     merge_effective_into_details, scan_effective_states, EffectiveScanContext, EffectiveScanResult,
-    RepairAssetDriftResult, RepairProjectDriftResult, DRIFTED,
+    RepairAssetDriftResult, RepairPreviewItem, RepairPreviewResult, RepairProjectDriftResult,
+    DRIFTED,
 };
 use crate::ai::client::{estimate_cost, AIClient};
 use crate::ai::project_id::{resolve_canonical_project_id, PORTFOLIO_PROJECT_ID};
@@ -1484,12 +1485,13 @@ pub async fn repair_asset_drift(
     repair_asset_drift_inner(&state, &project_path, &check_name, target_app)
 }
 
-/// 修复项目内全部漂移项（逐项写回 + 复扫）
+/// 修复项目内漂移项（支持选择性修复：传入 check_names 仅修复指定项，不传则修复全部）
 #[tauri::command]
 pub async fn repair_project_drift(
     state: State<'_, AppState>,
     project_path: String,
     target_app: Option<String>,
+    check_names: Option<Vec<String>>,
 ) -> Result<RepairProjectDriftResult, String> {
     let ctx = build_project_readiness_context(&state.db, &project_path, target_app.clone());
     let initial_scan = scan_project_effective_for_details(
@@ -1499,12 +1501,21 @@ pub async fn repair_project_drift(
         ctx.effective_target_app.as_deref(),
         &ctx.details,
     );
-    let drifted: Vec<String> = initial_scan
+    let all_drifted: Vec<String> = initial_scan
         .items
         .iter()
         .filter(|i| i.effective_state == DRIFTED)
         .map(|i| i.check_name.clone())
         .collect();
+
+    // 如果传入了 check_names，仅修复这些项；否则修复全部
+    let drifted = match check_names {
+        Some(names) if !names.is_empty() => names
+            .into_iter()
+            .filter(|n| all_drifted.contains(n))
+            .collect(),
+        _ => all_drifted,
+    };
 
     let mut items = Vec::with_capacity(drifted.len());
     for check_name in drifted {
@@ -1535,6 +1546,100 @@ pub async fn repair_project_drift(
         still_drifted_count,
         items,
         scanned_at: final_scan.scanned_at,
+    })
+}
+
+/// 安全类资产（影响文件暴露和命令执行）
+const SAFETY_CRITICAL_CHECKS: &[&str] = &[
+    "ignore_rules",
+    "permissions",
+    "hooks_configured",
+];
+
+fn check_label(check_name: &str) -> String {
+    match check_name {
+        "mcp_enabled" => "MCP 服务器",
+        "prompt_files" => "Prompt 文件",
+        "commands_configured" => "Commands",
+        "hooks_configured" => "Hooks（钩子）",
+        "permissions" => "Permissions（权限）",
+        "skills_configured" => "Skills",
+        "subagents_configured" => "Subagents",
+        "ignore_rules" => "Ignore 规则",
+        "recent_updates" => "维护度",
+        _ => check_name,
+    }
+    .to_string()
+}
+
+/// 预览项目漂移修复：返回漂移项列表及当前文件内容摘要，供前端展示确认
+#[tauri::command]
+pub async fn preview_repair_project_drift(
+    state: State<'_, AppState>,
+    project_path: String,
+    target_app: Option<String>,
+) -> Result<RepairPreviewResult, String> {
+    let ctx = build_project_readiness_context(&state.db, &project_path, target_app);
+    let scan = scan_project_effective_for_details(
+        &state,
+        &project_path,
+        ctx.sqlite_id.as_deref(),
+        ctx.effective_target_app.as_deref(),
+        &ctx.details,
+    );
+
+    let drifted_items: Vec<_> = scan
+        .items
+        .iter()
+        .filter(|i| i.effective_state == DRIFTED)
+        .collect();
+
+    let total = drifted_items.len() as u32;
+
+    let items: Vec<RepairPreviewItem> = drifted_items
+        .into_iter()
+        .map(|item| {
+            let content = item
+                .live_path
+                .as_ref()
+                .and_then(|p| {
+                    let path = std::path::Path::new(p);
+                    if path.is_file() {
+                        std::fs::read_to_string(path).ok()
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_default();
+
+            let truncated = if content.len() > 800 {
+                let safe_end = content
+                    .char_indices()
+                    .take_while(|(i, _)| *i < 800)
+                    .last()
+                    .map(|(i, c)| i + c.len_utf8())
+                    .unwrap_or(0);
+                format!("{}…", &content[..safe_end])
+            } else {
+                content
+            };
+
+            let is_safety = SAFETY_CRITICAL_CHECKS.contains(&item.check_name.as_str());
+
+            RepairPreviewItem {
+                check_name: item.check_name.clone(),
+                label: check_label(&item.check_name),
+                live_path: item.live_path.clone(),
+                effective_detail: item.effective_detail.clone(),
+                current_content: truncated,
+                is_safety_critical: is_safety,
+            }
+        })
+        .collect();
+
+    Ok(RepairPreviewResult {
+        items,
+        total_drifted: total,
     })
 }
 

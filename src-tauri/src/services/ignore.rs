@@ -11,6 +11,7 @@ use crate::hermes_config::get_hermes_dir;
 use crate::ignore_rule::{parse_gitignore_content, validate_ignore_pattern, IgnoreRule};
 use crate::opencode_config::get_opencode_dir;
 use crate::prompt_files::project_ignore_file_path;
+use crate::services::marker_merge::{is_managed_ignore_file, wrap_managed_ignore};
 use crate::store::AppState;
 
 pub struct IgnoreService;
@@ -140,11 +141,24 @@ impl IgnoreService {
             std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
         }
 
-        let content = if patterns.is_empty() {
+        // 标记保护：如果文件已存在且非 OpenSunstar 管理，跳过覆盖
+        if path.is_file() {
+            let existing = std::fs::read_to_string(&path).unwrap_or_default();
+            if !existing.is_empty() && !is_managed_ignore_file(&existing) {
+                log::warn!(
+                    "跳过覆盖非 OpenSunstar 管理的 ignore 文件: {}",
+                    path.display()
+                );
+                return Ok(());
+            }
+        }
+
+        let body = if patterns.is_empty() {
             String::new()
         } else {
             patterns.join("\n") + "\n"
         };
+        let content = wrap_managed_ignore(&body);
         write_text_file(&path, &content)?;
         Ok(())
     }
@@ -167,7 +181,16 @@ impl IgnoreService {
             for app in &PROJECT_SYNC_APPS {
                 let path = project_ignore_file_path(project_root, app)?;
                 if path.is_file() {
-                    let _ = std::fs::remove_file(&path);
+                    // 标记保护：仅删除 OpenSunstar 管理的文件
+                    let existing = std::fs::read_to_string(&path).unwrap_or_default();
+                    if is_managed_ignore_file(&existing) {
+                        let _ = std::fs::remove_file(&path);
+                    } else {
+                        log::warn!(
+                            "跳过删除非 OpenSunstar 管理的 ignore 文件: {}",
+                            path.display()
+                        );
+                    }
                 }
             }
             return Ok(());
@@ -184,11 +207,25 @@ impl IgnoreService {
             if let Some(parent) = path.parent() {
                 std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
             }
-            let content = if patterns.is_empty() {
+
+            // 标记保护：如果文件已存在且非 OpenSunstar 管理，跳过覆盖
+            if path.is_file() {
+                let existing = std::fs::read_to_string(&path).unwrap_or_default();
+                if !existing.is_empty() && !is_managed_ignore_file(&existing) {
+                    log::warn!(
+                        "跳过覆盖非 OpenSunstar 管理的项目 ignore 文件: {}",
+                        path.display()
+                    );
+                    continue;
+                }
+            }
+
+            let body = if patterns.is_empty() {
                 String::new()
             } else {
                 patterns.join("\n") + "\n"
             };
+            let content = wrap_managed_ignore(&body);
             write_text_file(&path, &content)?;
         }
         Ok(())

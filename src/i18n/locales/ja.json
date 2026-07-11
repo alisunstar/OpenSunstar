@@ -2412,7 +2412,33 @@
     "degraded": "低下",
     "failed": "失敗",
     "circuitOpen": "サーキットオープン",
-    "consecutiveFailures": "{{count}} 回連続失敗"
+    "consecutiveFailures": "{{count}} 回連続失敗",
+    "title": "設定状態",
+    "allClear": "すべてのプロジェクトの AI 設定は正常です。",
+    "scan": "重複チェック",
+    "subtitle": "同名プロジェクトや重複パスを検出し、冗長な追加を識別します",
+    "noDuplicates": "重複プロジェクトは見つかりませんでした",
+    "level": {
+      "ok": "正常",
+      "warn": "要確認",
+      "alert": "異常",
+      "unscanned": "未スキャン"
+    },
+    "reason": {
+      "drifted": "{{count}} 件の設定が期待状態と不一致",
+      "unscanned": "AI 設定状態のスキャンがまだ完了していません",
+      "detectedOnly": "{{items}} — 設定ファイルが検出されましたが管理されていません",
+      "globalOnly": "{{items}} — グローバルデフォルト設定を使用",
+      "noMcp": "MCP サーバーが未連携",
+      "noSkills": "Skills が未設定",
+      "noPrompts": "Prompts が未連携",
+      "lowScore": "設定の完全度が低い（{{score}} 点）"
+    },
+    "action": {
+      "repair": "確認して修復",
+      "configure": "アセットを設定",
+      "inspect": "プロジェクトを表示"
+    }
   },
   "failover": {
     "enabled": "{{app}} フェイルオーバーが有効になりました",
@@ -3102,5 +3128,92 @@
     "minutesAgo": "{{count}}分前",
     "hoursAgo": "{{count}}時間前",
     "daysAgo": "{{count}}日前"
+  },
+  "onboarding": {
+    "title": "ワークスペースへようこそ",
+    "dismiss": "ガイドを閉じる",
+    "prev": "前へ",
+    "next": "次へ",
+    "done": "了解",
+    "step1": {
+      "title": "設定状態 — 一目で全体像を把握",
+      "desc": "上部のサマリーで、全プロジェクトの AI 設定状態を正常、要確認、異常、未スキャンに分けて表示します。"
+    },
+    "step2": {
+      "title": "対応が必要なプロジェクト — すばやく特定",
+      "desc": "確認が必要なプロジェクトが、分かりやすい理由説明つきで下に表示されます。「確認して修復」または「アセットを設定」をクリックして直接操作できます。"
+    },
+    "step3": {
+      "title": "ガバナンス概要 — 詳細指標",
+      "desc": "設定不一致のプロジェクト、有効化率、有効化アイテムなどの詳細データを表示します。カードにマウスを乗せると説明が表示されます。"
+    }
+  },
+  "repairPreview": {
+    "title": "設定修復プレビュー",
+    "description": "プロジェクト「{{name}}」に {{count}} 件の設定不一致があります。修復する項目を選択してください：",
+    "loading": "対応が必要な項目をスキャン中…",
+    "empty": "設定不一致は見つかりませんでした。修復の必要はありません",
+    "selectAll": "全選択",
+    "deselectAll": "全解除",
+    "safetyHint": "{{count}} 件のセキュリティ重要項目（Ignore/Permissions/Hooks）— 修復によりアクセス制御またはコマンド実行設定が上書きされます",
+    "safetyCriticalTooltip": "セキュリティ重要項目：修復によりアクセス制御またはコマンド実行設定が上書きされます",
+    "safetyBadge": "セキュリティ重要",
+    "confirmAction": "選択項目を修復（{{count}}）",
+    "repairing": "修復中…"
+  },
+  "assetsMatrix": {
+    "title": "AI 設定状態",
+    "subtitle": "各セルに AI 設定の短い状態を表示します：有効、不一致、欠落、グローバル、検出、未スキャン、対象外。クリックで詳細を表示します。",
+    "project": "プロジェクト",
+    "stage": "段階",
+    "score": "スコア",
+    "loading": "プロジェクト設定をスキャン中…",
+    "refreshing": "更新中",
+    "normal": "正常",
+    "attention": "要確認",
+    "abnormal": "異常",
+    "unscanned": "未スキャン",
+    "hasIssue": "対応が必要",
+    "showProblemsOnly": "対応が必要な項目のみ",
+    "filterLabel": "プロジェクト状態フィルター",
+    "filterAll": "すべて",
+    "filterNeedsAction": "対応が必要",
+    "filterAbnormal": "異常",
+    "filterUnscanned": "未スキャン",
+    "allClear": "このフィルターで対応が必要なプロジェクトはありません",
+    "cellOk": "正常",
+    "cellEffective": "有効",
+    "cellMismatch": "不一致",
+    "cellMissing": "欠落",
+    "cellGlobal": "グローバル",
+    "cellDetected": "検出",
+    "cellPartial": "一部",
+    "cellWarn": "要確認",
+    "cellCrit": "異常",
+    "cellUnscanned": "未スキャン",
+    "cellNA": "対象外",
+    "safetyBadge": "セキュリティ重要",
+    "noData": "スキャンデータなし",
+    "scanPending": "スキャンが完了していないため、正常とは判断できません。",
+    "detailEffective": "設定が有効で、OpenSunstar ライブラリと一致",
+    "detailDrifted": "設定が期待値と異なる、修復の必要あり",
+    "detailUnscanned": "設定は検出されましたが、対象 CLI の有効状態比較はまだ完了していません",
+    "detailGlobal": "グローバルデフォルト設定を使用中、プロジェクト固有のカスタマイズなし",
+    "detailDetected": "リポジトリに設定を検出したが、OpenSunstar で管理されていない",
+    "detailMissingSafety": "セキュリティ重要項目が未設定、早急な設定を推奨",
+    "detailMissing": "未設定、不要な場合は無視可能",
+    "detailPartial": "一部のみ設定済み、完成を推奨",
+    "detailNA": "現在の対象 CLI では未対応",
+    "statusOk": "設定正常",
+    "statusWarn": "要確認",
+    "statusCrit": "異常あり",
+    "statusUnscanned": "未スキャン",
+    "statusNA": "対象外",
+    "stateDetail": "状態詳細",
+    "driftDetail": "状態詳細",
+    "checkDetail": "チェック詳細",
+    "filePath": "設定ファイルパス",
+    "viewProject": "プロジェクトアセットを表示",
+    "goRepair": "修復へ"
   }
 }

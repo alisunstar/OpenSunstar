@@ -1,12 +1,12 @@
 [package]
 name = "OpenSunstar"
-version = "1.1.4"
+version = "1.1.5"
 description = "OpenSunstar - Extension Manager for AI Coding Assistants"
 authors = ["Jason Young"]
 license = "MIT"
 repository = "https://github.com/alisunstar/OpenSunstar"
 edition = "2021"
-rust-version = "1.85.0"
+rust-version = "1.95.0"
 default-run = "OpenSunstar"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

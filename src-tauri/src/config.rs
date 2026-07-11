@@ -367,9 +367,22 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> Result<(), AppError> {
 
     #[cfg(windows)]
     {
-        // Windows 上 rename 目标存在会失败，先移除再重命名（尽量接近原子性）
+        // Windows 上 rename 目标存在会失败；先将旧文件 rename 为 .bak 保留备份，
+        // 再 rename 临时文件到目标位置。修复失败时用户可从 .bak 恢复。
         if path.exists() {
-            let _ = fs::remove_file(path);
+            let bak = path.with_extension(
+                format!(
+                    "{}.bak",
+                    path.extension()
+                        .map(|e| e.to_string_lossy())
+                        .unwrap_or_default()
+                ),
+            );
+            let _ = fs::remove_file(&bak); // 清理上次备份
+            if let Err(e) = fs::rename(path, &bak) {
+                log::warn!("备份旧文件失败 {}: {}", bak.display(), e);
+                let _ = fs::remove_file(path);
+            }
         }
         fs::rename(&tmp, path).map_err(|e| AppError::IoContext {
             context: format!("原子替换失败: {} -> {}", tmp.display(), path.display()),

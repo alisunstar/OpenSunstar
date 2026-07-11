@@ -250,6 +250,10 @@ fn creds_for(settings: &S3SyncSettings) -> S3Credentials {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::services::sync_test_support::{
+        assert_marker, prepare_sync_test_home, seeded_memory_db, start_object_store_server,
+        sync_e2e_async_mutex,
+    };
 
     fn test_settings() -> S3SyncSettings {
         S3SyncSettings {
@@ -316,5 +320,92 @@ mod tests {
         assert_eq!(creds.region, "us-west-2");
         assert_eq!(creds.bucket, "my-bucket");
         assert_eq!(creds.endpoint, "minio.local:9000");
+    }
+
+    fn mock_s3_settings(endpoint: &str) -> S3SyncSettings {
+        S3SyncSettings {
+            enabled: true,
+            region: "us-east-1".to_string(),
+            bucket: "sync-bucket".to_string(),
+            access_key_id: "AKID".to_string(),
+            secret_access_key: "SECRET".to_string(),
+            endpoint: endpoint.to_string(),
+            remote_root: "OpenSunstar-sync".to_string(),
+            profile: "default".to_string(),
+            ..S3SyncSettings::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn s3_mock_backend_upload_download_roundtrip() {
+        let _guard = sync_e2e_async_mutex().lock().await;
+        let _home = prepare_sync_test_home("s3-roundtrip");
+        crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
+        let server = start_object_store_server().await;
+
+        let source = seeded_memory_db("s3-e2e-ok");
+        let mut upload_settings = mock_s3_settings(&server.base_url);
+        upload(&source, &mut upload_settings)
+            .await
+            .expect("upload to mock s3");
+
+        assert!(
+            server
+                .store
+                .get("sync-bucket/OpenSunstar-sync/v2/db-v6/default/manifest.json")
+                .is_some(),
+            "manifest should be uploaded"
+        );
+        assert!(
+            server
+                .store
+                .get("sync-bucket/OpenSunstar-sync/v2/db-v6/default/db.sql")
+                .is_some(),
+            "db.sql should be uploaded"
+        );
+        assert!(
+            server
+                .store
+                .get("sync-bucket/OpenSunstar-sync/v2/db-v6/default/skills.zip")
+                .is_some(),
+            "skills.zip should be uploaded"
+        );
+
+        let target = seeded_memory_db("before-download");
+        let mut download_settings = mock_s3_settings(&server.base_url);
+        let result = download(&target, &mut download_settings)
+            .await
+            .expect("download from mock s3");
+
+        assert_eq!(result["status"], "downloaded");
+        assert_marker(&target, "s3-e2e-ok");
+    }
+
+    #[tokio::test]
+    async fn s3_mock_backend_rejects_corrupted_manifest() {
+        let _guard = sync_e2e_async_mutex().lock().await;
+        let _home = prepare_sync_test_home("s3-corrupt-manifest");
+        crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
+        let server = start_object_store_server().await;
+
+        let source = seeded_memory_db("s3-corrupt");
+        let mut settings = mock_s3_settings(&server.base_url);
+        upload(&source, &mut settings)
+            .await
+            .expect("upload to mock s3");
+        server.store.put(
+            "sync-bucket/OpenSunstar-sync/v2/db-v6/default/manifest.json",
+            b"{not-json".to_vec(),
+        );
+
+        let target = seeded_memory_db("before-download");
+        let err = download(&target, &mut settings)
+            .await
+            .expect_err("corrupted manifest should fail");
+        assert!(
+            err.to_string().contains("manifest.json") || err.to_string().contains("JSON"),
+            "unexpected error: {err}"
+        );
+        assert_marker(&target, "before-download");
     }
 }

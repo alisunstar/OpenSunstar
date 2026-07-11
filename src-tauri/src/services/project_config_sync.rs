@@ -131,6 +131,8 @@ pub fn sync_asset_for_project_path(
 }
 
 fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), AppError> {
+    use crate::services::marker_merge::{create_companion_marker, has_companion_marker};
+
     let db = &state.db;
     let project_id = db
         .get_project_id_by_path(project_root.to_string_lossy().as_ref())?
@@ -149,6 +151,16 @@ fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), Ap
     }
 
     let mcp_path = project_mcp_json_path(project_root);
+
+    // 标记保护：文件存在但没有 OpenSunstar 伴生标记 → 用户自建，跳过覆盖
+    if mcp_path.is_file() && !has_companion_marker(&mcp_path) {
+        log::warn!(
+            "跳过覆盖非 OpenSunstar 管理的 MCP 文件: {}",
+            mcp_path.display()
+        );
+        return Ok(());
+    }
+
     if enabled.is_empty() {
         if mcp_path.is_file() {
             crate::claude_mcp::write_project_mcp_servers_map(project_root, &HashMap::new())?;
@@ -156,7 +168,12 @@ fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), Ap
         return Ok(());
     }
 
-    crate::claude_mcp::write_project_mcp_servers_map(project_root, &enabled)
+    crate::claude_mcp::write_project_mcp_servers_map(project_root, &enabled)?;
+
+    // 写入成功后创建伴生标记文件
+    create_companion_marker(&mcp_path);
+
+    Ok(())
 }
 
 fn sync_project_prompts_for_all_apps(state: &AppState, project_root: &Path) -> Result<(), AppError> {
@@ -482,9 +499,28 @@ fn sync_project_hooks_for_app(
     project_id: &str,
     app: &AppType,
 ) -> Result<(), AppError> {
+    use crate::services::marker_merge::{create_companion_marker, has_companion_marker};
+
     let hooks = project_hooks_for_app(&state.db, project_id, app)?;
     let config_path = project_hook_config_path(project_root, app);
-    crate::services::hook_sync::sync_hooks_at_path(&hooks, app, &config_path)
+
+    // 标记保护：配置文件存在但没有伴生标记 → 用户自建，跳过覆盖
+    if config_path.is_file() && !has_companion_marker(&config_path) {
+        log::warn!(
+            "跳过覆盖非 OpenSunstar 管理的项目 Hooks 配置: {}",
+            config_path.display()
+        );
+        return Ok(());
+    }
+
+    crate::services::hook_sync::sync_hooks_at_path(&hooks, app, &config_path)?;
+
+    // 写入成功后创建伴生标记
+    if config_path.is_file() {
+        create_companion_marker(&config_path);
+    }
+
+    Ok(())
 }
 
 fn sync_project_permissions_for_all_apps(
@@ -522,10 +558,29 @@ fn sync_project_permissions_for_app(
     project_id: &str,
     app: &AppType,
 ) -> Result<(), AppError> {
+    use crate::services::marker_merge::{create_companion_marker, has_companion_marker};
+
     let perms = project_permissions_for_app(&state.db, project_id, app)?;
     let lists = collect_permission_lists(&perms);
     let config_path = project_permission_config_path(project_root, app);
-    crate::services::permission_sync::sync_permissions_at_path(&lists, app, &config_path)
+
+    // 标记保护：配置文件存在但没有伴生标记 → 用户自建，跳过覆盖
+    if config_path.is_file() && !has_companion_marker(&config_path) {
+        log::warn!(
+            "跳过覆盖非 OpenSunstar 管理的项目 Permissions 配置: {}",
+            config_path.display()
+        );
+        return Ok(());
+    }
+
+    crate::services::permission_sync::sync_permissions_at_path(&lists, app, &config_path)?;
+
+    // 写入成功后创建伴生标记
+    if config_path.is_file() {
+        create_companion_marker(&config_path);
+    }
+
+    Ok(())
 }
 
 fn project_hook_config_path(project_root: &Path, app: &AppType) -> PathBuf {

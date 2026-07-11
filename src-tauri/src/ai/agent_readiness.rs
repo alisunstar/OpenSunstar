@@ -14,6 +14,7 @@ pub const STATUS_PARTIAL: &str = "partial";
 pub const STATUS_GLOBAL_ONLY: &str = "global_only";
 pub const STATUS_DETECTED_ONLY: &str = "detected_only";
 pub const STATUS_MISSING: &str = "missing";
+pub const STATUS_NOT_APPLICABLE: &str = "not_applicable";
 
 #[derive(Debug, Clone, Default)]
 pub struct ReadinessCheckInput {
@@ -76,19 +77,15 @@ fn apply_target_app_support(
     match asset_support(asset_type, target_app) {
         AssetSupport::Supported => (score, status.to_string(), detail),
         AssetSupport::Unsupported => {
-            if score < weight {
-                (
-                    weight,
-                    STATUS_PARTIAL.to_string(),
-                    format!(
-                        "{}（当前目标 CLI「{}」不支持此项，已不计入缺口）",
-                        detail,
-                        app_display_label(target_app)
-                    ),
-                )
-            } else {
-                (score, status.to_string(), detail)
-            }
+            (
+                0,
+                STATUS_NOT_APPLICABLE.to_string(),
+                format!(
+                    "{}（当前目标 CLI「{}」不支持此项，已从评分中排除）",
+                    detail,
+                    app_display_label(target_app)
+                ),
+            )
         }
         AssetSupport::Partial => {
             let st = if score >= weight {
@@ -125,7 +122,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         )
     } else if input.has_repo_mcp {
         (
-            15,
+            6,
             STATUS_DETECTED_ONLY,
             "项目目录检测到 .mcp.json（尚未在 OpenSunstar 中关联）".to_string(),
         )
@@ -167,7 +164,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
     // Prompts 12
     let has_db = input.prompt_db_count > 0;
     let has_files = !input.prompt_files.is_empty();
-    let prompt_score = if has_db || has_files { 12 } else { 0 };
+    let prompt_score = if has_db { 12 } else if has_files { 5 } else { 0 };
     let prompt_status = match (has_db, has_files) {
         (true, true) => STATUS_READY,
         (true, false) => STATUS_READY,
@@ -253,7 +250,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         )
     } else if input.ignore_global_count > 0 {
         (
-            10,
+            6,
             STATUS_GLOBAL_ONLY,
             format!(
                 "使用全局基线 {} 条 Ignore 规则（可为项目单独启用子集）",
@@ -286,7 +283,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         )
     } else if input.permissions_global_count > 0 {
         (
-            10,
+            6,
             STATUS_GLOBAL_ONLY,
             format!(
                 "使用全局基线 {} 条 Permissions（可为项目单独启用子集）",
@@ -411,9 +408,9 @@ mod tests {
             .iter()
             .find(|i| i.check_name == "ignore_rules")
             .unwrap();
-        assert_eq!(ignore.score, 10);
+        assert_eq!(ignore.score, 6);
         assert_eq!(ignore.status.as_deref(), Some(STATUS_GLOBAL_ONLY));
-        assert!(score >= 19); // ignore 10 + recent 9
+        assert_eq!(score, 15); // ignore 6 + recent 9
     }
 
     #[test]
@@ -428,9 +425,9 @@ mod tests {
             .iter()
             .find(|i| i.check_name == "prompt_files")
             .unwrap();
-        assert_eq!(prompt.score, 12);
+        assert_eq!(prompt.score, 5);
         assert_eq!(prompt.status.as_deref(), Some(STATUS_DETECTED_ONLY));
-        assert_eq!(score, 21);
+        assert_eq!(score, 14); // prompt 5 + recent 9
     }
 
     #[test]
@@ -465,6 +462,45 @@ mod tests {
         let hooks = items.iter().find(|i| i.check_name == "hooks_configured").unwrap();
         assert_eq!(hooks.score, 0);
         assert_eq!(hooks.status.as_deref(), Some(STATUS_MISSING));
+        assert_eq!(score, 9);
+    }
+
+    #[test]
+    fn claude_desktop_unsupported_items_excluded() {
+        let input = ReadinessCheckInput {
+            recent_update_within_90d: true,
+            target_app: Some("claude-desktop".to_string()),
+            ..Default::default()
+        };
+        let (score, items) = compute_readiness_items(&input);
+        // MCP is unsupported for claude-desktop
+        let mcp = items
+            .iter()
+            .find(|i| i.check_name == "mcp_enabled")
+            .unwrap();
+        assert_eq!(mcp.score, 0);
+        assert_eq!(mcp.status.as_deref(), Some(STATUS_NOT_APPLICABLE));
+        // All asset types are unsupported for claude-desktop
+        for check in &[
+            "mcp_enabled",
+            "skills_configured",
+            "prompt_files",
+            "commands_configured",
+            "hooks_configured",
+            "ignore_rules",
+            "permissions",
+            "subagents_configured",
+        ] {
+            let item = items.iter().find(|i| i.check_name == *check).unwrap();
+            assert_eq!(item.score, 0, "{} should score 0 for claude-desktop", check);
+            assert_eq!(
+                item.status.as_deref(),
+                Some(STATUS_NOT_APPLICABLE),
+                "{} should be not_applicable for claude-desktop",
+                check
+            );
+        }
+        // Only recent_updates contributes to score
         assert_eq!(score, 9);
     }
 }

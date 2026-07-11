@@ -45,6 +45,8 @@ pub mod sql_helpers;
 pub mod stream_check;
 pub mod subscription;
 pub mod sync_protocol;
+#[cfg(test)]
+pub(crate) mod sync_test_support;
 pub mod usage_cache;
 pub mod usage_stats;
 pub mod webdav;

@@ -20,8 +20,8 @@ There are many ways to contribute:
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm 8+
-- Rust 1.85+ and Cargo
+- Node.js 22.12.0 and pnpm 11.5.2
+- Rust 1.95.0 and Cargo
 - [Tauri 2.0 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
 ### Quick Start
@@ -36,15 +36,19 @@ pnpm dev
 
 ### Useful Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start dev server (hot reload) |
-| `pnpm build` | Production build |
-| `pnpm typecheck` | TypeScript type checking |
-| `pnpm test:unit` | Run unit tests |
-| `pnpm lint` | ESLint check |
-| `pnpm format` | Format code (Prettier) |
-| `pnpm format:check` | Check code formatting |
+| Command                                                                                                 | Description                                   |
+| ------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `pnpm dev`                                                                                              | Start dev server (hot reload)                 |
+| `pnpm dev:doctor`                                                                                       | Verify local Node.js, pnpm, and Rust versions |
+| `pnpm build`                                                                                            | Production build                              |
+| `pnpm typecheck`                                                                                        | TypeScript type checking                      |
+| `pnpm test:unit`                                                                                        | Run unit tests                                |
+| `pnpm lint`                                                                                             | ESLint check                                  |
+| `pnpm format`                                                                                           | Format code (Prettier)                        |
+| `pnpm format:check`                                                                                     | Check code formatting                         |
+| `pnpm os-cli:verify`                                                                                    | Verify npm CLI package supply-chain controls  |
+| `cargo test --manifest-path src-tauri/Cargo.toml --test os_cli_smoke`                                   | Run os CLI integration smoke tests            |
+| `cargo llvm-cov --manifest-path src-tauri/Cargo.toml --lib --tests --summary-only --fail-under-lines 1` | Run Rust coverage gate                        |
 
 For Rust backend:
 
@@ -71,7 +75,7 @@ cd src-tauri && cargo fmt --check && cargo clippy && cargo test
 ## Pull Request Guidelines
 
 1. **Open an issue first** for new features — PRs for features that are not a good fit may be closed.
-2. **Fork and branch** — Create a feature branch from `master` (e.g., `feat/my-feature` or `fix/issue-123`).
+2. **Fork and branch** — Create a feature branch from `master`; CI also covers `main` during branch transition (e.g., `feat/my-feature` or `fix/issue-123`).
 3. **Keep PRs focused** — One feature or fix per PR. Avoid unrelated changes.
 4. **Follow the PR template** — Fill in the summary, related issue, and checklist.
 
@@ -148,8 +152,8 @@ OpenSunstar supports three languages. When modifying user-facing text:
 
 ### 前提条件
 
-- Node.js 18+ 和 pnpm 8+
-- Rust 1.85+ 和 Cargo
+- Node.js 22.12.0 和 pnpm 11.5.2
+- Rust 1.95.0 和 Cargo
 - [Tauri 2.0 开发环境](https://v2.tauri.app/start/prerequisites/)
 
 ### 快速开始
@@ -164,15 +168,19 @@ pnpm dev
 
 ### 常用命令
 
-| 命令 | 说明 |
-|------|------|
-| `pnpm dev` | 启动开发服务器（热重载） |
-| `pnpm build` | 构建生产版本 |
-| `pnpm typecheck` | TypeScript 类型检查 |
-| `pnpm test:unit` | 运行单元测试 |
-| `pnpm lint` | ESLint 检查 |
-| `pnpm format` | 格式化代码（Prettier） |
-| `pnpm format:check` | 检查代码格式 |
+| 命令                                                                                                    | 说明                                |
+| ------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `pnpm dev`                                                                                              | 启动开发服务器（热重载）            |
+| `pnpm dev:doctor`                                                                                       | 校验本地 Node.js、pnpm 与 Rust 版本 |
+| `pnpm build`                                                                                            | 构建生产版本                        |
+| `pnpm typecheck`                                                                                        | TypeScript 类型检查                 |
+| `pnpm test:unit`                                                                                        | 运行单元测试                        |
+| `pnpm lint`                                                                                             | ESLint 检查                         |
+| `pnpm format`                                                                                           | 格式化代码（Prettier）              |
+| `pnpm format:check`                                                                                     | 检查代码格式                        |
+| `pnpm os-cli:verify`                                                                                    | 校验 npm CLI 包供应链门禁           |
+| `cargo test --manifest-path src-tauri/Cargo.toml --test os_cli_smoke`                                   | 运行 os CLI 集成冒烟测试            |
+| `cargo llvm-cov --manifest-path src-tauri/Cargo.toml --lib --tests --summary-only --fail-under-lines 1` | 运行 Rust 覆盖率门禁                |
 
 Rust 后端命令：
 
@@ -199,7 +207,7 @@ cd src-tauri && cargo fmt --check && cargo clippy && cargo test
 ## Pull Request 指南
 
 1. **先开 Issue 讨论** — 新功能请先开 Issue，不适合项目方向的 PR 可能会被关闭。
-2. **Fork 并创建分支** — 从 `main` 创建功能分支（如 `feat/my-feature` 或 `fix/issue-123`）。
+2. **Fork 并创建分支** — 从 `master` 创建功能分支；分支过渡期间 CI 同时覆盖 `main`（如 `feat/my-feature` 或 `fix/issue-123`）。
 3. **保持 PR 专注** — 每个 PR 只做一件事，避免无关改动。
 4. **遵循 PR 模板** — 填写概述、关联 Issue 和检查清单。
 

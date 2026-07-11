@@ -1991,7 +1991,7 @@
   },
   "workspace": {
     "title": "Workspace",
-    "subtitle": "Start each day with progress and AI asset readiness, then move into the project board",
+    "subtitle": "Monitor project risk, progress, and AI config status so you can handle key issues first",
     "sidebar": {
       "section": "Workspace",
       "currentProjectAssets": "{{name}} · AI assets"
@@ -2015,7 +2015,7 @@
       "allGood": "All projects look healthy — you're good to ship.",
       "configureAssets": "Configure assets",
       "reasonReadiness": "Readiness {{score}}/{{max}}",
-      "reasonDrift": "{{count}} configuration drift item(s)",
+      "reasonDrift": "{{count}} config mismatch item(s)",
       "reasonMcp": "No MCP linked",
       "reasonSkills": "No Skills",
       "reasonPrompts": "No Prompts linked",
@@ -2823,7 +2823,33 @@
     "degraded": "Degraded",
     "failed": "Failed",
     "circuitOpen": "Circuit Open",
-    "consecutiveFailures": "{{count}} consecutive failures"
+    "consecutiveFailures": "{{count}} consecutive failures",
+    "title": "Configuration status",
+    "allClear": "All projects have healthy AI configurations.",
+    "scan": "Duplicate scan",
+    "subtitle": "Detect projects with the same name or duplicate paths",
+    "noDuplicates": "No duplicate projects found",
+    "level": {
+      "ok": "OK",
+      "warn": "Needs attention",
+      "alert": "Abnormal",
+      "unscanned": "Not scanned"
+    },
+    "reason": {
+      "drifted": "{{count}} config item(s) inconsistent with expected state",
+      "unscanned": "AI configuration status scan has not completed",
+      "detectedOnly": "{{items}} — config files found but not managed",
+      "globalOnly": "{{items}} — using global default config",
+      "noMcp": "No MCP server linked",
+      "noSkills": "No Skills configured",
+      "noPrompts": "No Prompts linked",
+      "lowScore": "Low configuration completeness ({{score}} pts)"
+    },
+    "action": {
+      "repair": "View & fix",
+      "configure": "Configure assets",
+      "inspect": "View project"
+    }
   },
   "failover": {
     "enabled": "{{app}} failover enabled",
@@ -3388,15 +3414,15 @@
       "effective": {
         "configured": "Configured",
         "effective": "In effect",
-        "drifted": "Drifted",
+        "drifted": "Not in effect",
         "unconfigured": "Not configured",
         "unchecked": "Not compared"
       },
-      "driftBadge": "{{count}} drifted item(s)",
-      "driftShort": "Drift {{count}}",
-      "repairDrift": "Repair drift",
+      "driftBadge": "{{count}} config mismatch item(s)",
+      "driftShort": "To fix {{count}}",
+      "repairDrift": "Repair config",
       "repairSuccess": "Write-back verified",
-      "repairFailed": "Still drifted after repair",
+      "repairFailed": "Config mismatch remains after repair",
       "repairError": "Repair request failed — try again",
       "repairNoop": "No repair needed for this item"
     },
@@ -3405,34 +3431,40 @@
       "forApp": "Target CLI: {{app}}",
       "scannedProjects": "Scanned projects",
       "ofTotal": "{{total}} total",
-      "driftProjects": "Projects with drift",
+      "driftProjects": "Projects with config mismatch",
       "driftItems": "{{count}} item(s) to fix",
       "effectiveRate": "Effective rate",
       "comparableItems": "{{count}} comparable",
       "effectiveItems": "Effective items",
       "portfolioScope": "Portfolio aggregate",
-      "driftBreakdown": "Drift by asset type",
+      "driftBreakdown": "Config mismatch by asset type",
       "allEffective": "All comparable assets are effective.",
       "awaitingScan": "Governance metrics appear after readiness scan completes.",
       "repairConfirmTitle": "Confirm write-back repair?",
-      "repairConfirmProjectTitle": "Repair all drift for this project?",
+      "repairConfirmProjectTitle": "Repair all mismatched items for this project?",
       "repairConfirmAssetIntro": "OpenSunstar will write the library copy of \"{{label}}\" to the project-level files for {{app}}. This may overwrite manual edits you made outside OpenSunstar.",
-      "repairConfirmProjectIntro": "Repair all {{count}} drifted item(s) for \"{{name}}\" by writing OpenSunstar library content to {{app}} project files. External manual edits may be overwritten.",
-      "repairConfirmDetail": "Drift: {{detail}}",
+      "repairConfirmProjectIntro": "Repair all {{count}} mismatched config item(s) for \"{{name}}\" by writing OpenSunstar library content to {{app}} project files. External manual edits may be overwritten.",
+      "repairConfirmDetail": "Mismatch detail: {{detail}}",
       "repairConfirmPath": "Target path: {{path}}",
       "repairConfirmProceed": "Write-back and re-scan run immediately after you confirm. This cannot be undone automatically.",
       "repairConfirmAction": "Confirm write-back",
-      "repairConfirmProjectAction": "Repair all"
+      "repairConfirmProjectAction": "Repair all",
+      "tooltip": {
+        "scannedProjects": "Number of projects that have completed AI configuration readiness checks",
+        "driftProjects": "Projects with at least 1 AI config item inconsistent with the expected state saved in OpenSunstar, usually because local files were modified or deleted outside OpenSunstar.",
+        "effectiveRate": "Effective rate = effective items ÷ comparable items.\nEffective = config correctly written to project; comparable = total check items excluding unsupported.",
+        "effectiveItems": "Total number of AI config check items correctly applied across all projects."
+      }
     },
     "portfolioDrift": {
-      "allClear": "Portfolio effective-state scan: no configuration drift detected.",
-      "title": "{{projects}} project(s) with drift ({{items}} item(s) total)",
+      "allClear": "Portfolio effective-state scan: no config mismatch detected.",
+      "title": "{{projects}} project(s) with config mismatch ({{items}} item(s) total)",
       "forApp": "Target CLI: {{app}}",
-      "itemCount": "{{count}} drifted",
-      "repairAll": "Repair all drift",
-      "repairAllSuccess": "Repaired {{count}} drifted item(s) and verified",
-      "repairPartial": "Fixed {{fixed}}, {{remaining}} still drifted",
-      "repairNone": "No drifted items to repair"
+      "itemCount": "{{count}} to fix",
+      "repairAll": "Repair all items to fix",
+      "repairAllSuccess": "Repaired {{count}} config mismatch item(s) and verified",
+      "repairPartial": "Fixed {{fixed}}, {{remaining}} config mismatch item(s) remain",
+      "repairNone": "No config mismatch items to repair"
     }
   },
   "projectConfig": {
@@ -3691,5 +3723,92 @@
     "minutesAgo": "{{count}} min ago",
     "hoursAgo": "{{count}} hr ago",
     "daysAgo": "{{count}} days ago"
+  },
+  "onboarding": {
+    "title": "Welcome to the Workspace",
+    "dismiss": "Dismiss guide",
+    "prev": "Previous",
+    "next": "Next",
+    "done": "Got it",
+    "step1": {
+      "title": "Configuration status — at a glance",
+      "desc": "The top summary separates AI config status across projects: OK, needs attention, abnormal, and not scanned."
+    },
+    "step2": {
+      "title": "Projects needing action — quick locate",
+      "desc": "Projects that need attention are listed below with human-readable reasons. Click \"View & fix\" or \"Configure assets\" to jump straight to the action."
+    },
+    "step3": {
+      "title": "Governance overview — deep dive",
+      "desc": "Projects with config mismatch, effective rate, effective items and other detailed metrics are shown here. Hover over a card for details."
+    }
+  },
+  "repairPreview": {
+    "title": "Config Repair Preview",
+    "description": "Project \"{{name}}\" has {{count}} config mismatch item(s). Select the ones to repair:",
+    "loading": "Scanning items to fix…",
+    "empty": "No config mismatch found, nothing to repair",
+    "selectAll": "Select all",
+    "deselectAll": "Deselect all",
+    "safetyHint": "{{count}} safety-critical item(s) (Ignore/Permissions/Hooks) — repair will overwrite access control or command execution config",
+    "safetyCriticalTooltip": "Safety-critical: repair will overwrite access control or command execution config",
+    "safetyBadge": "Safety-critical",
+    "confirmAction": "Repair selected ({{count}})",
+    "repairing": "Repairing…"
+  },
+  "assetsMatrix": {
+    "title": "AI Config Status",
+    "subtitle": "Each cell shows a short AI config status: effective, mismatch, missing, global, detected, unscanned, or not applicable. Click for details.",
+    "project": "Project",
+    "stage": "Stage",
+    "score": "Score",
+    "loading": "Scanning project configs…",
+    "refreshing": "Refreshing",
+    "normal": "OK",
+    "attention": "Attention",
+    "abnormal": "Abnormal",
+    "unscanned": "Not scanned",
+    "hasIssue": "Needs action",
+    "showProblemsOnly": "Needs action only",
+    "filterLabel": "Project status filter",
+    "filterAll": "All",
+    "filterNeedsAction": "Needs action",
+    "filterAbnormal": "Abnormal",
+    "filterUnscanned": "Unscanned",
+    "allClear": "No projects need action under this filter",
+    "cellOk": "OK",
+    "cellEffective": "Effective",
+    "cellMismatch": "Mismatch",
+    "cellMissing": "Missing",
+    "cellGlobal": "Global",
+    "cellDetected": "Detected",
+    "cellPartial": "Partial",
+    "cellWarn": "Attention",
+    "cellCrit": "Abnormal",
+    "cellUnscanned": "Unscanned",
+    "cellNA": "N/A",
+    "safetyBadge": "Safety-critical",
+    "noData": "No scan data available",
+    "scanPending": "Scan has not completed; this cannot be considered OK yet.",
+    "detailEffective": "Config effective and matches OpenSunstar library",
+    "detailDrifted": "Config differs from expected, may need repair",
+    "detailUnscanned": "Config was found, but target CLI effective-state comparison has not completed",
+    "detailGlobal": "Using global default, not customized at project level",
+    "detailDetected": "Config detected in repo but not managed by OpenSunstar",
+    "detailMissingSafety": "Safety-critical item not configured, set up soon recommended",
+    "detailMissing": "Not configured, can be ignored if not needed",
+    "detailPartial": "Partially configured, recommend completing",
+    "detailNA": "Not supported by current target CLI",
+    "statusOk": "Config OK",
+    "statusWarn": "Needs attention",
+    "statusCrit": "Problem found",
+    "statusUnscanned": "Scan not completed",
+    "statusNA": "Not applicable",
+    "stateDetail": "Status details",
+    "driftDetail": "Status details",
+    "checkDetail": "Check details",
+    "filePath": "Config file path",
+    "viewProject": "View project assets",
+    "goRepair": "Go to repair"
   }
 }

@@ -8,7 +8,7 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.4-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.5-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
@@ -177,7 +177,7 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | :---------: | :-------------: |
 | ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.4** — OpenSunstar CLI (`os`) with full-screen TUI, standalone bootstrap, provider switch, and Release artifacts for all platforms.
+> **v1.1.5** — Cockpit health summary & repair preview, os-cli checksum integrity, sync hardening, and website interactive demos.
 
 ---
 
@@ -353,9 +353,10 @@ Data is fetched from skills.sh and cached locally (~6 hours). The UI shows last 
 
 **Stack:** React 18 · TypeScript · Vite · Tauri 2 · Rust · SQLite · TanStack Query
 
-**Prerequisites:** Node.js 20+ · pnpm · Rust 1.85+ · platform Tauri dependencies
+**Prerequisites:** Node.js 22.12.0 · pnpm 11.5.2 · Rust 1.95.0 · platform Tauri dependencies
 
 ```bash
+pnpm dev:doctor       # verify local toolchain
 pnpm install
 pnpm tauri dev        # dev mode (desktop)
 pnpm dev:renderer     # frontend only

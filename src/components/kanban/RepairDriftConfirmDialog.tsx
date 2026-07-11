@@ -57,7 +57,7 @@ export function RepairDriftConfirmDialog({
       pending.effectiveDetail
         ? t("kanban.governance.repairConfirmDetail", {
             detail: pending.effectiveDetail,
-            defaultValue: "漂移说明：{{detail}}",
+            defaultValue: "不一致说明：{{detail}}",
           })
         : null,
       pending.livePath
@@ -97,7 +97,7 @@ export function RepairDriftConfirmDialog({
       count: pending.driftCount,
       app: pending.targetApp ?? "claude",
       defaultValue:
-        "将修复项目「{{name}}」的全部 {{count}} 项漂移：逐项写回 OpenSunstar 库内容到目标 CLI（{{app}}），可能覆盖外部手动修改。",
+        "将修复项目「{{name}}」的全部 {{count}} 项配置不一致：逐项写回 OpenSunstar 库内容到目标 CLI（{{app}}），可能覆盖外部手动修改。",
     }),
     t("kanban.governance.repairConfirmProceed", {
       defaultValue: "确认后将立即写回并复扫验证；此操作不可自动撤销。",
@@ -110,7 +110,7 @@ export function RepairDriftConfirmDialog({
       variant="destructive"
       zIndex={zIndex}
       title={t("kanban.governance.repairConfirmProjectTitle", {
-        defaultValue: "确认修复全部漂移？",
+        defaultValue: "确认修复全部不一致项？",
       })}
       message={message}
       confirmText={t("kanban.governance.repairConfirmProjectAction", {

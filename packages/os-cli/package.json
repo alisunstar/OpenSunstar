@@ -1,6 +1,6 @@
 {
   "name": "opensunstar-os",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "OpenSunstar CLI (os) — governance, provider switch, and TUI dashboard",
   "license": "MIT",
   "author": "Jason Young",
@@ -33,9 +33,11 @@
   "files": [
     "bin",
     "lib",
-    "scripts"
+    "scripts",
+    "checksums.json"
   ],
   "scripts": {
-    "postinstall": "node scripts/postinstall.js"
+    "postinstall": "node scripts/postinstall.js",
+    "verify": "node ../../scripts/verify-os-cli-package.mjs"
   }
 }

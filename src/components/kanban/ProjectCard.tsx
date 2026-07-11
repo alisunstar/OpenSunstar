@@ -339,12 +339,12 @@ export function ProjectCard({
               className="shrink-0 inline-flex items-center rounded-md bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-400"
               title={t("kanban.readiness.driftBadge", {
                 count: agentDriftCount,
-                defaultValue: `${agentDriftCount} 项配置漂移`,
+                defaultValue: `${agentDriftCount} 项配置不一致`,
               })}
             >
               {t("kanban.readiness.driftShort", {
                 count: agentDriftCount,
-                defaultValue: `漂移 ${agentDriftCount}`,
+                defaultValue: `待处理 ${agentDriftCount}`,
               })}
             </span>
           )}

@@ -267,7 +267,7 @@ export function TodayWorkspace({
 
             count: readinessEntry.driftCount,
 
-            defaultValue: `配置漂移 ${readinessEntry.driftCount} 项`,
+            defaultValue: `配置不一致 ${readinessEntry.driftCount} 项`,
 
           }),
 
@@ -772,4 +772,3 @@ export function TodayWorkspace({
   );
 
 }
-

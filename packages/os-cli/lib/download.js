@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import crypto from "node:crypto";
 import https from "node:https";
 import path from "node:path";
 
@@ -42,8 +43,26 @@ function followRedirect(url, redirects = 0) {
   });
 }
 
-export async function downloadToFile(url, destPath) {
+export async function downloadToFile(
+  url,
+  destPath,
+  { expectedSha256, artifactName } = {},
+) {
   fs.mkdirSync(path.dirname(destPath), { recursive: true });
   const data = await followRedirect(url);
+
+  if (expectedSha256) {
+    const actualSha256 = crypto.createHash("sha256").update(data).digest("hex");
+    const expected = expectedSha256.toLowerCase();
+
+    if (actualSha256 !== expected) {
+      throw new Error(
+        `SHA256 mismatch for ${
+          artifactName ?? path.basename(destPath)
+        }: expected ${expected}, got ${actualSha256}`,
+      );
+    }
+  }
+
   fs.writeFileSync(destPath, data);
 }

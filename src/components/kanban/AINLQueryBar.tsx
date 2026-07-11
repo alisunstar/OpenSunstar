@@ -5,7 +5,6 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
-  Settings2,
   Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,8 +22,6 @@ interface AINLQueryBarProps {
   aiConfigured: boolean;
   /** 项目总数 */
   projectCount: number;
-  /** 跳转到 AI 设置页 */
-  onOpenSettings?: () => void;
 }
 
 /** insight_type → 中文标签（兼容旧键名） */
@@ -47,7 +44,6 @@ export function AINLQueryBar({
   projectContexts,
   aiConfigured,
   projectCount,
-  onOpenSettings,
 }: AINLQueryBarProps) {
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState(true);
@@ -63,37 +59,7 @@ export function AINLQueryBar({
     });
   }, [aiConfigured, refreshToken]);
 
-  // ── 未配置 AI: 引导卡片 ───────────────────────
-  if (!aiConfigured) {
-    return (
-      <div className="mb-3 rounded-xl border border-dashed border-primary/20 bg-primary/[0.03] p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-            <Sparkles className="h-4 w-4 text-primary/70" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground/90">
-              开启 AI 智能分析
-            </p>
-            <p className="text-[11px] text-muted-foreground/70 mt-0.5">
-              配置 AI 模型后，看板将为每个项目自动生成摘要和健康评分
-            </p>
-          </div>
-          {onOpenSettings && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="shrink-0 h-8 text-xs"
-              onClick={onOpenSettings}
-            >
-              <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              配置 AI
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
+  if (!aiConfigured) return null;
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();

@@ -23,7 +23,8 @@ use crate::opencode_config::get_opencode_dir;
 use crate::services::agent_codex::markdown_agent_to_codex_toml;
 use crate::services::claude_settings::ClaudeSettingsMerger;
 use crate::services::marker_merge::{
-    extract_markdown_section, strip_managed_subagent_marker, PROMPT_SECTION_ID,
+    extract_markdown_section, strip_managed_ignore_marker, strip_managed_subagent_marker,
+    PROMPT_SECTION_ID,
 };
 use crate::services::prompt::PromptService;
 use crate::services::skill::SkillService;
@@ -77,6 +78,27 @@ pub struct RepairProjectDriftResult {
     pub still_drifted_count: u32,
     pub items: Vec<RepairAssetDriftResult>,
     pub scanned_at: i64,
+}
+
+/// 漂移修复预览条目（展示当前磁盘内容供用户确认）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepairPreviewItem {
+    pub check_name: String,
+    pub label: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub live_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effective_detail: Option<String>,
+    /// 当前磁盘文件内容摘要（截断至 800 字符）
+    pub current_content: String,
+    pub is_safety_critical: bool,
+}
+
+/// 漂移修复预览结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepairPreviewResult {
+    pub items: Vec<RepairPreviewItem>,
+    pub total_drifted: u32,
 }
 
 fn now_ts() -> i64 {
@@ -134,6 +156,7 @@ fn compare_json(expected: &Value, actual: &Value) -> bool {
     canonical_json_hash(expected) == canonical_json_hash(actual)
 }
 
+#[allow(dead_code)]
 fn effective_from_text(
     check_name: &str,
     configured: &str,
@@ -594,14 +617,31 @@ fn scan_ignore(
                 if proj_expected.is_empty() && !proj_path.is_file() {
                     None
                 } else {
-                    let proj_state = effective_from_text(
-                        "ignore_rules",
-                        configured,
-                        &proj_expected,
-                        &proj_path,
-                        AssetSupport::Supported,
-                    );
-                    Some(proj_state)
+                    // 读取磁盘文件并剥离管理标记后再比较
+                    let proj_actual = if proj_path.is_file() {
+                        strip_managed_ignore_marker(
+                            &std::fs::read_to_string(&proj_path).unwrap_or_default(),
+                        )
+                    } else {
+                        String::new()
+                    };
+                    let proj_effective = if compare_text(&proj_expected, &proj_actual) {
+                        EFFECTIVE.to_string()
+                    } else {
+                        DRIFTED.to_string()
+                    };
+                    let proj_detail = if proj_effective == DRIFTED {
+                        Some("磁盘文件与 OpenSunstar 库内容不一致（可能被外部修改）".into())
+                    } else {
+                        None
+                    };
+                    Some(EffectiveItemState {
+                        check_name: "ignore_rules".into(),
+                        configured_state: configured.into(),
+                        effective_state: proj_effective,
+                        effective_detail: proj_detail,
+                        live_path: Some(proj_path.display().to_string()),
+                    })
                 }
             }
             Err(_) => None,
@@ -610,13 +650,31 @@ fn scan_ignore(
         None
     };
 
-    let mut global = effective_from_text(
-        "ignore_rules",
-        configured,
-        &expected,
-        &path,
-        AssetSupport::Supported,
-    );
+    // 全局 ignore：读取磁盘文件并剥离管理标记后再比较
+    let actual_global = if path.is_file() {
+        strip_managed_ignore_marker(
+            &std::fs::read_to_string(&path).unwrap_or_default(),
+        )
+    } else {
+        String::new()
+    };
+    let global_effective = if compare_text(&expected, &actual_global) {
+        EFFECTIVE.to_string()
+    } else {
+        DRIFTED.to_string()
+    };
+    let global_detail = if global_effective == DRIFTED {
+        Some("磁盘文件与 OpenSunstar 库内容不一致（可能被外部修改）".into())
+    } else {
+        None
+    };
+    let mut global = EffectiveItemState {
+        check_name: "ignore_rules".into(),
+        configured_state: configured.into(),
+        effective_state: global_effective,
+        effective_detail: global_detail,
+        live_path: Some(path.display().to_string()),
+    };
 
     // 项目级 ignore 结果合并：drifted > effective，并附加项目路径信息
     if let Some(proj) = project_result {

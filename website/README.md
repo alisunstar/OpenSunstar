@@ -41,12 +41,12 @@ pnpm website:publish
 
 可选环境变量：
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `PAGES_REPO_DIR` | `../opensunstar.github.io` | 本地 Pages 仓库路径 |
-| `PAGES_REPO_URL` | `git@github.com:opensunstar/opensunstar.github.io.git` | 远程地址 |
-| `DRY_RUN=1` | — | 仅预览，不写入 |
-| `NO_PUSH=1` | — | 本地 commit，不 push |
+| 变量             | 默认值                                                 | 说明                 |
+| ---------------- | ------------------------------------------------------ | -------------------- |
+| `PAGES_REPO_DIR` | `../opensunstar.github.io`                             | 本地 Pages 仓库路径  |
+| `PAGES_REPO_URL` | `git@github.com:opensunstar/opensunstar.github.io.git` | 远程地址             |
+| `DRY_RUN=1`      | —                                                      | 仅预览，不写入       |
+| `NO_PUSH=1`      | —                                                      | 本地 commit，不 push |
 
 约 1–2 分钟后访问 https://opensunstar.github.io/
 
@@ -60,7 +60,7 @@ name: Deploy Pages
 on:
   push:
     branches: [main]
-    paths: ['website/**']
+    paths: ["website/**"]
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -77,8 +77,13 @@ jobs:
 ```
 website/
 ├── index.html          # 单页官网
-├── css/style.css       # 样式（语雀生态风格：留白、卡片、分区锚点）
+├── css/style.css       # 基础样式（语雀生态风格：留白、卡片、分区锚点）
+├── css/demo.css        # 交互式产品演示区样式
 ├── js/main.js          # 导航高亮、平台 Tab、复制命令
+├── js/demo-data.js     # 浏览器本地 mock 数据，贴近 os --json 输出结构
+├── js/demo-dashboard.js # 工作区就绪度与资产矩阵演示
+├── js/demo-terminal.js # CLI 命令输出演示
+├── js/demo-sync.js     # 同步后端、加密 manifest 与失败态演示
 ├── assets/
 │   ├── icon.png        # Favicon（512，透明 PNG）
 │   ├── logo-nav.png    # 导航品牌 LOGO（32）

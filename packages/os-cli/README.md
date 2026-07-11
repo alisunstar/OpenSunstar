@@ -2,6 +2,9 @@
 
 npm wrapper for the **OpenSunstar CLI** (`os`) — downloads the platform binary from [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releases) on install.
 
+The installer verifies the downloaded archive against the SHA256 manifest
+included in the published npm package.
+
 ## Install
 
 ```bash
@@ -34,17 +37,18 @@ Place a prebuilt binary at `vendor/os` (or `vendor/os.exe` on Windows), then run
 
 ## Supported platforms
 
-| OS | Arch | Release asset |
-|----|------|---------------|
-| Windows | x64 | `OpenSunstar-v*-os-windows-x86_64.zip` |
-| Linux | x64 | `OpenSunstar-v*-os-linux-x86_64.tar.gz` |
-| macOS | arm64 | `OpenSunstar-v*-os-macos-aarch64.tar.gz` |
-| macOS | x64 | `OpenSunstar-v*-os-macos-x86_64.tar.gz` |
+| OS      | Arch  | Release asset                            |
+| ------- | ----- | ---------------------------------------- |
+| Windows | x64   | `OpenSunstar-v*-os-windows-x86_64.zip`   |
+| Linux   | x64   | `OpenSunstar-v*-os-linux-x86_64.tar.gz`  |
+| macOS   | arm64 | `OpenSunstar-v*-os-macos-aarch64.tar.gz` |
+| macOS   | x64   | `OpenSunstar-v*-os-macos-x86_64.tar.gz`  |
 
 ## Notes
 
 - This package is a **thin Node shim**; the CLI itself is a Rust binary with TUI.
 - `postinstall` requires network access to GitHub Releases on first install.
+- Downloads fail closed if `checksums.json` is missing or the archive hash does not match.
 - If your environment uses `npm install --ignore-scripts`, run `npm rebuild opensunstar-os` after install.
 
 ## License
