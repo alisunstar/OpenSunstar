@@ -353,7 +353,7 @@ os provider switch --app claude --id <provider-id> --yes
 
 **技术栈：** React 18 · TypeScript · Vite · Tauri 2 · Rust · SQLite · TanStack Query
 
-**环境要求：** Node.js 22.12.0 · pnpm 11.5.2 · Rust 1.95.0 · 各平台 Tauri 构建依赖
+**环境要求：** Node.js 22.13+ · pnpm 11.5.2 · Rust 1.95.0 · 各平台 Tauri 构建依赖
 
 ```bash
 pnpm dev:doctor       # 校验本地工具链

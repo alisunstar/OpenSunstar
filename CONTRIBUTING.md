@@ -20,7 +20,7 @@ There are many ways to contribute:
 
 ### Prerequisites
 
-- Node.js 22.12.0 and pnpm 11.5.2
+- Node.js 22.13+ and pnpm 11.5.2
 - Rust 1.95.0 and Cargo
 - [Tauri 2.0 prerequisites](https://v2.tauri.app/start/prerequisites/)
 
@@ -152,7 +152,7 @@ OpenSunstar supports three languages. When modifying user-facing text:
 
 ### 前提条件
 
-- Node.js 22.12.0 和 pnpm 11.5.2
+- Node.js 22.13+ 和 pnpm 11.5.2
 - Rust 1.95.0 和 Cargo
 - [Tauri 2.0 开发环境](https://v2.tauri.app/start/prerequisites/)
 
