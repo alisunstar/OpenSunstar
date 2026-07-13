@@ -65,9 +65,10 @@ impl AIClient {
             ));
         }
 
-        let chat_response: ChatResponse = response.json().await.map_err(|e| {
-            format!("AI 响应解析失败: {e}")
-        })?;
+        let chat_response: ChatResponse = response
+            .json()
+            .await
+            .map_err(|e| format!("AI 响应解析失败: {e}"))?;
 
         if chat_response.choices.is_empty() {
             return Err("AI 返回了空的响应".to_string());
@@ -95,8 +96,12 @@ pub fn estimate_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) ->
         m if m.contains("gpt-4-turbo") || m.contains("gpt-4-0125") => (10.0 * 7.2, 30.0 * 7.2),
         m if m.contains("gpt-3.5") => (0.5 * 7.2, 1.5 * 7.2),
         // Claude 系列 (USD / 1M tokens)
-        m if m.contains("claude-3-5-sonnet") || m.contains("claude-3.5-sonnet") => (3.0 * 7.2, 15.0 * 7.2),
-        m if m.contains("claude-3-5-haiku") || m.contains("claude-3.5-haiku") => (0.8 * 7.2, 4.0 * 7.2),
+        m if m.contains("claude-3-5-sonnet") || m.contains("claude-3.5-sonnet") => {
+            (3.0 * 7.2, 15.0 * 7.2)
+        }
+        m if m.contains("claude-3-5-haiku") || m.contains("claude-3.5-haiku") => {
+            (0.8 * 7.2, 4.0 * 7.2)
+        }
         // 默认: 按 DeepSeek 价格估算
         _ => (2.0, 8.0),
     };

@@ -3,13 +3,13 @@
 use tauri::State;
 
 use crate::database::Database;
-use crate::services::recipe_composer::{
-    build_stage_graph, compose_recipe, delete_saved_recipe, export_recipe,
-    generate_recipe_hybrid, install_recipe, list_saved_recipes,
-    preview_recipe_install_plan, read_saved_recipe,
-    CompositionRecipe, InstallResult, RecipeComposeParams, RecipeInstallPlan, StageGraph,
-};
 use crate::services::flow_orchestrator::{get_workflow_preset, list_workflow_modules};
+use crate::services::recipe_composer::{
+    build_stage_graph, compose_recipe, delete_saved_recipe, export_recipe, generate_recipe_hybrid,
+    install_recipe, list_saved_recipes, parse_recipe_frontmatter, preview_recipe_install_plan,
+    read_saved_recipe, CompositionRecipe, InstallResult, RecipeComposeParams, RecipeInstallPlan,
+    StageGraph,
+};
 use crate::store::AppState;
 
 fn project_path_for_id(db: &Database, project_id: &str) -> Result<String, String> {
@@ -30,8 +30,8 @@ pub async fn build_stage_graph_cmd(
         Some(id) => Some(project_path_for_id(&state.db, &id)?),
         None => None,
     };
-    let preset = get_workflow_preset(&preset_id, project_path.as_deref())
-        .map_err(|e| e.to_string())?;
+    let preset =
+        get_workflow_preset(&preset_id, project_path.as_deref()).map_err(|e| e.to_string())?;
     Ok(build_stage_graph(&preset))
 }
 
@@ -43,10 +43,8 @@ pub async fn compose_recipe_cmd(
     params: RecipeComposeParams,
 ) -> Result<CompositionRecipe, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let preset = get_workflow_preset(&params.preset_id, Some(&path))
-        .map_err(|e| e.to_string())?;
-    let modules = list_workflow_modules(Some(&path))
-        .map_err(|e| e.to_string())?;
+    let preset = get_workflow_preset(&params.preset_id, Some(&path)).map_err(|e| e.to_string())?;
+    let modules = list_workflow_modules(Some(&path)).map_err(|e| e.to_string())?;
     compose_recipe(&preset, &params, &modules).map_err(|e| e.to_string())
 }
 
@@ -58,12 +56,9 @@ pub async fn preview_recipe_cmd(
     params: RecipeComposeParams,
 ) -> Result<String, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let preset = get_workflow_preset(&params.preset_id, Some(&path))
-        .map_err(|e| e.to_string())?;
-    let modules = list_workflow_modules(Some(&path))
-        .map_err(|e| e.to_string())?;
-    let recipe = compose_recipe(&preset, &params, &modules)
-        .map_err(|e| e.to_string())?;
+    let preset = get_workflow_preset(&params.preset_id, Some(&path)).map_err(|e| e.to_string())?;
+    let modules = list_workflow_modules(Some(&path)).map_err(|e| e.to_string())?;
+    let recipe = compose_recipe(&preset, &params, &modules).map_err(|e| e.to_string())?;
     generate_recipe_hybrid(&recipe).map_err(|e| e.to_string())
 }
 
@@ -75,12 +70,9 @@ pub async fn export_recipe_cmd(
     params: RecipeComposeParams,
 ) -> Result<String, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let preset = get_workflow_preset(&params.preset_id, Some(&path))
-        .map_err(|e| e.to_string())?;
-    let modules = list_workflow_modules(Some(&path))
-        .map_err(|e| e.to_string())?;
-    let recipe = compose_recipe(&preset, &params, &modules)
-        .map_err(|e| e.to_string())?;
+    let preset = get_workflow_preset(&params.preset_id, Some(&path)).map_err(|e| e.to_string())?;
+    let modules = list_workflow_modules(Some(&path)).map_err(|e| e.to_string())?;
+    let recipe = compose_recipe(&preset, &params, &modules).map_err(|e| e.to_string())?;
     export_recipe(&path, &recipe).map_err(|e| e.to_string())
 }
 
@@ -105,6 +97,18 @@ pub async fn read_saved_recipe_cmd(
     read_saved_recipe(&path, &name).map_err(|e| e.to_string())
 }
 
+/// Load a saved recipe's structured YAML frontmatter for editing or re-installing.
+#[tauri::command]
+pub async fn load_saved_recipe_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+    name: String,
+) -> Result<CompositionRecipe, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    let content = read_saved_recipe(&path, &name).map_err(|e| e.to_string())?;
+    parse_recipe_frontmatter(&content).map_err(|e| e.to_string())
+}
+
 /// Delete a saved recipe file.
 #[tauri::command]
 pub async fn delete_saved_recipe_cmd(
@@ -125,12 +129,9 @@ pub async fn preview_recipe_install_plan_cmd(
     change_id: String,
 ) -> Result<RecipeInstallPlan, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let preset = get_workflow_preset(&params.preset_id, Some(&path))
-        .map_err(|e| e.to_string())?;
-    let modules = list_workflow_modules(Some(&path))
-        .map_err(|e| e.to_string())?;
-    let recipe = compose_recipe(&preset, &params, &modules)
-        .map_err(|e| e.to_string())?;
+    let preset = get_workflow_preset(&params.preset_id, Some(&path)).map_err(|e| e.to_string())?;
+    let modules = list_workflow_modules(Some(&path)).map_err(|e| e.to_string())?;
+    let recipe = compose_recipe(&preset, &params, &modules).map_err(|e| e.to_string())?;
     preview_recipe_install_plan(&path, &recipe, &change_id).map_err(|e| e.to_string())
 }
 
@@ -144,11 +145,8 @@ pub async fn install_recipe_cmd(
     change_id: String,
 ) -> Result<InstallResult, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let preset = get_workflow_preset(&params.preset_id, Some(&path))
-        .map_err(|e| e.to_string())?;
-    let modules = list_workflow_modules(Some(&path))
-        .map_err(|e| e.to_string())?;
-    let recipe = compose_recipe(&preset, &params, &modules)
-        .map_err(|e| e.to_string())?;
+    let preset = get_workflow_preset(&params.preset_id, Some(&path)).map_err(|e| e.to_string())?;
+    let modules = list_workflow_modules(Some(&path)).map_err(|e| e.to_string())?;
+    let recipe = compose_recipe(&preset, &params, &modules).map_err(|e| e.to_string())?;
     install_recipe(&path, &recipe, &change_id).map_err(|e| e.to_string())
 }

@@ -1,4 +1,4 @@
-﻿use std::fs;
+use std::fs;
 use std::path::PathBuf;
 
 use open_sunstar_lib::{AppError, MultiAppConfig};
@@ -103,5 +103,7 @@ fn load_valid_v2_config_succeeds() {
     assert!(loaded
         .get_manager(&open_sunstar_lib::AppType::Claude)
         .is_some());
-    assert!(loaded.get_manager(&open_sunstar_lib::AppType::Codex).is_some());
+    assert!(loaded
+        .get_manager(&open_sunstar_lib::AppType::Codex)
+        .is_some());
 }

@@ -49,13 +49,17 @@ pub fn run_with_optional_state(
 
 fn run_search(query: &str, source: &str, limit: usize, json: bool) -> Result<(), String> {
     if source != "skills-sh" {
-        output::warning(&format!("搜索源 '{source}' 暂不支持 CLI，请使用 GUI 进行搜索，或使用 --source skills-sh。"));
+        output::warning(&format!(
+            "搜索源 '{source}' 暂不支持 CLI，请使用 GUI 进行搜索，或使用 --source skills-sh。"
+        ));
         return Ok(());
     }
 
     let rt = tokio::runtime::Runtime::new().map_err(|e| e.to_string())?;
     let search_result = rt
-        .block_on(open_sunstar_lib::SkillService::search_skills_sh(query, limit, 0))
+        .block_on(open_sunstar_lib::SkillService::search_skills_sh(
+            query, limit, 0,
+        ))
         .map_err(|e| e.to_string())?;
     let results = serde_json::to_value(&search_result).map_err(|e| e.to_string())?;
 
@@ -63,9 +67,7 @@ fn run_search(query: &str, source: &str, limit: usize, json: bool) -> Result<(),
         output::print_result(&results, true);
     } else {
         // SkillsShSearchResult serializes to { "skills": [...], "totalCount": N, "query": "..." }
-        let skills_arr = results
-            .get("skills")
-            .and_then(|v| v.as_array());
+        let skills_arr = results.get("skills").and_then(|v| v.as_array());
 
         match skills_arr {
             Some(arr) if !arr.is_empty() => {
@@ -83,10 +85,7 @@ fn run_search(query: &str, source: &str, limit: usize, json: bool) -> Result<(),
                         .get("description")
                         .and_then(|v| v.as_str())
                         .unwrap_or("");
-                    let installs = item
-                        .get("installs")
-                        .and_then(|v| v.as_u64())
-                        .unwrap_or(0);
+                    let installs = item.get("installs").and_then(|v| v.as_u64()).unwrap_or(0);
 
                     println!(
                         "  {} {}",
@@ -116,10 +115,7 @@ fn run_search(query: &str, source: &str, limit: usize, json: bool) -> Result<(),
     Ok(())
 }
 
-fn run_list(
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+fn run_list(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     let skills = state
         .db
         .get_all_installed_skills()
@@ -163,7 +159,11 @@ fn run_list(
             let claude = if skill.apps.claude { "✓" } else { "·" };
             let codex = if skill.apps.codex { "✓" } else { "·" };
             let gemini = if skill.apps.gemini { "✓" } else { "·" };
-            let dir = if skill.directory.is_empty() { "-" } else { skill.directory.as_str() };
+            let dir = if skill.directory.is_empty() {
+                "-"
+            } else {
+                skill.directory.as_str()
+            };
             println!(
                 "  {:<24} {:<12} {:<8} {:<8} {:<8}",
                 skill.name, dir, claude, codex, gemini

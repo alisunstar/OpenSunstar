@@ -87,8 +87,12 @@ pub fn get_ai_insight_provider_settings(
         .map_err(|e| e.to_string())?
         .unwrap_or_else(|| "deepseek".to_string());
 
-    let (glm_api_url, glm_model) =
-        read_meta_from_db(&state.db, GLM_META_KEY, &default_glm_url(), &default_glm_model());
+    let (glm_api_url, glm_model) = read_meta_from_db(
+        &state.db,
+        GLM_META_KEY,
+        &default_glm_url(),
+        &default_glm_model(),
+    );
     let (custom_api_url, custom_model) = read_meta_from_db(
         &state.db,
         CUSTOM_META_KEY,
@@ -123,9 +127,7 @@ pub fn save_ai_insight_provider_choice(
 }
 
 #[tauri::command]
-pub fn save_ai_insight_deepseek_key(
-    api_key: String,
-) -> Result<bool, String> {
+pub fn save_ai_insight_deepseek_key(api_key: String) -> Result<bool, String> {
     let trimmed = api_key.trim();
     if trimmed.is_empty() {
         keychain::delete_secret(KEY_DEEPSEEK).map_err(|e| e.to_string())?;
@@ -156,7 +158,10 @@ pub fn save_ai_insight_glm_settings(
     };
     state
         .db
-        .set_setting(GLM_META_KEY, &serde_json::to_string(&meta).map_err(|e| e.to_string())?)
+        .set_setting(
+            GLM_META_KEY,
+            &serde_json::to_string(&meta).map_err(|e| e.to_string())?,
+        )
         .map_err(|e| e.to_string())?;
 
     let trimmed = api_key.trim();
@@ -189,7 +194,10 @@ pub fn save_ai_insight_custom_settings(
     };
     state
         .db
-        .set_setting(CUSTOM_META_KEY, &serde_json::to_string(&meta).map_err(|e| e.to_string())?)
+        .set_setting(
+            CUSTOM_META_KEY,
+            &serde_json::to_string(&meta).map_err(|e| e.to_string())?,
+        )
         .map_err(|e| e.to_string())?;
 
     let trimmed = api_key.trim();
@@ -234,8 +242,12 @@ pub fn build_ai_insight_provider_config(
             if key.trim().is_empty() {
                 return Ok(None);
             }
-            let (api_url, model) =
-                read_meta_from_db(&state.db, GLM_META_KEY, &default_glm_url(), &default_glm_model());
+            let (api_url, model) = read_meta_from_db(
+                &state.db,
+                GLM_META_KEY,
+                &default_glm_url(),
+                &default_glm_model(),
+            );
             Ok(Some(AIProviderConfig {
                 provider: "glm".to_string(),
                 api_key: key,

@@ -1,5 +1,6 @@
 import type { AppId } from "@/lib/api";
 import type { ProjectAssetType } from "@/types/projectAsset";
+import supportContract from "./assetAppSupport.contract.json";
 
 export type AssetAppSupportStatus = "supported" | "partial" | "unsupported";
 
@@ -18,7 +19,7 @@ export type AssetAppSupportMatrix = Record<
  * 8 类资产 × 7 应用同步能力矩阵（与开发文档 4.0 一致，以当前源码能力为准）
  * 项目级开关据此置灰 / 展示 partial 提示，避免“点了才报错”。
  */
-export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
+const LEGACY_ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
   mcp: {
     claude: { status: "supported" },
     "claude-desktop": {
@@ -164,6 +165,22 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
     },
   },
 };
+
+/** Single source of truth for support status, shared with the Rust backend. */
+export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = Object.fromEntries(
+  Object.entries(LEGACY_ASSET_APP_SUPPORT).map(([assetType, legacyApps]) => [
+    assetType,
+    Object.fromEntries(
+      Object.entries(legacyApps).map(([appId, legacySupport]) => [
+        appId,
+        {
+          ...legacySupport,
+          status: supportContract[assetType as ProjectAssetType][appId as AppId] as AssetAppSupportStatus,
+        },
+      ]),
+    ),
+  ]),
+) as AssetAppSupportMatrix;
 
 /** Prompt 同步支持的应用（与 ASSET_APP_SUPPORT.prompt 一致） */
 export const PROMPT_SYNC_APP_IDS: AppId[] = (

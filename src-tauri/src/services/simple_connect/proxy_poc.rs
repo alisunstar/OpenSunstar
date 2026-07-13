@@ -79,7 +79,10 @@ fn openai_root(base: &str) -> String {
     }
 }
 
-pub async fn start_spike_proxy(supplier_id: &str, upstream: &str) -> Result<SpikeProxyInfo, AppError> {
+pub async fn start_spike_proxy(
+    supplier_id: &str,
+    upstream: &str,
+) -> Result<SpikeProxyInfo, AppError> {
     // Idempotent: if the proxy is already running for the same supplier,
     // return the existing info — avoids port rebinding errors (os error 10048)
     // and keeps the same local token across all CLI configs.
@@ -111,9 +114,9 @@ pub async fn start_spike_proxy(supplier_id: &str, upstream: &str) -> Result<Spik
         .with_state(Arc::new(state));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], SPIKE_PROXY_PORT));
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .map_err(|e| AppError::Message(format!("无法绑定 Spike 代理端口 {SPIKE_PROXY_PORT}: {e}")))?;
+    let listener = tokio::net::TcpListener::bind(addr).await.map_err(|e| {
+        AppError::Message(format!("无法绑定 Spike 代理端口 {SPIKE_PROXY_PORT}: {e}"))
+    })?;
 
     let handle = tokio::spawn(async move {
         if let Err(e) = axum::serve(listener, app).await {
@@ -173,17 +176,10 @@ async fn health() -> &'static str {
     "ok"
 }
 
-async fn forward(
-    State(state): State<Arc<ProxyState>>,
-    req: Request<Body>,
-) -> Response {
+async fn forward(State(state): State<Arc<ProxyState>>, req: Request<Body>) -> Response {
     match forward_inner(state, req).await {
         Ok(response) => response,
-        Err(err) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            err.to_string(),
-        )
-            .into_response(),
+        Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, err.to_string()).into_response(),
     }
 }
 
@@ -198,7 +194,10 @@ fn should_retry(status: StatusCode) -> bool {
 /// 检查 JSON body 中的 `"stream": true` 或 Accept 头中的 `text/event-stream`。
 fn is_streaming_request(body: &[u8], headers: &HeaderMap) -> bool {
     // 检查 Accept 头
-    if let Some(accept) = headers.get(axum::http::header::ACCEPT).and_then(|v| v.to_str().ok()) {
+    if let Some(accept) = headers
+        .get(axum::http::header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+    {
         if accept.contains("text/event-stream") {
             return true;
         }
@@ -212,10 +211,7 @@ fn is_streaming_request(body: &[u8], headers: &HeaderMap) -> bool {
     false
 }
 
-async fn forward_inner(
-    state: Arc<ProxyState>,
-    req: Request<Body>,
-) -> Result<Response, AppError> {
+async fn forward_inner(state: Arc<ProxyState>, req: Request<Body>) -> Result<Response, AppError> {
     // ── 本地 token 校验：支持 Authorization: Bearer 和 x-api-key 两种格式 ──
     let token = req
         .headers()
@@ -240,7 +236,11 @@ async fn forward_inner(
     // ── 在 into_body() 消费 req 之前，保存需要转发的头部和方法 ──
     let method = req.method().clone();
     let orig_headers = req.headers().clone();
-    let path = req.uri().path_and_query().map(|pq| pq.as_str()).unwrap_or("/");
+    let path = req
+        .uri()
+        .path_and_query()
+        .map(|pq| pq.as_str())
+        .unwrap_or("/");
     let url = format!("{}{}", openai_root(&state.upstream), normalize_path(path));
 
     let client = reqwest::Client::builder()
@@ -255,7 +255,11 @@ async fn forward_inner(
     // ── P0-3: 幂等性判断 — POST 类非幂等请求仅在连接错误/408/429 时重试 ──
     let is_idempotent = matches!(
         method,
-        axum::http::Method::GET | axum::http::Method::HEAD | axum::http::Method::PUT | axum::http::Method::DELETE | axum::http::Method::OPTIONS
+        axum::http::Method::GET
+            | axum::http::Method::HEAD
+            | axum::http::Method::PUT
+            | axum::http::Method::DELETE
+            | axum::http::Method::OPTIONS
     );
 
     // ── P0-2: 检测流式请求 ──
@@ -325,10 +329,12 @@ async fn forward_inner(
                     pool.record(true, Some(status.as_u16()), now);
 
                     let stream = resp.bytes_stream().map(|result| {
-                        result.map_err(|e| std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            format!("upstream stream error: {e}"),
-                        ))
+                        result.map_err(|e| {
+                            std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                format!("upstream stream error: {e}"),
+                            )
+                        })
                     });
 
                     let mut out = Response::new(Body::from_stream(stream));
@@ -371,9 +377,7 @@ async fn forward_inner(
                 if let Some((input, output, cache)) =
                     crate::services::simple_connect::token_usage::extract_usage_from_body(&bytes)
                 {
-                    crate::services::simple_connect::token_usage::add_usage(
-                        input, output, cache,
-                    );
+                    crate::services::simple_connect::token_usage::add_usage(input, output, cache);
                 }
 
                 let mut out = Response::new(Body::from(bytes));
@@ -425,7 +429,11 @@ fn normalize_path(path_and_query: &str) -> String {
     } else if let Some(rest) = path.strip_prefix("/v1/") {
         format!("/{rest}")
     } else if let Some(rest) = path.strip_prefix("/v1") {
-        if rest.is_empty() { "/".to_string() } else { format!("/{rest}") }
+        if rest.is_empty() {
+            "/".to_string()
+        } else {
+            format!("/{rest}")
+        }
     } else if path.starts_with('/') {
         path.to_string()
     } else {
@@ -597,10 +605,7 @@ mod tests {
             normalize_path("/v1/messages?stream=true"),
             "/messages?stream=true"
         );
-        assert_eq!(
-            normalize_path("/v1/models?limit=100"),
-            "/models?limit=100"
-        );
+        assert_eq!(normalize_path("/v1/models?limit=100"), "/models?limit=100");
     }
 
     // ── URL 拼接：无双拼 /v1/v1 ──

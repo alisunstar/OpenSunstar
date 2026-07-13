@@ -41,6 +41,7 @@ import { BackupListSection } from "@/components/settings/BackupListSection";
 import { WebdavSyncSection } from "@/components/settings/WebdavSyncSection";
 import { GistSyncSection } from "@/components/sync/GistSyncSection";
 import { AboutSection } from "@/components/settings/AboutSection";
+import { AuthCenterPanel } from "@/components/settings/AuthCenterPanel";
 import { ModelTestConfigPanel } from "@/components/usage/ModelTestConfigPanel";
 import { LogConfigPanel } from "@/components/settings/LogConfigPanel";
 import { CodexAuthSettings } from "@/components/settings/CodexAuthSettings";
@@ -226,9 +227,12 @@ export function SettingsPageContent({
           onValueChange={setActiveTab}
           className="flex flex-col h-full"
         >
-          <TabsList className="grid w-full grid-cols-3 mb-6 glass rounded-lg">
+          <TabsList className="grid w-full grid-cols-4 mb-6 glass rounded-lg">
             <TabsTrigger value="general">
               {t("settings.tabGeneral")}
+            </TabsTrigger>
+            <TabsTrigger value="auth">
+              {t("settings.tabAuth", { defaultValue: "认证" })}
             </TabsTrigger>
             <TabsTrigger value="advanced">
               {t("settings.tabAdvanced")}
@@ -284,6 +288,16 @@ export function SettingsPageContent({
                     />
                   </motion.div>
                 ) : null}
+              </TabsContent>
+
+              <TabsContent value="auth" className="space-y-6 mt-0 pb-4">
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <AuthCenterPanel />
+                </motion.div>
               </TabsContent>
 
               <TabsContent value="advanced" className="space-y-6 mt-0 pb-4">

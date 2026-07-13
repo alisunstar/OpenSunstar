@@ -20,7 +20,7 @@ use ratatui::{
     Frame, Terminal,
 };
 
-use open_sunstar_lib::{AppState, cli_api};
+use open_sunstar_lib::{cli_api, AppState};
 
 // ── Terminal Cleanup Guard ───────────────────────────────────
 
@@ -70,11 +70,11 @@ enum Panel {
 }
 
 const QUICK_ACTIONS: &[(&str, &str)] = &[
-    ("Drift Check",     "os drift check"),
+    ("Drift Check", "os drift check"),
     ("Readiness Score", "os readiness score"),
-    ("Project Status",  "os project status"),
-    ("Flow Validate",   "os flow validate --strict"),
-    ("Doctor",          "os doctor"),
+    ("Project Status", "os project status"),
+    ("Flow Validate", "os flow validate --strict"),
+    ("Doctor", "os doctor"),
 ];
 
 // ── Data Loading ─────────────────────────────────────────────
@@ -85,11 +85,20 @@ fn load_dashboard_data(state: &AppState) -> Vec<ProjectSummary> {
         .iter()
         .map(|p| {
             let ctx = cli_api::cli_project_context(state, &p.path).ok();
-            let asset_total = ctx.as_ref().map(|c| {
-                let ac = &c.asset_counts;
-                ac.mcp + ac.skills + ac.prompts + ac.commands
-                    + ac.hooks + ac.ignore + ac.permissions + ac.subagents
-            }).unwrap_or(0);
+            let asset_total = ctx
+                .as_ref()
+                .map(|c| {
+                    let ac = &c.asset_counts;
+                    ac.mcp
+                        + ac.skills
+                        + ac.prompts
+                        + ac.commands
+                        + ac.hooks
+                        + ac.ignore
+                        + ac.permissions
+                        + ac.subagents
+                })
+                .unwrap_or(0);
             ProjectSummary {
                 name: p.name.clone(),
                 path: p.path.clone(),
@@ -261,9 +270,8 @@ fn handle_key(app: &mut App, key: KeyCode, modifiers: KeyModifiers, state: &AppS
                 let (_, cmd) = QUICK_ACTIONS[app.selected_action];
                 // Strip the "os " prefix to show just the subcommand portion
                 let display_cmd = cmd.strip_prefix("os ").unwrap_or(cmd);
-                app.status_msg = format!(
-                    "Hint: exit TUI (q) and run `os {display_cmd}` to execute"
-                );
+                app.status_msg =
+                    format!("Hint: exit TUI (q) and run `os {display_cmd}` to execute");
             }
         },
         KeyCode::Char('r') => {
@@ -298,7 +306,11 @@ fn update_detail_status(app: &mut App) {
 }
 
 fn yn(b: bool) -> &'static str {
-    if b { "✓" } else { "·" }
+    if b {
+        "✓"
+    } else {
+        "·"
+    }
 }
 
 // ── Rendering ────────────────────────────────────────────────
@@ -307,8 +319,8 @@ fn render(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(3),  // Header
-            Constraint::Length(5),  // Summary cards
+            Constraint::Length(3), // Header
+            Constraint::Length(5), // Summary cards
             Constraint::Min(8),    // Main content
             Constraint::Length(3), // Footer
         ])
@@ -350,11 +362,17 @@ fn render_summary_cards(f: &mut Frame, area: Rect, app: &App) {
         .split(area);
 
     // Card 1: Orchestration
-    let ws_count = app.project_contexts.iter().filter(|p| p.workspace_exists).count();
+    let ws_count = app
+        .project_contexts
+        .iter()
+        .filter(|p| p.workspace_exists)
+        .count();
     let card1 = Paragraph::new(vec![
         Line::from(Span::styled(
             format!("{ws_count}"),
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::raw("Workspaces")),
     ])
@@ -367,36 +385,40 @@ fn render_summary_cards(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(card1, cards[0]);
 
     // Card 2: Flow Profiles
-    let fp_count = app.project_contexts.iter().filter(|p| p.has_flow_profile).count();
+    let fp_count = app
+        .project_contexts
+        .iter()
+        .filter(|p| p.has_flow_profile)
+        .count();
     let card2 = Paragraph::new(vec![
         Line::from(Span::styled(
             format!("{fp_count}"),
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::raw("Flow Profiles")),
     ])
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Workflow "),
-    )
+    .block(Block::default().borders(Borders::ALL).title(" Workflow "))
     .alignment(ratatui::layout::Alignment::Center);
     f.render_widget(card2, cards[1]);
 
     // Card 3: Design Contracts
-    let dc_count = app.project_contexts.iter().filter(|p| p.has_design_contract).count();
+    let dc_count = app
+        .project_contexts
+        .iter()
+        .filter(|p| p.has_design_contract)
+        .count();
     let card3 = Paragraph::new(vec![
         Line::from(Span::styled(
             format!("{dc_count}"),
-            Style::default().fg(Color::Green).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Green)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::raw("Design Contracts")),
     ])
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Design "),
-    )
+    .block(Block::default().borders(Borders::ALL).title(" Design "))
     .alignment(ratatui::layout::Alignment::Center);
     f.render_widget(card3, cards[2]);
 
@@ -405,15 +427,13 @@ fn render_summary_cards(f: &mut Frame, area: Rect, app: &App) {
     let card4 = Paragraph::new(vec![
         Line::from(Span::styled(
             format!("{total_assets}"),
-            Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD),
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
         )),
         Line::from(Span::raw("Total Assets")),
     ])
-    .block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title(" Assets "),
-    )
+    .block(Block::default().borders(Borders::ALL).title(" Assets "))
     .alignment(ratatui::layout::Alignment::Center);
     f.render_widget(card4, cards[3]);
 }
@@ -430,11 +450,21 @@ fn render_main_content(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_projects_table(f: &mut Frame, area: Rect, app: &App) {
     let is_active = app.active_panel == Panel::Projects;
-    let border_color = if is_active { Color::Cyan } else { Color::DarkGray };
+    let border_color = if is_active {
+        Color::Cyan
+    } else {
+        Color::DarkGray
+    };
 
     let header_cells = ["Name", "Stage", "WS", "Flow", "Design", "Specs", "Assets"]
         .iter()
-        .map(|h| Cell::from(*h).style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)));
+        .map(|h| {
+            Cell::from(*h).style(
+                Style::default()
+                    .fg(Color::Yellow)
+                    .add_modifier(Modifier::BOLD),
+            )
+        });
     let header = Row::new(header_cells).height(1);
 
     let rows: Vec<Row> = app
@@ -474,13 +504,13 @@ fn render_projects_table(f: &mut Frame, area: Rect, app: &App) {
     let table = Table::new(
         rows,
         [
-            Constraint::Percentage(30),  // Name
-            Constraint::Percentage(12),  // Stage
-            Constraint::Percentage(7),   // WS
-            Constraint::Percentage(7),   // Flow
-            Constraint::Percentage(10),  // Design
-            Constraint::Percentage(8),   // Specs
-            Constraint::Percentage(10),  // Assets
+            Constraint::Percentage(30), // Name
+            Constraint::Percentage(12), // Stage
+            Constraint::Percentage(7),  // WS
+            Constraint::Percentage(7),  // Flow
+            Constraint::Percentage(10), // Design
+            Constraint::Percentage(8),  // Specs
+            Constraint::Percentage(10), // Assets
         ],
     )
     .header(header)
@@ -491,7 +521,9 @@ fn render_projects_table(f: &mut Frame, area: Rect, app: &App) {
             .border_style(Style::default().fg(border_color))
             .title(Span::styled(
                 format!(" Projects ({}) ", app.project_contexts.len()),
-                Style::default().fg(border_color).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(border_color)
+                    .add_modifier(Modifier::BOLD),
             )),
     );
 
@@ -526,28 +558,44 @@ fn render_project_detail(f: &mut Frame, area: Rect, app: &App) {
                 Span::styled("Recipes:   ", Style::default().fg(Color::DarkGray)),
                 Span::styled(
                     format!("{}", ps.recipe_count),
-                    Style::default().fg(if ps.recipe_count > 0 { Color::Green } else { Color::DarkGray }),
+                    Style::default().fg(if ps.recipe_count > 0 {
+                        Color::Green
+                    } else {
+                        Color::DarkGray
+                    }),
                 ),
             ]),
             Line::from(vec![
                 Span::styled("Contracts: ", Style::default().fg(Color::DarkGray)),
                 Span::styled(
                     format!("{}", ps.contract_count),
-                    Style::default().fg(if ps.contract_count > 0 { Color::Green } else { Color::DarkGray }),
+                    Style::default().fg(if ps.contract_count > 0 {
+                        Color::Green
+                    } else {
+                        Color::DarkGray
+                    }),
                 ),
             ]),
             Line::from(vec![
                 Span::styled("Assets:    ", Style::default().fg(Color::DarkGray)),
                 Span::styled(
                     format!("{}", ps.total_assets),
-                    Style::default().fg(if ps.total_assets > 0 { Color::Yellow } else { Color::DarkGray }),
+                    Style::default().fg(if ps.total_assets > 0 {
+                        Color::Yellow
+                    } else {
+                        Color::DarkGray
+                    }),
                 ),
             ]),
             Line::from(vec![
                 Span::styled("FlowCfg:   ", Style::default().fg(Color::DarkGray)),
                 Span::styled(
                     yn(ps.has_flow_config),
-                    Style::default().fg(if ps.has_flow_config { Color::Green } else { Color::DarkGray }),
+                    Style::default().fg(if ps.has_flow_config {
+                        Color::Green
+                    } else {
+                        Color::DarkGray
+                    }),
                 ),
             ]),
         ]
@@ -568,7 +616,11 @@ fn render_project_detail(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_quick_actions(f: &mut Frame, area: Rect, app: &App) {
     let is_active = app.active_panel == Panel::Actions;
-    let border_color = if is_active { Color::Cyan } else { Color::DarkGray };
+    let border_color = if is_active {
+        Color::Cyan
+    } else {
+        Color::DarkGray
+    };
 
     let items: Vec<ListItem> = QUICK_ACTIONS
         .iter()
@@ -581,10 +633,7 @@ fn render_quick_actions(f: &mut Frame, area: Rect, app: &App) {
             };
             ListItem::new(Line::from(vec![
                 Span::styled(format!("  {label}"), style),
-                Span::styled(
-                    format!("  [{cmd}]"),
-                    Style::default().fg(Color::DarkGray),
-                ),
+                Span::styled(format!("  [{cmd}]"), Style::default().fg(Color::DarkGray)),
             ]))
         })
         .collect();
@@ -595,7 +644,9 @@ fn render_quick_actions(f: &mut Frame, area: Rect, app: &App) {
             .border_style(Style::default().fg(border_color))
             .title(Span::styled(
                 " Quick Actions ",
-                Style::default().fg(border_color).add_modifier(Modifier::BOLD),
+                Style::default()
+                    .fg(border_color)
+                    .add_modifier(Modifier::BOLD),
             )),
     );
     f.render_widget(list, area);
@@ -603,17 +654,47 @@ fn render_quick_actions(f: &mut Frame, area: Rect, app: &App) {
 
 fn render_footer(f: &mut Frame, area: Rect) {
     let footer = Paragraph::new(Line::from(vec![
-        Span::styled(" ↑↓", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " ↑↓",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" navigate  "),
-        Span::styled("PgUp/Dn", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "PgUp/Dn",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" scroll  "),
-        Span::styled("Tab", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Tab",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" switch  "),
-        Span::styled("Enter", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Enter",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" select  "),
-        Span::styled("r", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "r",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" refresh  "),
-        Span::styled("q", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "q",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" quit"),
     ]))
     .block(

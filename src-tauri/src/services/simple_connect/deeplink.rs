@@ -4,7 +4,9 @@ use crate::error::AppError;
 use crate::services::simple_connect::key_store::{
     get_api_key, get_primary_key, key_hint, store_api_key, store_primary_key,
 };
-use crate::services::simple_connect::state::{load_state, save_state, PoolKeyMeta, SimpleConnectState};
+use crate::services::simple_connect::state::{
+    load_state, save_state, PoolKeyMeta, SimpleConnectState,
+};
 use crate::services::simple_connect::verify::verify_api_key;
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -43,8 +45,8 @@ pub fn try_parse_url(raw: &str) -> Result<SimpleConnectImportPayload, AppError> 
     if !is_simple_connect_import_url(raw) {
         return Err(AppError::Message("非 Simple Connect 导入链接".into()));
     }
-    let url = Url::parse(raw.trim())
-        .map_err(|e| AppError::Message(format!("URL 解析失败: {e}")))?;
+    let url =
+        Url::parse(raw.trim()).map_err(|e| AppError::Message(format!("URL 解析失败: {e}")))?;
 
     let mut keys = Vec::new();
     let mut label: Option<String> = None;
@@ -121,16 +123,18 @@ pub fn try_parse_url(raw: &str) -> Result<SimpleConnectImportPayload, AppError> 
 
 fn is_probable_api_key(raw: &str) -> bool {
     let s = raw.trim();
-    s.len() >= 8
-        && s.chars()
-            .all(|c| !c.is_control() && !c.is_whitespace())
+    s.len() >= 8 && s.chars().all(|c| !c.is_control() && !c.is_whitespace())
 }
 
 fn normalize_secret(raw: &str) -> String {
     raw.trim().to_string()
 }
 
-fn secret_exists(state: &SimpleConnectState, supplier_id: &str, secret: &str) -> Result<bool, AppError> {
+fn secret_exists(
+    state: &SimpleConnectState,
+    supplier_id: &str,
+    secret: &str,
+) -> Result<bool, AppError> {
     if let Some(primary) = get_primary_key(supplier_id)? {
         if primary == secret {
             return Ok(true);
@@ -153,9 +157,7 @@ pub async fn import_keys(
     let mut state = load_state()?;
 
     if !state.deeplink_import_enabled {
-        return Err(AppError::Message(
-            "Deep Link 导入已在设置中禁用".into(),
-        ));
+        return Err(AppError::Message("Deep Link 导入已在设置中禁用".into()));
     }
 
     let supplier_id = payload
@@ -189,9 +191,7 @@ pub async fn import_keys(
             let verify = verify_api_key(&supplier_id, &secret, custom_base).await?;
             if !verify.ok {
                 return Err(AppError::Message(
-                    verify
-                        .error
-                        .unwrap_or_else(|| "Key 校验失败".into()),
+                    verify.error.unwrap_or_else(|| "Key 校验失败".into()),
                 ));
             }
         }
@@ -204,10 +204,7 @@ pub async fn import_keys(
             if !state.pool_keys.iter().any(|k| k.id == "primary") {
                 state.pool_keys.push(PoolKeyMeta {
                     id: "primary".into(),
-                    label: payload
-                        .label
-                        .clone()
-                        .unwrap_or_else(|| "主 Key".into()),
+                    label: payload.label.clone().unwrap_or_else(|| "主 Key".into()),
                     weight: 1,
                     enabled: true,
                 });

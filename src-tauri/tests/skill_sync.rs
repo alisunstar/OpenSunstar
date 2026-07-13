@@ -1,4 +1,4 @@
-﻿use std::fs;
+use std::fs;
 
 use open_sunstar_lib::{
     migrate_skills_to_ssot, AppType, ImportSkillSelection, InstalledSkill, SkillApps, SkillService,
@@ -173,7 +173,10 @@ fn uninstall_skill_creates_backup_before_removing_ssot() {
     reset_test_fs();
     let home = ensure_test_home();
 
-    let ssot_skill_dir = home.join(".OpenSunstar").join("skills").join("backup-skill");
+    let ssot_skill_dir = home
+        .join(".OpenSunstar")
+        .join("skills")
+        .join("backup-skill");
     write_skill(&ssot_skill_dir, "Backup Skill");
     fs::write(ssot_skill_dir.join("prompt.md"), "backup me").expect("write prompt.md");
 
@@ -241,7 +244,10 @@ fn restore_skill_backup_restores_files_to_ssot_and_current_app() {
     reset_test_fs();
     let home = ensure_test_home();
 
-    let ssot_skill_dir = home.join(".OpenSunstar").join("skills").join("restore-skill");
+    let ssot_skill_dir = home
+        .join(".OpenSunstar")
+        .join("skills")
+        .join("restore-skill");
     write_skill(&ssot_skill_dir, "Restore Skill");
     fs::write(ssot_skill_dir.join("prompt.md"), "restore me").expect("write prompt.md");
 

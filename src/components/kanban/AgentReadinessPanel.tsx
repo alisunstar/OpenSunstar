@@ -190,7 +190,14 @@ export function AgentReadinessPanel({
           <span className="inline-flex items-center gap-0.5 text-[10px] text-emerald-600/90 dark:text-emerald-400/90">
             <span aria-hidden>✓</span>
             {t("kanban.readiness.effective.effective", {
-              defaultValue: "已生效",
+              defaultValue: "配置已验证",
+            })}
+          </span>
+        )}
+        {effTone === "success" && (
+          <span className="text-[10px] text-muted-foreground/70 block w-full">
+            {t("kanban.readiness.effective.runtimePending", {
+              defaultValue: "已验证项目配置一致；目标 CLI 的运行时读取仍待验证。",
             })}
           </span>
         )}
@@ -198,7 +205,7 @@ export function AgentReadinessPanel({
           <span className="inline-flex items-center gap-0.5 text-[10px] text-amber-600/90 dark:text-amber-400/90">
             <span aria-hidden>⚠</span>
             {t("kanban.readiness.effective.drifted", {
-              defaultValue: "未生效",
+              defaultValue: "配置不一致",
             })}
           </span>
         )}

@@ -6,7 +6,7 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.5-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.1.6-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
@@ -175,7 +175,7 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | :------: | :--------: |
 | ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.5** — 驾驶舱健康摘要与修复预览、os-cli 校验完整性、同步加固，以及官网交互演示。
+> **v1.1.6** — 设计系统注册表、本地 CLI 鉴权状态面板，以及设计/流程/Recipe 编排面板增强。
 
 ---
 

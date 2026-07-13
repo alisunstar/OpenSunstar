@@ -203,7 +203,10 @@ pub async fn get_skills_sh_leaderboard(
     let client = crate::proxy::http_client::get();
     let html = client
         .get(&source_url)
-        .header("User-Agent", "OpenSunstar/1.0 (+https://github.com/alisunstar/OpenSunstar)")
+        .header(
+            "User-Agent",
+            "OpenSunstar/1.0 (+https://github.com/alisunstar/OpenSunstar)",
+        )
         .header("Accept", "text/html,application/xhtml+xml")
         .timeout(std::time::Duration::from_secs(20))
         .send()
@@ -245,10 +248,7 @@ fn is_github_source(source: &str) -> bool {
         return false;
     }
     let (owner, repo) = (parts[0], parts[1]);
-    !owner.is_empty()
-        && !repo.is_empty()
-        && !owner.contains('.')
-        && !repo.contains('.')
+    !owner.is_empty() && !repo.is_empty() && !owner.contains('.') && !repo.contains('.')
 }
 
 fn split_source(source: &str) -> (String, String) {
@@ -271,7 +271,8 @@ fn read_cache(path: &PathBuf) -> Result<Option<SkillsShLeaderboardCache>> {
         return Ok(None);
     }
     let raw = fs::read_to_string(path).with_context(|| format!("read cache {}", path.display()))?;
-    let parsed = serde_json::from_str(&raw).with_context(|| format!("parse cache {}", path.display()))?;
+    let parsed =
+        serde_json::from_str(&raw).with_context(|| format!("parse cache {}", path.display()))?;
     Ok(Some(parsed))
 }
 

@@ -314,13 +314,13 @@ export function Sidebar({
               />
             </SidebarMenu>
 
-            {/* ▸ 方法论与编排（独立一级分组，与工作区/Agent配置/AI模型并列） */}
+            {/* ▸ 工作流与治理（独立一级分组，与工作区/Agent配置/AI模型并列） */}
             <SectionLabel>
               {t("methodology.sidebarSection", { defaultValue: "项目配置" })}
             </SectionLabel>
             <SidebarItem
               icon={<BookOpen className="w-4 h-4" />}
-              label={t("methodology.sidebar", { defaultValue: "方法论与编排" })}
+              label={t("methodology.sidebar", { defaultValue: "工作流与治理" })}
               active={activeView === "methodology"}
               onClick={() => onNavigate("methodology")}
             />

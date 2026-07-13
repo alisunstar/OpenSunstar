@@ -1,8 +1,8 @@
 //! Claude Code CLI 写入
 
 use super::shared::{
-    configured_by_marker, ensure_object, read_json_or_empty, write_json_pretty,
-    WriteOutcome, MANAGED_MARKER, StatusOutcome,
+    configured_by_marker, ensure_object, read_json_or_empty, write_json_pretty, StatusOutcome,
+    WriteOutcome, MANAGED_MARKER,
 };
 use crate::config::get_claude_settings_path;
 use crate::error::AppError;
@@ -42,7 +42,10 @@ pub fn apply(api_key: &str, model: &str, anthropic_base: &str) -> Result<WriteOu
         .ok_or_else(|| AppError::Message("settings.json env 必须是对象".into()))?;
 
     env_obj.insert("ANTHROPIC_BASE_URL".into(), Value::String(base.to_string()));
-    env_obj.insert("ANTHROPIC_AUTH_TOKEN".into(), Value::String(key.to_string()));
+    env_obj.insert(
+        "ANTHROPIC_AUTH_TOKEN".into(),
+        Value::String(key.to_string()),
+    );
     env_obj.insert("ANTHROPIC_MODEL".into(), Value::String(model.to_string()));
     env_obj.insert(
         "ANTHROPIC_SMALL_FAST_MODEL".into(),

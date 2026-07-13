@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import type { InstallAuditSummary, InstallFileEntry } from "./designContract";
 
 export interface WorkflowModule {
   id: string;
@@ -124,6 +125,12 @@ export interface StageGateResult {
   warnings: string[];
 }
 
+export interface FlowWritePlan {
+  files: InstallFileEntry[];
+  audit: InstallAuditSummary;
+  semanticWarnings: string[];
+}
+
 export const flowOrchestratorApi = {
   async listModules(projectId?: string): Promise<WorkflowModule[]> {
     return await invoke<WorkflowModule[]>("list_workflow_modules_cmd", {
@@ -178,8 +185,28 @@ export const flowOrchestratorApi = {
     activeChangeId?: string,
     selectedModules?: string[],
     disabledStages?: string[],
+    strictSemantics = true,
   ): Promise<WorkflowProfile> {
     return await invoke<WorkflowProfile>("export_project_workflow_profile_cmd", {
+      projectId,
+      presetId,
+      projectType,
+      activeChangeId: activeChangeId ?? null,
+      selectedModules: selectedModules ?? null,
+      disabledStages: disabledStages ?? null,
+      strictSemantics,
+    });
+  },
+
+  async previewProfileExport(
+    projectId: string,
+    presetId: string,
+    projectType: string,
+    activeChangeId?: string,
+    selectedModules?: string[],
+    disabledStages?: string[],
+  ): Promise<FlowWritePlan> {
+    return await invoke<FlowWritePlan>("preview_project_workflow_profile_export_cmd", {
       projectId,
       presetId,
       projectType,
@@ -195,8 +222,26 @@ export const flowOrchestratorApi = {
     projectType: string,
     selectedModules?: string[],
     disabledStages?: string[],
+    strictSemantics = true,
   ): Promise<FlowConfig> {
     return await invoke<FlowConfig>("export_flow_config_cmd", {
+      projectId,
+      presetId,
+      projectType,
+      selectedModules: selectedModules ?? null,
+      disabledStages: disabledStages ?? null,
+      strictSemantics,
+    });
+  },
+
+  async previewFlowConfigExport(
+    projectId: string,
+    presetId: string,
+    projectType: string,
+    selectedModules?: string[],
+    disabledStages?: string[],
+  ): Promise<FlowWritePlan> {
+    return await invoke<FlowWritePlan>("preview_flow_config_export_cmd", {
       projectId,
       presetId,
       projectType,

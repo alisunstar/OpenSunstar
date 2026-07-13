@@ -184,9 +184,7 @@ pub async fn migrate_skill_storage(
 
 /// 手动重新同步所有技能的 app 目录（修复断裂的 symlink 等）
 #[tauri::command]
-pub fn resync_all_skills(
-    app_state: State<'_, AppState>,
-) -> Result<usize, String> {
+pub fn resync_all_skills(app_state: State<'_, AppState>) -> Result<usize, String> {
     let skills_map = app_state
         .db
         .get_all_installed_skills()
@@ -256,10 +254,7 @@ pub async fn get_skills_sh_leaderboard(
 
 /// 搜索 ClawHub 公共目录
 #[tauri::command]
-pub async fn search_clawhub(
-    query: String,
-    limit: usize,
-) -> Result<ClawHubSearchResult, String> {
+pub async fn search_clawhub(query: String, limit: usize) -> Result<ClawHubSearchResult, String> {
     SkillService::search_clawhub(&query, limit)
         .await
         .map_err(|e| e.to_string())
@@ -267,9 +262,7 @@ pub async fn search_clawhub(
 
 /// 批量获取 ClawHub 技能的星标/下载/安装量
 #[tauri::command]
-pub async fn batch_get_clawhub_stats(
-    slugs: Vec<String>,
-) -> Result<Vec<ClawHubSkillStats>, String> {
+pub async fn batch_get_clawhub_stats(slugs: Vec<String>) -> Result<Vec<ClawHubSkillStats>, String> {
     SkillService::batch_get_clawhub_stats(&slugs)
         .await
         .map_err(|e| e.to_string())
@@ -281,7 +274,9 @@ pub async fn install_clawhub_skill(slug: String) -> Result<(), String> {
     // 验证 slug 安全性：不允许路径分隔符或特殊字符
     if slug.is_empty()
         || slug.len() > 200
-        || slug.contains(['/', '\\', ';', '&', '|', '`', '$', '\'', '"', '<', '>', '\n', '\r'])
+        || slug.contains([
+            '/', '\\', ';', '&', '|', '`', '$', '\'', '"', '<', '>', '\n', '\r',
+        ])
     {
         return Err("无效的 ClawHub 技能名称".to_string());
     }
@@ -316,8 +311,7 @@ fn run_cli_silently(command_line: &str, label: &str) -> Result<(), String> {
     let bat_file =
         std::env::temp_dir().join(format!("OpenSunstar_{}_{}.bat", label, std::process::id()));
     let bat_content = format!("@echo off\r\n{}\r\n", command_line);
-    std::fs::write(&bat_file, bat_content)
-        .map_err(|e| format!("写入批处理文件失败: {e}"))?;
+    std::fs::write(&bat_file, bat_content).map_err(|e| format!("写入批处理文件失败: {e}"))?;
 
     let output = Command::new("cmd")
         .arg("/C")

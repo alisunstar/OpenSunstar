@@ -1,3 +1,4 @@
+mod agent;
 mod app_config;
 mod app_store;
 mod audit;
@@ -7,9 +8,8 @@ mod claude_mcp;
 mod claude_plugin;
 mod codex_config;
 mod codex_history_migration;
-mod commands;
-mod agent;
 mod command;
+mod commands;
 mod config;
 mod database;
 mod deeplink;
@@ -19,7 +19,6 @@ mod gemini_mcp;
 pub mod hermes_config;
 mod hook;
 mod ignore_rule;
-mod tool_permission;
 mod init_status;
 pub mod keychain;
 mod lightweight;
@@ -42,12 +41,13 @@ mod services;
 mod session_manager;
 mod settings;
 mod store;
+mod tool_permission;
 
+mod ai;
+mod project_metrics;
 mod tray;
 mod usage_events;
 mod usage_script;
-mod project_metrics;
-mod ai;
 
 pub mod cli_api;
 
@@ -55,7 +55,9 @@ pub use app_config::{AppType, InstalledSkill, McpApps, McpServer, MultiAppConfig
 pub use codex_config::{get_codex_auth_path, get_codex_config_path, write_codex_live_atomic};
 pub use commands::open_provider_terminal;
 pub use commands::*;
-pub use config::{get_app_config_dir, get_claude_mcp_path, get_claude_settings_path, read_json_file};
+pub use config::{
+    get_app_config_dir, get_claude_mcp_path, get_claude_settings_path, read_json_file,
+};
 pub use database::Database;
 pub use deeplink::{import_provider_from_deeplink, parse_deeplink_url, DeepLinkImportRequest};
 pub use error::AppError;
@@ -67,9 +69,10 @@ pub use mcp::{
 };
 pub use provider::{Provider, ProviderMeta};
 pub use services::{
+    simple_connect,
     skill::{migrate_skills_to_ssot, ImportSkillSelection},
-    simple_connect, ConfigService, EndpointLatency, McpService, PromptService, ProviderService,
-    ProxyService, SkillService, SpeedtestService,
+    ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
+    SkillService, SpeedtestService,
 };
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
@@ -82,27 +85,26 @@ pub use ai::asset_effective_state::{
 pub use ai::types::AgentReadinessItem;
 
 // CLI Phase B/C 类型重导出（供 `os` CLI 二进制直接引用，无需访问私有模块）
+pub use cli_api::ProjectContext;
 pub use database::Project;
 pub use database::ProjectAllAssetCounts;
-pub use cli_api::ProjectContext;
+pub use services::blueprint::{Blueprint, BlueprintApplyPreview, BlueprintLinkAction};
+pub use services::design_contract::{
+    DesignColors, DesignContract, DesignContractParams, DesignElevation, DesignGuardrail,
+    DesignInstallPlan, DesignInstallResult, DesignShapes, DesignSpacing, DesignTypography,
+    ImportResult as DesignImportResult, InstallAuditFinding, InstallAuditSummary, InstallFileEntry,
+};
 pub use services::flow_orchestrator::{
     FlowConfig, FlowConfigGate, FlowConfigRules, FlowConfigStage, SpecsChangeIndex,
     SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetPaths,
     WorkflowPresetSummary, WorkflowProfile, WorkflowStage, WorkflowStageSkipWhen,
 };
+pub use services::provider::{VerifyKeyResult, VerifyProtocol};
 pub use services::recipe_composer::{
     CompositionRecipe, InstallResult as RecipeInstallResult, RecipeArtifact, RecipeComposeParams,
     RecipeInstallPlan, RecipeRule, RecipeStage, StageGraph, StageGraphEdge, StageGraphNode,
 };
-pub use services::design_contract::{
-    DesignContract, DesignContractParams, DesignElevation, DesignColors, DesignGuardrail,
-    DesignInstallPlan, DesignInstallResult, DesignShapes, DesignSpacing, DesignTypography,
-    ImportResult as DesignImportResult, InstallAuditFinding, InstallAuditSummary,
-    InstallFileEntry,
-};
 pub use services::sdd::{SddDescriptorSummary, SddDetectionResult, SignalMatch};
-pub use services::blueprint::{Blueprint, BlueprintApplyPreview, BlueprintLinkAction};
-pub use services::provider::{VerifyKeyResult, VerifyProtocol};
 
 use tauri_plugin_deep_link::DeepLinkExt;
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
@@ -373,6 +375,13 @@ pub fn run() {
         )
         .setup(|app| {
             let _ = rustls::crypto::ring::default_provider().install_default();
+
+            match app.path().resource_dir() {
+                Ok(dir) => crate::services::design_system_registry::set_bundled_design_systems_dir(
+                    dir.join("resources").join("design-systems"),
+                ),
+                Err(error) => log::warn!("无法解析内置设计系统资源目录: {error}"),
+            }
 
             // 预先刷新 Store 覆盖配置，确保后续路径读取正确（日志/数据库等）
             app_store::refresh_app_config_dir_override(app.handle());
@@ -1371,6 +1380,7 @@ pub fn run() {
             commands::upsert_claude_mcp_server,
             commands::delete_claude_mcp_server,
             commands::validate_mcp_command,
+            commands::probe_project_mcp_runtime,
             // usage query
             commands::queryProviderUsage,
             commands::testUsageScript,
@@ -1627,6 +1637,7 @@ pub fn run() {
             commands::auth_remove_account,
             commands::auth_set_default_account,
             commands::auth_logout,
+            commands::get_local_cli_auth_status,
             // Copilot OAuth commands (multi-account support)
             commands::copilot_start_device_flow,
             commands::copilot_poll_for_auth,
@@ -1757,7 +1768,9 @@ pub fn run() {
             commands::get_workflow_preset_cmd,
             commands::scan_project_specs_workflow_cmd,
             commands::validate_workflow_stage_gate_cmd,
+            commands::preview_project_workflow_profile_export_cmd,
             commands::export_project_workflow_profile_cmd,
+            commands::preview_flow_config_export_cmd,
             commands::export_flow_config_cmd,
             commands::build_stage_graph_cmd,
             commands::compose_recipe_cmd,
@@ -1765,17 +1778,23 @@ pub fn run() {
             commands::export_recipe_cmd,
             commands::list_saved_recipes_cmd,
             commands::read_saved_recipe_cmd,
+            commands::load_saved_recipe_cmd,
             commands::delete_saved_recipe_cmd,
             commands::install_recipe_cmd,
             commands::preview_recipe_install_plan_cmd,
             commands::list_design_templates_cmd,
+            commands::list_design_system_packages_cmd,
+            commands::get_design_system_package_contract_cmd,
+            commands::get_design_system_package_detail_cmd,
             commands::get_design_template_cmd,
             commands::compose_design_contract_cmd,
             commands::preview_design_md_cmd,
             commands::preview_dtchg_json_cmd,
+            commands::preview_design_export_plan_cmd,
             commands::export_design_contract_cmd,
             commands::preview_design_install_plan_cmd,
             commands::install_design_contract_cmd,
+            commands::verify_design_system_manifest_cmd,
             commands::import_design_from_file_cmd,
             commands::import_design_from_url_cmd,
             commands::sdd_list_descriptors_cmd,

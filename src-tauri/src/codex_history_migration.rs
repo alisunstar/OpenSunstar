@@ -1,4 +1,4 @@
-﻿//! Codex 第三方历史会话归桶迁移。
+//! Codex 第三方历史会话归桶迁移。
 //!
 //! 只迁移本机 `~/.codex` 历史数据；完成标记写入设备级 `settings.json`，
 //! 失败时不写标记，下一次启动自动重试。
@@ -1051,7 +1051,8 @@ base_url = "https://proxy.example/v1"
             .is_none());
 
         let open_sunstar_config: toml::Value =
-            toml::from_str(&config_provider_id("legacy-OpenSunstar")).expect("parse OpenSunstar config");
+            toml::from_str(&config_provider_id("legacy-OpenSunstar"))
+                .expect("parse OpenSunstar config");
         assert_eq!(
             open_sunstar_config
                 .get("model_provider")

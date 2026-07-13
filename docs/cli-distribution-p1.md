@@ -2,12 +2,12 @@
 
 > 目标：在保持 **Rust 原生二进制** 的前提下，提供 Agent/开发者熟悉的安装入口（npm、包管理器、一键脚本）。
 
-## 现状（v1.1.5）
+## 现状（v1.1.6）
 
 | 方式                            | 状态             | 说明                                             |
 | ------------------------------- | ---------------- | ------------------------------------------------ |
 | GitHub Release 直链             | ✅ 已上线        | `OpenSunstar-v*-os-*.zip` / `.tar.gz`            |
-| `npm install -g opensunstar-os` | ✅ 已上线 v1.1.5 | Node 薄包装，postinstall 拉 Release 二进制 + checksums |
+| `npm install -g opensunstar-os` | ✅ 已上线 v1.1.6 | Node 薄包装，postinstall 拉 Release 二进制 + checksums |
 | Scoop                           | 📋 模板就绪      | `distrib/scoop/opensunstar-os.json`              |
 | Winget                          | 📋 模板就绪      | `distrib/winget/OpenSunstar.OpenSunstarCLI/`     |
 | Homebrew formula（仅 CLI）      | ⏳ P2            | GUI 已有 `brew install --cask OpenSunstar`       |

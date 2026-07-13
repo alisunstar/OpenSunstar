@@ -1088,11 +1088,8 @@ fn verify_local_open_sunstar_db_post_v25() {
         return;
     }
 
-    let conn = Connection::open_with_flags(
-        &db_path,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .expect("open local db read-only");
+    let conn = Connection::open_with_flags(&db_path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .expect("open local db read-only");
 
     let version = Database::get_user_version(&conn).expect("user_version");
     eprintln!("local OpenSunstar.db user_version={version}");
@@ -1120,9 +1117,7 @@ fn verify_local_open_sunstar_db_post_v25() {
             .unwrap_or(0);
         eprintln!("local project_asset_links distinct asset_type count={link_types}");
     } else if version == 24 {
-        eprintln!(
-            "local db still v24 — next app start will migrate to v25 and drop legacy tables"
-        );
+        eprintln!("local db still v24 — next app start will migrate to v25 and drop legacy tables");
     }
 }
 
@@ -1139,21 +1134,18 @@ fn upgrade_local_open_sunstar_db_copy_on_disk() {
     let dest = temp.path().to_path_buf();
     std::fs::copy(&source, &dest).expect("copy local db to temp");
 
-    let pre_conn = Connection::open_with_flags(
-        &dest,
-        rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
-    )
-    .expect("open copy read-only pre-migration");
+    let pre_conn = Connection::open_with_flags(&dest, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .expect("open copy read-only pre-migration");
     let pre_version = Database::get_user_version(&pre_conn).expect("pre version");
     let pre_legacy_mcp: i64 = pre_conn
-        .query_row(
-            "SELECT COUNT(*) FROM project_mcp_servers",
-            [],
-            |row| row.get(0),
-        )
+        .query_row("SELECT COUNT(*) FROM project_mcp_servers", [], |row| {
+            row.get(0)
+        })
         .unwrap_or(0);
     let pre_links: i64 = pre_conn
-        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| {
+            row.get(0)
+        })
         .unwrap_or(0);
     drop(pre_conn);
 
@@ -1194,7 +1186,9 @@ fn upgrade_local_open_sunstar_db_copy_on_disk() {
         )
         .expect("mcp links");
     let post_all_links: i64 = conn
-        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| row.get(0))
+        .query_row("SELECT COUNT(*) FROM project_asset_links", [], |row| {
+            row.get(0)
+        })
         .expect("all links");
     drop(conn);
 

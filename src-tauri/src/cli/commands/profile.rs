@@ -107,10 +107,7 @@ fn resolve_project_id(
 }
 
 /// Resolve blueprint_id: use provided value, or show interactive select, or error in json mode.
-fn resolve_blueprint_id(
-    blueprint_id: Option<String>,
-    json: bool,
-) -> Result<String, String> {
+fn resolve_blueprint_id(blueprint_id: Option<String>, json: bool) -> Result<String, String> {
     match blueprint_id {
         Some(id) => Ok(id),
         None => {
@@ -184,7 +181,10 @@ fn run_list(json: bool) -> Result<(), String> {
     } else {
         output::header(&format!("Available Blueprints ({}):", blueprints.len()));
         eprintln!();
-        println!("{:<20} {:<14} {:<12} {}", "ID", "Project Type", "Target App", "Description");
+        println!(
+            "{:<20} {:<14} {:<12} {}",
+            "ID", "Project Type", "Target App", "Description"
+        );
         println!("{}", "-".repeat(72));
         for bp in &blueprints {
             println!(
@@ -203,11 +203,8 @@ fn run_preview(
     blueprint_id: &str,
     json: bool,
 ) -> Result<(), String> {
-    let preview = open_sunstar_lib::cli_api::cli_blueprint_preview(
-        state,
-        project_id,
-        blueprint_id,
-    )?;
+    let preview =
+        open_sunstar_lib::cli_api::cli_blueprint_preview(state, project_id, blueprint_id)?;
 
     if json {
         output::print_result(&preview, true);
@@ -223,10 +220,7 @@ fn run_preview(
         } else {
             println!("  Assets to link ({}):\n", preview.to_link.len());
             for action in &preview.to_link {
-                let app_label = action
-                    .app_type
-                    .as_deref()
-                    .unwrap_or("-");
+                let app_label = action.app_type.as_deref().unwrap_or("-");
                 println!(
                     "    + {:<12} {:<24} app: {app_label}",
                     action.asset_type, action.asset_id
@@ -254,11 +248,8 @@ fn run_apply(
     json: bool,
 ) -> Result<(), String> {
     // Preview first to show what will happen
-    let preview = open_sunstar_lib::cli_api::cli_blueprint_preview(
-        state,
-        project_id,
-        blueprint_id,
-    )?;
+    let preview =
+        open_sunstar_lib::cli_api::cli_blueprint_preview(state, project_id, blueprint_id)?;
 
     // Dry-run: show preview and exit without applying
     if dry_run {
@@ -282,10 +273,7 @@ fn run_apply(
             } else {
                 println!("  Assets to link ({}):\n", preview.to_link.len());
                 for action in &preview.to_link {
-                    let app_label = action
-                        .app_type
-                        .as_deref()
-                        .unwrap_or("-");
+                    let app_label = action.app_type.as_deref().unwrap_or("-");
                     println!(
                         "    + {:<12} {:<24} app: {app_label}",
                         action.asset_type, action.asset_id
@@ -330,11 +318,7 @@ fn run_apply(
     }
 
     // Apply the blueprint
-    let result = open_sunstar_lib::cli_api::cli_blueprint_apply(
-        state,
-        project_id,
-        blueprint_id,
-    )?;
+    let result = open_sunstar_lib::cli_api::cli_blueprint_apply(state, project_id, blueprint_id)?;
 
     if json {
         output::print_result(&result, true);
@@ -345,10 +329,7 @@ fn run_apply(
         ));
         println!("  Linked {} asset(s):", result.to_link.len());
         for action in &result.to_link {
-            println!(
-                "    + {:<12} {}",
-                action.asset_type, action.asset_id
-            );
+            println!("    + {:<12} {}", action.asset_type, action.asset_id);
         }
 
         if !result.warnings.is_empty() {

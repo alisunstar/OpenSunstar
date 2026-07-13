@@ -1,8 +1,8 @@
 //! OpenClaw CLI 写入（models.providers + agents.defaults）
 
 use super::shared::{
-    configured_by_marker, normalize_base, WriteOutcome, MANAGED_MARKER, SC_PROVIDER_ID,
-    StatusOutcome,
+    configured_by_marker, normalize_base, StatusOutcome, WriteOutcome, MANAGED_MARKER,
+    SC_PROVIDER_ID,
 };
 use crate::error::AppError;
 use crate::openclaw_config::{

@@ -1,12 +1,12 @@
 //! AI Insights 缓存与成本日志 DAO
 
+use crate::ai::types::CostByTypeEntry;
+use crate::ai::types::{
+    AIRiskResult, AIRoiReport, AIRoiTotals, CostByTypeDetail, ProjectRoiEntry, RoiTrendBucket,
+};
 use crate::database::{lock_conn, Database};
 use crate::error::AppError;
-use crate::ai::types::{
-    AIRoiReport, AIRoiTotals, CostByTypeDetail, ProjectRoiEntry, RoiTrendBucket, AIRiskResult,
-};
 use serde::{Deserialize, Serialize};
-use crate::ai::types::CostByTypeEntry;
 
 /// AI 洞察缓存行（对应 ai_insights 表）
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -124,10 +124,7 @@ impl Database {
         let now = chrono::Utc::now().timestamp();
         let conn = lock_conn!(self.conn);
         let deleted = conn
-            .execute(
-                "DELETE FROM ai_insights WHERE expires_at < ?1",
-                [now],
-            )
+            .execute("DELETE FROM ai_insights WHERE expires_at < ?1", [now])
             .map_err(|e| AppError::Database(e.to_string()))?;
         if deleted > 0 {
             log::info!("清理了 {deleted} 条过期 AI 洞察缓存");
@@ -187,7 +184,10 @@ impl Database {
     }
 
     /// 按 insight_type 分组统计 AI 成本（Phase 3）
-    pub fn get_ai_cost_by_type(&self, since_timestamp: i64) -> Result<Vec<CostByTypeEntry>, AppError> {
+    pub fn get_ai_cost_by_type(
+        &self,
+        since_timestamp: i64,
+    ) -> Result<Vec<CostByTypeEntry>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -267,7 +267,11 @@ impl Database {
     }
 
     /// 统计指定反馈类型数量（洞察 + NL 问答）
-    pub fn count_feedback_since(&self, since_timestamp: i64, feedback: &str) -> Result<u32, AppError> {
+    pub fn count_feedback_since(
+        &self,
+        since_timestamp: i64,
+        feedback: &str,
+    ) -> Result<u32, AppError> {
         let conn = lock_conn!(self.conn);
         let insight_count: i64 = conn
             .query_row(
@@ -321,7 +325,10 @@ impl Database {
     }
 
     /// 按项目聚合成本
-    pub fn get_cost_by_project(&self, since_timestamp: i64) -> Result<Vec<(String, String, f64, u64, u32)>, AppError> {
+    pub fn get_cost_by_project(
+        &self,
+        since_timestamp: i64,
+    ) -> Result<Vec<(String, String, f64, u64, u32)>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -358,7 +365,11 @@ impl Database {
     }
 
     /// 项目级 useful 反馈数
-    pub fn count_useful_by_project(&self, project_id: &str, since_timestamp: i64) -> Result<u32, AppError> {
+    pub fn count_useful_by_project(
+        &self,
+        project_id: &str,
+        since_timestamp: i64,
+    ) -> Result<u32, AppError> {
         let conn = lock_conn!(self.conn);
         let count: i64 = conn
             .query_row(
@@ -372,7 +383,11 @@ impl Database {
     }
 
     /// 项目级风险数与摘要（取最新 risk_analysis）
-    pub fn project_risk_summary(&self, project_id: &str, since_timestamp: i64) -> Result<(u32, Vec<String>), AppError> {
+    pub fn project_risk_summary(
+        &self,
+        project_id: &str,
+        since_timestamp: i64,
+    ) -> Result<(u32, Vec<String>), AppError> {
         let conn = lock_conn!(self.conn);
         let content: Option<String> = conn
             .query_row(
@@ -387,7 +402,10 @@ impl Database {
     }
 
     /// 成本趋势（按天）
-    pub fn get_cost_trends_daily(&self, since_timestamp: i64) -> Result<Vec<RoiTrendBucket>, AppError> {
+    pub fn get_cost_trends_daily(
+        &self,
+        since_timestamp: i64,
+    ) -> Result<Vec<RoiTrendBucket>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -452,7 +470,11 @@ impl Database {
     }
 
     /// 构建 AI ROI 报告
-    pub fn get_ai_roi_report(&self, since_timestamp: i64, range_days: u32) -> Result<AIRoiReport, AppError> {
+    pub fn get_ai_roi_report(
+        &self,
+        since_timestamp: i64,
+        range_days: u32,
+    ) -> Result<AIRoiReport, AppError> {
         let summary = self.get_ai_cost_summary(since_timestamp)?;
         let by_type_entries = self.get_ai_cost_by_type(since_timestamp)?;
         let nl_answers = self.count_nl_queries(since_timestamp)?;
@@ -474,7 +496,8 @@ impl Database {
         let project_rows = self.get_cost_by_project(since_timestamp)?;
         let mut by_project = Vec::new();
         for (project_id, project_name, cost, tokens, insight_count) in project_rows {
-            let (risk_count, top_risks) = self.project_risk_summary(&project_id, since_timestamp)?;
+            let (risk_count, top_risks) =
+                self.project_risk_summary(&project_id, since_timestamp)?;
             let useful_count = self.count_useful_by_project(&project_id, since_timestamp)?;
             by_project.push(ProjectRoiEntry {
                 project_id,
@@ -527,10 +550,7 @@ impl Database {
         let cutoff = chrono::Utc::now().timestamp() - retain_days * 86400;
         let conn = lock_conn!(self.conn);
         let deleted = conn
-            .execute(
-                "DELETE FROM ai_cost_log WHERE created_at < ?1",
-                [cutoff],
-            )
+            .execute("DELETE FROM ai_cost_log WHERE created_at < ?1", [cutoff])
             .map_err(|e| AppError::Database(e.to_string()))?;
         if deleted > 0 {
             log::info!("清理了 {deleted} 条超过 {retain_days} 天的 AI 成本日志");
@@ -542,7 +562,10 @@ impl Database {
 
     /// 查询项目已启用关联的 MCP 服务器数量
     pub fn count_enabled_project_mcp(&self, project_id: &str) -> Result<u32, AppError> {
-        self.count_enabled_project_assets(project_id, crate::database::dao::project_assets::ASSET_MCP)
+        self.count_enabled_project_assets(
+            project_id,
+            crate::database::dao::project_assets::ASSET_MCP,
+        )
     }
 
     /// 查询项目已启用关联的 Skills 数量
@@ -579,7 +602,9 @@ impl Database {
     pub fn count_global_permissions(&self) -> Result<u32, AppError> {
         let conn = lock_conn!(self.conn);
         let count: i64 = conn
-            .query_row("SELECT COUNT(*) FROM tool_permissions", [], |row| row.get(0))
+            .query_row("SELECT COUNT(*) FROM tool_permissions", [], |row| {
+                row.get(0)
+            })
             .unwrap_or(0);
         Ok(count as u32)
     }
@@ -588,21 +613,15 @@ impl Database {
     pub fn get_project_id_by_path(&self, path: &str) -> Result<Option<String>, AppError> {
         let conn = lock_conn!(self.conn);
         let result = conn
-            .query_row(
-                "SELECT id FROM projects WHERE path = ?1",
-                [path],
-                |row| row.get::<_, String>(0),
-            )
+            .query_row("SELECT id FROM projects WHERE path = ?1", [path], |row| {
+                row.get::<_, String>(0)
+            })
             .ok();
         Ok(result)
     }
 
     /// 删除指定项目的指定类型 AI 洞察缓存
-    pub fn delete_ai_insight(
-        &self,
-        project_id: &str,
-        insight_type: &str,
-    ) -> Result<(), AppError> {
+    pub fn delete_ai_insight(&self, project_id: &str, insight_type: &str) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         conn.execute(
             "DELETE FROM ai_insights WHERE project_id = ?1 AND insight_type = ?2",

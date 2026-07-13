@@ -24,6 +24,7 @@ interface InstallConfirmModalProps {
   files: InstallFileEntry[];
   audit: InstallAuditSummary;
   title?: string;
+  confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -41,6 +42,7 @@ export function InstallConfirmModal({
   files,
   audit,
   title,
+  confirmLabel,
   onConfirm,
   onCancel,
 }: InstallConfirmModalProps) {
@@ -50,6 +52,7 @@ export function InstallConfirmModal({
   if (!open) return null;
 
   const willCreate = files.filter((f) => f.status === "create");
+  const willOverwrite = files.filter((f) => f.status === "overwrite");
   const willSkip = files.filter((f) => f.status === "skip");
   const hasBlocked = audit.blocked;
 
@@ -191,6 +194,8 @@ export function InstallConfirmModal({
               <span className="text-[10px] text-muted-foreground">
                 ({willCreate.length}{" "}
                 {t("installConfirm.toCreate", { defaultValue: "将创建" })},{" "}
+                {willOverwrite.length}{" "}
+                {t("installConfirm.toOverwrite", { defaultValue: "将覆盖" })},{" "}
                 {willSkip.length}{" "}
                 {t("installConfirm.toSkip", { defaultValue: "已存在跳过" })})
               </span>
@@ -207,6 +212,8 @@ export function InstallConfirmModal({
                   >
                     {f.status === "create" ? (
                       <FilePlus className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    ) : f.status === "overwrite" ? (
+                      <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                     ) : (
                       <FileX className="w-3.5 h-3.5 text-muted-foreground/50 shrink-0" />
                     )}
@@ -218,11 +225,15 @@ export function InstallConfirmModal({
                         "text-[10px] px-1.5 py-0.5 rounded shrink-0",
                         f.status === "create"
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                          : f.status === "overwrite"
+                            ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
                           : "bg-muted text-muted-foreground",
                       )}
                     >
                       {f.status === "create"
                         ? t("installConfirm.create", { defaultValue: "创建" })
+                        : f.status === "overwrite"
+                          ? t("installConfirm.overwrite", { defaultValue: "覆盖" })
                         : t("installConfirm.skip", { defaultValue: "跳过" })}
                     </span>
                     {f.newContent && (
@@ -247,8 +258,12 @@ export function InstallConfirmModal({
                         </div>
                       )}
                       <div>
-                        <span className="text-[9px] uppercase font-medium text-muted-foreground">
-                          {f.existingContent
+                          <span className="text-[9px] uppercase font-medium text-muted-foreground">
+                          {f.status === "overwrite"
+                            ? t("installConfirm.willOverwrite", {
+                                defaultValue: "将覆盖为",
+                              })
+                            : f.existingContent
                             ? t("installConfirm.wouldOverwrite", {
                                 defaultValue: "将覆盖为 (当前跳过)",
                               })
@@ -284,9 +299,10 @@ export function InstallConfirmModal({
             )}
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            {t("installConfirm.confirmInstall", {
-              defaultValue: "确认安装",
-            })}
+            {confirmLabel ??
+              t("installConfirm.confirmInstall", {
+                defaultValue: "确认安装",
+              })}
           </Button>
         </div>
       </div>

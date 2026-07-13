@@ -4,10 +4,12 @@ use tauri::State;
 
 use crate::database::Database;
 use crate::services::flow_orchestrator::{
-    export_flow_config, export_project_workflow_profile, get_workflow_preset,
-    list_workflow_modules, list_workflow_presets, scan_project_specs_workflow,
-    validate_workflow_stage_gate, FlowConfig, SpecsWorkflowIndex, StageGateResult, WorkflowModule,
-    WorkflowPreset, WorkflowPresetSummary, WorkflowProfile,
+    export_flow_config, export_flow_config_strict, export_project_workflow_profile,
+    export_project_workflow_profile_strict, get_workflow_preset, list_workflow_modules,
+    list_workflow_presets, preview_flow_config_export, preview_project_workflow_profile_export,
+    scan_project_specs_workflow, validate_workflow_stage_gate, FlowConfig, FlowWritePlan,
+    SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetSummary,
+    WorkflowProfile,
 };
 use crate::store::AppState;
 
@@ -63,12 +65,8 @@ pub async fn scan_project_specs_workflow_cmd(
     project_type: Option<String>,
 ) -> Result<SpecsWorkflowIndex, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    scan_project_specs_workflow(
-        &path,
-        preset_id.as_deref(),
-        project_type.as_deref(),
-    )
-    .map_err(|e| e.to_string())
+    scan_project_specs_workflow(&path, preset_id.as_deref(), project_type.as_deref())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -81,14 +79,9 @@ pub async fn validate_workflow_stage_gate_cmd(
     target_stage: String,
 ) -> Result<StageGateResult, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    let result = validate_workflow_stage_gate(
-        &path,
-        &preset_id,
-        &project_type,
-        &change_id,
-        &target_stage,
-    )
-    .map_err(|e| e.to_string())?;
+    let result =
+        validate_workflow_stage_gate(&path, &preset_id, &project_type, &change_id, &target_stage)
+            .map_err(|e| e.to_string())?;
 
     if let Err(e) = crate::services::flow_orchestrator::append_orchestration_log(
         &path,
@@ -109,6 +102,28 @@ pub async fn validate_workflow_stage_gate_cmd(
 }
 
 #[tauri::command]
+pub async fn preview_project_workflow_profile_export_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+    preset_id: String,
+    project_type: String,
+    active_change_id: Option<String>,
+    selected_modules: Option<Vec<String>>,
+    disabled_stages: Option<Vec<String>>,
+) -> Result<FlowWritePlan, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    preview_project_workflow_profile_export(
+        &path,
+        &preset_id,
+        &project_type,
+        active_change_id.as_deref(),
+        selected_modules.as_deref(),
+        disabled_stages.as_deref(),
+    )
+    .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub async fn export_project_workflow_profile_cmd(
     state: State<'_, AppState>,
     project_id: String,
@@ -117,13 +132,45 @@ pub async fn export_project_workflow_profile_cmd(
     active_change_id: Option<String>,
     selected_modules: Option<Vec<String>>,
     disabled_stages: Option<Vec<String>>,
+    strict_semantics: Option<bool>,
 ) -> Result<WorkflowProfile, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    export_project_workflow_profile(
+    let result = if strict_semantics.unwrap_or(false) {
+        export_project_workflow_profile_strict(
+            &path,
+            &preset_id,
+            &project_type,
+            active_change_id.as_deref(),
+            selected_modules.as_deref(),
+            disabled_stages.as_deref(),
+        )
+    } else {
+        export_project_workflow_profile(
+            &path,
+            &preset_id,
+            &project_type,
+            active_change_id.as_deref(),
+            selected_modules.as_deref(),
+            disabled_stages.as_deref(),
+        )
+    };
+    result.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn preview_flow_config_export_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+    preset_id: String,
+    project_type: String,
+    selected_modules: Option<Vec<String>>,
+    disabled_stages: Option<Vec<String>>,
+) -> Result<FlowWritePlan, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    preview_flow_config_export(
         &path,
         &preset_id,
         &project_type,
-        active_change_id.as_deref(),
         selected_modules.as_deref(),
         disabled_stages.as_deref(),
     )
@@ -138,14 +185,25 @@ pub async fn export_flow_config_cmd(
     project_type: String,
     selected_modules: Option<Vec<String>>,
     disabled_stages: Option<Vec<String>>,
+    strict_semantics: Option<bool>,
 ) -> Result<FlowConfig, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
-    export_flow_config(
-        &path,
-        &preset_id,
-        &project_type,
-        selected_modules.as_deref(),
-        disabled_stages.as_deref(),
-    )
-    .map_err(|e| e.to_string())
+    let result = if strict_semantics.unwrap_or(false) {
+        export_flow_config_strict(
+            &path,
+            &preset_id,
+            &project_type,
+            selected_modules.as_deref(),
+            disabled_stages.as_deref(),
+        )
+    } else {
+        export_flow_config(
+            &path,
+            &preset_id,
+            &project_type,
+            selected_modules.as_deref(),
+            disabled_stages.as_deref(),
+        )
+    };
+    result.map_err(|e| e.to_string())
 }

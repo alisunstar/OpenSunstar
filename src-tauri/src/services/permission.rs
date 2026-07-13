@@ -2,9 +2,7 @@ use crate::app_config::AppType;
 use crate::error::AppError;
 use crate::services::permission_sync;
 use crate::store::AppState;
-use crate::tool_permission::{
-    validate_permission_type, validate_tool_pattern, ToolPermission,
-};
+use crate::tool_permission::{validate_permission_type, validate_tool_pattern, ToolPermission};
 
 pub struct PermissionService;
 

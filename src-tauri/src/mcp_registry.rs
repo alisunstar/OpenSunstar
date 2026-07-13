@@ -184,7 +184,11 @@ pub fn registry_to_mcp_server(
     enabled_apps: &crate::app_config::McpApps,
 ) -> Result<crate::app_config::McpServer, AppError> {
     // 生成唯一 id：将 name 中的 / 替换为 -
-    let id = registry.name.replace(['/', '@', '.'], "-").trim_matches('-').to_string();
+    let id = registry
+        .name
+        .replace(['/', '@', '.'], "-")
+        .trim_matches('-')
+        .to_string();
 
     // 显示名称：优先 title，否则用 name 的最后一段
     let display_name = registry
@@ -225,7 +229,10 @@ pub fn registry_to_mcp_server(
                         })
                     })
                     .collect();
-                map.insert("remotes".to_string(), serde_json::Value::Array(remotes_array));
+                map.insert(
+                    "remotes".to_string(),
+                    serde_json::Value::Array(remotes_array),
+                );
             }
         }
 
@@ -246,10 +253,7 @@ pub fn registry_to_mcp_server(
         apps: enabled_apps.clone(),
         description: registry.description.clone(),
         homepage: registry.website_url.clone(),
-        docs: registry
-            .repository
-            .as_ref()
-            .and_then(|r| r.url.clone()),
+        docs: registry.repository.as_ref().and_then(|r| r.url.clone()),
         tags: if registry.tags.is_empty() {
             Vec::new()
         } else {

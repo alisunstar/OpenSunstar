@@ -5,7 +5,9 @@ use crate::project_metrics;
 
 /// 使用 tokei 统计项目目录的代码行数。
 #[tauri::command]
-pub async fn count_project_code_lines(root: String) -> Result<project_metrics::CodeLineResult, String> {
+pub async fn count_project_code_lines(
+    root: String,
+) -> Result<project_metrics::CodeLineResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         project_metrics::count_code_lines(std::path::Path::new(root.trim()))
     })
@@ -25,7 +27,9 @@ pub async fn read_package_version(root: String) -> Result<Option<String>, String
 
 /// 检测 Git 仓库信息（分支、远程、最近提交等）。
 #[tauri::command]
-pub async fn detect_project_git_info(root: String) -> Result<project_metrics::ProjectGitInfo, String> {
+pub async fn detect_project_git_info(
+    root: String,
+) -> Result<project_metrics::ProjectGitInfo, String> {
     tauri::async_runtime::spawn_blocking(move || {
         project_metrics::detect_git_info(std::path::Path::new(root.trim()))
     })

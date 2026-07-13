@@ -1,6 +1,5 @@
 //! 项目看板后端：代码统计（tokei）+ Git 分析 + 文件浏览
 
-
 use serde::Serialize;
 use std::path::Path;
 use std::process::Command;
@@ -29,11 +28,32 @@ pub struct LanguageStat {
 
 fn common_excluded() -> Vec<&'static str> {
     vec![
-        "node_modules", "target", ".git", "dist", "build", "out",
-        ".next", ".nuxt", "vendor", "Pods", ".gradle", ".idea",
-        ".vscode", ".cache", "__pycache__", ".venv", "venv", "env",
-        ".tox", ".mypy_cache", ".pytest_cache", "coverage",
-        ".terraform", ".serverless", ".parcel-cache", ".DS_Store",
+        "node_modules",
+        "target",
+        ".git",
+        "dist",
+        "build",
+        "out",
+        ".next",
+        ".nuxt",
+        "vendor",
+        "Pods",
+        ".gradle",
+        ".idea",
+        ".vscode",
+        ".cache",
+        "__pycache__",
+        ".venv",
+        "venv",
+        "env",
+        ".tox",
+        ".mypy_cache",
+        ".pytest_cache",
+        "coverage",
+        ".terraform",
+        ".serverless",
+        ".parcel-cache",
+        ".DS_Store",
         "DerivedData",
     ]
 }
@@ -65,7 +85,9 @@ pub fn count_code_lines(root: &Path) -> Result<CodeLineResult, String> {
         let comments = language.comments;
         let blanks = language.blanks;
         let files = language.reports.len();
-        if code == 0 && comments == 0 && blanks == 0 { continue; }
+        if code == 0 && comments == 0 && blanks == 0 {
+            continue;
+        }
         total_code += code;
         total_comments += comments;
         total_blanks += blanks;
@@ -98,14 +120,17 @@ pub fn read_package_version(root: &Path) -> Result<Option<String>, String> {
     if !pkg_path.is_file() {
         return Ok(None);
     }
-    let content = std::fs::read_to_string(&pkg_path)
-        .map_err(|e| format!("读取 package.json 失败: {e}"))?;
+    let content =
+        std::fs::read_to_string(&pkg_path).map_err(|e| format!("读取 package.json 失败: {e}"))?;
     let val: serde_json::Value =
         serde_json::from_str(&content).map_err(|e| format!("解析失败: {e}"))?;
-    let version = val
-        .get("version")
-        .and_then(|v| v.as_str())
-        .map(|v| if v.starts_with('v') { v.to_string() } else { format!("v{v}") });
+    let version = val.get("version").and_then(|v| v.as_str()).map(|v| {
+        if v.starts_with('v') {
+            v.to_string()
+        } else {
+            format!("v{v}")
+        }
+    });
     Ok(version)
 }
 
@@ -140,40 +165,45 @@ pub fn detect_git_info(root: &Path) -> Result<ProjectGitInfo, String> {
     let git_dir = root.join(".git");
     if !git_dir.is_dir() {
         return Ok(ProjectGitInfo {
-            is_repo: false, branch: None, branches: vec![],
-            remote_url: None, remote_name: None,
-            last_commit_hash: None, last_commit_message: None,
-            last_commit_author: None, last_commit_date: None,
+            is_repo: false,
+            branch: None,
+            branches: vec![],
+            remote_url: None,
+            remote_name: None,
+            last_commit_hash: None,
+            last_commit_message: None,
+            last_commit_author: None,
+            last_commit_date: None,
         });
     }
 
     let branch = git_command_output(root, &["rev-parse", "--abbrev-ref", "HEAD"])
         .map(|s| s.trim().to_string());
 
-    let branches_raw = git_command_output(root, &["branch", "--format=%(refname:short)"])
-        .unwrap_or_default();
+    let branches_raw =
+        git_command_output(root, &["branch", "--format=%(refname:short)"]).unwrap_or_default();
     let branches: Vec<String> = branches_raw
         .lines()
         .map(|l| l.trim().to_string())
         .filter(|l| !l.is_empty())
         .collect();
 
-    let remote_url = git_command_output(root, &["remote", "get-url", "origin"])
-        .map(|s| s.trim().to_string());
+    let remote_url =
+        git_command_output(root, &["remote", "get-url", "origin"]).map(|s| s.trim().to_string());
 
     let remote_name = remote_url.as_ref().map(|_| "origin".to_string());
 
-    let last_hash = git_command_output(root, &["log", "-1", "--format=%H"])
-        .map(|s| s.trim().to_string());
+    let last_hash =
+        git_command_output(root, &["log", "-1", "--format=%H"]).map(|s| s.trim().to_string());
 
-    let last_msg = git_command_output(root, &["log", "-1", "--format=%s"])
-        .map(|s| s.trim().to_string());
+    let last_msg =
+        git_command_output(root, &["log", "-1", "--format=%s"]).map(|s| s.trim().to_string());
 
-    let last_author = git_command_output(root, &["log", "-1", "--format=%an"])
-        .map(|s| s.trim().to_string());
+    let last_author =
+        git_command_output(root, &["log", "-1", "--format=%an"]).map(|s| s.trim().to_string());
 
-    let last_date = git_command_output(root, &["log", "-1", "--format=%ci"])
-        .map(|s| s.trim().to_string());
+    let last_date =
+        git_command_output(root, &["log", "-1", "--format=%ci"]).map(|s| s.trim().to_string());
 
     Ok(ProjectGitInfo {
         is_repo: true,
@@ -191,7 +221,9 @@ pub fn detect_git_info(root: &Path) -> Result<ProjectGitInfo, String> {
 // ── Git 活跃度 ────────────────────────────────
 
 pub fn git_commit_count_last_n_days(root: &Path, days: u32) -> u32 {
-    if !root.join(".git").is_dir() { return 0; }
+    if !root.join(".git").is_dir() {
+        return 0;
+    }
     let since = format!("--since={}.days", days);
     git_command_output(root, &["log", "--oneline", &since])
         .map(|s| s.lines().count() as u32)
@@ -199,7 +231,9 @@ pub fn git_commit_count_last_n_days(root: &Path, days: u32) -> u32 {
 }
 
 pub fn git_weekly_commit_counts(root: &Path) -> Vec<u32> {
-    if !root.join(".git").is_dir() { return vec![0u32; 12]; }
+    if !root.join(".git").is_dir() {
+        return vec![0u32; 12];
+    }
     let mut weeks = Vec::with_capacity(12);
     for w in (0..12).rev() {
         let since = format!("--since={}.weeks", w + 1);
@@ -222,7 +256,9 @@ pub struct Contributor {
 }
 
 pub fn git_contributors(root: &Path) -> Vec<Contributor> {
-    if !root.join(".git").is_dir() { return vec![]; }
+    if !root.join(".git").is_dir() {
+        return vec![];
+    }
     let output = match git_command_output(root, &["shortlog", "-sne", "HEAD"]) {
         Some(s) => s,
         None => return vec![],
@@ -230,8 +266,12 @@ pub fn git_contributors(root: &Path) -> Vec<Contributor> {
     let mut list = Vec::new();
     for line in output.lines() {
         let line = line.trim();
-        if line.is_empty() { continue; }
-        let Some(tab_pos) = line.find('\t') else { continue; };
+        if line.is_empty() {
+            continue;
+        }
+        let Some(tab_pos) = line.find('\t') else {
+            continue;
+        };
         let count_str = line[..tab_pos].trim();
         let info = &line[tab_pos + 1..];
         let commits: u32 = count_str.parse().unwrap_or(0);
@@ -246,7 +286,11 @@ pub fn git_contributors(root: &Path) -> Vec<Contributor> {
         } else {
             (info.to_string(), String::new())
         };
-        list.push(Contributor { name, email, commits });
+        list.push(Contributor {
+            name,
+            email,
+            commits,
+        });
     }
     list
 }

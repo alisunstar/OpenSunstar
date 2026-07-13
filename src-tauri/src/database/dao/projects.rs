@@ -46,7 +46,9 @@ fn map_project_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Project> {
         updated_at: row.get(5)?,
         target_app: row.get(6)?,
         blueprint_id: row.get(7)?,
-        stage: row.get::<_, String>(8).unwrap_or_else(|_| "mvp".to_string()),
+        stage: row
+            .get::<_, String>(8)
+            .unwrap_or_else(|_| "mvp".to_string()),
         mvp_progress: row.get(9)?,
     })
 }
@@ -247,7 +249,10 @@ impl Database {
     // ========== Project × MCP / Skills / Prompts（SSOT: project_asset_links）==========
 
     /// 获取项目关联的 MCP 服务器 ID 列表
-    pub fn get_project_mcp_servers(&self, project_id: &str) -> Result<Vec<ProjectConfigLink>, AppError> {
+    pub fn get_project_mcp_servers(
+        &self,
+        project_id: &str,
+    ) -> Result<Vec<ProjectConfigLink>, AppError> {
         let links = self.get_project_asset_links(project_id, Some(ASSET_MCP))?;
         Ok(links
             .into_iter()
@@ -307,11 +312,7 @@ impl Database {
         self.link_project_asset(project_id, ASSET_SKILL, skill_id, "", enabled)
     }
 
-    pub fn unlink_project_skill(
-        &self,
-        project_id: &str,
-        skill_id: &str,
-    ) -> Result<bool, AppError> {
+    pub fn unlink_project_skill(&self, project_id: &str, skill_id: &str) -> Result<bool, AppError> {
         self.unlink_project_asset(project_id, ASSET_SKILL, skill_id, "")
     }
 
@@ -323,7 +324,10 @@ impl Database {
         self.set_project_assets(project_id, ASSET_SKILL, skill_ids)
     }
 
-    pub fn get_project_prompts(&self, project_id: &str) -> Result<Vec<ProjectPromptLink>, AppError> {
+    pub fn get_project_prompts(
+        &self,
+        project_id: &str,
+    ) -> Result<Vec<ProjectPromptLink>, AppError> {
         let links = self.get_project_asset_links(project_id, Some(ASSET_PROMPT))?;
         Ok(links
             .into_iter()
@@ -344,7 +348,13 @@ impl Database {
         prompt_app_type: &str,
         enabled: bool,
     ) -> Result<(), AppError> {
-        self.link_project_asset(project_id, ASSET_PROMPT, prompt_id, prompt_app_type, enabled)
+        self.link_project_asset(
+            project_id,
+            ASSET_PROMPT,
+            prompt_id,
+            prompt_app_type,
+            enabled,
+        )
     }
 
     pub fn unlink_project_prompt(

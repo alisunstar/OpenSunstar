@@ -1,13 +1,13 @@
 //! Hermes CLI 写入（custom_providers + model 路由）
 
 use super::shared::{
-    configured_by_marker, normalize_base, WriteOutcome, MANAGED_MARKER, SC_PROVIDER_ID,
-    StatusOutcome,
+    configured_by_marker, normalize_base, StatusOutcome, WriteOutcome, MANAGED_MARKER,
+    SC_PROVIDER_ID,
 };
 use crate::error::AppError;
 use crate::hermes_config::{
-    get_hermes_config_path, get_model_config, read_hermes_config, remove_provider, set_model_config,
-    set_provider, HermesModelConfig,
+    get_hermes_config_path, get_model_config, read_hermes_config, remove_provider,
+    set_model_config, set_provider, HermesModelConfig,
 };
 use serde_json::json;
 
@@ -51,11 +51,8 @@ pub fn status() -> Result<StatusOutcome, AppError> {
     let config = read_hermes_config()?;
     let providers = config.get("custom_providers").and_then(|v| v.as_sequence());
     let entry = providers.and_then(|seq| {
-        seq.iter().find(|p| {
-            p.get("name")
-                .and_then(|n| n.as_str())
-                == Some(SC_PROVIDER_ID)
-        })
+        seq.iter()
+            .find(|p| p.get("name").and_then(|n| n.as_str()) == Some(SC_PROVIDER_ID))
     });
     let base_url = entry
         .and_then(|p| p.get("base_url"))
@@ -71,10 +68,7 @@ pub fn status() -> Result<StatusOutcome, AppError> {
     let model_cfg = get_model_config().ok().flatten();
     let model = model_cfg.as_ref().and_then(|m| m.default.clone());
     let configured = configured_by_marker(managed, base_url.as_deref())
-        || model_cfg
-            .as_ref()
-            .and_then(|m| m.provider.as_deref())
-            == Some(SC_PROVIDER_ID);
+        || model_cfg.as_ref().and_then(|m| m.provider.as_deref()) == Some(SC_PROVIDER_ID);
     Ok(StatusOutcome {
         configured,
         base_url,
@@ -94,11 +88,8 @@ pub fn clear() -> Result<(), AppError> {
         .get("custom_providers")
         .and_then(|v| v.as_sequence())
         .and_then(|seq| {
-            seq.iter().find(|p| {
-                p.get("name")
-                    .and_then(|n| n.as_str())
-                    == Some(SC_PROVIDER_ID)
-            })
+            seq.iter()
+                .find(|p| p.get("name").and_then(|n| n.as_str()) == Some(SC_PROVIDER_ID))
         })
         .and_then(|p| p.get("simple_connect_managed"))
         .and_then(|x| x.as_str())

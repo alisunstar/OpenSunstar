@@ -464,10 +464,7 @@ async fn proxy_auth_middleware(
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "));
 
-    let api_key = req
-        .headers()
-        .get("x-api-key")
-        .and_then(|v| v.to_str().ok());
+    let api_key = req.headers().get("x-api-key").and_then(|v| v.to_str().ok());
 
     let token = auth_header.or(api_key);
 

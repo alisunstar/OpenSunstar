@@ -9,6 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.6] - 2026-07-13
+
+### Added
+
+- **Design system registry**: bundled offline packages (`data-dashboard`, `desktop-workbench`, `developer-console`) with manifest validation and design-contract integration
+- **Local CLI auth status**: settings panel to inspect Claude / Gemini credential, route, and SimpleConnect layers
+- **Change ID validation**: shared `changeId` rules for flow / recipe / design panels
+- **Project asset contract**: machine-readable app-support matrix for asset panel consistency checks
+- **Methodology page test**: regression coverage for framework detection UI
+
+### Changed
+
+- **Project orchestration panels**: richer design-contract, flow-orchestrator, and recipe-composer workflows with change-id guardrails
+- **Methodology & project assets UI**: improved navigation, asset panel prompts, and install confirmation flows
+- **Auth center / settings**: integrates local CLI auth probe alongside existing provider tooling
+- **Backend hardening**: broad Rust refactors across audit, proxy, simple-connect, sync, and CLI command surfaces
+- **Dev experience**: Tauri dev URL aligned to `127.0.0.1:1420`; bundle ships `resources/design-systems/**`
+
+### Fixed
+
+- **Database migrations**: safer v12 keychain migration and clearer schema upgrade logging
+- **i18n**: expanded strings for auth status, methodology, and project orchestration panels
+
 ## [1.1.5] - 2026-07-11
 
 ### Added

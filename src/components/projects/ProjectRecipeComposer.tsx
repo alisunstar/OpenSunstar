@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   recipeComposerApi,
+  type CompositionRecipe,
   type InstallResult,
   type RecipeComposeParams,
   type RecipeInstallPlan,
@@ -32,6 +33,7 @@ import {
   type WorkflowPreset,
   type WorkflowPresetSummary,
 } from "@/lib/api/flowOrchestrator";
+import { validateChangeId } from "@/lib/changeId";
 import { cn } from "@/lib/utils";
 
 const PROJECT_TYPES = ["backend", "frontend", "cli"] as const;
@@ -432,6 +434,10 @@ export function ProjectRecipeComposer({
     () => resolvedStages.filter((s) => !enabledStages.has(s)),
     [resolvedStages, enabledStages],
   );
+  const changeIdError = useMemo(
+    () => (changeId.trim() ? validateChangeId(changeId) : null),
+    [changeId],
+  );
 
   const stageMap = useMemo(() => {
     const map = new Map<string, { id: string; name: string }>();
@@ -543,6 +549,10 @@ export function ProjectRecipeComposer({
       );
       return;
     }
+    if (changeIdError) {
+      toast.error(changeIdError);
+      return;
+    }
     setInstalling(true);
     try {
       const plan = await recipeComposerApi.previewInstallPlan(
@@ -556,7 +566,7 @@ export function ProjectRecipeComposer({
     } finally {
       setInstalling(false);
     }
-  }, [projectId, buildParams, changeId]);
+  }, [projectId, buildParams, changeId, changeIdError]);
 
   const handleInstallConfirm = useCallback(async () => {
     setInstallPlan(null);
@@ -606,6 +616,32 @@ export function ProjectRecipeComposer({
     [projectId],
   );
 
+  const handleLoadRecipe = useCallback(
+    async (name: string) => {
+      try {
+        const recipe: CompositionRecipe = await recipeComposerApi.loadSavedRecipe(
+          projectId,
+          name,
+        );
+        setPresetId(recipe.presetId);
+        setProjectType(recipe.projectType as (typeof PROJECT_TYPES)[number]);
+        setRecipeName(recipe.name);
+        setRecipeDescription(recipe.description);
+        setRecipeNotes(recipe.notes);
+        setSelectedModules(new Set(recipe.modules));
+        setEnabledStages(
+          new Set(recipe.stages.filter((stage) => stage.enabled).map((stage) => stage.id)),
+        );
+        setPreviewContent(await recipeComposerApi.readSavedRecipe(projectId, name));
+        setPreviewExpanded(true);
+        toast.success("已载入变更执行方案，可继续编辑或重新安装。");
+      } catch (e) {
+        toast.error(String(e));
+      }
+    },
+    [projectId],
+  );
+
   const projectTypeLabel = (pt: (typeof PROJECT_TYPES)[number]) => {
     switch (pt) {
       case "backend":
@@ -639,7 +675,7 @@ export function ProjectRecipeComposer({
         <div className="flex items-center gap-2">
           <ChefHat className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold">
-            {t("recipeComposer.title", { defaultValue: "自定义编排器" })}
+            {t("recipeComposer.title", { defaultValue: "变更执行方案" })}
           </h3>
         </div>
         <span className="text-[10px] text-muted-foreground">
@@ -821,6 +857,11 @@ export function ProjectRecipeComposer({
             defaultValue: "如 feat-auth、fix-login-bug",
           })}
         />
+        {changeIdError && (
+          <p className="text-[10px] text-red-600 dark:text-red-400">
+            {changeIdError}
+          </p>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -865,7 +906,7 @@ export function ProjectRecipeComposer({
         <Button
           size="sm"
           onClick={handleInstallPreview}
-          disabled={installing || !changeId.trim()}
+          disabled={installing || !changeId.trim() || !!changeIdError}
           className="text-xs"
         >
           {installing ? (
@@ -952,14 +993,25 @@ export function ProjectRecipeComposer({
                   <FileText className="h-3 w-3 text-muted-foreground" />
                   <span className="text-[11px] font-mono">{name}.recipe.md</span>
                 </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
-                  onClick={() => handleDeleteRecipe(name)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 w-5 p-0 text-muted-foreground hover:text-primary"
+                    aria-label={`载入方案 ${name}`}
+                    onClick={() => handleLoadRecipe(name)}
+                  >
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-5 w-5 p-0 text-muted-foreground hover:text-destructive"
+                    onClick={() => handleDeleteRecipe(name)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

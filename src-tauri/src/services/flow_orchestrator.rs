@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::config::write_text_file;
 use crate::error::AppError;
+use crate::services::design_contract::{InstallAuditSummary, InstallFileEntry};
 use crate::services::project_artifacts::project_workspace_exists;
 
 const OPENSUNSTAR_DIR: &str = ".opensunstar";
@@ -22,7 +23,8 @@ const MODULES_JSON: &str = include_str!("../../assets/workflow/modules.json");
 const PRESET_MVP: &str = include_str!("../../assets/workflow/presets/mvp.json");
 const PRESET_STANDARD: &str = include_str!("../../assets/workflow/presets/standard.json");
 const PRESET_FULL: &str = include_str!("../../assets/workflow/presets/full.json");
-const PRESET_BROWNFIELD: &str = include_str!("../../assets/workflow/presets/brownfield-intake.json");
+const PRESET_BROWNFIELD: &str =
+    include_str!("../../assets/workflow/presets/brownfield-intake.json");
 const PRESET_REVIEW: &str = include_str!("../../assets/workflow/presets/review-only.json");
 
 const PRESET_BUILTINS: &[&str] = &[
@@ -197,6 +199,14 @@ pub struct FlowConfig {
     pub stages: Vec<FlowConfigStage>,
     pub rules: FlowConfigRules,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub semantic_warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FlowWritePlan {
+    pub files: Vec<InstallFileEntry>,
+    pub audit: InstallAuditSummary,
     pub semantic_warnings: Vec<String>,
 }
 
@@ -402,16 +412,24 @@ fn stage_id_matches(id: &str, semantic: &str) -> bool {
 /// Validates semantic rules S1-S5 on a preset's stage configuration.
 /// Returns a list of warning/error messages.
 /// `project_type` is needed for S5 (ui-design + backend/cli check).
-pub fn validate_preset_semantic(
+#[allow(dead_code)]
+pub fn validate_preset_semantic(preset: &WorkflowPreset, project_type: &str) -> Vec<String> {
+    match resolve_stages_for_preset(preset, project_type) {
+        Ok(stage_ids) => validate_effective_stage_semantic(preset, project_type, &stage_ids),
+        Err(e) => vec![format!("无法解析流程阶段: {e}")],
+    }
+}
+
+pub fn validate_effective_stage_semantic(
     preset: &WorkflowPreset,
     project_type: &str,
+    effective_stage_ids: &[String],
 ) -> Vec<String> {
     let mut issues = Vec::new();
-    let stage_ids: HashSet<&str> = preset.stages.iter().map(|s| s.id.as_str()).collect();
+    let stage_ids: HashSet<&str> = effective_stage_ids.iter().map(|s| s.as_str()).collect();
 
-    let has_stage = |semantic: &str| -> bool {
-        stage_ids.iter().any(|id| stage_id_matches(id, semantic))
-    };
+    let has_stage =
+        |semantic: &str| -> bool { stage_ids.iter().any(|id| stage_id_matches(id, semantic)) };
 
     // S1: dev enabled → task must be enabled (R2.3: no TASK → no code)
     if has_stage("dev") && !has_stage("task") {
@@ -430,19 +448,12 @@ pub fn validate_preset_semantic(
 
     // S4: integration enabled → review should be enabled (R2.6: UAT needs REVIEW)
     if has_stage("integration") && !has_stage("review") {
-        issues.push(
-            "S4: integration 阶段启用但 review 阶段未启用（R2.6：UAT 需要 REVIEW）".into(),
-        );
+        issues.push("S4: integration 阶段启用但 review 阶段未启用（R2.6：UAT 需要 REVIEW）".into());
     }
 
     // S5: ui-design stage in backend/cli path without skipWhen is a configuration error
     if project_type == "backend" || project_type == "cli" {
-        let path_ids = match project_type {
-            "backend" => &preset.paths.backend,
-            "cli" => &preset.paths.cli,
-            _ => unreachable!(),
-        };
-        for stage_id in path_ids {
+        for stage_id in effective_stage_ids {
             if stage_id_matches(stage_id, "ui-design") {
                 let has_skip = preset
                     .stages
@@ -541,6 +552,79 @@ fn stage_should_skip(stage: &WorkflowStage, project_type: &str) -> bool {
     skip.project_type.iter().any(|t| t == project_type)
 }
 
+pub fn validate_change_id(change_id: &str) -> Result<(), AppError> {
+    let trimmed = change_id.trim();
+    if trimmed != change_id {
+        return Err(AppError::InvalidInput(
+            "Change ID 不能包含首尾空白字符".into(),
+        ));
+    }
+    if !(3..=80).contains(&change_id.len()) {
+        return Err(AppError::InvalidInput(
+            "Change ID 长度必须在 3 到 80 个字符之间".into(),
+        ));
+    }
+    if change_id == "." || change_id == ".." {
+        return Err(AppError::InvalidInput("Change ID 不能使用 . 或 ..".into()));
+    }
+    if !change_id
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-'))
+    {
+        return Err(AppError::InvalidInput(
+            "Change ID 只能包含英文字母、数字、点、下划线和短横线".into(),
+        ));
+    }
+    Ok(())
+}
+
+pub fn sanitize_change_id_seed(seed: &str) -> String {
+    let mut out = String::new();
+    let mut last_dash = false;
+    for c in seed.trim().chars() {
+        let next = if c.is_ascii_alphanumeric() || matches!(c, '.' | '_' | '-') {
+            c.to_ascii_lowercase()
+        } else {
+            '-'
+        };
+        if next == '-' {
+            if last_dash {
+                continue;
+            }
+            last_dash = true;
+        } else {
+            last_dash = false;
+        }
+        out.push(next);
+    }
+
+    let trimmed = out
+        .trim_matches(|c| matches!(c, '.' | '_' | '-'))
+        .to_string();
+    let mut safe: String = if trimmed.is_empty() {
+        "change".into()
+    } else {
+        trimmed.chars().take(60).collect()
+    };
+    while safe.len() < 3 {
+        safe.push('x');
+    }
+    safe
+}
+
+fn empty_install_audit() -> InstallAuditSummary {
+    InstallAuditSummary {
+        files_scanned: 0,
+        total_findings: 0,
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        blocked: false,
+        findings: Vec::new(),
+    }
+}
+
 fn opensunstar_dir(project_path: &str) -> PathBuf {
     PathBuf::from(project_path).join(OPENSUNSTAR_DIR)
 }
@@ -632,10 +716,7 @@ fn artifact_path(
             let p = specs_root(project_path)
                 .join(change_id)
                 .join(&artifact.file);
-            (
-                p,
-                format!(".specs/{}/{}", change_id, artifact.file),
-            )
+            (p, format!(".specs/{}/{}", change_id, artifact.file))
         }
     };
     let _ = root;
@@ -797,6 +878,7 @@ pub fn validate_workflow_stage_gate(
             "项目路径不存在或不是目录: {project_path}"
         )));
     }
+    validate_change_id(change_id)?;
 
     let preset = get_workflow_preset(preset_id, Some(project_path))?;
     let resolved = resolve_stages_for_preset(&preset, project_type)?;
@@ -852,18 +934,38 @@ pub fn validate_workflow_stage_gate(
         }
     }
 
-    if stage_id_requires_change_folder(target_stage) && !specs_root(project_path).join(change_id).is_dir() {
+    if stage_id_requires_change_folder(target_stage)
+        && !specs_root(project_path).join(change_id).is_dir()
+    {
         let rel = format!(".specs/{change_id}/");
         if !missing.contains(&rel) {
             missing.push(rel);
         }
     }
 
+    // A resolved project design system is implementation input, not documentation only.
+    // Require the recipe-generated snapshot for change-scoped stages so Agents and Specs
+    // consume the same locked package, prototype, responsive, and accessibility context.
+    if std::path::Path::new(project_path)
+        .join(".opensunstar/design-system.json")
+        .is_file()
+        && stage_id_requires_change_folder(target_stage)
+    {
+        let rel = format!(".specs/{change_id}/design-context.md");
+        let (exists, non_empty) =
+            artifact_exists_nonempty(&std::path::Path::new(project_path).join(&rel));
+        if exists && non_empty {
+            if !satisfied.contains(&rel) {
+                satisfied.push(rel);
+            }
+        } else if !missing.contains(&rel) {
+            missing.push(rel);
+        }
+    }
+
     let allowed = missing.is_empty();
     if !allowed {
-        warnings.push(
-            "规则 R2.7：目标阶段缺少上游工件，应回到对应阶段补齐后再继续。".into(),
-        );
+        warnings.push("规则 R2.7：目标阶段缺少上游工件，应回到对应阶段补齐后再继续。".into());
     }
 
     Ok(StageGateResult {
@@ -883,42 +985,50 @@ fn stage_id_requires_change_folder(stage_id: &str) -> bool {
     )
 }
 
-pub fn export_project_workflow_profile(
+fn build_project_workflow_profile(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
     active_change_id: Option<&str>,
     selected_modules: Option<&[String]>,
     disabled_stages: Option<&[String]>,
+    enforce_semantics: bool,
 ) -> Result<WorkflowProfile, AppError> {
     if !project_workspace_exists(project_path) {
         return Err(AppError::Message(format!(
             "项目路径不存在或不是目录: {project_path}"
         )));
     }
+    if let Some(change_id) = active_change_id {
+        validate_change_id(change_id)?;
+    }
 
     let preset = get_workflow_preset(preset_id, Some(project_path))?;
     let mut resolved_stages = resolve_stages_for_preset(&preset, project_type)?;
 
-    // Apply stage overrides: remove disabled stages
     if let Some(disabled) = disabled_stages {
         let disabled_set: HashSet<&str> = disabled.iter().map(|s| s.as_str()).collect();
         resolved_stages.retain(|s| !disabled_set.contains(s.as_str()));
     }
 
-    // Run semantic validation (S1-S5) — warnings are returned to frontend for visibility
-    let semantic_issues = validate_preset_semantic(&preset, project_type);
+    let semantic_issues =
+        validate_effective_stage_semantic(&preset, project_type, &resolved_stages);
     for issue in &semantic_issues {
         log::warn!("Preset 语义规则: {issue}");
     }
+    if enforce_semantics && !semantic_issues.is_empty() {
+        return Err(AppError::InvalidInput(format!(
+            "严格流程校验失败：{}",
+            semantic_issues.join("；")
+        )));
+    }
 
-    // Use selected modules if provided, otherwise preset defaults
     let modules = match selected_modules {
         Some(m) => m.to_vec(),
         None => preset.modules.clone(),
     };
 
-    let profile = WorkflowProfile {
+    Ok(WorkflowProfile {
         schema_version: 1,
         preset_id: preset_id.to_string(),
         project_type: project_type.to_string(),
@@ -928,37 +1038,16 @@ pub fn export_project_workflow_profile(
         exported_at: Utc::now().to_rfc3339(),
         opensunstar_version: Some(env!("CARGO_PKG_VERSION").to_string()),
         semantic_warnings: semantic_issues,
-    };
-
-    let out_dir = opensunstar_dir(project_path);
-    fs::create_dir_all(&out_dir)
-        .map_err(|e| AppError::io(&out_dir, e))?;
-    let out_path = out_dir.join(PROFILE_FILENAME);
-    let json = serde_json::to_string_pretty(&profile)
-        .map_err(|e| AppError::Message(format!("序列化 workflow profile 失败: {e}")))?;
-    write_text_file(&out_path, &json)?;
-
-    append_orchestration_log(
-        project_path,
-        serde_json::json!({
-            "event": "profile_export",
-            "presetId": preset_id,
-            "projectType": project_type,
-            "activeChangeId": active_change_id,
-            "resolvedStageCount": profile.resolved_stages.len(),
-        }),
-    )?;
-
-    Ok(profile)
+    })
 }
 
-/// Export flow-config.yaml from profile data, with R9.6 safety valve enforcement.
-pub fn export_flow_config(
+fn build_flow_config(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
     selected_modules: Option<&[String]>,
     disabled_stages: Option<&[String]>,
+    enforce_semantics: bool,
 ) -> Result<FlowConfig, AppError> {
     if !project_workspace_exists(project_path) {
         return Err(AppError::Message(format!(
@@ -969,18 +1058,15 @@ pub fn export_flow_config(
     let preset = get_workflow_preset(preset_id, Some(project_path))?;
     let mut resolved_stage_ids = resolve_stages_for_preset(&preset, project_type)?;
 
-    // Build disabled set
     let disabled_set: HashSet<&str> = disabled_stages
         .unwrap_or(&[])
         .iter()
         .map(|s| s.as_str())
         .collect();
 
-    // Build stage map for gate/artifact lookup
     let stage_map: HashMap<&str, &WorkflowStage> =
         preset.stages.iter().map(|s| (s.id.as_str(), s)).collect();
 
-    // Build FlowConfig stages from resolved path
     let mut fc_stages = Vec::new();
     for sid in &resolved_stage_ids {
         let enabled = !disabled_set.contains(sid.as_str());
@@ -988,7 +1074,6 @@ pub fn export_flow_config(
             Some(s) => s,
             None => continue,
         };
-        // Collect required artifact files for gate
         let gates: Vec<FlowConfigGate> = if !stage.artifacts.is_empty() {
             let artifact_files: Vec<String> = stage
                 .artifacts
@@ -1016,7 +1101,6 @@ pub fn export_flow_config(
         });
     }
 
-    // Filter resolved_stage_ids for config metadata
     resolved_stage_ids.retain(|s| !disabled_set.contains(s.as_str()));
 
     let modules = match selected_modules {
@@ -1024,14 +1108,19 @@ pub fn export_flow_config(
         None => preset.modules.clone(),
     };
 
-    // Run semantic validation (S1-S5) — warnings appear in exported YAML for visibility
-    let semantic_issues = validate_preset_semantic(&preset, project_type);
+    let semantic_issues =
+        validate_effective_stage_semantic(&preset, project_type, &resolved_stage_ids);
     for issue in &semantic_issues {
         log::warn!("FlowConfig 语义规则: {issue}");
     }
+    if enforce_semantics && !semantic_issues.is_empty() {
+        return Err(AppError::InvalidInput(format!(
+            "严格流程校验失败：{}",
+            semantic_issues.join("；")
+        )));
+    }
 
-    // R9.6 safety valve: values are enforced, cannot be overridden
-    let config = FlowConfig {
+    Ok(FlowConfig {
         schema_version: 1,
         preset_id: preset_id.to_string(),
         project_type: project_type.to_string(),
@@ -1043,17 +1132,218 @@ pub fn export_flow_config(
             require_diff_boundary: R96_REQUIRE_DIFF_BOUNDARY,
         },
         semantic_warnings: semantic_issues,
-    };
+    })
+}
 
-    // Serialize to YAML
+fn flow_write_file_entry(path: PathBuf, rel_path: &str, new_content: String) -> InstallFileEntry {
+    let existing_content = if path.is_file() {
+        fs::read_to_string(&path).ok()
+    } else {
+        None
+    };
+    InstallFileEntry {
+        path: rel_path.to_string(),
+        status: if existing_content.is_some() {
+            "overwrite".into()
+        } else {
+            "create".into()
+        },
+        new_content: Some(new_content),
+        existing_content,
+    }
+}
+
+pub fn preview_project_workflow_profile_export(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    active_change_id: Option<&str>,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<FlowWritePlan, AppError> {
+    let profile = build_project_workflow_profile(
+        project_path,
+        preset_id,
+        project_type,
+        active_change_id,
+        selected_modules,
+        disabled_stages,
+        false,
+    )?;
+    let json = serde_json::to_string_pretty(&profile)
+        .map_err(|e| AppError::Message(format!("序列化 workflow profile 失败: {e}")))?;
+    Ok(FlowWritePlan {
+        files: vec![flow_write_file_entry(
+            profile_path(project_path),
+            ".opensunstar/workflow.profile.json",
+            json,
+        )],
+        audit: empty_install_audit(),
+        semantic_warnings: profile.semantic_warnings,
+    })
+}
+
+pub fn preview_flow_config_export(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<FlowWritePlan, AppError> {
+    let config = build_flow_config(
+        project_path,
+        preset_id,
+        project_type,
+        selected_modules,
+        disabled_stages,
+        false,
+    )?;
     let yaml = serde_yaml::to_string(&config)
         .map_err(|e| AppError::Message(format!("序列化 flow-config.yaml 失败: {e}")))?;
+    Ok(FlowWritePlan {
+        files: vec![flow_write_file_entry(
+            opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME),
+            ".opensunstar/flow-config.yaml",
+            yaml,
+        )],
+        audit: empty_install_audit(),
+        semantic_warnings: config.semantic_warnings,
+    })
+}
 
+pub fn export_project_workflow_profile(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    active_change_id: Option<&str>,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<WorkflowProfile, AppError> {
+    export_project_workflow_profile_with_semantic_enforcement(
+        project_path,
+        preset_id,
+        project_type,
+        active_change_id,
+        selected_modules,
+        disabled_stages,
+        false,
+    )
+}
+
+pub fn export_project_workflow_profile_strict(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    active_change_id: Option<&str>,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<WorkflowProfile, AppError> {
+    export_project_workflow_profile_with_semantic_enforcement(
+        project_path,
+        preset_id,
+        project_type,
+        active_change_id,
+        selected_modules,
+        disabled_stages,
+        true,
+    )
+}
+
+fn export_project_workflow_profile_with_semantic_enforcement(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    active_change_id: Option<&str>,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+    enforce_semantics: bool,
+) -> Result<WorkflowProfile, AppError> {
+    let profile = build_project_workflow_profile(
+        project_path,
+        preset_id,
+        project_type,
+        active_change_id,
+        selected_modules,
+        disabled_stages,
+        enforce_semantics,
+    )?;
+    let out_dir = opensunstar_dir(project_path);
+    fs::create_dir_all(&out_dir).map_err(|e| AppError::io(&out_dir, e))?;
+    let out_path = out_dir.join(PROFILE_FILENAME);
+    let json = serde_json::to_string_pretty(&profile)
+        .map_err(|e| AppError::Message(format!("序列化 workflow profile 失败: {e}")))?;
+    write_text_file(&out_path, &json)?;
+    append_orchestration_log(
+        project_path,
+        serde_json::json!({
+            "event": "profile_export",
+            "presetId": preset_id,
+            "projectType": project_type,
+            "activeChangeId": active_change_id,
+            "resolvedStageCount": profile.resolved_stages.len(),
+            "semanticEnforcement": enforce_semantics,
+        }),
+    )?;
+    Ok(profile)
+}
+
+/// Export flow-config.yaml from profile data, with R9.6 safety valve enforcement.
+pub fn export_flow_config(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<FlowConfig, AppError> {
+    export_flow_config_with_semantic_enforcement(
+        project_path,
+        preset_id,
+        project_type,
+        selected_modules,
+        disabled_stages,
+        false,
+    )
+}
+
+pub fn export_flow_config_strict(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+) -> Result<FlowConfig, AppError> {
+    export_flow_config_with_semantic_enforcement(
+        project_path,
+        preset_id,
+        project_type,
+        selected_modules,
+        disabled_stages,
+        true,
+    )
+}
+
+fn export_flow_config_with_semantic_enforcement(
+    project_path: &str,
+    preset_id: &str,
+    project_type: &str,
+    selected_modules: Option<&[String]>,
+    disabled_stages: Option<&[String]>,
+    enforce_semantics: bool,
+) -> Result<FlowConfig, AppError> {
+    let config = build_flow_config(
+        project_path,
+        preset_id,
+        project_type,
+        selected_modules,
+        disabled_stages,
+        enforce_semantics,
+    )?;
+    let yaml = serde_yaml::to_string(&config)
+        .map_err(|e| AppError::Message(format!("序列化 flow-config.yaml 失败: {e}")))?;
     let out_dir = opensunstar_dir(project_path);
     fs::create_dir_all(&out_dir).map_err(|e| AppError::io(&out_dir, e))?;
     let out_path = out_dir.join(FLOW_CONFIG_FILENAME);
     write_text_file(&out_path, &yaml)?;
-
     append_orchestration_log(
         project_path,
         serde_json::json!({
@@ -1062,9 +1352,9 @@ pub fn export_flow_config(
             "projectType": project_type,
             "stageCount": config.stages.len(),
             "r96Enforced": true,
+            "semanticEnforcement": enforce_semantics,
         }),
     )?;
-
     Ok(config)
 }
 
@@ -1075,7 +1365,10 @@ pub fn append_orchestration_log(
     let obj = payload
         .as_object_mut()
         .ok_or_else(|| AppError::Message("orchestration log payload 必须是 object".into()))?;
-    obj.insert("ts".into(), serde_json::Value::String(Utc::now().to_rfc3339()));
+    obj.insert(
+        "ts".into(),
+        serde_json::Value::String(Utc::now().to_rfc3339()),
+    );
 
     let log_path = opensunstar_dir(project_path).join(ORCH_LOG_FILENAME);
     if let Some(parent) = log_path.parent() {
@@ -1099,10 +1392,7 @@ mod tests {
     use std::fs;
 
     fn temp_project() -> PathBuf {
-        let dir = std::env::temp_dir().join(format!(
-            "opensunstar-flow-orch-{}",
-            uuid_simple()
-        ));
+        let dir = std::env::temp_dir().join(format!("opensunstar-flow-orch-{}", uuid_simple()));
         let _ = fs::remove_dir_all(&dir);
         fs::create_dir_all(&dir).unwrap();
         dir
@@ -1159,8 +1449,7 @@ mod tests {
     fn scan_empty_specs_returns_no_changes() {
         let root = temp_project();
         fs::create_dir_all(root.join(".specs")).unwrap();
-        let index =
-            scan_project_specs_workflow(root.to_str().unwrap(), None, None).unwrap();
+        let index = scan_project_specs_workflow(root.to_str().unwrap(), None, None).unwrap();
         assert!(index.changes.is_empty());
         assert!(index.has_specs_dir);
     }
@@ -1182,6 +1471,54 @@ mod tests {
         assert!(path.is_file());
         let log = root.join(".opensunstar").join("orchestration.log.jsonl");
         assert!(log.is_file());
+    }
+
+    #[test]
+    fn change_id_validation_rejects_path_traversal() {
+        assert!(validate_change_id("feat-auth").is_ok());
+        assert!(validate_change_id("feat.auth_01").is_ok());
+        assert!(validate_change_id("../secret").is_err());
+        assert!(validate_change_id("nested/path").is_err());
+        assert!(validate_change_id(" bad").is_err());
+        assert!(validate_change_id("..").is_err());
+    }
+
+    #[test]
+    fn profile_preview_marks_existing_file_as_overwrite() {
+        let root = temp_project();
+        let first = preview_project_workflow_profile_export(
+            root.to_str().unwrap(),
+            "mvp",
+            "backend",
+            Some("demo-change"),
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(first.files[0].status, "create");
+
+        export_project_workflow_profile(
+            root.to_str().unwrap(),
+            "mvp",
+            "backend",
+            Some("demo-change"),
+            None,
+            None,
+        )
+        .unwrap();
+
+        let second = preview_project_workflow_profile_export(
+            root.to_str().unwrap(),
+            "mvp",
+            "backend",
+            Some("demo-change"),
+            None,
+            None,
+        )
+        .unwrap();
+        assert_eq!(second.files[0].status, "overwrite");
+        assert!(second.files[0].existing_content.is_some());
+        assert!(second.files[0].new_content.is_some());
     }
 
     #[test]
@@ -1338,14 +1675,8 @@ paths:
     #[test]
     fn export_flow_config_writes_yaml() {
         let root = temp_project();
-        let config = export_flow_config(
-            root.to_str().unwrap(),
-            "mvp",
-            "backend",
-            None,
-            None,
-        )
-        .unwrap();
+        let config =
+            export_flow_config(root.to_str().unwrap(), "mvp", "backend", None, None).unwrap();
         assert_eq!(config.preset_id, "mvp");
         // R9.6 safety valve always enforced
         assert_eq!(config.rules.max_auto_retry, R96_MAX_AUTO_RETRY);
@@ -1353,6 +1684,41 @@ paths:
         assert!(config.rules.require_diff_boundary);
         let path = root.join(".opensunstar").join(FLOW_CONFIG_FILENAME);
         assert!(path.is_file());
+    }
+
+    #[test]
+    fn strict_profile_export_rejects_semantically_invalid_stage_selection() {
+        let root = temp_project();
+
+        let error = export_project_workflow_profile_strict(
+            root.to_str().unwrap(),
+            "standard",
+            "backend",
+            None,
+            None,
+            Some(&["3-task".to_string()]),
+        )
+        .unwrap_err();
+
+        assert!(error.to_string().contains("S1"));
+        assert!(!root.join(".opensunstar/workflow.profile.json").exists());
+    }
+
+    #[test]
+    fn strict_flow_config_export_rejects_semantically_invalid_stage_selection() {
+        let root = temp_project();
+
+        let error = export_flow_config_strict(
+            root.to_str().unwrap(),
+            "standard",
+            "backend",
+            None,
+            Some(&["3-task".to_string()]),
+        )
+        .unwrap_err();
+
+        assert!(error.to_string().contains("S1"));
+        assert!(!root.join(".opensunstar/flow-config.yaml").exists());
     }
 
     #[test]
@@ -1370,20 +1736,16 @@ paths:
         .unwrap();
         assert!(!profile.resolved_stages.contains(&"3-task".to_string()));
         // other stages still present
-        assert!(profile.resolved_stages.contains(&"1-requirement".to_string()));
+        assert!(profile
+            .resolved_stages
+            .contains(&"1-requirement".to_string()));
     }
 
     #[test]
     fn flow_config_r96_safety_valve_enforced() {
         let root = temp_project();
-        let config = export_flow_config(
-            root.to_str().unwrap(),
-            "standard",
-            "backend",
-            None,
-            None,
-        )
-        .unwrap();
+        let config =
+            export_flow_config(root.to_str().unwrap(), "standard", "backend", None, None).unwrap();
         // Even though user could theoretically request weaker rules,
         // R9.6 constants are hardcoded and always enforced
         assert_eq!(config.rules.max_auto_retry, 3);
@@ -1391,6 +1753,9 @@ paths:
         assert!(config.rules.require_diff_boundary);
         // Gates should be populated for stages with required artifacts
         let has_gates = config.stages.iter().any(|s| !s.gates.is_empty());
-        assert!(has_gates, "stages with required artifacts should have gates");
+        assert!(
+            has_gates,
+            "stages with required artifacts should have gates"
+        );
     }
 }

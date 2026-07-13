@@ -10,12 +10,16 @@ use tauri::State;
 
 #[tauri::command]
 pub async fn gist_sync_test_connection() -> Result<Value, String> {
-    gist_sync::test_connection().await.map_err(|e| e.to_string())
+    gist_sync::test_connection()
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn gist_sync_upload(state: State<'_, AppState>) -> Result<Value, String> {
-    gist_sync::upload(&state.db).await.map_err(|e| e.to_string())
+    gist_sync::upload(&state.db)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

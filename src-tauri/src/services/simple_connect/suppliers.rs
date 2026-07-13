@@ -76,9 +76,7 @@ pub fn list_builtin_suppliers() -> Vec<SupplierProfile> {
 }
 
 pub fn get_supplier(id: &str) -> Option<SupplierProfile> {
-    list_builtin_suppliers()
-        .into_iter()
-        .find(|s| s.id == id)
+    list_builtin_suppliers().into_iter().find(|s| s.id == id)
 }
 
 pub fn resolve_supplier(id: &str, custom_openai_base: Option<&str>) -> Option<SupplierProfile> {
@@ -119,10 +117,9 @@ mod tests {
     fn builtin_excludes_beeapi_and_matches_resolution() {
         let list = list_builtin_suppliers();
         assert_eq!(list.len(), 4);
-        assert!(
-            list.iter()
-                .all(|s| s.id != "beeapi" && !s.openai_base.contains("beeapi.ai"))
-        );
+        assert!(list
+            .iter()
+            .all(|s| s.id != "beeapi" && !s.openai_base.contains("beeapi.ai")));
         assert!(list.iter().any(|s| s.id == "deepseek"));
         assert!(list.iter().any(|s| s.id == "openrouter"));
         assert!(list.iter().any(|s| s.id == "zhipu"));

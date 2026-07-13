@@ -1,0 +1,1 @@
+{"components":["LogViewer","TerminalPanel","RunStatus","ConfigEditor","CommandPalette"],"pageTemplates":["运行概览","日志详情","配置编辑","命令执行"]}

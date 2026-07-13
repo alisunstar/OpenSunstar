@@ -4,12 +4,13 @@ use crate::services::simple_connect::{
     apply_claude_code, apply_tool, build_usage_summary, clear_tool, delete_api_key,
     fetch_models_via_proxy, get_primary_key, get_state, import_keys, is_simple_connect_import_url,
     key_hint, list_builtin_suppliers, list_tool_status, pool_runtime_stats, resolve_supplier,
-    run_backup_audit, run_pool_demo, run_spike_report, save_pool_state, set_supplier, spike_proxy_info,
-    start_spike_proxy, stop_spike_proxy, store_api_key, store_primary_key, try_parse_url,
-    verify_api_key, ApplyResult, BackupAuditReport, ClaudeApplyResult, PoolSimulationStep, SimpleConnectImportPayload,
+    run_backup_audit, run_p0_security_audit, run_pool_demo, run_spike_report, save_pool_state,
+    set_supplier, spike_proxy_info, start_spike_proxy, stop_spike_proxy, store_api_key,
+    store_primary_key, try_parse_url, verify_api_key, ApplyResult, BackupAuditReport,
+    ClaudeApplyResult, P0SecurityReport, PoolSimulationStep, SimpleConnectImportPayload,
     SimpleConnectImportResult, SimpleConnectRuntimeStats, SimpleConnectState,
     SimpleConnectUsageSummary, SpikeProxyInfo, SpikeReport, SupplierProfile, ToolConfigStatus,
-    VerifyKeyResult, ALL_TOOLS, PHASE1_TOOLS, run_p0_security_audit, P0SecurityReport,
+    VerifyKeyResult, ALL_TOOLS, PHASE1_TOOLS,
 };
 
 #[tauri::command]
@@ -46,10 +47,7 @@ pub fn simple_connect_save_state(state: SimpleConnectState) -> Result<(), String
 }
 
 #[tauri::command]
-pub fn simple_connect_store_key(
-    supplier_id: String,
-    api_key: String,
-) -> Result<String, String> {
+pub fn simple_connect_store_key(supplier_id: String, api_key: String) -> Result<String, String> {
     store_primary_key(&supplier_id, &api_key).map_err(|e| e.to_string())?;
     Ok(key_hint(api_key.trim()))
 }
@@ -65,10 +63,7 @@ pub fn simple_connect_store_pool_key(
 }
 
 #[tauri::command]
-pub fn simple_connect_remove_pool_key(
-    supplier_id: String,
-    key_id: String,
-) -> Result<(), String> {
+pub fn simple_connect_remove_pool_key(supplier_id: String, key_id: String) -> Result<(), String> {
     delete_api_key(&supplier_id, &key_id).map_err(|e| e.to_string())
 }
 
@@ -208,9 +203,7 @@ pub fn simple_connect_is_import_url(url: String) -> bool {
 }
 
 #[tauri::command]
-pub fn simple_connect_parse_import_url(
-    url: String,
-) -> Result<SimpleConnectImportPayload, String> {
+pub fn simple_connect_parse_import_url(url: String) -> Result<SimpleConnectImportPayload, String> {
     try_parse_url(&url).map_err(|e| e.to_string())
 }
 
@@ -241,13 +234,9 @@ pub async fn simple_connect_verify_key(
     api_key: String,
     custom_base: Option<String>,
 ) -> Result<VerifyKeyResult, String> {
-    verify_api_key(
-        &supplier_id,
-        &api_key,
-        custom_base.as_deref(),
-    )
-    .await
-    .map_err(|e| e.to_string())
+    verify_api_key(&supplier_id, &api_key, custom_base.as_deref())
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

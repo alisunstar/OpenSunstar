@@ -203,9 +203,7 @@ pub fn migrate_from_legacy() {
                 );
                 match copy_dir_recursive(&legacy_subdir, &new_subdir) {
                     Ok(count) => {
-                        log::info!(
-                            "✓ Migrated {subdir}/: copied {count} entries"
-                        );
+                        log::info!("✓ Migrated {subdir}/: copied {count} entries");
                     }
                     Err(e) => {
                         log::warn!("✗ Failed to migrate {subdir}/: {e}");
@@ -228,7 +226,9 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<usize, AppError> {
 
     for entry in entries {
         let entry = entry.map_err(|e| AppError::io(src, e))?;
-        let file_type = entry.file_type().map_err(|e| AppError::io(&entry.path(), e))?;
+        let file_type = entry
+            .file_type()
+            .map_err(|e| AppError::io(&entry.path(), e))?;
         let src_path = entry.path();
         let file_name = entry.file_name();
 
@@ -370,14 +370,12 @@ pub fn atomic_write(path: &Path, data: &[u8]) -> Result<(), AppError> {
         // Windows 上 rename 目标存在会失败；先将旧文件 rename 为 .bak 保留备份，
         // 再 rename 临时文件到目标位置。修复失败时用户可从 .bak 恢复。
         if path.exists() {
-            let bak = path.with_extension(
-                format!(
-                    "{}.bak",
-                    path.extension()
-                        .map(|e| e.to_string_lossy())
-                        .unwrap_or_default()
-                ),
-            );
+            let bak = path.with_extension(format!(
+                "{}.bak",
+                path.extension()
+                    .map(|e| e.to_string_lossy())
+                    .unwrap_or_default()
+            ));
             let _ = fs::remove_file(&bak); // 清理上次备份
             if let Err(e) = fs::rename(path, &bak) {
                 log::warn!("备份旧文件失败 {}: {}", bak.display(), e);

@@ -29,9 +29,7 @@ fn file_contains_sk_secret(path: &Path) -> Option<String> {
         // Heuristic: flag files that look like they store raw API keys
         for line in content.lines() {
             let trimmed = line.trim();
-            if trimmed.len() >= 20
-                && (trimmed.starts_with("sk-") || trimmed.contains("\"sk-"))
-            {
+            if trimmed.len() >= 20 && (trimmed.starts_with("sk-") || trimmed.contains("\"sk-")) {
                 return Some(format!("{} 可能含明文 Key", path.display()));
             }
         }

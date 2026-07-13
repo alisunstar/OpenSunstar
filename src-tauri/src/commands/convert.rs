@@ -1,14 +1,10 @@
 //! Convert wizard IPC commands (F3 / M2)
 
 use crate::services::bridge::BridgePreview;
-use crate::services::convert::{
-    self, ConvertApplyRequest, ConvertApplyResult, ConvertSourceItem,
-};
+use crate::services::convert::{self, ConvertApplyRequest, ConvertApplyResult, ConvertSourceItem};
 
 #[tauri::command]
-pub async fn detect_convert_sources(
-    source_app: String,
-) -> Result<Vec<ConvertSourceItem>, String> {
+pub async fn detect_convert_sources(source_app: String) -> Result<Vec<ConvertSourceItem>, String> {
     convert::detect_convert_sources(&source_app).map_err(|e| e.to_string())
 }
 

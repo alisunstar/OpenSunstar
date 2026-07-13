@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::app_config::AppType;
 use crate::config::write_text_file;
 use crate::error::AppError;
-use crate::prompt::{
-    compose_prompt_fragments, Prompt, MAX_FRAGMENTS_PER_PARENT,
-};
+use crate::prompt::{compose_prompt_fragments, Prompt, MAX_FRAGMENTS_PER_PARENT};
 use crate::prompt_files::prompt_file_path;
 use crate::services::bridge;
 use crate::services::marker_merge::{inject_markdown_section, PROMPT_SECTION_ID};
@@ -102,7 +100,11 @@ impl PromptService {
         if !prompts.contains_key(parent_id) {
             return Err(AppError::Config(format!("父 Prompt 不存在: {parent_id}")));
         }
-        if prompts.get(parent_id).map(|p| p.is_fragment).unwrap_or(false) {
+        if prompts
+            .get(parent_id)
+            .map(|p| p.is_fragment)
+            .unwrap_or(false)
+        {
             return Err(AppError::Config("父 Prompt 不能是片段".into()));
         }
         let count = state.db.count_fragments_for_parent(app_type, parent_id)?;
@@ -125,9 +127,7 @@ impl PromptService {
         let prompts = state.db.get_prompts(app_str)?;
         let fragments: Vec<Prompt> = prompts
             .values()
-            .filter(|p| {
-                p.is_fragment && p.parent_prompt_id.as_deref() == Some(prompt.id.as_str())
-            })
+            .filter(|p| p.is_fragment && p.parent_prompt_id.as_deref() == Some(prompt.id.as_str()))
             .cloned()
             .collect();
 
@@ -162,7 +162,8 @@ impl PromptService {
             String::new()
         };
         let new_content = Self::resolve_effective_content(state, &app, prompt)?;
-        let merged_preview = inject_markdown_section(&current_content, PROMPT_SECTION_ID, &new_content);
+        let merged_preview =
+            inject_markdown_section(&current_content, PROMPT_SECTION_ID, &new_content);
 
         Ok(PromptActivationPreview {
             file_path: target_path.display().to_string(),
@@ -207,9 +208,7 @@ impl PromptService {
             }
         }
 
-        state
-            .db
-            .delete_fragments_for_parent(app.as_str(), id)?;
+        state.db.delete_fragments_for_parent(app.as_str(), id)?;
         state.db.delete_prompt(app.as_str(), id)?;
         Ok(())
     }

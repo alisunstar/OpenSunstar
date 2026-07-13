@@ -32,10 +32,6 @@ pub fn sync_hooks_at_path(hooks: &[Hook], settings_path: &Path) -> Result<(), Ap
     if hooks_map.is_empty() {
         ClaudeSettingsMerger::remove_field_at_path(settings_path, "hooks")
     } else {
-        ClaudeSettingsMerger::update_field_at_path(
-            settings_path,
-            "hooks",
-            Value::Object(hooks_map),
-        )
+        ClaudeSettingsMerger::update_field_at_path(settings_path, "hooks", Value::Object(hooks_map))
     }
 }

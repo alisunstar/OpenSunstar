@@ -3,9 +3,7 @@
 use std::collections::HashMap;
 use tauri::State;
 
-use crate::services::sdd::{
-    self, SddDescriptorSummary, SddDetectionResult,
-};
+use crate::services::sdd::{self, SddDescriptorSummary, SddDetectionResult};
 use crate::store::AppState;
 
 fn project_path_for_id(db: &crate::database::Database, project_id: &str) -> Result<String, String> {
@@ -31,8 +29,7 @@ pub async fn sdd_detect_project_cmd(
 ) -> Result<Vec<SddDetectionResult>, String> {
     let path = project_path_for_id(&state.db, &project_id)?;
     let results = sdd::detect_project(&path);
-    sdd::save_detection_results(&state.db, &project_id, &results)
-        .map_err(|e| e.to_string())?;
+    sdd::save_detection_results(&state.db, &project_id, &results).map_err(|e| e.to_string())?;
     Ok(results)
 }
 

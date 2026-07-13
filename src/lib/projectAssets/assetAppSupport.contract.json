@@ -1,0 +1,10 @@
+{
+  "mcp": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
+  "skill": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
+  "prompt": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "supported", "hermes": "supported" },
+  "command": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
+  "hook": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "unsupported", "openclaw": "unsupported", "hermes": "supported" },
+  "ignore": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
+  "permission": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "supported", "hermes": "partial" },
+  "subagent": { "claude": "supported", "claude-desktop": "unsupported", "codex": "partial", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "unsupported" }
+}

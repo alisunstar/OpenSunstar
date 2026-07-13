@@ -32,6 +32,10 @@ mod schema;
 mod tests;
 
 // DAO 类型导出供外部使用
+pub(crate) use dao::ai_insight::{AICostLogRow, AIInsightRow, AIQueryLogRow};
+pub use dao::project_assets::{
+    ProjectAllAssetCounts, ProjectAssetLink, ASSET_IGNORE, EXTENDED_ASSET_TYPES,
+};
 pub(crate) use dao::providers_seed::{is_official_seed_id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID};
 pub(crate) use dao::proxy::{
     validate_cost_multiplier, validate_pricing_source, PRICING_SOURCE_REQUEST,
@@ -39,10 +43,6 @@ pub(crate) use dao::proxy::{
 };
 pub use dao::FailoverQueueItem;
 pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
-pub use dao::project_assets::{
-    ProjectAllAssetCounts, ProjectAssetLink, ASSET_IGNORE, EXTENDED_ASSET_TYPES,
-};
-pub(crate) use dao::ai_insight::{AIInsightRow, AICostLogRow, AIQueryLogRow};
 
 use crate::config::get_app_config_dir;
 use crate::error::AppError;

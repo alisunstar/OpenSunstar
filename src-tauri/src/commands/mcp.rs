@@ -2,6 +2,7 @@
 
 use indexmap::IndexMap;
 use std::collections::HashMap;
+use std::time::Duration;
 
 use serde::Serialize;
 use tauri::State;
@@ -45,6 +46,113 @@ pub async fn validate_mcp_command(cmd: String) -> Result<bool, String> {
 pub struct McpConfigResponse {
     pub config_path: String,
     pub servers: HashMap<String, serde_json::Value>,
+}
+
+/// Runtime evidence from a target CLI. `verified` only means the CLI listed
+/// every project-enabled MCP server without a disconnected/error marker.
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProjectMcpRuntimeProbe {
+    pub app: String,
+    pub status: String,
+    pub configured_servers: Vec<String>,
+    pub observed_servers: Vec<String>,
+    pub summary: String,
+}
+
+#[tauri::command]
+pub async fn probe_project_mcp_runtime(
+    state: State<'_, AppState>,
+    project_id: String,
+    app: String,
+) -> Result<ProjectMcpRuntimeProbe, String> {
+    let project = state
+        .db
+        .get_project(&project_id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "项目不存在".to_string())?;
+    let configured_servers = state
+        .db
+        .get_project_mcp_servers(&project_id)
+        .map_err(|e| e.to_string())?
+        .into_iter()
+        .filter(|link| link.enabled)
+        .map(|link| link.config_id)
+        .collect::<Vec<_>>();
+    let tool = match app.as_str() {
+        "claude" => "claude",
+        "gemini" => "gemini",
+        _ => {
+            return Ok(ProjectMcpRuntimeProbe {
+                app,
+                status: "not_supported".into(),
+                configured_servers,
+                observed_servers: vec![],
+                summary: "该目标应用暂未提供受支持的无副作用 MCP 运行时探针".into(),
+            })
+        }
+    };
+    let output = tokio::time::timeout(
+        Duration::from_secs(15),
+        tokio::process::Command::new(tool)
+            .args(["mcp", "list"])
+            .current_dir(&project.path)
+            .output(),
+    )
+    .await;
+    let output = match output {
+        Ok(Ok(value)) => value,
+        Ok(Err(error)) => {
+            return Ok(ProjectMcpRuntimeProbe {
+                app,
+                status: "cli_unavailable".into(),
+                configured_servers,
+                observed_servers: vec![],
+                summary: error.to_string(),
+            })
+        }
+        Err(_) => {
+            return Ok(ProjectMcpRuntimeProbe {
+                app,
+                status: "timeout".into(),
+                configured_servers,
+                observed_servers: vec![],
+                summary: "探针超时（15 秒）".into(),
+            })
+        }
+    };
+    let text = format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let observed_servers = configured_servers
+        .iter()
+        .filter(|name| text.contains(name.as_str()))
+        .cloned()
+        .collect::<Vec<_>>();
+    let disconnected = text.to_ascii_lowercase().contains("disconnected")
+        || text.to_ascii_lowercase().contains("error");
+    let verified = output.status.success()
+        && observed_servers.len() == configured_servers.len()
+        && !disconnected;
+    Ok(ProjectMcpRuntimeProbe {
+        app,
+        status: if verified {
+            "read_and_effective"
+        } else {
+            "not_effective"
+        }
+        .into(),
+        configured_servers,
+        observed_servers,
+        summary: if verified {
+            "目标 CLI 已读取项目 MCP 配置并报告连接正常"
+        } else {
+            "目标 CLI 未确认所有项目 MCP 已连接；请查看 CLI 输出或重新探测"
+        }
+        .into(),
+    })
 }
 
 /// 获取 MCP 配置（来自 ~/.OpenSunstar/config.json）
@@ -219,13 +327,9 @@ pub async fn search_mcp_registry(
     cursor: Option<String>,
     limit: Option<u32>,
 ) -> Result<RegistryListResponse, String> {
-    mcp_registry::search_servers(
-        query.as_deref(),
-        cursor.as_deref(),
-        limit,
-    )
-    .await
-    .map_err(|e| e.to_string())
+    mcp_registry::search_servers(query.as_deref(), cursor.as_deref(), limit)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// 获取 MCP 注册表中单个服务器详情
@@ -253,8 +357,7 @@ pub async fn install_mcp_from_registry(
         .map_err(|e| e.to_string())?;
 
     // 3. 保存到数据库
-    McpService::upsert_server(&state, server.clone())
-        .map_err(|e| e.to_string())?;
+    McpService::upsert_server(&state, server.clone()).map_err(|e| e.to_string())?;
 
     Ok(server)
 }
@@ -301,12 +404,11 @@ pub async fn install_mcp_from_smithery(
         .map_err(|e| e.to_string())?;
 
     // 2. 映射为 McpServer
-    let server = mcp_smithery::smithery_to_mcp_server(&detail, &enabled_apps)
-        .map_err(|e| e.to_string())?;
+    let server =
+        mcp_smithery::smithery_to_mcp_server(&detail, &enabled_apps).map_err(|e| e.to_string())?;
 
     // 3. 保存到数据库
-    McpService::upsert_server(&state, server.clone())
-        .map_err(|e| e.to_string())?;
+    McpService::upsert_server(&state, server.clone()).map_err(|e| e.to_string())?;
 
     Ok(server)
 }
@@ -315,7 +417,9 @@ pub async fn install_mcp_from_smithery(
 // v3.17.0 新增：MCP 连接测试
 // ============================================================================
 
-use crate::mcp_connection_test::{McpConnectionTestResult, test_http_connection, test_sse_connection, test_stdio_connection};
+use crate::mcp_connection_test::{
+    test_http_connection, test_sse_connection, test_stdio_connection, McpConnectionTestResult,
+};
 
 /// 测试 MCP 服务器连接
 /// 根据服务器类型自动选择测试方式：

@@ -55,51 +55,19 @@ pub fn app_display_label(app: &str) -> &'static str {
 }
 
 pub fn asset_support(asset_type: &str, app: &str) -> AssetSupport {
-    match (asset_type, app) {
-        // MCP
-        ("mcp", "claude-desktop") | ("mcp", "openclaw") => AssetSupport::Unsupported,
-        ("mcp", _) => AssetSupport::Supported,
-
-        // Skills
-        ("skill", "claude-desktop") | ("skill", "openclaw") => AssetSupport::Unsupported,
-        ("skill", _) => AssetSupport::Supported,
-
-        // Prompts
-        ("prompt", "claude-desktop") => AssetSupport::Unsupported,
-        ("prompt", _) => AssetSupport::Supported,
-
-        // Commands
-        ("command", "claude-desktop") | ("command", "openclaw") => {
-            AssetSupport::Unsupported
-        }
-        ("command", _) => AssetSupport::Supported,
-
-        // Hooks
-        ("hook", "claude") => AssetSupport::Supported,
-        ("hook", "codex") | ("hook", "gemini") | ("hook", "hermes") => AssetSupport::Supported,
-        ("hook", _) => AssetSupport::Unsupported,
-
-        // Ignore
-        ("ignore", "claude-desktop") | ("ignore", "openclaw") => AssetSupport::Unsupported,
-        ("ignore", _) => AssetSupport::Supported,
-
-        // Permissions
-        ("permission", "claude")
-        | ("permission", "codex")
-        | ("permission", "gemini")
-        | ("permission", "opencode")
-        | ("permission", "openclaw") => AssetSupport::Supported,
-        ("permission", "hermes") => AssetSupport::Partial,
-        ("permission", _) => AssetSupport::Unsupported,
-
-        // Subagents
-        ("subagent", "claude-desktop") | ("subagent", "openclaw") | ("subagent", "hermes") => {
-            AssetSupport::Unsupported
-        }
-        ("subagent", "codex") => AssetSupport::Partial,
-        ("subagent", _) => AssetSupport::Supported,
-
-        _ => AssetSupport::Supported,
+    let contract: serde_json::Value = serde_json::from_str(include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../src/lib/projectAssets/assetAppSupport.contract.json"
+    )))
+    .expect("asset support contract must be valid JSON");
+    match contract
+        .get(asset_type)
+        .and_then(|apps| apps.get(app))
+        .and_then(serde_json::Value::as_str)
+    {
+        Some("supported") => AssetSupport::Supported,
+        Some("partial") => AssetSupport::Partial,
+        _ => AssetSupport::Unsupported,
     }
 }
 
@@ -109,10 +77,7 @@ mod tests {
 
     #[test]
     fn codex_commands_supported() {
-        assert_eq!(
-            asset_support("command", "codex"),
-            AssetSupport::Supported
-        );
+        assert_eq!(asset_support("command", "codex"), AssetSupport::Supported);
     }
 
     #[test]
@@ -135,14 +100,47 @@ mod tests {
 
     #[test]
     fn hermes_permissions_partial() {
-        assert_eq!(
-            asset_support("permission", "hermes"),
-            AssetSupport::Partial
-        );
+        assert_eq!(asset_support("permission", "hermes"), AssetSupport::Partial);
     }
 
     #[test]
     fn codex_subagent_partial() {
         assert_eq!(asset_support("subagent", "codex"), AssetSupport::Partial);
+    }
+
+    #[test]
+    fn shared_contract_covers_all_asset_app_pairs() {
+        let contract: serde_json::Value = serde_json::from_str(include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../src/lib/projectAssets/assetAppSupport.contract.json"
+        )))
+        .unwrap();
+        for asset in [
+            "mcp",
+            "skill",
+            "prompt",
+            "command",
+            "hook",
+            "ignore",
+            "permission",
+            "subagent",
+        ] {
+            for app in [
+                "claude",
+                "claude-desktop",
+                "codex",
+                "gemini",
+                "opencode",
+                "openclaw",
+                "hermes",
+            ] {
+                let expected = match contract[asset][app].as_str().unwrap() {
+                    "supported" => AssetSupport::Supported,
+                    "partial" => AssetSupport::Partial,
+                    _ => AssetSupport::Unsupported,
+                };
+                assert_eq!(asset_support(asset, app), expected, "{asset}/{app}");
+            }
+        }
     }
 }

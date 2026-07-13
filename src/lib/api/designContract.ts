@@ -75,6 +75,7 @@ export interface DesignContract {
   components: ComponentSpec[];
   guardrails: DesignGuardrail[];
   sourceTemplate?: string | null;
+  sourceReference?: string | null;
   generatedAt: string;
   opensunstarVersion: string;
 }
@@ -82,6 +83,7 @@ export interface DesignContract {
 export interface DesignContractParams {
   templateId?: string | null;
   name: string;
+  prototypeTemplate?: string | null;
   description?: string | null;
   colors?: DesignColors | null;
   typography?: DesignTypography | null;
@@ -96,6 +98,10 @@ export interface ImportResult {
   contract: DesignContract;
   source: string;
   warnings: string[];
+  quality: {
+    level: "ready" | "needs_review";
+    missingSections: string[];
+  };
 }
 
 export interface DesignInstallResult {
@@ -103,6 +109,19 @@ export interface DesignInstallResult {
   filesSkipped: string[];
   designMdCreated: boolean;
   dtchgJsonCreated: boolean;
+  manifestCreated: boolean;
+}
+
+export interface DesignSystemOutputVerification {
+  path: string;
+  expectedSha256: string;
+  actualSha256?: string | null;
+  state: "verified" | "missing" | "drifted";
+}
+
+export interface DesignSystemVerification {
+  state: "verified" | "missing" | "invalid" | "drifted";
+  outputs: DesignSystemOutputVerification[];
 }
 
 // ────────────────────────── Install Plan Types (shared) ──────────────────────────
@@ -137,9 +156,25 @@ export interface DesignInstallPlan {
   audit: InstallAuditSummary;
 }
 
+export interface DesignSystemPackage {
+  id: string; name: string; version: string; licenseId: string;
+  applicableScenarios: string[]; source: "builtin" | "user";
+}
+export interface DesignSystemDiscovery { packages: DesignSystemPackage[]; rejected: { path: string; reason: string }[]; }
+export interface DesignSystemPackageDetail { package: DesignSystemPackage; components: { components?: string[]; pageTemplates?: string[] }; responsive: { modes?: string[]; breakpoints?: Record<string, number>; rules?: string[] }; accessibility: string; }
+
 // ────────────────────────── API Methods ──────────────────────────
 
 export const designContractApi = {
+  async listPackages(): Promise<DesignSystemDiscovery> {
+    return await invoke<DesignSystemDiscovery>("list_design_system_packages_cmd");
+  },
+  async getPackageContract(packageId: string): Promise<DesignContract> {
+    return await invoke<DesignContract>("get_design_system_package_contract_cmd", { packageId });
+  },
+  async getPackageDetail(packageId: string): Promise<DesignSystemPackageDetail> {
+    return await invoke<DesignSystemPackageDetail>("get_design_system_package_detail_cmd", { packageId });
+  },
   /** List all built-in design templates (returns [id, name][]). */
   async listTemplates(): Promise<[string, string][]> {
     return await invoke<[string, string][]>("list_design_templates_cmd");
@@ -167,6 +202,17 @@ export const designContractApi = {
   /** Preview DTCG JSON output (no disk write). */
   async previewDtcgJson(params: DesignContractParams): Promise<string> {
     return await invoke<string>("preview_dtchg_json_cmd", { params });
+  },
+
+  /** Export: compose + write DESIGN.md to project root + archive. */
+  async previewExportPlan(
+    projectId: string,
+    params: DesignContractParams,
+  ): Promise<DesignInstallPlan> {
+    return await invoke<DesignInstallPlan>("preview_design_export_plan_cmd", {
+      projectId,
+      params,
+    });
   },
 
   /** Export: compose + write DESIGN.md to project root + archive. */
@@ -202,6 +248,13 @@ export const designContractApi = {
     });
   },
 
+  /** Read-only check that project outputs still match the selected design system. */
+  async verifyProjectSystem(projectId: string): Promise<DesignSystemVerification> {
+    return await invoke<DesignSystemVerification>("verify_design_system_manifest_cmd", {
+      projectId,
+    });
+  },
+
   /** Import a DESIGN.md from a local file path. */
   async importFromFile(filePath: string): Promise<ImportResult> {
     return await invoke<ImportResult>("import_design_from_file_cmd", {
@@ -213,10 +266,12 @@ export const designContractApi = {
   async importFromUrl(
     content: string,
     sourceUrl: string,
+    sourceKind: "github" | "shadcn",
   ): Promise<ImportResult> {
     return await invoke<ImportResult>("import_design_from_url_cmd", {
       content,
       sourceUrl,
+      sourceKind,
     });
   },
 };

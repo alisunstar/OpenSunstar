@@ -60,9 +60,7 @@ fn apply_pattern(permission: &mut Map<String, Value>, pattern: &str, decision: &
     let Some((tool, sub)) = parse_opencode_tool_pattern(pattern) else {
         return;
     };
-    let entry = permission
-        .entry(tool.clone())
-        .or_insert_with(|| json!({}));
+    let entry = permission.entry(tool.clone()).or_insert_with(|| json!({}));
     if let Some(obj) = entry.as_object_mut() {
         obj.insert(sub, json!(decision));
     }

@@ -19,9 +19,7 @@ pub fn build_summary_prompt(ctx: &ProjectContextInput) -> Vec<ChatMessage> {
         },
         ChatMessage {
             role: "user".to_string(),
-            content: format!(
-                "{user}\n\n请用一句话描述这个项目的当前状态。"
-            ),
+            content: format!("{user}\n\n请用一句话描述这个项目的当前状态。"),
         },
     ]
 }
@@ -41,9 +39,7 @@ pub fn build_health_prompt(ctx: &ProjectContextInput) -> Vec<ChatMessage> {
         },
         ChatMessage {
             role: "user".to_string(),
-            content: format!(
-                "{user}\n\n请分析这个项目的健康状况并给出建议。"
-            ),
+            content: format!("{user}\n\n请分析这个项目的健康状况并给出建议。"),
         },
     ]
 }
@@ -120,9 +116,7 @@ pub fn build_progress_prompt(ctx: &ProjectContextInput) -> Vec<ChatMessage> {
         },
         ChatMessage {
             role: "user".to_string(),
-            content: format!(
-                "{user}\n\n请估算这个项目的 MVP 完成度，返回 JSON 格式。"
-            ),
+            content: format!("{user}\n\n请估算这个项目的 MVP 完成度，返回 JSON 格式。"),
         },
     ]
 }

@@ -71,10 +71,7 @@ pub enum RecipeAction {
 pub fn run(args: RecipeArgs, json: bool) -> Result<(), String> {
     match args.action {
         RecipeAction::List { project_path } => run_list(&project_path, json),
-        RecipeAction::Preview {
-            project_path,
-            name,
-        } => {
+        RecipeAction::Preview { project_path, name } => {
             let name = match name {
                 Some(n) => n,
                 None => {
@@ -106,12 +103,16 @@ pub fn run(args: RecipeArgs, json: bool) -> Result<(), String> {
                     }
                 }
             };
-            run_install(&project_path, &name, change_id.as_deref(), dry_run, yes, json)
+            run_install(
+                &project_path,
+                &name,
+                change_id.as_deref(),
+                dry_run,
+                yes,
+                json,
+            )
         }
-        RecipeAction::Delete {
-            project_path,
-            name,
-        } => {
+        RecipeAction::Delete { project_path, name } => {
             let name = match name {
                 Some(n) => n,
                 None => {
@@ -252,11 +253,7 @@ fn run_install(
 
     // Actual install — read recipe content first, then install from content
     let content = open_sunstar_lib::cli_api::cli_recipe_read(project_path, name)?;
-    let result = open_sunstar_lib::cli_api::cli_recipe_install(
-        project_path,
-        &content,
-        change_id,
-    )?;
+    let result = open_sunstar_lib::cli_api::cli_recipe_install(project_path, &content, change_id)?;
 
     if json {
         output::print_result(&result, true);
@@ -323,7 +320,8 @@ fn run_plan(
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            default_cid = format!("{}-{}", name.to_lowercase(), ts);
+            let seed = open_sunstar_lib::cli_api::cli_safe_change_id_seed(name);
+            default_cid = format!("{seed}-{ts}");
             &default_cid
         }
     };
@@ -353,9 +351,7 @@ fn run_plan(
                 }
             }
             eprintln!();
-            output::info(&format!(
-                "  {create_count} to create, {skip_count} to skip"
-            ));
+            output::info(&format!("  {create_count} to create, {skip_count} to skip"));
         }
 
         eprintln!();

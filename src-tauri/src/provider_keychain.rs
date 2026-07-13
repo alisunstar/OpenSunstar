@@ -125,9 +125,7 @@ fn resolve_value_in_place(value: &mut Value) -> Result<(), AppError> {
                         Err(e) => {
                             // 跨设备同步等场景下 keychain 可能无对应条目；
                             // 保留占位符，仅告警，避免中断整个操作。
-                            log::warn!(
-                                "Failed to resolve keychain ref, leaving placeholder: {e}"
-                            );
+                            log::warn!("Failed to resolve keychain ref, leaving placeholder: {e}");
                         }
                     }
                 }
@@ -193,9 +191,7 @@ fn has_plaintext_key(settings: &Value) -> bool {
 ///
 /// 遍历所有 [`AppType`]，对每个 provider 检查是否含明文 key，有则迁移并回写
 /// DB。幂等：重复调用不会重复迁移。返回迁移的 provider 数量。
-pub fn migrate_all_providers_if_needed(
-    db: &crate::database::Database,
-) -> Result<usize, AppError> {
+pub fn migrate_all_providers_if_needed(db: &crate::database::Database) -> Result<usize, AppError> {
     let mut migrated = 0;
     for app_type in AppType::all() {
         let providers = match db.get_all_providers(app_type.as_str()) {
@@ -211,9 +207,7 @@ pub fn migrate_all_providers_if_needed(
 
         for (id, mut provider) in providers {
             if has_plaintext_key(&provider.settings_config) {
-                if let Err(e) =
-                    migrate_provider_settings_to_keychain(&mut provider, &app_type)
-                {
+                if let Err(e) = migrate_provider_settings_to_keychain(&mut provider, &app_type) {
                     log::warn!(
                         "Failed to migrate keychain for provider '{}' ({}): {e}",
                         id,

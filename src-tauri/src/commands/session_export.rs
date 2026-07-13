@@ -113,8 +113,7 @@ pub async fn export_session(
             }
         };
 
-        let suggested_filename =
-            format!("session_{}_{}.{}", request.app_type, timestamp, ext);
+        let suggested_filename = format!("session_{}_{}.{}", request.app_type, timestamp, ext);
 
         Ok(ExportResult {
             content,

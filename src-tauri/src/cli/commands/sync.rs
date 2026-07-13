@@ -37,11 +37,7 @@ pub enum SyncAction {
     Status,
 }
 
-pub fn run(
-    args: SyncArgs,
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+pub fn run(args: SyncArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     match args.action {
         SyncAction::Push { backend, yes } => run_push(state, &backend, yes, json),
         SyncAction::Pull { backend, yes } => run_pull(&backend, yes, json),
@@ -75,15 +71,13 @@ fn run_push(
 
     let config_dir = open_sunstar_lib::get_app_config_dir();
     let sync_dir = config_dir.join("sync-export");
-    std::fs::create_dir_all(&sync_dir)
-        .map_err(|e| format!("创建同步导出目录失败: {e}"))?;
+    std::fs::create_dir_all(&sync_dir).map_err(|e| format!("创建同步导出目录失败: {e}"))?;
 
     let timestamp = chrono::Utc::now().format("%Y%m%d_%H%M%S");
     let filename = format!("sync_{backend}_{timestamp}.sql");
     let output_path = sync_dir.join(&filename);
 
-    std::fs::write(&output_path, sql.as_bytes())
-        .map_err(|e| format!("写入同步文件失败: {e}"))?;
+    std::fs::write(&output_path, sql.as_bytes()).map_err(|e| format!("写入同步文件失败: {e}"))?;
 
     if json {
         let result = serde_json::json!({
@@ -104,12 +98,8 @@ fn run_push(
                 .unwrap_or(0)
         );
         println!();
-        println!(
-            "  Note: This is a simplified CLI export."
-        );
-        println!(
-            "  For full automatic sync (WebDAV/S3), use the OpenSunstar GUI."
-        );
+        println!("  Note: This is a simplified CLI export.");
+        println!("  For full automatic sync (WebDAV/S3), use the OpenSunstar GUI.");
     }
 
     Ok(())
@@ -152,10 +142,7 @@ fn run_pull(backend: &str, yes: bool, json: bool) -> Result<(), String> {
     Ok(())
 }
 
-fn run_status(
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+fn run_status(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     // 读取同步相关 settings
     let webdav_url = state
         .db

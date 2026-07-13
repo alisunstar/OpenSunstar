@@ -1,8 +1,8 @@
 //! Gemini CLI 写入
 
 use super::shared::{
-    ensure_object, normalize_base, read_json_or_empty, write_json_pretty, write_text, WriteOutcome,
-    MANAGED_MARKER, StatusOutcome,
+    ensure_object, normalize_base, read_json_or_empty, write_json_pretty, write_text,
+    StatusOutcome, WriteOutcome, MANAGED_MARKER,
 };
 use crate::error::AppError;
 use crate::gemini_config::{get_gemini_dir, get_gemini_env_path};
@@ -86,7 +86,11 @@ pub fn status() -> Result<StatusOutcome, AppError> {
                 .map(String::from)
         });
     Ok(StatusOutcome {
-        configured: configured || managed.as_deref().map(super::shared::is_managed_value).unwrap_or(false),
+        configured: configured
+            || managed
+                .as_deref()
+                .map(super::shared::is_managed_value)
+                .unwrap_or(false),
         base_url,
         model,
         key,

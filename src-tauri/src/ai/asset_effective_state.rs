@@ -408,7 +408,9 @@ fn scan_mcp(
     }
 
     let use_project = matches!(app, AppType::Claude)
-        && ctx.project_id.is_some_and(|id| db.count_enabled_project_mcp(id).unwrap_or(0) > 0)
+        && ctx
+            .project_id
+            .is_some_and(|id| db.count_enabled_project_mcp(id).unwrap_or(0) > 0)
         && ctx.project_path.is_some();
 
     if use_project {
@@ -418,7 +420,8 @@ fn scan_mcp(
         let live_path = crate::prompt_files::project_mcp_json_path(project_root);
         let expected = crate::claude_mcp::sanitized_mcp_servers_map(&raw_expected, &live_path)
             .unwrap_or(raw_expected);
-        let actual = crate::claude_mcp::read_project_mcp_servers_map(project_root).unwrap_or_default();
+        let actual =
+            crate::claude_mcp::read_project_mcp_servers_map(project_root).unwrap_or_default();
         let exp_json = mcp_map_to_json(&expected);
         let act_json = mcp_map_to_json(&actual);
         let path_str = live_path.display().to_string();
@@ -606,55 +609,52 @@ fn scan_ignore(
     let expected = expected_ignore_content(db, app).unwrap_or_default();
 
     // 项目级 ignore：当存在项目上下文时，额外检查项目根目录的 ignore 文件
-    let project_result = if let (Some(project_id), Some(project_path)) =
-        (ctx.project_id, ctx.project_path)
-    {
-        let project_root = std::path::Path::new(project_path);
-        match crate::prompt_files::project_ignore_file_path(project_root, app) {
-            Ok(proj_path) => {
-                let proj_expected =
-                    expected_project_ignore_content(db, project_id, app).unwrap_or_default();
-                if proj_expected.is_empty() && !proj_path.is_file() {
-                    None
-                } else {
-                    // 读取磁盘文件并剥离管理标记后再比较
-                    let proj_actual = if proj_path.is_file() {
-                        strip_managed_ignore_marker(
-                            &std::fs::read_to_string(&proj_path).unwrap_or_default(),
-                        )
-                    } else {
-                        String::new()
-                    };
-                    let proj_effective = if compare_text(&proj_expected, &proj_actual) {
-                        EFFECTIVE.to_string()
-                    } else {
-                        DRIFTED.to_string()
-                    };
-                    let proj_detail = if proj_effective == DRIFTED {
-                        Some("磁盘文件与 OpenSunstar 库内容不一致（可能被外部修改）".into())
-                    } else {
+    let project_result =
+        if let (Some(project_id), Some(project_path)) = (ctx.project_id, ctx.project_path) {
+            let project_root = std::path::Path::new(project_path);
+            match crate::prompt_files::project_ignore_file_path(project_root, app) {
+                Ok(proj_path) => {
+                    let proj_expected =
+                        expected_project_ignore_content(db, project_id, app).unwrap_or_default();
+                    if proj_expected.is_empty() && !proj_path.is_file() {
                         None
-                    };
-                    Some(EffectiveItemState {
-                        check_name: "ignore_rules".into(),
-                        configured_state: configured.into(),
-                        effective_state: proj_effective,
-                        effective_detail: proj_detail,
-                        live_path: Some(proj_path.display().to_string()),
-                    })
+                    } else {
+                        // 读取磁盘文件并剥离管理标记后再比较
+                        let proj_actual = if proj_path.is_file() {
+                            strip_managed_ignore_marker(
+                                &std::fs::read_to_string(&proj_path).unwrap_or_default(),
+                            )
+                        } else {
+                            String::new()
+                        };
+                        let proj_effective = if compare_text(&proj_expected, &proj_actual) {
+                            EFFECTIVE.to_string()
+                        } else {
+                            DRIFTED.to_string()
+                        };
+                        let proj_detail = if proj_effective == DRIFTED {
+                            Some("磁盘文件与 OpenSunstar 库内容不一致（可能被外部修改）".into())
+                        } else {
+                            None
+                        };
+                        Some(EffectiveItemState {
+                            check_name: "ignore_rules".into(),
+                            configured_state: configured.into(),
+                            effective_state: proj_effective,
+                            effective_detail: proj_detail,
+                            live_path: Some(proj_path.display().to_string()),
+                        })
+                    }
                 }
+                Err(_) => None,
             }
-            Err(_) => None,
-        }
-    } else {
-        None
-    };
+        } else {
+            None
+        };
 
     // 全局 ignore：读取磁盘文件并剥离管理标记后再比较
     let actual_global = if path.is_file() {
-        strip_managed_ignore_marker(
-            &std::fs::read_to_string(&path).unwrap_or_default(),
-        )
+        strip_managed_ignore_marker(&std::fs::read_to_string(&path).unwrap_or_default())
     } else {
         String::new()
     };
@@ -736,7 +736,10 @@ fn scan_permissions(
 ) -> EffectiveItemState {
     let use_project = ctx.project_id.is_some_and(|id| {
         crate::services::project_config_sync::project_has_asset_links(
-            &state.db, id, "permission", app,
+            &state.db,
+            id,
+            "permission",
+            app,
         )
     }) && ctx.project_path.is_some();
 
@@ -754,15 +757,15 @@ fn scan_permissions(
                     check_name: "permissions".into(),
                     configured_state: configured.into(),
                     effective_state: NOT_APPLICABLE.into(),
-                    effective_detail: Some("当前目标 CLI 不支持项目级 Permissions 生效态扫描".into()),
+                    effective_detail: Some(
+                        "当前目标 CLI 不支持项目级 Permissions 生效态扫描".into(),
+                    ),
                     live_path: None,
                 };
             }
         };
         let lists = crate::services::project_config_sync::expected_project_permission_lists(
-            &state.db,
-            project_id,
-            app,
+            &state.db, project_id, app,
         )
         .unwrap_or_else(|_| crate::services::permission_sync::PermissionLists {
             allow: vec![],
@@ -774,7 +777,9 @@ fn scan_permissions(
             configured,
             support,
             &config_path,
-            |tmp_path| crate::services::permission_sync::sync_permissions_at_path(&lists, app, tmp_path),
+            |tmp_path| {
+                crate::services::permission_sync::sync_permissions_at_path(&lists, app, tmp_path)
+            },
         );
     }
 
@@ -812,9 +817,7 @@ fn scan_hooks(
             }
         };
         let hooks = crate::services::project_config_sync::expected_project_hooks(
-            &state.db,
-            project_id,
-            app,
+            &state.db, project_id, app,
         )
         .unwrap_or_default();
         return effective_from_project_resync(
@@ -965,7 +968,9 @@ fn command_file_path(name: &str, app: &AppType) -> Result<std::path::PathBuf, Ap
         AppType::OpenCode => get_opencode_dir().join("commands").join(&safe_name),
         AppType::Hermes => get_hermes_dir().join("commands").join(&safe_name),
         AppType::Codex | AppType::OpenClaw | AppType::ClaudeDesktop => {
-            return Err(AppError::Config(format!("{app:?} 不支持 slash 命令文件路径")));
+            return Err(AppError::Config(format!(
+                "{app:?} 不支持 slash 命令文件路径"
+            )));
         }
     })
 }
@@ -980,20 +985,24 @@ fn commands_live_root(app: &AppType) -> Result<std::path::PathBuf, AppError> {
 
 fn agent_file_path(name: &str, app: &AppType) -> Result<std::path::PathBuf, AppError> {
     if !agent_sync_supported(app) {
-        return Err(AppError::Config(format!("{app:?} 不支持 Subagent 文件路径")));
+        return Err(AppError::Config(format!(
+            "{app:?} 不支持 Subagent 文件路径"
+        )));
     }
     Ok(match app {
         AppType::Claude => crate::config::get_claude_config_dir()
             .join("agents")
             .join(format!("{name}.md")),
         AppType::Gemini => get_gemini_dir().join("agents").join(format!("{name}.md")),
-        AppType::OpenCode => get_opencode_dir()
-            .join("agents")
-            .join(format!("{name}.md")),
+        AppType::OpenCode => get_opencode_dir().join("agents").join(format!("{name}.md")),
         AppType::Codex => get_codex_config_dir()
             .join("agents")
             .join(format!("{name}.toml")),
-        _ => return Err(AppError::Config(format!("{app:?} 不支持 Subagent 文件路径"))),
+        _ => {
+            return Err(AppError::Config(format!(
+                "{app:?} 不支持 Subagent 文件路径"
+            )))
+        }
     })
 }
 
@@ -1077,12 +1086,11 @@ fn scan_skills(
                 };
             }
         };
-        let expected_dirs = crate::services::project_config_sync::expected_project_skill_directories(
-            &state.db,
-            project_id,
-            app,
-        )
-        .unwrap_or_default();
+        let expected_dirs =
+            crate::services::project_config_sync::expected_project_skill_directories(
+                &state.db, project_id, app,
+            )
+            .unwrap_or_default();
 
         let mut drifted = Vec::new();
         for directory in &expected_dirs {
@@ -1221,9 +1229,7 @@ fn scan_commands(
         };
 
         let expected = crate::services::project_config_sync::expected_project_commands(
-            &state.db,
-            project_id,
-            app,
+            &state.db, project_id, app,
         )
         .unwrap_or_default();
 
@@ -1365,9 +1371,7 @@ fn scan_subagents(
             }
         };
         let expected = crate::services::project_config_sync::expected_project_subagents(
-            &state.db,
-            project_id,
-            app,
+            &state.db, project_id, app,
         )
         .unwrap_or_default();
 
@@ -1546,9 +1550,7 @@ fn effective_from_managed_text(
             check_name: check_name.to_string(),
             configured_state: configured.to_string(),
             effective_state: DRIFTED.to_string(),
-            effective_detail: Some(
-                "项目级 Prompt 文件的 OpenSunstar 管理段与库内容不一致".into(),
-            ),
+            effective_detail: Some("项目级 Prompt 文件的 OpenSunstar 管理段与库内容不一致".into()),
             live_path: Some(path_str),
         }
     }

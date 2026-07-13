@@ -53,6 +53,9 @@ pub enum FlowAction {
         /// 项目类型
         #[arg(long)]
         project_type: String,
+        /// 严格校验阶段依赖；发现 S1-S5 语义冲突时拒绝导出
+        #[arg(long)]
+        strict: bool,
     },
     /// 查看预设详情
     Get {
@@ -86,6 +89,9 @@ pub enum FlowAction {
         /// 项目类型
         #[arg(long)]
         project_type: String,
+        /// 严格校验阶段依赖；发现 S1-S5 语义冲突时拒绝导出
+        #[arg(long)]
+        strict: bool,
     },
     /// 构建阶段 DAG 图
     Graph {
@@ -140,25 +146,31 @@ pub fn run(args: FlowArgs, json: bool) -> Result<(), String> {
             target_stage,
             strict,
         } => {
-            let preset_id =
-                resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
-            run_validate(&project_path, &preset_id, &project_type, &change_id, &target_stage, strict, json)
+            let preset_id = resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
+            run_validate(
+                &project_path,
+                &preset_id,
+                &project_type,
+                &change_id,
+                &target_stage,
+                strict,
+                json,
+            )
         }
         FlowAction::Export {
             project_path,
             preset_id,
             project_type,
+            strict,
         } => {
-            let preset_id =
-                resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
-            run_export(&project_path, &preset_id, &project_type, json)
+            let preset_id = resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
+            run_export(&project_path, &preset_id, &project_type, strict, json)
         }
         FlowAction::Get {
             preset_id,
             project_path,
         } => {
-            let preset_id =
-                resolve_preset_id(preset_id, project_path.as_deref(), json)?;
+            let preset_id = resolve_preset_id(preset_id, project_path.as_deref(), json)?;
             run_get(&preset_id, project_path.as_deref(), json)
         }
         FlowAction::Scan {
@@ -175,17 +187,16 @@ pub fn run(args: FlowArgs, json: bool) -> Result<(), String> {
             project_path,
             preset_id,
             project_type,
+            strict,
         } => {
-            let preset_id =
-                resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
-            run_config(&project_path, &preset_id, &project_type, json)
+            let preset_id = resolve_preset_id(preset_id, Some(project_path.as_str()), json)?;
+            run_config(&project_path, &preset_id, &project_type, strict, json)
         }
         FlowAction::Graph {
             preset_id,
             project_path,
         } => {
-            let preset_id =
-                resolve_preset_id(preset_id, project_path.as_deref(), json)?;
+            let preset_id = resolve_preset_id(preset_id, project_path.as_deref(), json)?;
             run_graph(&preset_id, project_path.as_deref(), json)
         }
     }
@@ -201,10 +212,7 @@ fn run_list_modules(project_path: Option<&str>, json: bool) -> Result<(), String
         println!("{:<24} {:<12} {}", "ID", "Source", "Description");
         println!("{}", "-".repeat(64));
         for m in &modules {
-            println!(
-                "  {:<22} {:<12} {}",
-                m.id, m.source, m.description
-            );
+            println!("  {:<22} {:<12} {}", m.id, m.source, m.description);
         }
     }
 
@@ -218,16 +226,15 @@ fn run_list_presets(project_path: Option<&str>, json: bool) -> Result<(), String
         output::print_result(&presets, true);
     } else {
         println!("Workflow Presets ({}):\n", presets.len());
-        println!("{:<16} {:<20} {:>7} {:>7}  {}", "ID", "Name", "Modules", "Stages", "Description");
+        println!(
+            "{:<16} {:<20} {:>7} {:>7}  {}",
+            "ID", "Name", "Modules", "Stages", "Description"
+        );
         println!("{}", "-".repeat(72));
         for p in &presets {
             println!(
                 "  {:<14} {:<20} {:>5} {:>7}  {}",
-                p.id,
-                p.name,
-                p.module_count,
-                p.stage_count,
-                p.description
+                p.id, p.name, p.module_count, p.stage_count, p.description
             );
         }
     }
@@ -260,22 +267,31 @@ fn run_validate(
         let dot = pp.join(".opensunstar");
 
         if !pp.join("DESIGN.md").is_file() {
-            governance_warnings.push("Design contract not installed (DESIGN.md missing at project root)".to_string());
+            governance_warnings.push(
+                "Design contract not installed (DESIGN.md missing at project root)".to_string(),
+            );
         }
         let recipe_count = std::fs::read_dir(dot.join("recipe"))
             .map(|d| d.count())
             .unwrap_or(0);
         if recipe_count == 0 {
-            governance_warnings.push("No recipes saved (.opensunstar/recipe/ is empty)".to_string());
+            governance_warnings
+                .push("No recipes saved (.opensunstar/recipe/ is empty)".to_string());
         }
         if !pp.join(".specs").is_dir() {
-            governance_warnings.push("Specs directory not initialized (.specs/ missing)".to_string());
+            governance_warnings
+                .push("Specs directory not initialized (.specs/ missing)".to_string());
         }
         if !dot.join("workflow.profile.json").is_file() {
-            governance_warnings.push("Workflow profile not exported (.opensunstar/workflow.profile.json missing)".to_string());
+            governance_warnings.push(
+                "Workflow profile not exported (.opensunstar/workflow.profile.json missing)"
+                    .to_string(),
+            );
         }
         if !dot.join("flow-config.yaml").is_file() {
-            governance_warnings.push("FlowConfig not exported (.opensunstar/flow-config.yaml missing)".to_string());
+            governance_warnings.push(
+                "FlowConfig not exported (.opensunstar/flow-config.yaml missing)".to_string(),
+            );
         }
     }
 
@@ -348,13 +364,11 @@ fn run_export(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
+    strict: bool,
     json: bool,
 ) -> Result<(), String> {
-    let profile = open_sunstar_lib::cli_api::cli_flow_export(
-        project_path,
-        preset_id,
-        project_type,
-    )?;
+    let profile =
+        open_sunstar_lib::cli_api::cli_flow_export(project_path, preset_id, project_type, strict)?;
 
     if json {
         output::print_result(&profile, true);
@@ -413,7 +427,11 @@ fn run_get(preset_id: &str, project_path: Option<&str>, json: bool) -> Result<()
                 if !s.artifacts.is_empty() {
                     output::dim(&format!(
                         "      artifacts: {}",
-                        s.artifacts.iter().map(|a| a.file.as_str()).collect::<Vec<_>>().join(", ")
+                        s.artifacts
+                            .iter()
+                            .map(|a| a.file.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
                     ));
                 }
             }
@@ -457,14 +475,21 @@ fn run_scan(
             output::info("  Saved Profile:");
             output::dim(&format!("    preset:  {}", profile.preset_id));
             output::dim(&format!("    type:    {}", profile.project_type));
-            output::dim(&format!("    stages:  {}", profile.resolved_stages.join(" → ")));
+            output::dim(&format!(
+                "    stages:  {}",
+                profile.resolved_stages.join(" → ")
+            ));
         }
 
         if !index.changes.is_empty() {
             println!();
             output::info(&format!("  Changes ({}):", index.changes.len()));
             for c in &index.changes {
-                let icon = if c.artifact_completeness == 100 { "✓" } else { "·" };
+                let icon = if c.artifact_completeness == 100 {
+                    "✓"
+                } else {
+                    "·"
+                };
                 println!(
                     "    {icon} {} — {}% complete ({} artifacts)",
                     c.change_id,
@@ -485,9 +510,11 @@ fn run_config(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
+    strict: bool,
     json: bool,
 ) -> Result<(), String> {
-    let config = open_sunstar_lib::cli_api::cli_flow_config(project_path, preset_id, project_type)?;
+    let config =
+        open_sunstar_lib::cli_api::cli_flow_config(project_path, preset_id, project_type, strict)?;
 
     if json {
         output::print_result(&config, true);
@@ -509,11 +536,7 @@ fn run_config(
                 }
                 if !s.gates.is_empty() {
                     for g in &s.gates {
-                        println!(
-                            "      gate [{}]: {}",
-                            g.gate_type,
-                            g.artifacts.join(", ")
-                        );
+                        println!("      gate [{}]: {}", g.gate_type, g.artifacts.join(", "));
                     }
                 }
             }
@@ -521,7 +544,10 @@ fn run_config(
 
         println!();
         output::info("  Rules:");
-        output::dim(&format!("    max_auto_retry:     {}", config.rules.max_auto_retry));
+        output::dim(&format!(
+            "    max_auto_retry:     {}",
+            config.rules.max_auto_retry
+        ));
         output::dim(&format!(
             "    role_separation:    {}",
             config.rules.role_separation

@@ -72,11 +72,14 @@ fn build_initialize_request() -> serde_json::Value {
 }
 
 fn parse_initialize_response(body: &str) -> Result<McpServerInfo, AppError> {
-    let resp: serde_json::Value =
-        serde_json::from_str(body).map_err(|e| AppError::Serialization(format!("JSON 解析失败: {e}")))?;
+    let resp: serde_json::Value = serde_json::from_str(body)
+        .map_err(|e| AppError::Serialization(format!("JSON 解析失败: {e}")))?;
 
     if let Some(err) = resp.get("error") {
-        let msg = err.get("message").and_then(|m| m.as_str()).unwrap_or("未知错误");
+        let msg = err
+            .get("message")
+            .and_then(|m| m.as_str())
+            .unwrap_or("未知错误");
         return Err(AppError::Message(format!("服务器返回错误: {msg}")));
     }
 
@@ -129,12 +132,7 @@ pub async fn test_http_connection(
     }
 
     // 发送请求
-    let response = match timeout(
-        Duration::from_secs(TEST_TIMEOUT_SECS),
-        req.send(),
-    )
-    .await
-    {
+    let response = match timeout(Duration::from_secs(TEST_TIMEOUT_SECS), req.send()).await {
         Ok(Ok(resp)) => resp,
         Ok(Err(e)) => {
             let status = if e.is_timeout() {
@@ -383,7 +381,8 @@ pub async fn test_stdio_connection(
         let _ = timeout(
             Duration::from_secs(1),
             stderr_reader.read_line(&mut err_line),
-        ).await;
+        )
+        .await;
         err_line
     } else {
         String::new()
@@ -397,7 +396,11 @@ pub async fn test_stdio_connection(
                     status: McpConnectionStatus::Connected,
                     message: "进程启动成功（响应为空，可能需要额外参数）".into(),
                     server_info: None,
-                    error_detail: if stderr_output.is_empty() { None } else { Some(stderr_output) },
+                    error_detail: if stderr_output.is_empty() {
+                        None
+                    } else {
+                        Some(stderr_output)
+                    },
                 });
             }
 
@@ -414,7 +417,10 @@ pub async fn test_stdio_connection(
                         status: McpConnectionStatus::Connected,
                         message: "进程响应成功（非标准 MCP 响应格式）".into(),
                         server_info: None,
-                        error_detail: Some(format!("响应: {}", trimmed.chars().take(200).collect::<String>())),
+                        error_detail: Some(format!(
+                            "响应: {}",
+                            trimmed.chars().take(200).collect::<String>()
+                        )),
                     })
                 }
             }
@@ -425,20 +431,32 @@ pub async fn test_stdio_connection(
                 status: McpConnectionStatus::CommandFailed,
                 message: "进程未返回任何数据".into(),
                 server_info: None,
-                error_detail: if stderr_output.is_empty() { None } else { Some(stderr_output) },
+                error_detail: if stderr_output.is_empty() {
+                    None
+                } else {
+                    Some(stderr_output)
+                },
             })
         }
         Ok(Err(e)) => Ok(McpConnectionTestResult {
             status: McpConnectionStatus::CommandFailed,
             message: format!("读取进程输出失败: {e}"),
             server_info: None,
-            error_detail: if stderr_output.is_empty() { Some(format!("{e}")) } else { Some(format!("stderr: {} | stdout err: {}", stderr_output, e)) },
+            error_detail: if stderr_output.is_empty() {
+                Some(format!("{e}"))
+            } else {
+                Some(format!("stderr: {} | stdout err: {}", stderr_output, e))
+            },
         }),
         Err(_) => Ok(McpConnectionTestResult {
             status: McpConnectionStatus::Timeout,
             message: "进程响应超时".into(),
             server_info: None,
-            error_detail: if stderr_output.is_empty() { None } else { Some(stderr_output) },
+            error_detail: if stderr_output.is_empty() {
+                None
+            } else {
+                Some(stderr_output)
+            },
         }),
     }
 }

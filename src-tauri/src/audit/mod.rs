@@ -8,5 +8,5 @@ pub mod engine;
 pub mod report;
 pub mod rules;
 
-pub use engine::{AuditContext, AuditSource, scan_dir};
+pub use engine::{scan_dir, AuditContext, AuditSource};
 pub use report::AuditReport;

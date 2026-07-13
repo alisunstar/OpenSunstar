@@ -58,7 +58,10 @@ pub fn project_prompt_filename(app: &AppType) -> Result<&'static str, AppError> 
 }
 
 /// 项目根目录下的 Prompt 文件路径
-pub fn project_prompt_file_path(project_root: &std::path::Path, app: &AppType) -> Result<PathBuf, AppError> {
+pub fn project_prompt_file_path(
+    project_root: &std::path::Path,
+    app: &AppType,
+) -> Result<PathBuf, AppError> {
     Ok(project_root.join(project_prompt_filename(app)?))
 }
 
@@ -69,7 +72,9 @@ pub fn project_mcp_json_path(project_root: &std::path::Path) -> PathBuf {
 
 /// 项目级 Command 清单（L2-04 写回追踪）
 pub fn project_command_manifest_path(project_root: &std::path::Path) -> PathBuf {
-    project_root.join(".opensunstar").join("command-manifest.json")
+    project_root
+        .join(".opensunstar")
+        .join("command-manifest.json")
 }
 
 /// 各 CLI 在项目根下的配置目录名（`.claude`、`.codex` …）
@@ -81,7 +86,9 @@ pub fn project_cli_dot_dir(app: &AppType) -> Result<&'static str, AppError> {
         AppType::OpenCode => ".opencode",
         AppType::Hermes => ".hermes",
         AppType::OpenClaw | AppType::ClaudeDesktop => {
-            return Err(AppError::Config(format!("{app:?} 不支持项目级 Commands 目录")));
+            return Err(AppError::Config(format!(
+                "{app:?} 不支持项目级 Commands 目录"
+            )));
         }
     })
 }
@@ -107,10 +114,11 @@ pub fn project_command_file_path(
 }
 
 /// 项目级 Agents 目录，如 `{project}/.claude/agents`
-pub fn project_agents_dir(project_root: &std::path::Path, app: &AppType) -> Result<PathBuf, AppError> {
-    Ok(project_root
-        .join(project_cli_dot_dir(app)?)
-        .join("agents"))
+pub fn project_agents_dir(
+    project_root: &std::path::Path,
+    app: &AppType,
+) -> Result<PathBuf, AppError> {
+    Ok(project_root.join(project_cli_dot_dir(app)?).join("agents"))
 }
 
 /// 项目级单个 Subagent 文件路径
@@ -129,10 +137,11 @@ pub fn project_agent_file_path(
 }
 
 /// 项目级 Skills 目录，如 `{project}/.claude/skills`
-pub fn project_skills_dir(project_root: &std::path::Path, app: &AppType) -> Result<PathBuf, AppError> {
-    Ok(project_root
-        .join(project_cli_dot_dir(app)?)
-        .join("skills"))
+pub fn project_skills_dir(
+    project_root: &std::path::Path,
+    app: &AppType,
+) -> Result<PathBuf, AppError> {
+    Ok(project_root.join(project_cli_dot_dir(app)?).join("skills"))
 }
 
 /// 项目级 Claude `settings.json`
@@ -162,12 +171,16 @@ pub fn project_opencode_config_path(project_root: &std::path::Path) -> PathBuf {
 
 /// 项目级 Subagent 清单（写回追踪）
 pub fn project_subagent_manifest_path(project_root: &std::path::Path) -> PathBuf {
-    project_root.join(".opensunstar").join("subagent-manifest.json")
+    project_root
+        .join(".opensunstar")
+        .join("subagent-manifest.json")
 }
 
 /// 项目级 Skill 清单（写回追踪）
 pub fn project_skill_manifest_path(project_root: &std::path::Path) -> PathBuf {
-    project_root.join(".opensunstar").join("skill-manifest.json")
+    project_root
+        .join(".opensunstar")
+        .join("skill-manifest.json")
 }
 
 /// 项目级 Ignore 文件路径，如 {project}/.claudeignore

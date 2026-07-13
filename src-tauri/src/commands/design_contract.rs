@@ -6,8 +6,13 @@ use crate::database::Database;
 use crate::services::design_contract::{
     compose_design_contract, export_design_contract, generate_design_md, generate_dtchg_json,
     get_design_template, import_design_from_content, import_design_from_file,
-    install_design_contract, list_design_templates, preview_install_plan,
-    DesignContract, DesignContractParams, DesignInstallPlan, DesignInstallResult, ImportResult,
+    install_design_contract, list_design_templates, preview_export_plan, preview_install_plan,
+    verify_design_system_manifest, DesignContract, DesignContractParams, DesignInstallPlan,
+    DesignInstallResult, DesignSystemVerification, ImportResult,
+};
+use crate::services::design_system_registry::{
+    discover_design_systems, load_design_system_contract, load_design_system_package_detail,
+    DesignSystemDiscovery, DesignSystemPackageDetail,
 };
 use crate::store::AppState;
 
@@ -22,6 +27,26 @@ fn project_path_for_id(db: &Database, project_id: &str) -> Result<String, String
 #[tauri::command]
 pub async fn list_design_templates_cmd() -> Result<Vec<(String, String)>, String> {
     Ok(list_design_templates())
+}
+
+/// Discover packaged and user-installed offline design-system packages.
+#[tauri::command]
+pub async fn list_design_system_packages_cmd() -> Result<DesignSystemDiscovery, String> {
+    discover_design_systems().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_design_system_package_contract_cmd(
+    package_id: String,
+) -> Result<DesignContract, String> {
+    load_design_system_contract(&package_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn get_design_system_package_detail_cmd(
+    package_id: String,
+) -> Result<DesignSystemPackageDetail, String> {
+    load_design_system_package_detail(&package_id).map_err(|e| e.to_string())
 }
 
 /// Get a specific built-in template by ID.
@@ -40,20 +65,28 @@ pub async fn compose_design_contract_cmd(
 
 /// Preview the DESIGN.md output (no disk write).
 #[tauri::command]
-pub async fn preview_design_md_cmd(
-    params: DesignContractParams,
-) -> Result<String, String> {
+pub async fn preview_design_md_cmd(params: DesignContractParams) -> Result<String, String> {
     let contract = compose_design_contract(&params).map_err(|e| e.to_string())?;
     generate_design_md(&contract).map_err(|e| e.to_string())
 }
 
 /// Preview the DTCG JSON output (no disk write).
 #[tauri::command]
-pub async fn preview_dtchg_json_cmd(
-    params: DesignContractParams,
-) -> Result<String, String> {
+pub async fn preview_dtchg_json_cmd(params: DesignContractParams) -> Result<String, String> {
     let contract = compose_design_contract(&params).map_err(|e| e.to_string())?;
     generate_dtchg_json(&contract).map_err(|e| e.to_string())
+}
+
+/// Preview overwrite-style export plan (no disk write to project).
+#[tauri::command]
+pub async fn preview_design_export_plan_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+    params: DesignContractParams,
+) -> Result<DesignInstallPlan, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    let contract = compose_design_contract(&params).map_err(|e| e.to_string())?;
+    preview_export_plan(&path, &contract).map_err(|e| e.to_string())
 }
 
 /// Export: compose + write DESIGN.md to project root + archive in .opensunstar/contract/.
@@ -92,11 +125,19 @@ pub async fn install_design_contract_cmd(
     install_design_contract(&path, &contract).map_err(|e| e.to_string())
 }
 
+/// Verify the project files against the selected design-system manifest (read-only).
+#[tauri::command]
+pub async fn verify_design_system_manifest_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<DesignSystemVerification, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    verify_design_system_manifest(&path).map_err(|e| e.to_string())
+}
+
 /// Import a DESIGN.md from a local file path.
 #[tauri::command]
-pub async fn import_design_from_file_cmd(
-    file_path: String,
-) -> Result<ImportResult, String> {
+pub async fn import_design_from_file_cmd(file_path: String) -> Result<ImportResult, String> {
     import_design_from_file(&file_path).map_err(|e| e.to_string())
 }
 
@@ -105,6 +146,7 @@ pub async fn import_design_from_file_cmd(
 pub async fn import_design_from_url_cmd(
     content: String,
     source_url: String,
+    source_kind: String,
 ) -> Result<ImportResult, String> {
-    import_design_from_content(&content, &source_url).map_err(|e| e.to_string())
+    import_design_from_content(&content, &source_url, &source_kind).map_err(|e| e.to_string())
 }

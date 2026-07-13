@@ -542,7 +542,9 @@ impl Database {
                         Self::set_user_version(conn, 21)?;
                     }
                     21 => {
-                        log::info!("迁移数据库从 v21 到 v22（项目扩展资产关联表 project_asset_links）");
+                        log::info!(
+                            "迁移数据库从 v21 到 v22（项目扩展资产关联表 project_asset_links）"
+                        );
                         Self::migrate_v21_to_v22(conn)?;
                         Self::set_user_version(conn, 22)?;
                     }
@@ -578,9 +580,7 @@ impl Database {
                         Self::set_user_version(conn, 27)?;
                     }
                     27 => {
-                        log::info!(
-                            "迁移数据库从 v27 到 v28（projects 增加 stage / mvp_progress）"
-                        );
+                        log::info!("迁移数据库从 v27 到 v28（projects 增加 stage / mvp_progress）");
                         Self::migrate_v27_to_v28(conn)?;
                         Self::set_user_version(conn, 28)?;
                     }
@@ -1486,9 +1486,7 @@ impl Database {
                                 let is_key_like = k.contains("KEY")
                                     || k.contains("TOKEN")
                                     || k.contains("SECRET");
-                                if is_key_like
-                                    && !val.is_empty()
-                                    && !keychain::is_keychain_ref(val)
+                                if is_key_like && !val.is_empty() && !keychain::is_keychain_ref(val)
                                 {
                                     let entry_key = format!("{id}/{app_type}/{container}.{k}");
                                     match keychain::store_secret(&entry_key, val) {
@@ -1511,8 +1509,7 @@ impl Database {
                             }
                         }
                         if updated {
-                            config[container] =
-                                serde_json::Value::Object(new_map);
+                            config[container] = serde_json::Value::Object(new_map);
                         }
                     }
                 }
@@ -1526,9 +1523,7 @@ impl Database {
                     params![new_config_str, id, app_type],
                 )
                 .map_err(|e| {
-                    AppError::Database(format!(
-                        "v12 迁移：更新 provider {id}/{app_type} 失败: {e}"
-                    ))
+                    AppError::Database(format!("v12 迁移：更新 provider {id}/{app_type} 失败: {e}"))
                 })?;
                 migrated_count += 1;
             }
@@ -1688,18 +1683,8 @@ impl Database {
             "TEXT NOT NULL DEFAULT '[\"*\"]'",
         )?;
         Self::add_column_if_missing(conn, "prompts", "globs", "TEXT NOT NULL DEFAULT '[]'")?;
-        Self::add_column_if_missing(
-            conn,
-            "prompts",
-            "priority",
-            "INTEGER NOT NULL DEFAULT 0",
-        )?;
-        Self::add_column_if_missing(
-            conn,
-            "prompts",
-            "is_fragment",
-            "BOOLEAN NOT NULL DEFAULT 0",
-        )?;
+        Self::add_column_if_missing(conn, "prompts", "priority", "INTEGER NOT NULL DEFAULT 0")?;
+        Self::add_column_if_missing(conn, "prompts", "is_fragment", "BOOLEAN NOT NULL DEFAULT 0")?;
         Self::add_column_if_missing(conn, "prompts", "parent_prompt_id", "TEXT")?;
         log::info!("v16 -> v17 迁移完成：已扩展 prompts 表 fragment 字段");
         Ok(())
@@ -1842,34 +1827,76 @@ impl Database {
 
         // Seed 7 framework descriptors (idempotent via INSERT OR IGNORE)
         let seed_descriptors = [
-            ("bmad-method", "BMAD-METHOD", "v6.10.0", "linear", "npm",
-             "BMAD 全栈方法论：角色驱动 + 上下文分层",
-             "BMAD full-stack methodology: role-driven + context-layered",
-             "https://github.com/bmad-method/BMAD-METHOD"),
-            ("task-master", "Task Master AI", "0.43.1", "linear", "npm",
-             "AI 驱动的任务拆解与执行管理",
-             "AI-driven task decomposition and execution management",
-             "https://github.com/eyecuelab/taskmaster"),
-            ("superpowers", "Superpowers", "v6.1.1", "linear", "plugin",
-             "TDD + 角色工作流 + 技能路由",
-             "TDD + role workflow + skill routing",
-             "https://github.com/obra/superpowers"),
-            ("gstack", "gstack", "1.58.5.0", "linear", "file_copy",
-             "GStack 编排指挥：Think→Plan→Build→Review→Test→Ship→Reflect",
-             "GStack conductor: Think→Plan→Build→Review→Test→Ship→Reflect",
-             "https://github.com/garrytan/gstack"),
-            ("openspec", "OpenSpec", "v1.5.0", "linear", "file_copy",
-             "变更驱动的规格文档管理（ADR + CHANGE）",
-             "Change-driven specification document management (ADR + CHANGE)",
-             "https://github.com/Fission-AI/OpenSpec"),
-            ("spec-kit", "Spec Kit", "v0.12.4", "linear", "uvx",
-             "规格工具链：AC 格式 + 级联文档",
-             "Specification toolchain: AC format + cascading docs",
-             "https://github.com/nicholasgriffintn/spec-kit"),
-            ("flow-kit", "flow-kit", "unversioned", "linear", "file_copy",
-             "纯 Markdown AI 编程流程（39 文件模板体系）",
-             "Pure markdown AI programming flow (39-file template system)",
-             "https://github.com/rihebty/flow-kit"),
+            (
+                "bmad-method",
+                "BMAD-METHOD",
+                "v6.10.0",
+                "linear",
+                "npm",
+                "BMAD 全栈方法论：角色驱动 + 上下文分层",
+                "BMAD full-stack methodology: role-driven + context-layered",
+                "https://github.com/bmad-method/BMAD-METHOD",
+            ),
+            (
+                "task-master",
+                "Task Master AI",
+                "0.43.1",
+                "linear",
+                "npm",
+                "AI 驱动的任务拆解与执行管理",
+                "AI-driven task decomposition and execution management",
+                "https://github.com/eyecuelab/taskmaster",
+            ),
+            (
+                "superpowers",
+                "Superpowers",
+                "v6.1.1",
+                "linear",
+                "plugin",
+                "TDD + 角色工作流 + 技能路由",
+                "TDD + role workflow + skill routing",
+                "https://github.com/obra/superpowers",
+            ),
+            (
+                "gstack",
+                "gstack",
+                "1.58.5.0",
+                "linear",
+                "file_copy",
+                "GStack 编排指挥：Think→Plan→Build→Review→Test→Ship→Reflect",
+                "GStack conductor: Think→Plan→Build→Review→Test→Ship→Reflect",
+                "https://github.com/garrytan/gstack",
+            ),
+            (
+                "openspec",
+                "OpenSpec",
+                "v1.5.0",
+                "linear",
+                "file_copy",
+                "变更驱动的规格文档管理（ADR + CHANGE）",
+                "Change-driven specification document management (ADR + CHANGE)",
+                "https://github.com/Fission-AI/OpenSpec",
+            ),
+            (
+                "spec-kit",
+                "Spec Kit",
+                "v0.12.4",
+                "linear",
+                "uvx",
+                "规格工具链：AC 格式 + 级联文档",
+                "Specification toolchain: AC format + cascading docs",
+                "https://github.com/nicholasgriffintn/spec-kit",
+            ),
+            (
+                "flow-kit",
+                "flow-kit",
+                "unversioned",
+                "linear",
+                "file_copy",
+                "纯 Markdown AI 编程流程（39 文件模板体系）",
+                "Pure markdown AI programming flow (39-file template system)",
+                "https://github.com/rihebty/flow-kit",
+            ),
         ];
 
         for (id, name, version, phase, install, desc_zh, desc_en, repo) in &seed_descriptors {
@@ -1893,8 +1920,16 @@ impl Database {
                      description_zh, description_en, repo_url, descriptor_json)
                  VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'read_only', ?7, ?8, ?9, ?10)",
                 rusqlite::params![
-                    id, name, version, phase, signals_json, install,
-                    desc_zh, desc_en, repo, descriptor_json,
+                    id,
+                    name,
+                    version,
+                    phase,
+                    signals_json,
+                    install,
+                    desc_zh,
+                    desc_en,
+                    repo,
+                    descriptor_json,
                 ],
             )
             .map_err(|e| AppError::Database(format!("seed sdd_descriptors {id} 失败: {e}")))?;
@@ -1949,11 +1984,9 @@ impl Database {
         }
 
         let legacy_count: i64 = conn
-            .query_row(
-                &format!("SELECT COUNT(*) FROM {legacy_table}"),
-                [],
-                |row| row.get(0),
-            )
+            .query_row(&format!("SELECT COUNT(*) FROM {legacy_table}"), [], |row| {
+                row.get(0)
+            })
             .map_err(|e| AppError::Database(format!("统计 {legacy_table} 失败: {e}")))?;
 
         let unified_before: i64 = conn

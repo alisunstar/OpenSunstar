@@ -30,13 +30,9 @@ pub fn run(
     json: bool,
 ) -> Result<(), String> {
     match args.action {
-        ReadinessAction::Score {
-            project_path,
-            app,
-        } => {
+        ReadinessAction::Score { project_path, app } => {
             let path = resolve_project_path(&project_path);
-            let result =
-                open_sunstar_lib::cli_api::cli_readiness_score(state, &path, app)?;
+            let result = open_sunstar_lib::cli_api::cli_readiness_score(state, &path, app)?;
 
             if json {
                 output::print_result(&result, true);

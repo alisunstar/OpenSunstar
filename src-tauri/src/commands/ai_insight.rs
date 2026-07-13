@@ -5,8 +5,7 @@
 use tauri::State;
 
 use crate::ai::agent_readiness::{
-    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput,
-    AGENT_READINESS_MAX_SCORE,
+    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
     merge_effective_into_details, scan_effective_states, EffectiveScanContext, EffectiveScanResult,
@@ -17,14 +16,12 @@ use crate::ai::client::{estimate_cost, AIClient};
 use crate::ai::project_id::{resolve_canonical_project_id, PORTFOLIO_PROJECT_ID};
 use crate::ai::prompts;
 use crate::ai::types::{
-    AIHealthResult, AIInsightResult, AICostSummary, AIProviderConfig, AIRiskResult, RiskItem,
-    AgentReadinessResult,
-    ChatMessage, HealthBreakdown, InsightType, NLQueryResult,
-    ProjectContextInput, ProjectProgressResult, WeeklyReportResult,
-    CostByTypeDetail, AIRoiReport,
+    AICostSummary, AIHealthResult, AIInsightResult, AIProviderConfig, AIRiskResult, AIRoiReport,
+    AgentReadinessResult, ChatMessage, CostByTypeDetail, HealthBreakdown, InsightType,
+    NLQueryResult, ProjectContextInput, ProjectProgressResult, RiskItem, WeeklyReportResult,
 };
-use crate::database::{AIInsightRow, AICostLogRow, AIQueryLogRow};
 use crate::database::Database;
+use crate::database::{AICostLogRow, AIInsightRow, AIQueryLogRow};
 use crate::store::AppState;
 
 // ── 内部辅助 ──────────────────────────────────
@@ -32,7 +29,7 @@ use crate::store::AppState;
 /// 计算输入数据的 SHA-256 哈希（用于缓存失效判断）
 fn compute_input_hash(ctx: &ProjectContextInput) -> String {
     let json = serde_json::to_string(ctx).unwrap_or_default();
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let hash = Sha256::digest(json.as_bytes());
     to_hex(&hash)
 }
@@ -55,9 +52,7 @@ fn check_cache(
     }
     let now = chrono::Utc::now().timestamp();
     match db.get_ai_insight(project_id, insight_type) {
-        Ok(Some(row)) if row.expires_at > now && row.input_hash == input_hash => {
-            Some(row)
-        }
+        Ok(Some(row)) if row.expires_at > now && row.input_hash == input_hash => Some(row),
         _ => None,
     }
 }
@@ -107,7 +102,8 @@ fn save_insight_and_cost(
         cost,
         created_at: now,
     };
-    db.insert_ai_cost_log(&cost_log).map_err(|e| e.to_string())?;
+    db.insert_ai_cost_log(&cost_log)
+        .map_err(|e| e.to_string())?;
 
     Ok(())
 }
@@ -174,10 +170,20 @@ fn compute_rule_health(ctx: &ProjectContextInput) -> HealthBreakdown {
         let mut score = 0u32;
         if ctx.git_info.as_ref().map(|g| g.is_repo).unwrap_or(false) {
             score += 5; // 有 Git 仓库
-            if ctx.git_info.as_ref().and_then(|g| g.branch.as_ref()).is_some() {
+            if ctx
+                .git_info
+                .as_ref()
+                .and_then(|g| g.branch.as_ref())
+                .is_some()
+            {
                 score += 3; // 有分支信息
             }
-            if ctx.git_info.as_ref().and_then(|g| g.remote_url.as_ref()).is_some() {
+            if ctx
+                .git_info
+                .as_ref()
+                .and_then(|g| g.remote_url.as_ref())
+                .is_some()
+            {
                 score += 3; // 有远程仓库
             }
         }
@@ -211,11 +217,8 @@ pub async fn get_ai_insight(
     let db = state.db.clone();
     let input_hash = compute_input_hash(&project_context);
     let itype = &insight_type;
-    let canonical_id = resolve_canonical_project_id(
-        &db,
-        &project_id,
-        Some(&project_context.project_path),
-    );
+    let canonical_id =
+        resolve_canonical_project_id(&db, &project_id, Some(&project_context.project_path));
 
     // 1. 检查缓存
     if let Some(cached) = check_cache(&db, &canonical_id, itype, &input_hash, force_refresh) {
@@ -310,11 +313,8 @@ pub async fn get_ai_health_score(
 
     // 2. 检查 AI 分析缓存
     let input_hash = compute_input_hash(&project_context);
-    let canonical_id = resolve_canonical_project_id(
-        &db,
-        &project_id,
-        Some(&project_context.project_path),
-    );
+    let canonical_id =
+        resolve_canonical_project_id(&db, &project_id, Some(&project_context.project_path));
     if let Some(cached) = check_cache(&db, &canonical_id, "health", &input_hash, force_refresh) {
         return Ok(AIHealthResult {
             score,
@@ -446,7 +446,7 @@ pub async fn generate_weekly_report(
     // 构建输入哈希用于缓存判断
     let combined_hash = {
         let json = serde_json::to_string(&projects_context).unwrap_or_default();
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
         let hash = Sha256::digest(json.as_bytes());
         to_hex(&hash)
     };
@@ -532,7 +532,9 @@ pub async fn estimate_project_progress(
                 commits: c.commits,
             })
             .collect();
-    let version = crate::project_metrics::read_package_version(root_path).ok().flatten();
+    let version = crate::project_metrics::read_package_version(root_path)
+        .ok()
+        .flatten();
 
     let ctx = ProjectContextInput {
         project_name: root_path
@@ -547,7 +549,12 @@ pub async fn estimate_project_progress(
             comment_lines: c.comment_lines,
             blank_lines: c.blank_lines,
             files: c.files,
-            top_languages: c.languages.iter().take(5).map(|l| l.language.clone()).collect(),
+            top_languages: c
+                .languages
+                .iter()
+                .take(5)
+                .map(|l| l.language.clone())
+                .collect(),
         }),
         git_info: git_info.map(|g| crate::ai::types::GitInfoSummary {
             is_repo: g.is_repo,
@@ -583,11 +590,12 @@ pub async fn estimate_project_progress(
                 .unwrap_or_default();
 
             // 尝试解析 JSON 响应
-            let result = serde_json::from_str::<ProjectProgressResult>(&content)
-                .unwrap_or(ProjectProgressResult {
+            let result = serde_json::from_str::<ProjectProgressResult>(&content).unwrap_or(
+                ProjectProgressResult {
                     progress: 50,
                     summary: content.clone(),
-                });
+                },
+            );
 
             // 保存缓存
             let (pt, ct) = response
@@ -691,15 +699,17 @@ pub async fn get_ai_risk_analysis(
 ) -> Result<AIRiskResult, String> {
     let db = state.db.clone();
     let input_hash = compute_input_hash(&project_context);
-    let canonical_id = resolve_canonical_project_id(
-        &db,
-        &project_id,
-        Some(&project_context.project_path),
-    );
+    let canonical_id =
+        resolve_canonical_project_id(&db, &project_id, Some(&project_context.project_path));
 
     // 1. 检查缓存
-    if let Some(cached) = check_cache(&db, &canonical_id, "risk_analysis", &input_hash, force_refresh)
-    {
+    if let Some(cached) = check_cache(
+        &db,
+        &canonical_id,
+        "risk_analysis",
+        &input_hash,
+        force_refresh,
+    ) {
         if let Ok(parsed) = serde_json::from_str::<AIRiskResult>(&cached.content) {
             return Ok(parsed);
         }
@@ -786,7 +796,12 @@ fn rule_based_risk(ctx: &ProjectContextInput) -> AIRiskResult {
     } else if !ctx.contributors.is_empty() {
         let total: u32 = ctx.contributors.iter().map(|c| c.commits).sum();
         if total > 0 {
-            let top = ctx.contributors.iter().map(|c| c.commits).max().unwrap_or(0);
+            let top = ctx
+                .contributors
+                .iter()
+                .map(|c| c.commits)
+                .max()
+                .unwrap_or(0);
             let ratio = top as f64 / total as f64;
             if ratio > 0.7 {
                 risks.push(RiskItem {
@@ -822,7 +837,11 @@ fn rule_based_risk(ctx: &ProjectContextInput) -> AIRiskResult {
     let summary = if risks.is_empty() {
         "项目状态良好，暂未发现明显风险".to_string()
     } else {
-        format!("发现 {} 个风险项，总体等级: {}", risks.len(), overall_label(overall_risk))
+        format!(
+            "发现 {} 个风险项，总体等级: {}",
+            risks.len(),
+            overall_label(overall_risk)
+        )
     };
 
     AIRiskResult {
@@ -919,7 +938,7 @@ pub async fn query_projects_nl(
 
 /// 简短 SHA 用于路径标识
 fn sha2_short(s: &str) -> String {
-    use sha2::{Sha256, Digest};
+    use sha2::{Digest, Sha256};
     let hash = Sha256::digest(s.as_bytes());
     to_hex(&hash[..8])
 }
@@ -1111,10 +1130,10 @@ fn compute_agent_readiness_input_hash(
         .unwrap_or(0);
     let ignore_global_count = db.count_global_ignore_rules().unwrap_or(0);
     let perm_global_count = db.count_global_permissions().unwrap_or(0);
-    let max_config_ts = sqlite_id
-        .and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
-    let max_asset_links_ts = sqlite_id
-        .and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
+    let max_config_ts =
+        sqlite_id.and_then(|id| db.max_project_config_updated_at(id).ok().flatten());
+    let max_asset_links_ts =
+        sqlite_id.and_then(|id| db.max_project_asset_links_updated_at(id).ok().flatten());
 
     let payload = ReadinessHashInput {
         project_path,
@@ -1322,7 +1341,11 @@ pub async fn get_agent_readiness_score(
                         let _ = db.insert_ai_cost_log(&cost_log);
                     }
 
-                    if text.is_empty() { None } else { Some(text) }
+                    if text.is_empty() {
+                        None
+                    } else {
+                        Some(text)
+                    }
                 }
                 Err(e) => {
                     log::warn!("Agent 就绪度 LLM 建议生成失败: {e}");
@@ -1442,14 +1465,11 @@ fn repair_asset_drift_inner(
             Some(project_path),
         );
         crate::services::project_artifacts::refresh_baseline_snapshot_for_project_id(
-            &state.db,
-            project_id,
-            None,
+            &state.db, project_id, None,
         );
         if check_name == "skills_configured" {
             crate::services::project_artifacts::refresh_skill_registry_for_project_id(
-                &state.db,
-                project_id,
+                &state.db, project_id,
             );
         }
     }
@@ -1550,11 +1570,7 @@ pub async fn repair_project_drift(
 }
 
 /// 安全类资产（影响文件暴露和命令执行）
-const SAFETY_CRITICAL_CHECKS: &[&str] = &[
-    "ignore_rules",
-    "permissions",
-    "hooks_configured",
-];
+const SAFETY_CRITICAL_CHECKS: &[&str] = &["ignore_rules", "permissions", "hooks_configured"];
 
 fn check_label(check_name: &str) -> String {
     match check_name {

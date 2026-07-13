@@ -110,15 +110,12 @@ impl KeyPool {
             self.keys[idx].current_weight += self.keys[idx].weight_score();
         }
 
-        let best = eligible
-            .iter()
-            .copied()
-            .max_by(|&a, &b| {
-                self.keys[a]
-                    .current_weight
-                    .cmp(&self.keys[b].current_weight)
-                    .then_with(|| b.cmp(&a))
-            })?;
+        let best = eligible.iter().copied().max_by(|&a, &b| {
+            self.keys[a]
+                .current_weight
+                .cmp(&self.keys[b].current_weight)
+                .then_with(|| b.cmp(&a))
+        })?;
 
         self.keys[best].current_weight -= total_weight;
         self.cursor = best;

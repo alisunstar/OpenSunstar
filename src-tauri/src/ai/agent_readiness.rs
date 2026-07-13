@@ -1,8 +1,7 @@
 //! Agent 配置就绪度 100 分模型（8 类资产 + 近 90 天更新）
 
 use crate::ai::asset_app_support::{
-    app_display_label, asset_support, check_name_to_asset_type, normalize_target_app,
-    AssetSupport,
+    app_display_label, asset_support, check_name_to_asset_type, normalize_target_app, AssetSupport,
 };
 use crate::ai::types::AgentReadinessItem;
 
@@ -76,17 +75,15 @@ fn apply_target_app_support(
 
     match asset_support(asset_type, target_app) {
         AssetSupport::Supported => (score, status.to_string(), detail),
-        AssetSupport::Unsupported => {
-            (
-                0,
-                STATUS_NOT_APPLICABLE.to_string(),
-                format!(
-                    "{}（当前目标 CLI「{}」不支持此项，已从评分中排除）",
-                    detail,
-                    app_display_label(target_app)
-                ),
-            )
-        }
+        AssetSupport::Unsupported => (
+            0,
+            STATUS_NOT_APPLICABLE.to_string(),
+            format!(
+                "{}（当前目标 CLI「{}」不支持此项，已从评分中排除）",
+                detail,
+                app_display_label(target_app)
+            ),
+        ),
         AssetSupport::Partial => {
             let st = if score >= weight {
                 STATUS_READY.to_string()
@@ -127,7 +124,11 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
             "项目目录检测到 .mcp.json（尚未在 OpenSunstar 中关联）".to_string(),
         )
     } else {
-        (0, STATUS_MISSING, "未关联 MCP，且项目目录无 .mcp.json".to_string())
+        (
+            0,
+            STATUS_MISSING,
+            "未关联 MCP，且项目目录无 .mcp.json".to_string(),
+        )
     };
     push_item(
         &mut details,
@@ -164,7 +165,13 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
     // Prompts 12
     let has_db = input.prompt_db_count > 0;
     let has_files = !input.prompt_files.is_empty();
-    let prompt_score = if has_db { 12 } else if has_files { 5 } else { 0 };
+    let prompt_score = if has_db {
+        12
+    } else if has_files {
+        5
+    } else {
+        0
+    };
     let prompt_status = match (has_db, has_files) {
         (true, true) => STATUS_READY,
         (true, false) => STATUS_READY,
@@ -243,10 +250,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         (
             10,
             STATUS_READY,
-            format!(
-                "项目已启用 {} 条 Ignore 规则",
-                input.ignore_project_count
-            ),
+            format!("项目已启用 {} 条 Ignore 规则", input.ignore_project_count),
         )
     } else if input.ignore_global_count > 0 {
         (
@@ -444,9 +448,15 @@ mod tests {
             .unwrap();
         assert_eq!(commands.score, 10);
         assert_eq!(commands.status.as_deref(), Some(STATUS_PARTIAL));
-        let hooks = items.iter().find(|i| i.check_name == "hooks_configured").unwrap();
+        let hooks = items
+            .iter()
+            .find(|i| i.check_name == "hooks_configured")
+            .unwrap();
         assert_eq!(hooks.score, 10);
-        let perms = items.iter().find(|i| i.check_name == "permissions").unwrap();
+        let perms = items
+            .iter()
+            .find(|i| i.check_name == "permissions")
+            .unwrap();
         assert_eq!(perms.score, 10);
         assert_eq!(score, 39);
     }
@@ -459,7 +469,10 @@ mod tests {
             ..Default::default()
         };
         let (score, items) = compute_readiness_items(&input);
-        let hooks = items.iter().find(|i| i.check_name == "hooks_configured").unwrap();
+        let hooks = items
+            .iter()
+            .find(|i| i.check_name == "hooks_configured")
+            .unwrap();
         assert_eq!(hooks.score, 0);
         assert_eq!(hooks.status.as_deref(), Some(STATUS_MISSING));
         assert_eq!(score, 9);

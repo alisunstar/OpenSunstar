@@ -180,7 +180,15 @@ pub fn scan_dir(dir: &Path, ctx: &AuditContext) -> Result<AuditResult, AppError>
     let rule_set = RuleSet::default();
     let max_file_size: u64 = 2 * 1024 * 1024; // 跳过 >2MB 文件
 
-    scan_dir_recursive(dir, dir, &rule_set, ctx, &mut findings, &mut files_scanned, max_file_size)?;
+    scan_dir_recursive(
+        dir,
+        dir,
+        &rule_set,
+        ctx,
+        &mut findings,
+        &mut files_scanned,
+        max_file_size,
+    )?;
 
     // 汇总
     let mut summary = SeveritySummary::default();
@@ -208,21 +216,14 @@ pub fn scan_dir(dir: &Path, ctx: &AuditContext) -> Result<AuditResult, AppError>
 }
 
 fn should_skip_file(path: &Path) -> bool {
-    let name = path
-        .file_name()
-        .and_then(|n| n.to_str())
-        .unwrap_or("");
+    let name = path.file_name().and_then(|n| n.to_str()).unwrap_or("");
     // 跳过二进制/大型文件
     let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     let skip_exts = [
-        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg", "webp",
-        "woff", "woff2", "ttf", "eot", "otf",
-        "mp3", "mp4", "wav", "ogg", "avi", "mov",
-        "zip", "tar", "gz", "bz2", "xz", "7z", "rar",
-        "exe", "dll", "so", "dylib", "wasm",
-        "bin", "dat", "db", "sqlite", "sqlite3",
-        "pdf", "doc", "docx", "xls", "xlsx",
-        "class", "jar", "war",
+        "png", "jpg", "jpeg", "gif", "bmp", "ico", "svg", "webp", "woff", "woff2", "ttf", "eot",
+        "otf", "mp3", "mp4", "wav", "ogg", "avi", "mov", "zip", "tar", "gz", "bz2", "xz", "7z",
+        "rar", "exe", "dll", "so", "dylib", "wasm", "bin", "dat", "db", "sqlite", "sqlite3", "pdf",
+        "doc", "docx", "xls", "xlsx", "class", "jar", "war",
     ];
     if skip_exts.contains(&ext) {
         return true;
@@ -271,7 +272,15 @@ fn scan_dir_recursive(
             {
                 continue;
             }
-            scan_dir_recursive(base_dir, &path, rule_set, ctx, findings, files_scanned, max_file_size)?;
+            scan_dir_recursive(
+                base_dir,
+                &path,
+                rule_set,
+                ctx,
+                findings,
+                files_scanned,
+                max_file_size,
+            )?;
         } else if ft.is_file() {
             if should_skip_file(&path) {
                 continue;

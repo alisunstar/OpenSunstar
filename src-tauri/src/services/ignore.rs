@@ -47,11 +47,7 @@ impl IgnoreService {
     }
 
     pub fn delete_rule(state: &AppState, id: &str) -> Result<bool, AppError> {
-        let existed = state
-            .db
-            .get_all_ignore_rules()?
-            .iter()
-            .any(|r| r.id == id);
+        let existed = state.db.get_all_ignore_rules()?.iter().any(|r| r.id == id);
         if !existed {
             return Ok(false);
         }
@@ -170,7 +166,9 @@ impl IgnoreService {
         project_id: &str,
     ) -> Result<(), AppError> {
         let rules = state.db.get_all_ignore_rules()?;
-        let links = state.db.get_project_asset_links(project_id, Some(ASSET_IGNORE))?;
+        let links = state
+            .db
+            .get_project_asset_links(project_id, Some(ASSET_IGNORE))?;
         let linked_ids: HashSet<&str> = links
             .iter()
             .filter(|l| l.enabled)
@@ -239,9 +237,7 @@ impl IgnoreService {
                 .db
                 .get_project_asset_links(&project.id, Some(ASSET_IGNORE))
                 .unwrap_or_default();
-            let is_linked = links
-                .iter()
-                .any(|l| l.asset_id == rule_id);
+            let is_linked = links.iter().any(|l| l.asset_id == rule_id);
             if is_linked {
                 let root = std::path::PathBuf::from(&project.path);
                 Self::sync_project_ignore(state, &root, &project.id)?;

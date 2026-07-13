@@ -3120,18 +3120,12 @@ impl SkillService {
     // ========== ClawHub 搜索 ==========
 
     /// 搜索 ClawHub 公共目录
-    pub async fn search_clawhub(
-        query: &str,
-        limit: usize,
-    ) -> Result<ClawHubSearchResult> {
+    pub async fn search_clawhub(query: &str, limit: usize) -> Result<ClawHubSearchResult> {
         let client = crate::proxy::http_client::get();
 
         let url = url::Url::parse_with_params(
             "https://clawhub.ai/api/v1/search",
-            &[
-                ("q", query),
-                ("limit", &limit.to_string()),
-            ],
+            &[("q", query), ("limit", &limit.to_string())],
         )?;
 
         let resp = client
@@ -3223,9 +3217,7 @@ impl SkillService {
     /// 批量获取 ClawHub 技能的星标/下载/安装量
     ///
     /// 并发请求所有详情端点，单个 3s 超时，失败静默跳过
-    pub async fn batch_get_clawhub_stats(
-        slugs: &[String],
-    ) -> Result<Vec<ClawHubSkillStats>> {
+    pub async fn batch_get_clawhub_stats(slugs: &[String]) -> Result<Vec<ClawHubSkillStats>> {
         let client = crate::proxy::http_client::get();
 
         let futures: Vec<_> = slugs
@@ -3234,8 +3226,7 @@ impl SkillService {
                 let client = client.clone();
                 let slug = slug.clone();
                 async move {
-                    let url =
-                        format!("https://clawhub.ai/api/v1/skills/{}", slug);
+                    let url = format!("https://clawhub.ai/api/v1/skills/{}", slug);
                     let resp = client
                         .get(&url)
                         .timeout(std::time::Duration::from_secs(3))
@@ -3246,11 +3237,7 @@ impl SkillService {
                             Ok(r2) => match r2.json::<ClawHubDetailResponse>().await {
                                 Ok(detail) => ClawHubSkillStats {
                                     slug: slug.clone(),
-                                    stars: detail
-                                        .skill
-                                        .stats
-                                        .as_ref()
-                                        .and_then(|s| s.stars),
+                                    stars: detail.skill.stats.as_ref().and_then(|s| s.stars),
                                     downloads: detail
                                         .skill
                                         .stats
@@ -3733,7 +3720,11 @@ pub fn auto_import_ssot_skills(db: &Arc<Database>) -> Result<usize> {
         // 如果技能不在 SSOT 目录中，复制过去
         let ssot_path = ssot_dir.join(&dir_name);
         if !ssot_path.exists() {
-            log::info!("Copying skill '{}' from {} to SSOT", dir_name, source_path.display());
+            log::info!(
+                "Copying skill '{}' from {} to SSOT",
+                dir_name,
+                source_path.display()
+            );
             SkillService::copy_dir_recursive(&source_path, &ssot_path)?;
         }
 

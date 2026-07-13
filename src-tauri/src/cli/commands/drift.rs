@@ -51,17 +51,19 @@ pub enum DriftAction {
     },
 }
 
-pub fn run(
-    args: DriftArgs,
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+pub fn run(args: DriftArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     match args.action {
         DriftAction::Check {
             project_path,
             app,
             refresh,
-        } => run_check(state, &resolve_project_path(&project_path), app, refresh, json),
+        } => run_check(
+            state,
+            &resolve_project_path(&project_path),
+            app,
+            refresh,
+            json,
+        ),
         DriftAction::Repair {
             project_path,
             check,
@@ -197,7 +199,10 @@ fn run_repair(
     let auto_confirm = yes || json;
     if !auto_confirm
         && !output::confirm(
-            &format!("Found {} drifted item(s). Proceed with repair?", drifted.len()),
+            &format!(
+                "Found {} drifted item(s). Proceed with repair?",
+                drifted.len()
+            ),
             false,
             false,
         )
@@ -210,8 +215,12 @@ fn run_repair(
     match check {
         Some(check_name) => {
             // 修复单项
-            let result =
-                open_sunstar_lib::cli_api::cli_drift_repair(state, project_path, &check_name, target_app)?;
+            let result = open_sunstar_lib::cli_api::cli_drift_repair(
+                state,
+                project_path,
+                &check_name,
+                target_app,
+            )?;
             if json {
                 output::print_result(&result, true);
             } else {
@@ -278,10 +287,7 @@ fn print_drift_report(result: &open_sunstar_lib::EffectiveScanResult) {
             "unchecked" => "?",
             _ => "·",
         };
-        let detail = item
-            .effective_detail
-            .as_deref()
-            .unwrap_or("");
+        let detail = item.effective_detail.as_deref().unwrap_or("");
         println!(
             "  {icon} {:<24} {:<12} {detail}",
             item.check_name, item.effective_state

@@ -96,10 +96,7 @@ pub fn markdown_agent_to_codex_toml(
     Ok(doc.to_string())
 }
 
-fn string_from_map(
-    map: Option<&serde_yaml::Mapping>,
-    key: &str,
-) -> Option<String> {
+fn string_from_map(map: Option<&serde_yaml::Mapping>, key: &str) -> Option<String> {
     map?.get(Value::from(key))?.as_str().map(str::to_string)
 }
 
@@ -111,8 +108,9 @@ fn yaml_value_to_toml_item(value: &Value) -> Option<Item> {
             .as_i64()
             .map(|i| Item::Value(i.into()))
             .or_else(|| n.as_f64().map(|f| Item::Value((f as i64).into()))),
-        Value::Mapping(map) => yaml_mapping_to_toml_table(&Value::Mapping(map.clone()))
-            .map(Item::Table),
+        Value::Mapping(map) => {
+            yaml_mapping_to_toml_table(&Value::Mapping(map.clone())).map(Item::Table)
+        }
         Value::Sequence(seq) => {
             let mut arr = toml_edit::Array::new();
             for v in seq {

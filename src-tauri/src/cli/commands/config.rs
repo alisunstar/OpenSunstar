@@ -52,7 +52,11 @@ pub fn run(
             let state = state.ok_or_else(|| "数据库不可用".to_string())?;
             run_export(state, &output, json)
         }
-        ConfigAction::Import { input, dry_run, yes } => {
+        ConfigAction::Import {
+            input,
+            dry_run,
+            yes,
+        } => {
             let state = state.ok_or_else(|| "数据库不可用".to_string())?;
             run_import(state, &input, dry_run, yes, json)
         }
@@ -73,9 +77,7 @@ fn run_export(
         .export_sql(target)
         .map_err(|e| format!("导出失败: {e}"))?;
 
-    let size = std::fs::metadata(target)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let size = std::fs::metadata(target).map(|m| m.len()).unwrap_or(0);
 
     if json {
         let result = serde_json::json!({
@@ -104,9 +106,7 @@ fn run_import(
         return Err(format!("文件不存在: {input}"));
     }
 
-    let file_size = std::fs::metadata(source)
-        .map(|m| m.len())
-        .unwrap_or(0);
+    let file_size = std::fs::metadata(source).map(|m| m.len()).unwrap_or(0);
 
     // Dry-run: show what would happen and exit
     if dry_run {
@@ -207,7 +207,10 @@ fn run_bootstrap(yes: bool, json: bool) -> Result<(), String> {
         println!("  Config:  {}", result.config_dir);
         println!("  DB:      {}", result.db_path);
         if !result.imported_apps.is_empty() {
-            println!("  Imported live config: {}", result.imported_apps.join(", "));
+            println!(
+                "  Imported live config: {}",
+                result.imported_apps.join(", ")
+            );
         }
         if result.seeded_official_providers > 0 {
             println!(

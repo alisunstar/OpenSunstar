@@ -295,7 +295,7 @@ function MethodologyCard({
             }
           >
             {t("methodology.goToOrchestration", {
-              defaultValue: "去预设编排",
+              defaultValue: "去工作流配置",
             })}
             <ArrowRight className="w-3 h-3 ml-1" />
           </Button>
@@ -429,7 +429,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
   const [loading, setLoading] = useState(true);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState("market");
+  const [activeTab, setActiveTab] = useState("orchestration");
 
   // Tab 2 orchestration: selected project for flow config
   const [orchestrationProjectId, setOrchestrationProjectId] = useState("");
@@ -642,17 +642,35 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
     >
       <div className="shrink-0 px-6 pt-6 pb-2">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              {t("methodology.title", { defaultValue: "方法论与编排" })}
+              {t("methodology.title", { defaultValue: "工作流与治理" })}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {t("methodology.subtitle", {
                 defaultValue:
-                  "方法论、流程预设、自定义编排、设计合约——四个独立配置维度，按需选用，无先后依赖。框架探测为只读，不修改项目文件。",
+                  "为项目建立可执行流程、变更执行方案与治理检查；方法论识别作为可选诊断。",
               })}
             </p>
+            {projects.length > 0 && (
+              <label className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">当前配置项目</span>
+                <select
+                  aria-label="当前配置项目"
+                  className="h-8 min-w-48 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+                  value={orchestrationProjectId}
+                  onChange={(e) => setOrchestrationProjectId(e.target.value)}
+                >
+                  <option value="">请选择项目</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
           </div>
           <Button
             size="sm"
@@ -684,24 +702,24 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           className="h-full flex flex-col"
         >
           <TabsList className="shrink-0 mb-4">
+            <TabsTrigger value="orchestration">
+              <Workflow className="w-3.5 h-3.5 mr-1.5" />
+              {t("methodology.tabOrchestration", { defaultValue: "工作流配置" })}
+            </TabsTrigger>
+            <TabsTrigger value="recipe">
+              <ChefHat className="w-3.5 h-3.5 mr-1.5" />
+              {t("methodology.tabRecipe", { defaultValue: "变更执行方案" })}
+              <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium leading-none">
+                Beta
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="market">
-              {t("methodology.tabMarket", { defaultValue: "方法论框架" })}
+              {t("methodology.tabMarket", { defaultValue: "方法论识别" })}
               {detectedFrameworkCount > 0 && (
                 <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                   {detectedFrameworkCount}
                 </span>
               )}
-            </TabsTrigger>
-            <TabsTrigger value="orchestration">
-              <Workflow className="w-3.5 h-3.5 mr-1.5" />
-              {t("methodology.tabOrchestration", { defaultValue: "预设编排" })}
-            </TabsTrigger>
-            <TabsTrigger value="recipe">
-              <ChefHat className="w-3.5 h-3.5 mr-1.5" />
-              {t("methodology.tabRecipe", { defaultValue: "自定义编排" })}
-              <span className="ml-1 text-[9px] px-1 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 font-medium leading-none">
-                Beta
-              </span>
             </TabsTrigger>
             <TabsTrigger value="designContract">
               <Palette className="w-3.5 h-3.5 mr-1.5" />
@@ -730,7 +748,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {t("methodology.scanPromptBody", {
                         defaultValue:
-                          "点击「扫描所有项目」进行只读探测，或直接进入预设编排 / 自定义编排——无需先安装或检测框架。",
+                          "点击「扫描所有项目」进行只读探测，或直接进入工作流配置 / 变更执行方案——无需先安装或检测框架。",
                       })}
                     </p>
                   </div>
@@ -755,12 +773,12 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     onClick={() => handleGoToOrchestration(projects[0]?.id ?? "")}
                   >
                     {t("methodology.goToOrchestration", {
-                      defaultValue: "去预设编排",
+                      defaultValue: "去工作流配置",
                     })}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={handleGoToRecipe}>
                     {t("methodology.goToRecipe", {
-                      defaultValue: "自定义编排",
+                      defaultValue: "变更执行方案",
                     })}
                   </Button>
                 </div>
@@ -782,7 +800,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {t("methodology.directOrchestrationHint", {
                         defaultValue:
-                          "预设编排与自定义编排可独立使用，导出 workflow.profile.json 或 Recipe 文件。",
+                          "工作流配置与变更执行方案可独立使用，导出 workflow.profile.json 或变更执行方案文件。",
                       })}
                     </p>
                   </div>
@@ -798,12 +816,12 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     }
                   >
                     {t("methodology.goToOrchestration", {
-                      defaultValue: "去预设编排",
+                      defaultValue: "去工作流配置",
                     })}
                   </Button>
                   <Button size="sm" variant="ghost" onClick={handleGoToRecipe}>
                     {t("methodology.goToRecipe", {
-                      defaultValue: "自定义编排",
+                      defaultValue: "变更执行方案",
                     })}
                   </Button>
                 </div>
@@ -895,19 +913,19 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             />
           </TabsContent>
 
-          {/* Tab 2: 预设编排 (Preset Orchestration) */}
+          {/* Tab 1: 工作流配置 */}
           <TabsContent
             value="orchestration"
             className="flex-1 min-h-0 overflow-y-auto"
           >
             <div className="space-y-4">
               {/* Project selector */}
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
+              <div className="hidden rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <FolderOpen className="w-4 h-4 text-primary" />
                   <p className="text-sm font-medium text-foreground">
                     {t("methodology.orchestrationEntry", {
-                      defaultValue: "预设编排器",
+                      defaultValue: "工作流配置",
                     })}
                   </p>
                 </div>
@@ -978,19 +996,19 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             </div>
           </TabsContent>
 
-          {/* Tab 3: 自定义编排 (Custom Orchestration — Recipe Composer, Beta) */}
+          {/* Tab 2: 变更执行方案 (Beta) */}
           <TabsContent
             value="recipe"
             className="flex-1 min-h-0 overflow-y-auto"
           >
             <div className="space-y-4">
               {/* Project selector (shared with orchestration tab) */}
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
+              <div className="hidden rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <FolderOpen className="w-4 h-4 text-primary" />
                   <p className="text-sm font-medium text-foreground">
                     {t("methodology.recipeEntry", {
-                      defaultValue: "自定义编排器",
+                      defaultValue: "变更执行方案",
                     })}
                   </p>
                 </div>
@@ -1038,7 +1056,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                 )}
               </div>
 
-              {/* Recipe Composer when project selected */}
+              {/* Change execution plan editor when project selected */}
               {projects.length > 0 && orchestrationProjectId ? (
                 <ProjectRecipeComposer
                   key={`recipe-${orchestrationProjectId}`}
@@ -1067,7 +1085,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           >
             <div className="space-y-4">
               {/* Project selector (shared with orchestration/recipe tabs) */}
-              <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
+              <div className="hidden rounded-lg border border-border/60 bg-muted/20 p-4 space-y-3">
                 <div className="flex items-center gap-2">
                   <Palette className="w-4 h-4 text-primary" />
                   <p className="text-sm font-medium text-foreground">

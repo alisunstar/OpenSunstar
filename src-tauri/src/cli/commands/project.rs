@@ -38,10 +38,7 @@ pub fn run(
 ) -> Result<(), String> {
     match args.action {
         ProjectAction::List => run_list(state, json),
-        ProjectAction::Scan {
-            project_path,
-            save,
-        } => run_scan(state, &project_path, save, json),
+        ProjectAction::Scan { project_path, save } => run_scan(state, &project_path, save, json),
         ProjectAction::Status { project_path } => {
             let path = match project_path {
                 Some(p) => p,
@@ -65,10 +62,7 @@ pub fn run(
     }
 }
 
-fn run_list(
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+fn run_list(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     let projects = open_sunstar_lib::cli_api::cli_project_list(state)?;
 
     if json {
@@ -82,10 +76,7 @@ fn run_list(
         println!("{}", "-".repeat(72));
         for p in &projects {
             let target = p.target_app.as_deref().unwrap_or("-");
-            println!(
-                "  {:<18} {:<12} {:<10} {}",
-                p.name, p.stage, target, p.path
-            );
+            println!("  {:<18} {:<12} {:<10} {}", p.name, p.stage, target, p.path);
         }
     }
 
@@ -109,7 +100,10 @@ fn run_scan(
     } else {
         output::header(&format!("Framework Detection: {project_path}"));
         eprintln!();
-        println!("{:<18} {:<10} {:<10} {}", "Framework", "Detected", "Confidence", "Signals");
+        println!(
+            "{:<18} {:<10} {:<10} {}",
+            "Framework", "Detected", "Confidence", "Signals"
+        );
         println!("{}", "-".repeat(64));
 
         let mut detected_count = 0;
@@ -249,8 +243,14 @@ fn run_status(
 
         // ── Asset counts ──
         let ac = &ctx.asset_counts;
-        let total = ac.mcp + ac.skills + ac.prompts + ac.commands
-            + ac.hooks + ac.ignore + ac.permissions + ac.subagents;
+        let total = ac.mcp
+            + ac.skills
+            + ac.prompts
+            + ac.commands
+            + ac.hooks
+            + ac.ignore
+            + ac.permissions
+            + ac.subagents;
 
         output::header(&format!("Assets ({total} total):"));
         let types = [

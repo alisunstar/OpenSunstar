@@ -93,7 +93,9 @@ fn check_database(db_path: &PathBuf) -> DatabaseStatus {
 }
 
 fn check_tools() -> Vec<ToolStatus> {
-    let tools = ["claude", "codex", "gemini", "opencode", "openclaw", "hermes"];
+    let tools = [
+        "claude", "codex", "gemini", "opencode", "openclaw", "hermes",
+    ];
     let term = console::Term::stderr();
 
     let results: Vec<_> = tools

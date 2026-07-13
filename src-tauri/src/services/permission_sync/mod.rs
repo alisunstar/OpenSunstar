@@ -4,8 +4,8 @@ mod claude;
 mod codex;
 mod gemini;
 mod hermes;
-mod opencode;
 mod openclaw;
+mod opencode;
 
 use crate::app_config::AppType;
 use crate::error::AppError;

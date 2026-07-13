@@ -1,6 +1,8 @@
 use std::path::Path;
 
-use crate::codex_config::{get_codex_config_path, read_codex_config_text, write_codex_live_config_atomic};
+use crate::codex_config::{
+    get_codex_config_path, read_codex_config_text, write_codex_live_config_atomic,
+};
 use crate::config::write_text_file;
 use crate::error::AppError;
 use crate::hook::Hook;
@@ -55,7 +57,8 @@ fn strip_codex_hooks_sections(toml: &str) -> String {
             continue;
         }
         if skip {
-            if trimmed.starts_with("[[") || (trimmed.starts_with('[') && !trimmed.starts_with("[[")) {
+            if trimmed.starts_with("[[") || (trimmed.starts_with('[') && !trimmed.starts_with("[["))
+            {
                 skip = false;
             } else {
                 continue;

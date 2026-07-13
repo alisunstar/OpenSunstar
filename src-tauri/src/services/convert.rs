@@ -146,7 +146,9 @@ pub fn apply_convert(req: &ConvertApplyRequest) -> Result<ConvertApplyResult, Ap
         "skill" => apply_skill_convert(&target, &preview.converted_content, req.overwrite),
         "command" => apply_command_convert(&target, &preview.converted_content, req.overwrite),
         "agent" => apply_agent_convert(&target, &preview.converted_content, req.overwrite),
-        other => Err(AppError::Config(format!("Unsupported content type: {other}"))),
+        other => Err(AppError::Config(format!(
+            "Unsupported content type: {other}"
+        ))),
     }
     .map(|written_paths| ConvertApplyResult {
         written_paths,
@@ -182,19 +184,16 @@ fn apply_mcp_convert(
         AppType::Codex => apply_mcp_to_codex(content, overwrite),
         AppType::OpenCode => apply_mcp_to_opencode(content, overwrite),
         AppType::Hermes => apply_mcp_to_hermes(content, overwrite),
-        AppType::ClaudeDesktop | AppType::OpenClaw => Err(AppError::Config(
-            "该目标工具暂不支持 MCP 转换写入".into(),
-        )),
+        AppType::ClaudeDesktop | AppType::OpenClaw => {
+            Err(AppError::Config("该目标工具暂不支持 MCP 转换写入".into()))
+        }
     }
 }
 
 fn apply_mcp_to_claude(content: &str, _overwrite: bool) -> Result<Vec<String>, AppError> {
     let value: Value = serde_json::from_str(content)
         .map_err(|e| AppError::Config(format!("MCP JSON 无效: {e}")))?;
-    let servers = value
-        .get("mcpServers")
-        .cloned()
-        .unwrap_or(value);
+    let servers = value.get("mcpServers").cloned().unwrap_or(value);
     let mut root = if let Ok(Some(existing)) = claude_mcp::read_mcp_json() {
         serde_json::from_str(&existing).unwrap_or(json!({}))
     } else {
@@ -205,8 +204,8 @@ fn apply_mcp_to_claude(content: &str, _overwrite: bool) -> Result<Vec<String>, A
     }
     let path = get_claude_mcp_path();
     backup_file(&path)?;
-    let text = serde_json::to_string_pretty(&root)
-        .map_err(|e| AppError::JsonSerialize { source: e })?;
+    let text =
+        serde_json::to_string_pretty(&root).map_err(|e| AppError::JsonSerialize { source: e })?;
     atomic_write(&path, text.as_bytes())?;
     Ok(vec![path.display().to_string()])
 }
@@ -312,8 +311,7 @@ fn apply_mcp_to_hermes(content: &str, _overwrite: bool) -> Result<Vec<String>, A
 }
 
 fn mcp_servers_section_from_json(servers: &Value) -> Result<String, AppError> {
-    serde_yaml::to_string(servers)
-        .map_err(|e| AppError::Config(format!("YAML 失败: {e}")))
+    serde_yaml::to_string(servers).map_err(|e| AppError::Config(format!("YAML 失败: {e}")))
 }
 
 fn preview_mcp_bridge(source_app: &str, target_app: &str, content: &str) -> BridgePreview {
@@ -518,15 +516,15 @@ fn read_mcp_source(app: &AppType) -> Result<(PathBuf, bool, Option<String>), App
             let text = fs::read_to_string(&path).map_err(|e| AppError::io(&path, e))?;
             Ok((path, true, Some(text)))
         }
-        AppType::ClaudeDesktop | AppType::OpenClaw => Err(AppError::Config(
-            "该源工具暂不支持 MCP 检测".into(),
-        )),
+        AppType::ClaudeDesktop | AppType::OpenClaw => {
+            Err(AppError::Config("该源工具暂不支持 MCP 检测".into()))
+        }
     }
 }
 
 fn read_skills_source(app: &AppType) -> Result<(PathBuf, bool, Option<String>), AppError> {
-    let path = SkillService::get_app_skills_dir(app)
-        .map_err(|e| AppError::Config(e.to_string()))?;
+    let path =
+        SkillService::get_app_skills_dir(app).map_err(|e| AppError::Config(e.to_string()))?;
     let skills = scan_skills_in_dir(&path)?;
     let exists = !skills.is_empty();
     let content = if exists {
@@ -758,8 +756,7 @@ fn apply_agent_convert(
 
         let payload = if matches!(target, AppType::Codex) {
             if item.get("format").and_then(|v| v.as_str()) == Some("toml") {
-                item
-                    .get("content")
+                item.get("content")
                     .and_then(|v| v.as_str())
                     .ok_or_else(|| AppError::Config(format!("Agent {name} 缺少 content")))?
                     .to_string()
@@ -797,9 +794,9 @@ fn commands_dir_for_app(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::OpenCode => Ok(crate::opencode_config::get_opencode_dir().join("commands")),
         AppType::Hermes => Ok(crate::hermes_config::get_hermes_dir().join("commands")),
         AppType::Codex => Ok(get_codex_config_dir().join("commands")),
-        AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(format!(
-            "{app:?} 不支持 slash 命令检测"
-        ))),
+        AppType::OpenClaw | AppType::ClaudeDesktop => {
+            Err(AppError::Config(format!("{app:?} 不支持 slash 命令检测")))
+        }
     }
 }
 
@@ -817,8 +814,7 @@ fn scan_skills_in_dir(skills_root: &Path) -> Result<Vec<(String, String)>, AppEr
         let skill_md = path.join("SKILL.md");
         if skill_md.exists() {
             let directory = entry.file_name().to_string_lossy().to_string();
-            let content =
-                fs::read_to_string(&skill_md).map_err(|e| AppError::io(&skill_md, e))?;
+            let content = fs::read_to_string(&skill_md).map_err(|e| AppError::io(&skill_md, e))?;
             out.push((directory, content));
         }
     }
@@ -881,9 +877,7 @@ fn preview_skill_bridge(_source_app: &str, _target_app: &str, content: &str) -> 
     BridgePreview {
         converted_content: converted,
         unmapped_sections: vec![],
-        warnings: vec![
-            "Skill 将按目录名写入目标 skills/{directory}/SKILL.md".into(),
-        ],
+        warnings: vec!["Skill 将按目录名写入目标 skills/{directory}/SKILL.md".into()],
     }
 }
 
@@ -921,8 +915,8 @@ fn apply_skill_convert(
         return Err(AppError::Config("没有可写入的 Skill".into()));
     }
 
-    let base = SkillService::get_app_skills_dir(target)
-        .map_err(|e| AppError::Config(e.to_string()))?;
+    let base =
+        SkillService::get_app_skills_dir(target).map_err(|e| AppError::Config(e.to_string()))?;
     let mut written = Vec::new();
     for item in skills {
         let directory = item
@@ -930,9 +924,7 @@ fn apply_skill_convert(
             .and_then(|v| v.as_str())
             .ok_or_else(|| AppError::Config("Skill 项缺少 directory".into()))?;
         if directory.contains('/') || directory.contains('\\') || directory.contains("..") {
-            return Err(AppError::Config(format!(
-                "非法 Skill 目录名: {directory}"
-            )));
+            return Err(AppError::Config(format!("非法 Skill 目录名: {directory}")));
         }
         let skill_content = item
             .get("content")
@@ -961,9 +953,7 @@ fn apply_command_convert(
     overwrite: bool,
 ) -> Result<Vec<String>, AppError> {
     if matches!(target, AppType::Codex) {
-        return Err(AppError::Config(
-            "Codex 不支持独立 slash 命令文件".into(),
-        ));
+        return Err(AppError::Config("Codex 不支持独立 slash 命令文件".into()));
     }
 
     let value: Value = serde_json::from_str(content)
@@ -1051,10 +1041,7 @@ mod tests {
     fn command_preview_warns_codex_target() {
         let bundle = r#"{"commands":[{"name":"review-pr","content":"Review this PR"}]}"#;
         let preview = preview_command_bridge("claude", "codex", bundle);
-        assert!(preview
-            .warnings
-            .iter()
-            .any(|w| w.contains("Codex")));
+        assert!(preview.warnings.iter().any(|w| w.contains("Codex")));
     }
 
     #[test]

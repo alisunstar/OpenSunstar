@@ -50,21 +50,21 @@ pub async fn preview_bridge(
 }
 
 #[tauri::command]
-pub async fn get_bridge_auto_push(
-    state: State<'_, AppState>,
-) -> Result<bool, String> {
-    state.db
+pub async fn get_bridge_auto_push(state: State<'_, AppState>) -> Result<bool, String> {
+    state
+        .db
         .get_setting("bridge_auto_push")
         .map(|v| v.map(|s| s == "true").unwrap_or(false))
         .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-pub async fn set_bridge_auto_push(
-    state: State<'_, AppState>,
-    enabled: bool,
-) -> Result<(), String> {
-    let conn = state.db.conn.lock().map_err(|e| format!("Lock failed: {e}"))?;
+pub async fn set_bridge_auto_push(state: State<'_, AppState>, enabled: bool) -> Result<(), String> {
+    let conn = state
+        .db
+        .conn
+        .lock()
+        .map_err(|e| format!("Lock failed: {e}"))?;
     conn.execute(
         "INSERT OR REPLACE INTO settings (key, value) VALUES ('bridge_auto_push', ?1)",
         rusqlite::params![if enabled { "true" } else { "false" }],

@@ -9,9 +9,7 @@ use crate::services::AgentService;
 use crate::store::AppState;
 
 #[tauri::command]
-pub async fn get_all_agents(
-    state: State<'_, AppState>,
-) -> Result<IndexMap<String, Agent>, String> {
+pub async fn get_all_agents(state: State<'_, AppState>) -> Result<IndexMap<String, Agent>, String> {
     AgentService::get_all_agents(&state).map_err(|e| e.to_string())
 }
 
@@ -38,6 +36,5 @@ pub async fn toggle_agent_app(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let app_type = AppType::from_str(&app).map_err(|e| e.to_string())?;
-    AgentService::toggle_app(&state, &agent_id, app_type, enabled)
-        .map_err(|e| e.to_string())
+    AgentService::toggle_app(&state, &agent_id, app_type, enabled).map_err(|e| e.to_string())
 }

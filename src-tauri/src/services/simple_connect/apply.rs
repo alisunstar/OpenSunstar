@@ -3,7 +3,9 @@
 use crate::error::AppError;
 use crate::services::simple_connect::backup;
 use crate::services::simple_connect::key_store::{get_primary_key, key_hint};
-use crate::services::simple_connect::proxy_poc::{start_spike_proxy, SpikeProxyInfo, SPIKE_PROXY_PORT};
+use crate::services::simple_connect::proxy_poc::{
+    start_spike_proxy, SpikeProxyInfo, SPIKE_PROXY_PORT,
+};
 use crate::services::simple_connect::state::{load_state, save_state, SimpleConnectState};
 use crate::services::simple_connect::suppliers::resolve_supplier;
 use crate::services::simple_connect::tools::{self, tool_paths, tool_status, MANAGED_MARKER};
@@ -115,7 +117,11 @@ pub async fn apply_tool(
 
     Ok(ApplyResult {
         tool: tool.to_string(),
-        files: outcome.files.iter().map(|p| p.display().to_string()).collect(),
+        files: outcome
+            .files
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect(),
         backup_path: backup_path.map(|p| p.display().to_string()),
         used_pool: creds.used_pool,
         proxy_port: creds.proxy_info.map(|_| SPIKE_PROXY_PORT),

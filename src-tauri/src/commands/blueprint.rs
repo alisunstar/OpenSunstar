@@ -3,8 +3,8 @@
 use tauri::State;
 
 use crate::services::blueprint::{
-    apply_blueprint_to_project, get_blueprint, list_blueprints, preview_apply_blueprint,
-    Blueprint, BlueprintApplyPreview,
+    apply_blueprint_to_project, get_blueprint, list_blueprints, preview_apply_blueprint, Blueprint,
+    BlueprintApplyPreview,
 };
 use crate::store::AppState;
 
@@ -41,11 +41,8 @@ pub async fn export_project_baseline_snapshot(
     state: State<'_, AppState>,
     project_id: String,
 ) -> Result<String, String> {
-    let path = crate::services::project_artifacts::export_baseline_snapshot(
-        &state.db,
-        &project_id,
-        None,
-    )
-    .map_err(|e| e.to_string())?;
+    let path =
+        crate::services::project_artifacts::export_baseline_snapshot(&state.db, &project_id, None)
+            .map_err(|e| e.to_string())?;
     Ok(path.display().to_string())
 }

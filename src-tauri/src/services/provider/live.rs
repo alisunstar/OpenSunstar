@@ -506,9 +506,7 @@ pub(crate) fn build_effective_settings_with_common_config(
     // Resolve keychain://ref/ placeholders back to plaintext before writing to
     // the CLI live config (settings.json / config.toml / ...). DB stores only
     // placeholders; the CLI needs the real key to authenticate.
-    if let Err(e) =
-        crate::provider_keychain::resolve_settings_in_place(&mut effective_settings)
-    {
+    if let Err(e) = crate::provider_keychain::resolve_settings_in_place(&mut effective_settings) {
         log::warn!(
             "Failed to resolve keychain refs for {} provider '{}': {e}",
             app_type.as_str(),

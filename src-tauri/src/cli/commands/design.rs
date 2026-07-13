@@ -79,7 +79,10 @@ pub fn run(args: DesignArgs, json: bool) -> Result<(), String> {
                 Some(id) => id,
                 None => {
                     let templates = open_sunstar_lib::cli_api::cli_design_list();
-                    let display: Vec<String> = templates.iter().map(|(id, name)| format!("{id} — {name}")).collect();
+                    let display: Vec<String> = templates
+                        .iter()
+                        .map(|(id, name)| format!("{id} — {name}"))
+                        .collect();
                     match output::select("Select template", &display, json) {
                         Some(idx) => templates[idx].0.clone(),
                         None => return Err("No template selected".to_string()),
@@ -98,7 +101,10 @@ pub fn run(args: DesignArgs, json: bool) -> Result<(), String> {
                 Some(id) => id,
                 None => {
                     let templates = open_sunstar_lib::cli_api::cli_design_list();
-                    let display: Vec<String> = templates.iter().map(|(id, name)| format!("{id} — {name}")).collect();
+                    let display: Vec<String> = templates
+                        .iter()
+                        .map(|(id, name)| format!("{id} — {name}"))
+                        .collect();
                     match output::select("Select template", &display, json) {
                         Some(idx) => templates[idx].0.clone(),
                         None => return Err("No template selected".to_string()),
@@ -117,21 +123,32 @@ pub fn run(args: DesignArgs, json: bool) -> Result<(), String> {
                 Some(id) => Some(id),
                 None => {
                     let templates = open_sunstar_lib::cli_api::cli_design_list();
-                    let display: Vec<String> = templates.iter().map(|(id, name)| format!("{id} — {name}")).collect();
+                    let display: Vec<String> = templates
+                        .iter()
+                        .map(|(id, name)| format!("{id} — {name}"))
+                        .collect();
                     match output::select("Select template", &display, json) {
                         Some(idx) => Some(templates[idx].0.clone()),
                         None => return Err("No template selected".to_string()),
                     }
                 }
             };
-            run_compose(template.as_deref(), brand_name.as_deref(), primary_color.as_deref(), json)
+            run_compose(
+                template.as_deref(),
+                brand_name.as_deref(),
+                primary_color.as_deref(),
+                json,
+            )
         }
         DesignAction::Dtcg { template } => {
             let template = match template {
                 Some(id) => id,
                 None => {
                     let templates = open_sunstar_lib::cli_api::cli_design_list();
-                    let display: Vec<String> = templates.iter().map(|(id, name)| format!("{id} — {name}")).collect();
+                    let display: Vec<String> = templates
+                        .iter()
+                        .map(|(id, name)| format!("{id} — {name}"))
+                        .collect();
                     match output::select("Select template", &display, json) {
                         Some(idx) => templates[idx].0.clone(),
                         None => return Err("No template selected".to_string()),
@@ -160,7 +177,12 @@ fn run_list(json: bool) -> Result<(), String> {
     Ok(())
 }
 
-fn run_generate(template_id: &str, project_path: Option<&str>, yes: bool, json: bool) -> Result<(), String> {
+fn run_generate(
+    template_id: &str,
+    project_path: Option<&str>,
+    yes: bool,
+    json: bool,
+) -> Result<(), String> {
     // 1. Compose design contract from template
     let contract = open_sunstar_lib::cli_api::cli_design_get(template_id)?;
 
@@ -200,7 +222,10 @@ fn run_generate(template_id: &str, project_path: Option<&str>, yes: bool, json: 
         if let Some(ref desc) = contract.description {
             println!("  {desc}\n");
         }
-        println!("  Template:   {}", contract.source_template.as_deref().unwrap_or("custom"));
+        println!(
+            "  Template:   {}",
+            contract.source_template.as_deref().unwrap_or("custom")
+        );
         println!("  Primary:    {}", contract.colors.primary);
         println!("  Font:       {}", contract.typography.font_family_base);
         println!("  Components: {}", contract.components.len());
@@ -217,7 +242,13 @@ fn run_generate(template_id: &str, project_path: Option<&str>, yes: bool, json: 
     Ok(())
 }
 
-fn run_install(template_id: &str, project_path: &str, dry_run: bool, yes: bool, json: bool) -> Result<(), String> {
+fn run_install(
+    template_id: &str,
+    project_path: &str,
+    dry_run: bool,
+    yes: bool,
+    json: bool,
+) -> Result<(), String> {
     // Compose contract from template
     let contract = open_sunstar_lib::cli_api::cli_design_get(template_id)?;
 
@@ -254,7 +285,10 @@ fn run_install(template_id: &str, project_path: &str, dry_run: bool, yes: bool, 
             if !plan.audit.findings.is_empty() {
                 println!("\n  Findings:");
                 for f in &plan.audit.findings {
-                    println!("    [{}] {} — {} ({})", f.severity, f.rule_id, f.message, f.file);
+                    println!(
+                        "    [{}] {} — {} ({})",
+                        f.severity, f.rule_id, f.message, f.file
+                    );
                 }
             }
         }
@@ -330,9 +364,19 @@ fn run_import(file_path: &str, json: bool) -> Result<(), String> {
         println!("Design Contract Imported\n");
         println!("  Source:     {}", result.source);
         println!("  Name:       {}", result.contract.name);
-        println!("  Template:   {}", result.contract.source_template.as_deref().unwrap_or("custom"));
+        println!(
+            "  Template:   {}",
+            result
+                .contract
+                .source_template
+                .as_deref()
+                .unwrap_or("custom")
+        );
         println!("  Primary:    {}", result.contract.colors.primary);
-        println!("  Font:       {}", result.contract.typography.font_family_base);
+        println!(
+            "  Font:       {}",
+            result.contract.typography.font_family_base
+        );
 
         if !result.warnings.is_empty() {
             println!("\n  Warnings:");
@@ -351,13 +395,11 @@ fn run_compose(
     primary_color: Option<&str>,
     json: bool,
 ) -> Result<(), String> {
-    let name = brand_name
-        .map(|n| n.to_string())
-        .unwrap_or_else(|| {
-            template_id
-                .map(|id| format!("{} Design", id))
-                .unwrap_or_else(|| "Custom Design".to_string())
-        });
+    let name = brand_name.map(|n| n.to_string()).unwrap_or_else(|| {
+        template_id
+            .map(|id| format!("{} Design", id))
+            .unwrap_or_else(|| "Custom Design".to_string())
+    });
 
     // If primary_color override is given, fetch base template colors and override primary
     let colors = if let Some(pc) = primary_color {
@@ -372,6 +414,7 @@ fn run_compose(
 
     let params = open_sunstar_lib::DesignContractParams {
         template_id: template_id.map(|s| s.to_string()),
+        prototype_template: None,
         name,
         description: None,
         colors,
@@ -399,7 +442,10 @@ fn run_compose(
         ));
         output::info(&format!("  Primary:     {}", contract.colors.primary));
         output::info(&format!("  Secondary:   {}", contract.colors.accent));
-        output::info(&format!("  Font:        {}", contract.typography.font_family_base));
+        output::info(&format!(
+            "  Font:        {}",
+            contract.typography.font_family_base
+        ));
         output::info(&format!("  Components:  {}", contract.components.len()));
         output::info(&format!("  Guardrails:  {}", contract.guardrails.len()));
     }

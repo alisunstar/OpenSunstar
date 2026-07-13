@@ -91,10 +91,9 @@ pub fn add_usage(input: u64, output: u64, cache_read: u64) {
 
 pub fn extract_usage_from_body(bytes: &[u8]) -> Option<(u64, u64, u64)> {
     let v: serde_json::Value = serde_json::from_slice(bytes).ok()?;
-    let usage = v.get("usage").or_else(|| {
-        v.get("response")
-            .and_then(|r| r.get("usage"))
-    })?;
+    let usage = v
+        .get("usage")
+        .or_else(|| v.get("response").and_then(|r| r.get("usage")))?;
     let input = usage
         .get("input_tokens")
         .or_else(|| usage.get("prompt_tokens"))

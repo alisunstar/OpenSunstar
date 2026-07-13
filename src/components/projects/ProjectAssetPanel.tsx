@@ -90,6 +90,20 @@ export function ProjectAssetPanel({
   const [allPermissions, setAllPermissions] = useState<ToolPermission[]>([]);
   const [allAgents, setAllAgents] = useState<Agent[]>([]);
   const [globalLoading, setGlobalLoading] = useState(true);
+  const [mcpRuntimeStatus, setMcpRuntimeStatus] = useState<string | null>(null);
+  const [probingMcp, setProbingMcp] = useState(false);
+
+  const probeMcpRuntime = async (app: "claude" | "gemini") => {
+    setProbingMcp(true);
+    try {
+      const result = await mcpApi.probeProjectRuntime(projectId, app);
+      setMcpRuntimeStatus(`${app === "claude" ? "Claude Code" : "Gemini CLI"}：${result.summary}`);
+    } catch (error) {
+      setMcpRuntimeStatus(String(error));
+    } finally {
+      setProbingMcp(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -373,6 +387,12 @@ export function ProjectAssetPanel({
             </p>
           ) : (
             <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/30 px-3 py-2">
+                <span className="text-xs text-muted-foreground">运行时读取验证：</span>
+                <Button size="sm" variant="outline" disabled={probingMcp} onClick={() => void probeMcpRuntime("claude")}>验证 Claude Code</Button>
+                <Button size="sm" variant="outline" disabled={probingMcp} onClick={() => void probeMcpRuntime("gemini")}>验证 Gemini CLI</Button>
+                {mcpRuntimeStatus && <span className="text-xs text-muted-foreground">{mcpRuntimeStatus}</span>}
+              </div>
               {Object.entries(allMcp).map(([id, server]) => (
                 <div
                   key={id}

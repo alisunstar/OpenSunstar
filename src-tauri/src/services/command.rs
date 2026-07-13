@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::app_config::AppType;
-use crate::command::{validate_command_name, Command};
 use crate::codex_config::get_codex_config_dir;
+use crate::command::{validate_command_name, Command};
 use crate::config::{delete_file, write_text_file};
 use crate::error::AppError;
 use crate::gemini_config::get_gemini_dir;
@@ -13,7 +13,9 @@ use crate::store::AppState;
 pub struct CommandService;
 
 impl CommandService {
-    pub fn get_all_commands(state: &AppState) -> Result<indexmap::IndexMap<String, Command>, AppError> {
+    pub fn get_all_commands(
+        state: &AppState,
+    ) -> Result<indexmap::IndexMap<String, Command>, AppError> {
         state.db.get_all_commands()
     }
 

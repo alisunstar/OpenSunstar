@@ -3,8 +3,7 @@ use std::collections::HashSet;
 
 use crate::app_config::AppType;
 
-pub const HOOK_EVENT_TYPES: [&str; 4] =
-    ["PreToolUse", "PostToolUse", "Notification", "Stop"];
+pub const HOOK_EVENT_TYPES: [&str; 4] = ["PreToolUse", "PostToolUse", "Notification", "Stop"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

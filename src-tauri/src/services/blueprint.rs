@@ -149,7 +149,14 @@ pub fn preview_apply_blueprint(
         (bp.link_all_subagents_for_target, "subagent"),
     ] {
         if flag {
-            collect_extended_actions(db, project_id, asset_type, &app, &mut to_link, &mut warnings);
+            collect_extended_actions(
+                db,
+                project_id,
+                asset_type,
+                &app,
+                &mut to_link,
+                &mut warnings,
+            );
         }
     }
 
@@ -332,21 +339,12 @@ pub fn apply_blueprint_to_project(
                 db.link_project_skill(project_id, &action.asset_id, true)?;
             }
             "prompt" => {
-                let app = action
-                    .app_type
-                    .as_deref()
-                    .unwrap_or(bp.target_app.as_str());
+                let app = action.app_type.as_deref().unwrap_or(bp.target_app.as_str());
                 db.link_project_prompt(project_id, &action.asset_id, app, true)?;
             }
             other => {
                 let app = action.app_type.as_deref().unwrap_or("");
-                db.link_project_asset(
-                    project_id,
-                    other,
-                    &action.asset_id,
-                    app,
-                    true,
-                )?;
+                db.link_project_asset(project_id, other, &action.asset_id, app, true)?;
             }
         }
     }

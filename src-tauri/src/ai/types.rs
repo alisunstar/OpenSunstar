@@ -355,12 +355,12 @@ impl InsightType {
     pub fn ttl_seconds(&self) -> i64 {
         match self {
             InsightType::Summary => 4 * 3600,          // 4 小时
-            InsightType::Health => 2 * 3600,            // 2 小时
-            InsightType::PortfolioSummary => 4 * 3600,  // 4 小时
-            InsightType::StageSuggestion => 8 * 3600,   // 8 小时
-            InsightType::RiskAnalysis => 8 * 3600,      // 8 小时
-            InsightType::TrendAnalysis => 4 * 3600,     // 4 小时
-            InsightType::AgentReadiness => 24 * 3600,   // 24 小时
+            InsightType::Health => 2 * 3600,           // 2 小时
+            InsightType::PortfolioSummary => 4 * 3600, // 4 小时
+            InsightType::StageSuggestion => 8 * 3600,  // 8 小时
+            InsightType::RiskAnalysis => 8 * 3600,     // 8 小时
+            InsightType::TrendAnalysis => 4 * 3600,    // 4 小时
+            InsightType::AgentReadiness => 24 * 3600,  // 24 小时
         }
     }
 

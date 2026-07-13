@@ -100,7 +100,10 @@ impl std::fmt::Display for CliError {
 
 impl From<String> for CliError {
     fn from(message: String) -> Self {
-        CliError { message, hint: None }
+        CliError {
+            message,
+            hint: None,
+        }
     }
 }
 
@@ -186,7 +189,10 @@ fn run_command(command: Commands, json: bool) -> Result<(), String> {
 
         // provider: List/Switch 需要 DB，Verify 不需要
         Commands::Provider(args) => {
-            let needs_db = !matches!(args.action, commands::provider::ProviderAction::Verify { .. });
+            let needs_db = !matches!(
+                args.action,
+                commands::provider::ProviderAction::Verify { .. }
+            );
             if needs_db {
                 let state = init_state_or_exit(json);
                 commands::provider::run(args, Some(&state), json)
@@ -228,12 +234,8 @@ where
     });
     match rx.recv_timeout(timeout) {
         Ok(result) => Ok(result),
-        Err(mpsc::RecvTimeoutError::Timeout) => {
-            Err(format!("操作超时 ({}s)", timeout.as_secs()))
-        }
-        Err(mpsc::RecvTimeoutError::Disconnected) => {
-            Err("操作线程异常退出".to_string())
-        }
+        Err(mpsc::RecvTimeoutError::Timeout) => Err(format!("操作超时 ({}s)", timeout.as_secs())),
+        Err(mpsc::RecvTimeoutError::Disconnected) => Err("操作线程异常退出".to_string()),
     }
 }
 
@@ -272,20 +274,38 @@ fn main() {
         }
 
         // No TUI: print help hint
-        eprintln!("{}", console::style("OpenSunstar CLI — AI 编程助手治理与编排工具").cyan().bold());
+        eprintln!(
+            "{}",
+            console::style("OpenSunstar CLI — AI 编程助手治理与编排工具")
+                .cyan()
+                .bold()
+        );
         eprintln!();
         #[cfg(not(feature = "tui"))]
-        eprintln!("  TUI 仪表盘未启用。使用 {} 编译以启用全屏仪表盘。",
-            console::style("cargo build --features tui").yellow());
+        eprintln!(
+            "  TUI 仪表盘未启用。使用 {} 编译以启用全屏仪表盘。",
+            console::style("cargo build --features tui").yellow()
+        );
         #[cfg(feature = "tui")]
-        eprintln!("  非交互终端，请使用子命令。运行 {} 查看帮助。",
-            console::style("os --help").yellow());
+        eprintln!(
+            "  非交互终端，请使用子命令。运行 {} 查看帮助。",
+            console::style("os --help").yellow()
+        );
         eprintln!();
         eprintln!("  常用命令:");
-        eprintln!("    {}  检查配置漂移", console::style("os drift check").green());
-        eprintln!("    {}  Agent 就绪度评分", console::style("os readiness score").green());
+        eprintln!(
+            "    {}  检查配置漂移",
+            console::style("os drift check").green()
+        );
+        eprintln!(
+            "    {}  Agent 就绪度评分",
+            console::style("os readiness score").green()
+        );
         eprintln!("    {}  环境诊断", console::style("os doctor").green());
-        eprintln!("    {}  项目全景状态", console::style("os project status").green());
+        eprintln!(
+            "    {}  项目全景状态",
+            console::style("os project status").green()
+        );
         eprintln!();
         return;
     }
@@ -306,10 +326,7 @@ fn main() {
 
     let final_result: Result<(), String> = if let Some(timeout_secs) = timeout {
         let timeout_duration = std::time::Duration::from_secs(timeout_secs);
-        match run_with_timeout(
-            move || run_command(command, json),
-            timeout_duration,
-        ) {
+        match run_with_timeout(move || run_command(command, json), timeout_duration) {
             Ok(inner) => inner,
             Err(timeout_err) => Err(timeout_err),
         }

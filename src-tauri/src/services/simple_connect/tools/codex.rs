@@ -1,7 +1,7 @@
 //! Codex CLI 写入（OpenAI-compatible，provider slug = supplier_id）
 
 use super::shared::{
-    normalize_base, write_json_pretty, write_text, WriteOutcome, MANAGED_MARKER, StatusOutcome,
+    normalize_base, write_json_pretty, write_text, StatusOutcome, WriteOutcome, MANAGED_MARKER,
 };
 use crate::codex_config::{get_codex_auth_path, get_codex_config_dir};
 use crate::error::AppError;
@@ -136,7 +136,10 @@ pub fn clear() -> Result<(), AppError> {
         if text.contains(MANAGED_MARKER) || text.contains("simple_connect_managed") {
             let mut doc: DocumentMut = text.parse().unwrap_or_default();
             doc.as_table_mut().remove("simple_connect_managed");
-            if let Some(mp) = doc.get_mut("model_providers").and_then(|x| x.as_table_mut()) {
+            if let Some(mp) = doc
+                .get_mut("model_providers")
+                .and_then(|x| x.as_table_mut())
+            {
                 let keys: Vec<String> = mp
                     .iter()
                     .filter_map(|(k, v)| {

@@ -75,6 +75,19 @@ struct SkillManifestEntry {
     directory: String,
 }
 
+/// Observable outcome of a single project-level sync operation.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SyncReportEntry {
+    pub asset_type: String,
+    pub target_app: String,
+    pub target_path: String,
+    /// `written`, `cleared`, or `skipped`.
+    pub action: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
 /// Sync all project-level artifacts after junction table changes.
 pub fn sync_all_for_project_id(state: &AppState, project_id: &str) -> Result<(), AppError> {
     let project = state
@@ -123,14 +136,20 @@ pub fn sync_asset_for_project_path(
         "skills_configured" => sync_project_skills_for_all_apps(state, &root),
         "subagents_configured" => sync_project_subagents_for_all_apps(state, &root),
         "ignore_rules" => sync_project_ignore_for_all_apps(state, &root),
-        "recent_updates" => Err(AppError::Message(
-            "维护度指标不支持磁盘写回修复".into(),
-        )),
+        "recent_updates" => Err(AppError::Message("维护度指标不支持磁盘写回修复".into())),
         other => Err(AppError::Message(format!("未知检查项: {other}"))),
     }
 }
 
 fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), AppError> {
+    sync_project_mcp_json_with_report(state, project_root).map(|_| ())
+}
+
+/// Sync project MCP configuration and return a machine-readable result.
+pub fn sync_project_mcp_json_with_report(
+    state: &AppState,
+    project_root: &Path,
+) -> Result<SyncReportEntry, AppError> {
     use crate::services::marker_merge::{create_companion_marker, has_companion_marker};
 
     let db = &state.db;
@@ -158,14 +177,26 @@ fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), Ap
             "跳过覆盖非 OpenSunstar 管理的 MCP 文件: {}",
             mcp_path.display()
         );
-        return Ok(());
+        return Ok(SyncReportEntry {
+            asset_type: "mcp".into(),
+            target_app: "claude".into(),
+            target_path: mcp_path.to_string_lossy().to_string(),
+            action: "skipped".into(),
+            reason: Some("unmanaged_file".into()),
+        });
     }
 
     if enabled.is_empty() {
         if mcp_path.is_file() {
             crate::claude_mcp::write_project_mcp_servers_map(project_root, &HashMap::new())?;
         }
-        return Ok(());
+        return Ok(SyncReportEntry {
+            asset_type: "mcp".into(),
+            target_app: "claude".into(),
+            target_path: mcp_path.to_string_lossy().to_string(),
+            action: "cleared".into(),
+            reason: None,
+        });
     }
 
     crate::claude_mcp::write_project_mcp_servers_map(project_root, &enabled)?;
@@ -173,10 +204,19 @@ fn sync_project_mcp_json(state: &AppState, project_root: &Path) -> Result<(), Ap
     // 写入成功后创建伴生标记文件
     create_companion_marker(&mcp_path);
 
-    Ok(())
+    Ok(SyncReportEntry {
+        asset_type: "mcp".into(),
+        target_app: "claude".into(),
+        target_path: mcp_path.to_string_lossy().to_string(),
+        action: "written".into(),
+        reason: None,
+    })
 }
 
-fn sync_project_prompts_for_all_apps(state: &AppState, project_root: &Path) -> Result<(), AppError> {
+fn sync_project_prompts_for_all_apps(
+    state: &AppState,
+    project_root: &Path,
+) -> Result<(), AppError> {
     let db = &state.db;
     let project_id = db
         .get_project_id_by_path(project_root.to_string_lossy().as_ref())?
@@ -266,17 +306,13 @@ fn ensure_agents_bridge_on_claude(
     let claude_path = project_prompt_file_path(project_root, &AppType::Claude)?;
 
     let needs_bridge = agents_path.is_file()
-        || state
-            .db
-            .get_project_prompts(project_id)?
-            .iter()
-            .any(|l| {
-                l.enabled
-                    && matches!(
-                        l.prompt_app_type.as_str(),
-                        "codex" | "opencode" | "openclaw" | "hermes"
-                    )
-            });
+        || state.db.get_project_prompts(project_id)?.iter().any(|l| {
+            l.enabled
+                && matches!(
+                    l.prompt_app_type.as_str(),
+                    "codex" | "opencode" | "openclaw" | "hermes"
+                )
+        });
 
     if !needs_bridge || !claude_path.is_file() {
         return Ok(());
@@ -319,7 +355,10 @@ fn write_command_manifest(project_root: &Path, manifest: &CommandManifest) -> Re
     write_text_file(&path, &text)
 }
 
-fn sync_project_commands_for_all_apps(state: &AppState, project_root: &Path) -> Result<(), AppError> {
+fn sync_project_commands_for_all_apps(
+    state: &AppState,
+    project_root: &Path,
+) -> Result<(), AppError> {
     let db = &state.db;
     let project_id = db
         .get_project_id_by_path(project_root.to_string_lossy().as_ref())?
@@ -422,9 +461,7 @@ fn sync_project_commands_for_app(
         }
     }
 
-    manifest
-        .entries
-        .retain(|e| e.app != app_str);
+    manifest.entries.retain(|e| e.app != app_str);
     manifest.entries.extend(next_entries);
     write_command_manifest(project_root, &manifest)?;
     Ok(())
@@ -615,7 +652,10 @@ fn read_subagent_manifest(project_root: &Path) -> SubagentManifest {
         .unwrap_or_default()
 }
 
-fn write_subagent_manifest(project_root: &Path, manifest: &SubagentManifest) -> Result<(), AppError> {
+fn write_subagent_manifest(
+    project_root: &Path,
+    manifest: &SubagentManifest,
+) -> Result<(), AppError> {
     let path = project_subagent_manifest_path(project_root);
     if manifest.entries.is_empty() {
         if path.is_file() {
@@ -720,11 +760,7 @@ fn sync_project_subagents_for_app(
         }
 
         let body = if matches!(app, AppType::Codex) {
-            markdown_agent_to_codex_toml(
-                &agent.name,
-                agent.description.as_deref(),
-                &agent.content,
-            )?
+            markdown_agent_to_codex_toml(&agent.name, agent.description.as_deref(), &agent.content)?
         } else {
             agent.content.clone()
         };
@@ -890,10 +926,7 @@ fn sync_project_skills_for_app(
     Ok(())
 }
 
-fn sync_project_ignore_for_all_apps(
-    state: &AppState,
-    project_root: &Path,
-) -> Result<(), AppError> {
+fn sync_project_ignore_for_all_apps(state: &AppState, project_root: &Path) -> Result<(), AppError> {
     let project_id = state
         .db
         .get_project_id_by_path(project_root.to_string_lossy().as_ref())?
@@ -1124,9 +1157,15 @@ mod tests {
                 tags: vec![],
             })
             .unwrap();
-        state.db.link_project_mcp_server(&pid, "ctx7", true).unwrap();
+        state
+            .db
+            .link_project_mcp_server(&pid, "ctx7", true)
+            .unwrap();
 
-        sync_project_mcp_json(&state, dir.path()).unwrap();
+        let report = sync_project_mcp_json_with_report(&state, dir.path()).unwrap();
+        assert_eq!(report.action, "written");
+        assert_eq!(report.asset_type, "mcp");
+        assert_eq!(report.target_app, "claude");
         let text = fs::read_to_string(dir.path().join(".mcp.json")).unwrap();
         assert!(text.contains("mcpServers"));
         assert!(text.contains("ctx7"));
@@ -1164,12 +1203,9 @@ mod tests {
         let dir = tempdir().unwrap();
         let state = test_state();
         let _pid = seed_project(&state.db, dir.path());
-        let err = sync_asset_for_project_path(
-            &state,
-            dir.path().to_str().unwrap(),
-            "recent_updates",
-        )
-        .unwrap_err();
+        let err =
+            sync_asset_for_project_path(&state, dir.path().to_str().unwrap(), "recent_updates")
+                .unwrap_err();
         assert!(err.to_string().contains("不支持"));
     }
 
@@ -1202,7 +1238,10 @@ mod tests {
                 tags: vec![],
             })
             .unwrap();
-        state.db.link_project_mcp_server(&pid, "ctx7", true).unwrap();
+        state
+            .db
+            .link_project_mcp_server(&pid, "ctx7", true)
+            .unwrap();
         sync_project_mcp_json(&state, dir.path()).unwrap();
 
         fs::write(
@@ -1292,7 +1331,11 @@ mod tests {
             .unwrap();
 
         sync_project_commands_for_app(&state, dir.path(), &pid, &AppType::Claude).unwrap();
-        let path = dir.path().join(".claude").join("commands").join("review.md");
+        let path = dir
+            .path()
+            .join(".claude")
+            .join("commands")
+            .join("review.md");
         let text = fs::read_to_string(path).unwrap();
         assert!(text.contains("opensunstar:managed-command"));
         assert!(text.contains("Review the diff"));

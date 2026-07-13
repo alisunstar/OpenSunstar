@@ -1,8 +1,8 @@
 //! OpenCode CLI 写入（OpenAI-compatible provider）
 
 use super::shared::{
-    configured_by_marker, normalize_base, read_json_or_empty, WriteOutcome, MANAGED_MARKER,
-    SC_PROVIDER_ID, StatusOutcome,
+    configured_by_marker, normalize_base, read_json_or_empty, StatusOutcome, WriteOutcome,
+    MANAGED_MARKER, SC_PROVIDER_ID,
 };
 use crate::error::AppError;
 use crate::opencode_config::{
@@ -68,9 +68,7 @@ pub fn status() -> Result<StatusOutcome, AppError> {
         return Ok(StatusOutcome::empty());
     }
     let v = read_json_or_empty(&path)?;
-    let managed = v
-        .get("simpleConnectManaged")
-        .and_then(|x| x.as_str());
+    let managed = v.get("simpleConnectManaged").and_then(|x| x.as_str());
     let beeapi = v.get("provider").and_then(|p| p.get(SC_PROVIDER_ID));
     let base_url = beeapi
         .and_then(|b| b.get("options"))

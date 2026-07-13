@@ -30,11 +30,7 @@ pub enum McpAction {
     List,
 }
 
-pub fn run(
-    args: McpArgs,
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+pub fn run(args: McpArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     match args.action {
         McpAction::Test {
             server_id,
@@ -45,14 +41,8 @@ pub fn run(
     }
 }
 
-fn run_list(
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
-    let servers = state
-        .db
-        .get_all_mcp_servers()
-        .map_err(|e| e.to_string())?;
+fn run_list(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
+    let servers = state.db.get_all_mcp_servers().map_err(|e| e.to_string())?;
 
     if json {
         let items: Vec<_> = servers
@@ -117,12 +107,11 @@ fn run_test(
 ) -> Result<(), String> {
     // Interactive select for server_id when nothing specified
     let server_id = if server_id.is_none() && command.is_none() && url.is_none() && !json {
-        let servers = state
-            .db
-            .get_all_mcp_servers()
-            .map_err(|e| e.to_string())?;
+        let servers = state.db.get_all_mcp_servers().map_err(|e| e.to_string())?;
         if servers.is_empty() {
-            return Err("No MCP servers configured. Use --command or --url to test directly.".to_string());
+            return Err(
+                "No MCP servers configured. Use --command or --url to test directly.".to_string(),
+            );
         }
         let items: Vec<String> = servers
             .values()
@@ -139,17 +128,31 @@ fn run_test(
     // 确定测试目标
     let test_mode = if let Some(ref sid) = server_id {
         // 从数据库读取服务器配置
-        let servers = state
-            .db
-            .get_all_mcp_servers()
-            .map_err(|e| e.to_string())?;
+        let servers = state.db.get_all_mcp_servers().map_err(|e| e.to_string())?;
         let server = servers
             .get(sid)
             .ok_or_else(|| format!("MCP 服务器不存在: {sid}"))?;
 
         if let Some(cmd) = server.server.get("command").and_then(|v| v.as_str()) {
-            let args = server.server.get("args").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default();
-            let env_vars = server.server.get("env").and_then(|v| v.as_object()).map(|o| o.iter().map(|(k,v)| (k.clone(), v.as_str().unwrap_or("").to_string())).collect());
+            let args = server
+                .server
+                .get("args")
+                .and_then(|v| v.as_array())
+                .map(|a| {
+                    a.iter()
+                        .filter_map(|v| v.as_str().map(String::from))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let env_vars = server
+                .server
+                .get("env")
+                .and_then(|v| v.as_object())
+                .map(|o| {
+                    o.iter()
+                        .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                        .collect()
+                });
             TestMode::Stdio {
                 command: cmd.to_string(),
                 args,
@@ -158,7 +161,15 @@ fn run_test(
         } else if let Some(server_url) = server.server.get("url").and_then(|v| v.as_str()) {
             TestMode::Sse {
                 url: server_url.to_string(),
-                headers: server.server.get("headers").and_then(|v| v.as_object()).map(|o| o.iter().map(|(k,v)| (k.clone(), v.as_str().unwrap_or("").to_string())).collect()),
+                headers: server
+                    .server
+                    .get("headers")
+                    .and_then(|v| v.as_object())
+                    .map(|o| {
+                        o.iter()
+                            .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                            .collect()
+                    }),
             }
         } else {
             return Err(format!("MCP 服务器 '{sid}' 没有配置 command 或 url"));
@@ -194,7 +205,10 @@ fn run_test(
                 "args": args,
                 "env": env_vars,
             });
-            println!("服务器配置: {}", serde_json::to_string_pretty(&server_spec).unwrap_or_default());
+            println!(
+                "服务器配置: {}",
+                serde_json::to_string_pretty(&server_spec).unwrap_or_default()
+            );
         }
         TestMode::Sse { url, headers } => {
             output::warning("MCP 连接测试功能需要完整的运行时环境。");
@@ -204,7 +218,10 @@ fn run_test(
                 "url": url,
                 "headers": headers,
             });
-            println!("服务器配置: {}", serde_json::to_string_pretty(&server_spec).unwrap_or_default());
+            println!(
+                "服务器配置: {}",
+                serde_json::to_string_pretty(&server_spec).unwrap_or_default()
+            );
         }
     }
 

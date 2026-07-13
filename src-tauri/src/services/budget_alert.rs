@@ -10,8 +10,8 @@
 //! that have `limitDailyUsd` / `limitMonthlyUsd` set in their meta JSON.
 
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::OnceLock;
 use std::sync::Arc;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use serde::Serialize;
@@ -211,7 +211,8 @@ fn run_budget_checks() -> Result<(), AppError> {
 /// handle both.
 fn parse_limit(meta: &serde_json::Value, key: &str) -> Option<f64> {
     let v = meta.get(key)?;
-    v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
+    v.as_f64()
+        .or_else(|| v.as_str().and_then(|s| s.parse::<f64>().ok()))
 }
 
 fn classify_alert(percentage: f64) -> Option<AlertLevel> {

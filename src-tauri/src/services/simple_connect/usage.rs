@@ -254,11 +254,9 @@ fn extract_codex_usage(payload: &serde_json::Value) -> Option<&serde_json::Value
 }
 
 fn extract_usage_value(value: &serde_json::Value) -> Option<&serde_json::Value> {
-    value.get("usage").or_else(|| {
-        value
-            .get("message")
-            .and_then(|m| m.get("usage"))
-    })
+    value
+        .get("usage")
+        .or_else(|| value.get("message").and_then(|m| m.get("usage")))
 }
 
 fn extract_tokens(usage: &serde_json::Value) -> (u64, u64, u64) {

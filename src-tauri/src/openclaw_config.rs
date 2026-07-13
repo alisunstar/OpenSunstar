@@ -376,7 +376,10 @@ impl OpenClawConfigDocument {
     }
 }
 
-pub(crate) fn write_root_section(section: &str, value: &Value) -> Result<OpenClawWriteOutcome, AppError> {
+pub(crate) fn write_root_section(
+    section: &str,
+    value: &Value,
+) -> Result<OpenClawWriteOutcome, AppError> {
     let mut document = OpenClawConfigDocument::load()?;
     document.set_root_section(section, value)?;
     document.save()

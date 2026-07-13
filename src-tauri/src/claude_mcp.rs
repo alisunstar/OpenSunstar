@@ -425,7 +425,10 @@ fn build_sanitized_mcp_servers_map(
 ) -> Result<Map<String, Value>, AppError> {
     let is_wsl_target = is_wsl_path(target_path);
     if is_wsl_target {
-        log::info!("检测到 WSL 路径，跳过 cmd /c 包装: {}", target_path.display());
+        log::info!(
+            "检测到 WSL 路径，跳过 cmd /c 包装: {}",
+            target_path.display()
+        );
     }
     let mut out: Map<String, Value> = Map::new();
     for (id, spec) in servers.iter() {

@@ -291,10 +291,7 @@ pub fn smithery_summary_to_mcp_server(
 
     let server_spec = if server.remote {
         // Remote：使用 Smithery 托管的 SSE 端点
-        let url = format!(
-            "https://smithery.ai/server/{}/sse",
-            server.qualified_name
-        );
+        let url = format!("https://smithery.ai/server/{}/sse", server.qualified_name);
         serde_json::json!({
             "type": "sse",
             "url": url,

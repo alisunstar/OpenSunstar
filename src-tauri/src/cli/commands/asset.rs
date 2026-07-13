@@ -8,7 +8,14 @@ use clap::{Args, Subcommand};
 use crate::output;
 
 const ASSET_TYPES: &[&str] = &[
-    "mcp", "skill", "prompt", "command", "hook", "ignore", "permission", "subagent",
+    "mcp",
+    "skill",
+    "prompt",
+    "command",
+    "hook",
+    "ignore",
+    "permission",
+    "subagent",
 ];
 
 #[derive(Args)]
@@ -40,11 +47,7 @@ pub enum AssetAction {
     },
 }
 
-pub fn run(
-    args: AssetArgs,
-    state: &open_sunstar_lib::AppState,
-    json: bool,
-) -> Result<(), String> {
+pub fn run(args: AssetArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
     match args.action {
         AssetAction::List {
             asset_type,
@@ -122,7 +125,10 @@ fn run_list(
     Ok(())
 }
 
-fn count_global_assets(state: &open_sunstar_lib::AppState, asset_type: &str) -> Result<u32, String> {
+fn count_global_assets(
+    state: &open_sunstar_lib::AppState,
+    asset_type: &str,
+) -> Result<u32, String> {
     match asset_type {
         "mcp" => state
             .db
@@ -136,7 +142,9 @@ fn count_global_assets(state: &open_sunstar_lib::AppState, asset_type: &str) -> 
             .map_err(|e| e.to_string()),
         "prompt" => {
             // 汇总所有 app_type 的 prompts
-            let apps = ["claude", "codex", "gemini", "opencode", "openclaw", "hermes"];
+            let apps = [
+                "claude", "codex", "gemini", "opencode", "openclaw", "hermes",
+            ];
             let mut total = 0u32;
             for app in &apps {
                 total += state
@@ -287,9 +295,7 @@ fn run_diff(
         }
     }
 
-    let has_drift = filtered
-        .iter()
-        .any(|i| i.effective_state == "drifted");
+    let has_drift = filtered.iter().any(|i| i.effective_state == "drifted");
     if has_drift {
         std::process::exit(1);
     }

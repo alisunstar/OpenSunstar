@@ -13,9 +13,7 @@ use crate::store::AppState;
 pub struct AgentService;
 
 impl AgentService {
-    pub fn get_all_agents(
-        state: &AppState,
-    ) -> Result<indexmap::IndexMap<String, Agent>, AppError> {
+    pub fn get_all_agents(state: &AppState) -> Result<indexmap::IndexMap<String, Agent>, AppError> {
         state.db.get_all_agents()
     }
 
@@ -82,11 +80,7 @@ impl AgentService {
     }
 
     pub fn preview_codex_toml(agent: &Agent) -> Result<String, AppError> {
-        markdown_agent_to_codex_toml(
-            &agent.name,
-            agent.description.as_deref(),
-            &agent.content,
-        )
+        markdown_agent_to_codex_toml(&agent.name, agent.description.as_deref(), &agent.content)
     }
 
     fn agent_file_path(name: &str, app: &AppType) -> Result<PathBuf, AppError> {
@@ -98,12 +92,8 @@ impl AgentService {
             AppType::Claude => Ok(crate::config::get_claude_config_dir()
                 .join("agents")
                 .join(format!("{name}.md"))),
-            AppType::Gemini => Ok(get_gemini_dir()
-                .join("agents")
-                .join(format!("{name}.md"))),
-            AppType::OpenCode => Ok(get_opencode_dir()
-                .join("agents")
-                .join(format!("{name}.md"))),
+            AppType::Gemini => Ok(get_gemini_dir().join("agents").join(format!("{name}.md"))),
+            AppType::OpenCode => Ok(get_opencode_dir().join("agents").join(format!("{name}.md"))),
             AppType::Codex => Ok(get_codex_config_dir()
                 .join("agents")
                 .join(format!("{name}.toml"))),
@@ -121,11 +111,7 @@ impl AgentService {
         }
 
         let payload = if matches!(app, AppType::Codex) {
-            markdown_agent_to_codex_toml(
-                &agent.name,
-                agent.description.as_deref(),
-                &agent.content,
-            )?
+            markdown_agent_to_codex_toml(&agent.name, agent.description.as_deref(), &agent.content)?
         } else {
             agent.content.clone()
         };
@@ -147,9 +133,7 @@ impl AgentService {
 
     fn unsupported_app_message(app: &AppType) -> String {
         match app {
-            AppType::Hermes => {
-                "Hermes 暂不支持 Subagent 文件同步（委派走 config.yaml）".into()
-            }
+            AppType::Hermes => "Hermes 暂不支持 Subagent 文件同步（委派走 config.yaml）".into(),
             other => format!("{other:?} 不支持 Subagent 文件同步"),
         }
     }

@@ -4,8 +4,7 @@
 //! 暴露干净的 pub 函数供 CLI 直接调用，避免修改命令层可见性。
 
 use crate::ai::agent_readiness::{
-    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput,
-    AGENT_READINESS_MAX_SCORE,
+    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
     scan_effective_states, EffectiveScanContext, EffectiveScanResult, RepairAssetDriftResult,
@@ -187,14 +186,11 @@ fn repair_asset_drift_inner(
             Some(project_path),
         );
         crate::services::project_artifacts::refresh_baseline_snapshot_for_project_id(
-            &state.db,
-            project_id,
-            None,
+            &state.db, project_id, None,
         );
         if check_name == "skills_configured" {
             crate::services::project_artifacts::refresh_skill_registry_for_project_id(
-                &state.db,
-                project_id,
+                &state.db, project_id,
             );
         }
     }
@@ -342,7 +338,9 @@ pub fn cli_readiness_score(
         project_path: project_path.to_string(),
         score: total_score,
         max_score: AGENT_READINESS_MAX_SCORE,
-        target_app: ctx.effective_target_app.unwrap_or_else(|| "claude".to_string()),
+        target_app: ctx
+            .effective_target_app
+            .unwrap_or_else(|| "claude".to_string()),
         details,
         drift_items: scan
             .items
@@ -372,14 +370,16 @@ pub struct ReadinessScoreOutput {
 pub fn cli_flow_list(
     project_path: Option<&str>,
 ) -> Result<Vec<crate::services::flow_orchestrator::WorkflowModule>, String> {
-    crate::services::flow_orchestrator::list_workflow_modules(project_path).map_err(|e| e.to_string())
+    crate::services::flow_orchestrator::list_workflow_modules(project_path)
+        .map_err(|e| e.to_string())
 }
 
 /// CLI: `os flow list --presets` — 列出工作流预设摘要
 pub fn cli_flow_presets(
     project_path: Option<&str>,
 ) -> Result<Vec<crate::services::flow_orchestrator::WorkflowPresetSummary>, String> {
-    crate::services::flow_orchestrator::list_workflow_presets(project_path).map_err(|e| e.to_string())
+    crate::services::flow_orchestrator::list_workflow_presets(project_path)
+        .map_err(|e| e.to_string())
 }
 
 /// CLI: `os flow get <id>` — 获取完整 preset 定义
@@ -428,15 +428,27 @@ pub fn cli_flow_export(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
+    strict: bool,
 ) -> Result<crate::services::flow_orchestrator::WorkflowProfile, String> {
-    crate::services::flow_orchestrator::export_project_workflow_profile(
-        project_path,
-        preset_id,
-        project_type,
-        None,
-        None,
-        None,
-    )
+    if strict {
+        crate::services::flow_orchestrator::export_project_workflow_profile_strict(
+            project_path,
+            preset_id,
+            project_type,
+            None,
+            None,
+            None,
+        )
+    } else {
+        crate::services::flow_orchestrator::export_project_workflow_profile(
+            project_path,
+            preset_id,
+            project_type,
+            None,
+            None,
+            None,
+        )
+    }
     .map_err(|e| e.to_string())
 }
 
@@ -445,14 +457,25 @@ pub fn cli_flow_config(
     project_path: &str,
     preset_id: &str,
     project_type: &str,
+    strict: bool,
 ) -> Result<crate::services::flow_orchestrator::FlowConfig, String> {
-    crate::services::flow_orchestrator::export_flow_config(
-        project_path,
-        preset_id,
-        project_type,
-        None,
-        None,
-    )
+    if strict {
+        crate::services::flow_orchestrator::export_flow_config_strict(
+            project_path,
+            preset_id,
+            project_type,
+            None,
+            None,
+        )
+    } else {
+        crate::services::flow_orchestrator::export_flow_config(
+            project_path,
+            preset_id,
+            project_type,
+            None,
+            None,
+        )
+    }
     .map_err(|e| e.to_string())
 }
 
@@ -461,14 +484,17 @@ pub fn cli_flow_graph(
     preset_id: &str,
     project_path: Option<&str>,
 ) -> Result<crate::services::recipe_composer::StageGraph, String> {
-    let preset =
-        crate::services::flow_orchestrator::get_workflow_preset(preset_id, project_path)?;
+    let preset = crate::services::flow_orchestrator::get_workflow_preset(preset_id, project_path)?;
     Ok(crate::services::recipe_composer::build_stage_graph(&preset))
 }
 
 /// CLI: `os recipe list` — 列出已保存 recipe 名称
 pub fn cli_recipe_list(project_path: &str) -> Result<Vec<String>, String> {
     crate::services::recipe_composer::list_saved_recipes(project_path).map_err(|e| e.to_string())
+}
+
+pub fn cli_safe_change_id_seed(seed: &str) -> String {
+    crate::services::flow_orchestrator::sanitize_change_id_seed(seed)
 }
 
 /// CLI: `os recipe read <name>` — 读取已保存 recipe 的完整 YAML+MD 内容
@@ -489,10 +515,7 @@ pub fn cli_recipe_delete(project_path: &str, name: &str) -> Result<(), String> {
 pub fn cli_recipe_preview(
     params: &crate::services::recipe_composer::RecipeComposeParams,
 ) -> Result<String, String> {
-    let preset = crate::services::flow_orchestrator::get_workflow_preset(
-        &params.preset_id,
-        None,
-    )?;
+    let preset = crate::services::flow_orchestrator::get_workflow_preset(&params.preset_id, None)?;
     let modules = crate::services::flow_orchestrator::list_workflow_modules(None)?;
     let recipe = crate::services::recipe_composer::compose_recipe(&preset, params, &modules)?;
     crate::services::recipe_composer::generate_recipe_hybrid(&recipe).map_err(|e| e.to_string())
@@ -517,7 +540,8 @@ pub fn cli_recipe_install(
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
                 .as_secs();
-            default_cid = format!("{}-{}", recipe.name.to_lowercase(), ts);
+            let seed = crate::services::flow_orchestrator::sanitize_change_id_seed(&recipe.name);
+            default_cid = format!("{seed}-{ts}");
             &default_cid
         }
     };
@@ -532,12 +556,8 @@ pub fn cli_recipe_plan(
     change_id: &str,
 ) -> Result<crate::services::recipe_composer::RecipeInstallPlan, String> {
     let recipe = crate::services::recipe_composer::parse_recipe_frontmatter(recipe_content)?;
-    crate::services::recipe_composer::preview_recipe_install_plan(
-        project_path,
-        &recipe,
-        change_id,
-    )
-    .map_err(|e| e.to_string())
+    crate::services::recipe_composer::preview_recipe_install_plan(project_path, &recipe, change_id)
+        .map_err(|e| e.to_string())
 }
 
 /// CLI: `os design list` — 列出内置品牌模板 (id, name)
@@ -596,8 +616,7 @@ pub fn cli_design_install(
 pub fn cli_design_import(
     file_path: &str,
 ) -> Result<crate::services::design_contract::ImportResult, String> {
-    crate::services::design_contract::import_design_from_file(file_path)
-        .map_err(|e| e.to_string())
+    crate::services::design_contract::import_design_from_file(file_path).map_err(|e| e.to_string())
 }
 
 /// CLI: `os design plan` — 安装前预检（dry-run）
@@ -618,19 +637,15 @@ pub fn cli_sdd_list(
 }
 
 /// CLI: `os sdd detect <path>` — 对单个项目路径执行只读探测
-pub fn cli_sdd_detect(
-    project_path: &str,
-) -> Vec<crate::services::sdd::SddDetectionResult> {
+pub fn cli_sdd_detect(project_path: &str) -> Vec<crate::services::sdd::SddDetectionResult> {
     crate::services::sdd::detect_project(project_path)
 }
 
 /// CLI: `os sdd detect --all` — 对数据库内所有项目执行探测
 pub fn cli_sdd_detect_all(
     state: &AppState,
-) -> Result<
-    std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>,
-    String,
-> {
+) -> Result<std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>, String>
+{
     let db_arc: std::sync::Arc<Database> = state.db.clone().into();
     crate::services::sdd::detect_all_projects(&db_arc).map_err(|e| e.to_string())
 }
@@ -638,18 +653,14 @@ pub fn cli_sdd_detect_all(
 /// CLI: `os sdd saved` — 读取已持久化的全部探测结果
 pub fn cli_sdd_saved(
     state: &AppState,
-) -> Result<
-    std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>,
-    String,
-> {
+) -> Result<std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>, String>
+{
     let db_arc: std::sync::Arc<Database> = state.db.clone().into();
     crate::services::sdd::get_all_saved_detections(&db_arc).map_err(|e| e.to_string())
 }
 
 /// CLI: `os sdd recommend` — 根据探测结果推荐 workflow preset
-pub fn cli_sdd_recommend(
-    results: &[crate::services::sdd::SddDetectionResult],
-) -> Option<String> {
+pub fn cli_sdd_recommend(results: &[crate::services::sdd::SddDetectionResult]) -> Option<String> {
     crate::services::sdd::recommend_preset_from_detections(results)
 }
 
@@ -711,10 +722,7 @@ pub struct ProjectContext {
 }
 
 /// CLI: `os project status` — 聚合项目全景上下文
-pub fn cli_project_context(
-    state: &AppState,
-    project_path: &str,
-) -> Result<ProjectContext, String> {
+pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<ProjectContext, String> {
     use std::path::Path;
     let dot = Path::new(project_path).join(".opensunstar");
 
@@ -757,18 +765,20 @@ pub fn cli_project_context(
 
     // 5. Total artifact completeness from flow scan (best-effort)
     let total_artifact_completeness = if specs_exists {
-        crate::services::flow_orchestrator::scan_project_specs_workflow(
-            project_path, None, None,
-        )
-        .ok()
-        .map(|idx| {
-            if idx.changes.is_empty() {
-                0u8
-            } else {
-                let sum: u32 = idx.changes.iter().map(|c| c.artifact_completeness as u32).sum();
-                (sum / idx.changes.len() as u32) as u8
-            }
-        })
+        crate::services::flow_orchestrator::scan_project_specs_workflow(project_path, None, None)
+            .ok()
+            .map(|idx| {
+                if idx.changes.is_empty() {
+                    0u8
+                } else {
+                    let sum: u32 = idx
+                        .changes
+                        .iter()
+                        .map(|c| c.artifact_completeness as u32)
+                        .sum();
+                    (sum / idx.changes.len() as u32) as u8
+                }
+            })
     } else {
         None
     };
@@ -797,11 +807,11 @@ pub fn cli_provider_list(
 }
 
 /// CLI: `os provider current --app <app>` — 查询当前激活的供应商 id
-pub fn cli_provider_current(
-    state: &AppState,
-    app: &str,
-) -> Result<Option<String>, String> {
-    state.db.get_current_provider(app).map_err(|e| e.to_string())
+pub fn cli_provider_current(state: &AppState, app: &str) -> Result<Option<String>, String> {
+    state
+        .db
+        .get_current_provider(app)
+        .map_err(|e| e.to_string())
 }
 
 /// CLI 首次初始化结果（`os config bootstrap` / 自动 bootstrap）
@@ -828,11 +838,9 @@ pub fn cli_bootstrap_database() -> Result<CliBootstrapResult, String> {
 
     let mut imported_apps = Vec::new();
     for app_type in AppType::all().filter(|t| !t.is_additive_mode()) {
-        let should_import = ProviderService::should_import_default_config_on_startup(
-            &state,
-            &app_type,
-        )
-        .unwrap_or(false);
+        let should_import =
+            ProviderService::should_import_default_config_on_startup(&state, &app_type)
+                .unwrap_or(false);
         if !should_import {
             continue;
         }
@@ -875,7 +883,9 @@ pub fn cli_provider_switch(
     app: &str,
     id: &str,
 ) -> Result<crate::services::provider::SwitchResult, String> {
-    let app_type: AppType = app.parse().map_err(|e: crate::error::AppError| e.to_string())?;
+    let app_type: AppType = app
+        .parse()
+        .map_err(|e: crate::error::AppError| e.to_string())?;
     ProviderService::switch(state, app_type, id).map_err(|e| e.to_string())
 }
 
@@ -906,7 +916,10 @@ pub fn cli_mcp_list(
 pub fn cli_skill_list(
     state: &AppState,
 ) -> Result<indexmap::IndexMap<String, crate::app_config::InstalledSkill>, String> {
-    state.db.get_all_installed_skills().map_err(|e| e.to_string())
+    state
+        .db
+        .get_all_installed_skills()
+        .map_err(|e| e.to_string())
 }
 
 /// CLI: `os asset list --project <id> [--type <asset_type>]`
@@ -933,17 +946,11 @@ pub fn cli_asset_counts(
 }
 
 /// CLI: `os config export <path>` — 导出数据库为 SQL 文件
-pub fn cli_config_export(
-    state: &AppState,
-    output_path: &std::path::Path,
-) -> Result<(), String> {
+pub fn cli_config_export(state: &AppState, output_path: &std::path::Path) -> Result<(), String> {
     state.db.export_sql(output_path).map_err(|e| e.to_string())
 }
 
 /// CLI: `os config import <path>` — 从 SQL 文件导入数据库，返回备份 id
-pub fn cli_config_import(
-    state: &AppState,
-    input_path: &std::path::Path,
-) -> Result<String, String> {
+pub fn cli_config_import(state: &AppState, input_path: &std::path::Path) -> Result<String, String> {
     state.db.import_sql(input_path).map_err(|e| e.to_string())
 }

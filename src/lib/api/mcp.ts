@@ -9,6 +9,14 @@ import type {
 import type { AppId } from "./types";
 
 export const mcpApi = {
+  probeProjectRuntime: async (projectId: string, app: "claude" | "gemini") =>
+    invoke<{
+      app: string;
+      status: "read_and_effective" | "not_effective" | "cli_unavailable" | "timeout" | "not_supported";
+      configuredServers: string[];
+      observedServers: string[];
+      summary: string;
+    }>("probe_project_mcp_runtime", { projectId, app }),
   async getStatus(): Promise<McpStatus> {
     return await invoke("get_claude_mcp_status");
   },

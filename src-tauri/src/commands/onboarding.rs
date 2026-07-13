@@ -9,9 +9,7 @@ pub async fn scan_environment() -> Result<ScanResult, String> {
 }
 
 #[tauri::command]
-pub async fn complete_onboarding(
-    state: tauri::State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn complete_onboarding(state: tauri::State<'_, AppState>) -> Result<(), String> {
     state
         .db
         .set_setting("onboarding_completed", "true")
@@ -19,9 +17,7 @@ pub async fn complete_onboarding(
 }
 
 #[tauri::command]
-pub async fn is_onboarding_needed(
-    state: tauri::State<'_, AppState>,
-) -> Result<bool, String> {
+pub async fn is_onboarding_needed(state: tauri::State<'_, AppState>) -> Result<bool, String> {
     let completed = state
         .db
         .get_setting("onboarding_completed")

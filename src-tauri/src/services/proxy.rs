@@ -412,11 +412,14 @@ impl ProxyService {
     /// 短超时探测本地代理端口是否在监听。
     async fn probe_listener(address: &str, port: u16) -> bool {
         let addr = format!("{address}:{port}");
-        tokio::time::timeout(std::time::Duration::from_millis(500), tokio::net::TcpStream::connect(&addr))
-            .await
-            .ok()
-            .and_then(Result::ok)
-            .is_some()
+        tokio::time::timeout(
+            std::time::Duration::from_millis(500),
+            tokio::net::TcpStream::connect(&addr),
+        )
+        .await
+        .ok()
+        .and_then(Result::ok)
+        .is_some()
     }
 
     /// 清除内存中已停止或端口未监听的 ProxyServer 残留（热重载 / 异常退出后可能出现）。
@@ -459,13 +462,12 @@ impl ProxyService {
         }
         if !self.is_listener_active().await {
             return Err(
-                "代理服务启动后端口仍未监听，Claude Code 将无法连接（ConnectionRefused）".to_string(),
+                "代理服务启动后端口仍未监听，Claude Code 将无法连接（ConnectionRefused）"
+                    .to_string(),
             );
         }
         let server = self.server.read().await;
-        let server = server
-            .as_ref()
-            .ok_or_else(|| "代理实例缺失".to_string())?;
+        let server = server.as_ref().ok_or_else(|| "代理实例缺失".to_string())?;
         let status = server.get_status().await;
         Ok(ProxyServerInfo {
             address: status.address,

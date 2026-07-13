@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   flowOrchestratorApi,
+  type FlowWritePlan,
   type FlowConfig,
   type SpecsChangeIndex,
   type SpecsWorkflowIndex,
@@ -25,6 +26,8 @@ import {
   type WorkflowPreset,
   type WorkflowPresetSummary,
 } from "@/lib/api/flowOrchestrator";
+import { InstallConfirmModal } from "@/components/shared/InstallConfirmModal";
+import { validateChangeId } from "@/lib/changeId";
 import { cn } from "@/lib/utils";
 
 const PROJECT_TYPES = ["backend", "frontend", "cli"] as const;
@@ -121,6 +124,8 @@ export function ProjectFlowOrchestratorPanel({
   const [exporting, setExporting] = useState(false);
   const [configExporting, setConfigExporting] = useState(false);
   const [validating, setValidating] = useState(false);
+  const [profileExportPlan, setProfileExportPlan] = useState<FlowWritePlan | null>(null);
+  const [flowConfigExportPlan, setFlowConfigExportPlan] = useState<FlowWritePlan | null>(null);
 
   const [presetId, setPresetId] = useState("standard");
   const [projectType, setProjectType] =
@@ -260,6 +265,10 @@ export function ProjectFlowOrchestratorPanel({
     () => resolvedStages.filter((s) => !enabledStages.has(s)),
     [resolvedStages, enabledStages],
   );
+  const selectedChangeIdError = useMemo(
+    () => (selectedChangeId ? validateChangeId(selectedChangeId) : null),
+    [selectedChangeId],
+  );
 
   // --- Handlers ---
   const toggleModule = (moduleId: string) => {
@@ -280,9 +289,47 @@ export function ProjectFlowOrchestratorPanel({
     });
   };
 
-  const handleExport = async () => {
+  const showSemanticWarnings = (warnings?: string[]) => {
+    if (warnings && warnings.length > 0) {
+      toast.warning(
+        `配置检查发现 ${warnings.length} 条提示:\n${warnings.join("\n")}`,
+        { duration: 8000 },
+      );
+    }
+  };
+
+  const handleExportPreview = async () => {
     setExporting(true);
     try {
+      if (selectedChangeIdError) {
+        toast.error(selectedChangeIdError);
+        return;
+      }
+      const plan = await flowOrchestratorApi.previewProfileExport(
+        projectId,
+        presetId,
+        projectType,
+        selectedChangeId || undefined,
+        Array.from(selectedModules),
+        disabledStages.length > 0 ? disabledStages : undefined,
+      );
+      setProfileExportPlan(plan);
+      showSemanticWarnings(plan.semanticWarnings);
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleExportConfirm = async () => {
+    setProfileExportPlan(null);
+    setExporting(true);
+    try {
+      if (selectedChangeIdError) {
+        toast.error(selectedChangeIdError);
+        return;
+      }
       const profile = await flowOrchestratorApi.exportProfile(
         projectId,
         presetId,
@@ -297,12 +344,7 @@ export function ProjectFlowOrchestratorPanel({
         }),
       );
       // Show semantic validation warnings if any (S1-S5)
-      if (profile?.semanticWarnings && profile.semanticWarnings.length > 0) {
-        toast.warning(
-          `S1-S5 语义校验发现 ${profile.semanticWarnings.length} 条警告:\n${profile.semanticWarnings.join("\n")}`,
-          { duration: 8000 },
-        );
-      }
+      showSemanticWarnings(profile?.semanticWarnings);
       await refreshScan();
     } catch (e) {
       toast.error(String(e));
@@ -311,7 +353,27 @@ export function ProjectFlowOrchestratorPanel({
     }
   };
 
-  const handleExportFlowConfig = async () => {
+  const handleExportFlowConfigPreview = async () => {
+    setConfigExporting(true);
+    try {
+      const plan = await flowOrchestratorApi.previewFlowConfigExport(
+        projectId,
+        presetId,
+        projectType,
+        Array.from(selectedModules),
+        disabledStages.length > 0 ? disabledStages : undefined,
+      );
+      setFlowConfigExportPlan(plan);
+      showSemanticWarnings(plan.semanticWarnings);
+    } catch (e) {
+      toast.error(String(e));
+    } finally {
+      setConfigExporting(false);
+    }
+  };
+
+  const handleExportFlowConfigConfirm = async () => {
+    setFlowConfigExportPlan(null);
     setConfigExporting(true);
     try {
       const config: FlowConfig = await flowOrchestratorApi.exportFlowConfig(
@@ -338,12 +400,7 @@ export function ProjectFlowOrchestratorPanel({
         }),
       );
       // Show semantic validation warnings if any (S1-S5)
-      if (config.semantic_warnings && config.semantic_warnings.length > 0) {
-        toast.warning(
-          `S1-S5 语义校验发现 ${config.semantic_warnings.length} 条警告:\n${config.semantic_warnings.join("\n")}`,
-          { duration: 8000 },
-        );
-      }
+      showSemanticWarnings(config.semantic_warnings);
     } catch (e) {
       toast.error(String(e));
     } finally {
@@ -356,6 +413,10 @@ export function ProjectFlowOrchestratorPanel({
       toast.error(
         t("flowOrchestrator.pickChange", { defaultValue: "请先选择 change" }),
       );
+      return;
+    }
+    if (selectedChangeIdError) {
+      toast.error(selectedChangeIdError);
       return;
     }
     setValidating(true);
@@ -540,22 +601,22 @@ export function ProjectFlowOrchestratorPanel({
           {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
           {t("flowOrchestrator.rescan", { defaultValue: "刷新索引" })}
         </Button>
-        <Button size="sm" disabled={exporting || !index?.workspaceExists} onClick={() => void handleExport()}>
+        <Button size="sm" disabled={exporting || !index?.workspaceExists} onClick={() => void handleExportPreview()}>
           {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <GitBranch className="h-3.5 w-3.5 mr-1" />}
-          {t("flowOrchestrator.exportProfile", { defaultValue: "导出 Profile" })}
+          {t("flowOrchestrator.saveProjectFlow", { defaultValue: "保存项目流程" })}
         </Button>
         <Button
           size="sm"
           variant="outline"
           disabled={configExporting || !index?.workspaceExists}
-          onClick={() => void handleExportFlowConfig()}
+          onClick={() => void handleExportFlowConfigPreview()}
         >
           {configExporting ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
           ) : (
             <FileOutput className="h-3.5 w-3.5 mr-1" />
           )}
-          {t("flowOrchestrator.exportFlowConfig", { defaultValue: "导出 FlowConfig" })}
+          {t("flowOrchestrator.exportCiConfig", { defaultValue: "导出 CI 检查配置" })}
         </Button>
       </div>
 
@@ -662,6 +723,38 @@ export function ProjectFlowOrchestratorPanel({
           </div>
         )}
       </div>
+
+      {profileExportPlan && (
+        <InstallConfirmModal
+          open={!!profileExportPlan}
+          title={t("flowOrchestrator.confirmProfileTitle", {
+            defaultValue: "确认保存项目流程",
+          })}
+          confirmLabel={t("flowOrchestrator.confirmProfile", {
+            defaultValue: "确认保存",
+          })}
+          files={profileExportPlan.files}
+          audit={profileExportPlan.audit}
+          onConfirm={() => void handleExportConfirm()}
+          onCancel={() => setProfileExportPlan(null)}
+        />
+      )}
+
+      {flowConfigExportPlan && (
+        <InstallConfirmModal
+          open={!!flowConfigExportPlan}
+          title={t("flowOrchestrator.confirmFlowConfigTitle", {
+            defaultValue: "确认导出 CI 检查配置",
+          })}
+          confirmLabel={t("flowOrchestrator.confirmFlowConfig", {
+            defaultValue: "确认导出",
+          })}
+          files={flowConfigExportPlan.files}
+          audit={flowConfigExportPlan.audit}
+          onConfirm={() => void handleExportFlowConfigConfirm()}
+          onCancel={() => setFlowConfigExportPlan(null)}
+        />
+      )}
     </section>
   );
 }

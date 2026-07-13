@@ -158,6 +158,17 @@ export const recipeComposerApi = {
     });
   },
 
+  /** Load a saved plan as structured composition data for editing or re-installing. */
+  async loadSavedRecipe(
+    projectId: string,
+    name: string,
+  ): Promise<CompositionRecipe> {
+    return await invoke<CompositionRecipe>("load_saved_recipe_cmd", {
+      projectId,
+      name,
+    });
+  },
+
   /** Delete a saved recipe file. */
   async deleteSavedRecipe(
     projectId: string,

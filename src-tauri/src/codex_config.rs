@@ -1,4 +1,4 @@
-﻿use std::collections::HashSet;
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use crate::config::{
@@ -751,7 +751,8 @@ pub fn prepare_codex_config_text_with_model_catalog(
 pub fn read_codex_model_catalog_simplified_from_live() -> Result<Option<Value>, AppError> {
     let config_text = read_codex_config_text()?;
     let generated_path = get_codex_model_catalog_path();
-    let Some(catalog_path) = resolve_open_sunstar_catalog_path(&config_text, &generated_path) else {
+    let Some(catalog_path) = resolve_open_sunstar_catalog_path(&config_text, &generated_path)
+    else {
         return Ok(None);
     };
     if !catalog_path.exists() {
@@ -1880,7 +1881,8 @@ name = "any"
         let generated = PathBuf::from("/tmp/.codex/OpenSunstar-model-catalog.json");
         let config = r#"model_catalog_json = "/tmp/.codex/OpenSunstar-model-catalog.json"
 "#;
-        let resolved = resolve_open_sunstar_catalog_path(config, &generated).expect("path resolves");
+        let resolved =
+            resolve_open_sunstar_catalog_path(config, &generated).expect("path resolves");
         assert_eq!(resolved, generated);
     }
 

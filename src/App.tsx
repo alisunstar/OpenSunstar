@@ -168,7 +168,7 @@ const PAGE_META: Record<PageView, PageMeta> = {
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   methodology: {
     titleKey: "methodology.title",
-    defaultTitle: "Methodology & Orchestration",
+    defaultTitle: "Workflow & Governance",
   },
   settings: { titleKey: "common.settings", defaultTitle: "Settings" },
 };

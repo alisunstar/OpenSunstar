@@ -4,6 +4,7 @@ import {
   isAssetLinkable,
   summarizeAssetSupport,
 } from "./assetAppSupport";
+import supportContract from "./assetAppSupport.contract.json";
 import type { ProjectAssetType } from "@/types/projectAsset";
 
 const ALL_TYPES: ProjectAssetType[] = [
@@ -44,9 +45,18 @@ describe("assetAppSupport", () => {
     expect(hasSupported).toBe(false);
   });
 
-  it("command is linkable on Claude/Gemini even when Codex is unsupported", () => {
+  it("command is supported on Codex, Claude, and Gemini", () => {
     expect(isAssetLinkable("command")).toBe(true);
-    expect(ASSET_APP_SUPPORT.command.codex.status).toBe("unsupported");
+    expect(ASSET_APP_SUPPORT.command.codex.status).toBe("supported");
     expect(ASSET_APP_SUPPORT.command.claude.status).toBe("supported");
+  });
+
+  it("exposes every shared-contract asset/app status to the UI", () => {
+    for (const type of ALL_TYPES) {
+      for (const [appId, status] of Object.entries(supportContract[type])) {
+        expect(ASSET_APP_SUPPORT[type][appId as keyof typeof ASSET_APP_SUPPORT[typeof type]].status)
+          .toBe(status);
+      }
+    }
   });
 });

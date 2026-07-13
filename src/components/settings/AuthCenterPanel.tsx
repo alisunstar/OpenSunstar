@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { CodexIcon } from "@/components/BrandIcons";
 import { CopilotAuthSection } from "@/components/providers/forms/CopilotAuthSection";
 import { CodexOAuthSection } from "@/components/providers/forms/CodexOAuthSection";
+import { LocalCliAuthStatusPanel } from "@/components/settings/LocalCliAuthStatusPanel";
 
 export function AuthCenterPanel() {
   const { t } = useTranslation();
@@ -17,22 +18,38 @@ export function AuthCenterPanel() {
               <ShieldCheck className="h-5 w-5 text-primary" />
               <h3 className="text-base font-semibold">
                 {t("settings.authCenter.title", {
-                  defaultValue: "OAuth 认证中心",
+                  defaultValue: "认证中心",
                 })}
               </h3>
             </div>
             <p className="text-sm text-muted-foreground">
               {t("settings.authCenter.description", {
                 defaultValue:
-                  "在 Claude Code 中使用您的其他订阅，请注意合规风险。",
+                  "把第三方 Key 与官方订阅登录拆成两条认证轨道，帮助你识别每个 CLI 当前依赖的凭据来源。",
               })}
             </p>
           </div>
           <Badge variant="secondary">
-            {t("settings.authCenter.beta", { defaultValue: "Beta" })}
+            {t("settings.authCenter.beta", { defaultValue: "MVP" })}
           </Badge>
         </div>
       </section>
+
+      <LocalCliAuthStatusPanel />
+
+      <div className="space-y-1 px-1">
+        <h4 className="font-medium">
+          {t("settings.authCenter.managedAccountsTitle", {
+            defaultValue: "托管账号",
+          })}
+        </h4>
+        <p className="text-sm text-muted-foreground">
+          {t("settings.authCenter.managedAccountsDescription", {
+            defaultValue:
+              "由 OpenSunstar 管理的账号登录，可绑定到对应 Provider 或本地代理链路。",
+          })}
+        </p>
+      </div>
 
       <section className="rounded-xl border border-border/60 bg-card/60 p-6">
         <div className="mb-4 flex items-center gap-3">

@@ -17,7 +17,10 @@ pub async fn get_all_projects(state: State<'_, AppState>) -> Result<Vec<Project>
 }
 
 #[tauri::command]
-pub async fn get_project(state: State<'_, AppState>, id: String) -> Result<Option<Project>, String> {
+pub async fn get_project(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<Project>, String> {
     state.db.get_project(&id).map_err(|e| e.to_string())
 }
 
@@ -26,7 +29,10 @@ pub async fn get_project_by_path(
     state: State<'_, AppState>,
     path: String,
 ) -> Result<Option<Project>, String> {
-    state.db.get_project_by_path(&path).map_err(|e| e.to_string())
+    state
+        .db
+        .get_project_by_path(&path)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

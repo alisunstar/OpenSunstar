@@ -27,25 +27,23 @@ pub use deeplink::{
     import_keys, is_simple_connect_import_url, try_parse_url, SimpleConnectImportPayload,
     SimpleConnectImportResult,
 };
-pub use tools::MANAGED_MARKER;
-pub use key_store::{
-    delete_api_key, get_primary_key, key_hint, store_api_key, store_primary_key,
-};
-pub use security::{run_p0_security_audit, P0CheckItem, P0SecurityReport};
+pub use key_store::{delete_api_key, get_primary_key, key_hint, store_api_key, store_primary_key};
 pub use pool::{build_runtime_pool, KeyPool, PoolKey, PoolKeyStat, PoolSimulationStep};
 pub use proxy_poc::{
     fetch_models_via_proxy, pool_runtime_stats, spike_proxy_info, start_spike_proxy,
     stop_spike_proxy, SimpleConnectRuntimeStats, SpikeProxyInfo, SPIKE_PROXY_PORT,
 };
+pub use security::{run_p0_security_audit, P0CheckItem, P0SecurityReport};
 pub use state::{load_state, save_state, set_supplier, PoolKeyMeta, SimpleConnectState};
 pub use suppliers::{
     get_supplier, list_builtin_suppliers, resolve_protocol, resolve_supplier, ApiProtocol,
     SupplierProfile,
 };
-pub use verify::{verify_api_key, VerifyKeyResult};
-pub use usage::{build_usage_summary, SimpleConnectUsageSummary};
 pub use token_usage::{snapshot as token_usage_snapshot, ScTokenUsage};
+pub use tools::MANAGED_MARKER;
 pub use tools::{ALL_TOOLS, PHASE1_TOOLS};
+pub use usage::{build_usage_summary, SimpleConnectUsageSummary};
+pub use verify::{verify_api_key, VerifyKeyResult};
 
 use serde::Serialize;
 
@@ -175,7 +173,9 @@ pub async fn run_spike_report(
 #[cfg(test)]
 mod spike_tests {
     use super::*;
-    use crate::services::simple_connect::key_store::{delete_api_key, entry_key, store_primary_key};
+    use crate::services::simple_connect::key_store::{
+        delete_api_key, entry_key, store_primary_key,
+    };
     use serial_test::serial;
 
     fn unique_supplier() -> String {
@@ -184,11 +184,9 @@ mod spike_tests {
 
     #[test]
     fn offline_kernel_suppliers_and_pool() {
-        assert!(
-            list_builtin_suppliers()
-                .iter()
-                .all(|s| s.id != "beeapi" && !s.openai_base.contains("beeapi.ai"))
-        );
+        assert!(list_builtin_suppliers()
+            .iter()
+            .all(|s| s.id != "beeapi" && !s.openai_base.contains("beeapi.ai")));
         let steps = run_pool_demo();
         assert!(steps.iter().any(|s| s.action == "fail" && s.key_id == "k1"));
         assert!(steps.iter().any(|s| s.action == "pick" && s.key_id == "k2"));

@@ -29,6 +29,45 @@ export interface ManagedAuthDeviceCodeResponse {
   interval: number;
 }
 
+export type LocalCliAccessMode =
+  | "third_party_key"
+  | "official_cli_login"
+  | "unknown";
+
+export type LocalCliCredentialState =
+  | "missing"
+  | "present_unverified"
+  | "logged_in_detected"
+  | "unknown";
+
+export type LocalCliRouteState =
+  | "applied"
+  | "not_applied"
+  | "not_applicable"
+  | "unknown";
+
+export type LocalCliConfidence = "high" | "medium" | "low";
+
+export interface LocalCliAuthStatus {
+  toolKey: "claude" | "gemini";
+  simpleConnectTool: "claude-code" | "gemini-cli";
+  displayName: string;
+  accessMode: LocalCliAccessMode;
+  credentialState: LocalCliCredentialState;
+  routeState: LocalCliRouteState;
+  confidence: LocalCliConfidence;
+  action: "none" | "apply" | "open_auth_center";
+  configPath: string;
+  configExists: boolean;
+  selectedAuthType: string | null;
+  simpleConnectConfigured: boolean;
+  simpleConnectBaseUrl: string | null;
+  simpleConnectModel: string | null;
+  keyHint: string | null;
+  detectedSources: string[];
+  evidence: string[];
+}
+
 export async function authStartLogin(
   authProvider: ManagedAuthProvider,
   githubDomain?: string,
@@ -95,6 +134,10 @@ export async function authLogout(
   });
 }
 
+export async function getLocalCliAuthStatus(): Promise<LocalCliAuthStatus[]> {
+  return invoke<LocalCliAuthStatus[]>("get_local_cli_auth_status");
+}
+
 export const authApi = {
   authStartLogin,
   authPollForAccount,
@@ -103,4 +146,5 @@ export const authApi = {
   authRemoveAccount,
   authSetDefaultAccount,
   authLogout,
+  getLocalCliAuthStatus,
 };

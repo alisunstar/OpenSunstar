@@ -29,10 +29,19 @@ fn detect_tag_chars(file_path: &str, line_num: usize, line: &str, findings: &mut
             category: "hidden-unicode".into(),
             file: file_path.into(),
             line: line_num + 1,
-            snippet: format!("...{}... (U+{:04X})", &line[abs_pos.saturating_sub(10)..(abs_pos + 10).min(line.len())], line[abs_pos..].chars().next().unwrap() as u32),
+            snippet: format!(
+                "...{}... (U+{:04X})",
+                &line[abs_pos.saturating_sub(10)..(abs_pos + 10).min(line.len())],
+                line[abs_pos..].chars().next().unwrap() as u32
+            ),
             message: "检测到 Unicode 标签字符 — 可能用于隐藏恶意代码".into(),
         });
-        start = abs_pos + line[abs_pos..].chars().next().map(|c| c.len_utf8()).unwrap_or(1);
+        start = abs_pos
+            + line[abs_pos..]
+                .chars()
+                .next()
+                .map(|c| c.len_utf8())
+                .unwrap_or(1);
     }
 }
 
@@ -128,7 +137,9 @@ mod tests {
         let zwsp = '\u{200B}';
         let content = format!("hello{zwsp}world");
         scan("test.sh", &content, &mut findings);
-        assert!(findings.iter().any(|f| f.rule_id == "hidden-unicode-zero-width"));
+        assert!(findings
+            .iter()
+            .any(|f| f.rule_id == "hidden-unicode-zero-width"));
     }
 
     #[test]
@@ -143,7 +154,11 @@ mod tests {
     #[test]
     fn clean_content_no_findings() {
         let mut findings = vec![];
-        scan("normal.md", "# Hello World\nThis is normal text.", &mut findings);
+        scan(
+            "normal.md",
+            "# Hello World\nThis is normal text.",
+            &mut findings,
+        );
         assert!(findings.is_empty());
     }
 }

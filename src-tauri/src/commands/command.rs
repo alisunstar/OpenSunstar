@@ -16,10 +16,7 @@ pub async fn get_all_commands(
 }
 
 #[tauri::command]
-pub async fn upsert_command(
-    command: Command,
-    state: State<'_, AppState>,
-) -> Result<(), String> {
+pub async fn upsert_command(command: Command, state: State<'_, AppState>) -> Result<(), String> {
     CommandService::upsert_command(&state, command).map_err(|e| e.to_string())
 }
 
@@ -36,6 +33,5 @@ pub async fn toggle_command_app(
     state: State<'_, AppState>,
 ) -> Result<(), String> {
     let app_type = AppType::from_str(&app).map_err(|e| e.to_string())?;
-    CommandService::toggle_app(&state, &command_id, app_type, enabled)
-        .map_err(|e| e.to_string())
+    CommandService::toggle_app(&state, &command_id, app_type, enabled).map_err(|e| e.to_string())
 }

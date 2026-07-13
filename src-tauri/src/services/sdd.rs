@@ -56,7 +56,9 @@ trait FrameworkDetector {
 
 struct BmadDetector;
 impl FrameworkDetector for BmadDetector {
-    fn id(&self) -> &str { "bmad-method" }
+    fn id(&self) -> &str {
+        "bmad-method"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         if project_path.join(".bmad").is_dir() {
@@ -75,7 +77,9 @@ impl FrameworkDetector for BmadDetector {
 
 struct TaskMasterDetector;
 impl FrameworkDetector for TaskMasterDetector {
-    fn id(&self) -> &str { "task-master" }
+    fn id(&self) -> &str {
+        "task-master"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         if let Some(m) = check_package_json_dep(project_path, "task-master-ai") {
@@ -98,7 +102,9 @@ impl FrameworkDetector for TaskMasterDetector {
 
 struct SuperpowersDetector;
 impl FrameworkDetector for SuperpowersDetector {
-    fn id(&self) -> &str { "superpowers" }
+    fn id(&self) -> &str {
+        "superpowers"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         let sp_dir = project_path.join(".superpowers");
@@ -131,7 +137,9 @@ impl FrameworkDetector for SuperpowersDetector {
 
 struct GstackDetector;
 impl FrameworkDetector for GstackDetector {
-    fn id(&self) -> &str { "gstack" }
+    fn id(&self) -> &str {
+        "gstack"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         let gstack_dir = project_path.join(".gstack");
@@ -162,7 +170,9 @@ impl FrameworkDetector for GstackDetector {
 
 struct OpenSpecDetector;
 impl FrameworkDetector for OpenSpecDetector {
-    fn id(&self) -> &str { "openspec" }
+    fn id(&self) -> &str {
+        "openspec"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         let os_dir = project_path.join(".openspec");
@@ -179,7 +189,9 @@ impl FrameworkDetector for OpenSpecDetector {
 
 struct SpecKitDetector;
 impl FrameworkDetector for SpecKitDetector {
-    fn id(&self) -> &str { "spec-kit" }
+    fn id(&self) -> &str {
+        "spec-kit"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         if project_path.join(".spec-kit").is_dir() {
@@ -198,7 +210,9 @@ impl FrameworkDetector for SpecKitDetector {
 
 struct FlowKitDetector;
 impl FrameworkDetector for FlowKitDetector {
-    fn id(&self) -> &str { "flow-kit" }
+    fn id(&self) -> &str {
+        "flow-kit"
+    }
     fn probe(&self, project_path: &Path) -> Vec<SignalMatch> {
         let mut matches = Vec::new();
         let fk_dir = project_path.join("flow-kit");
@@ -392,7 +406,10 @@ mod tests {
         fs::create_dir_all(&fk).unwrap();
         fs::write(fk.join("GO.md"), "# Flow Kit GO").unwrap();
         let results = detect_project(root.to_str().unwrap());
-        let fk_result = results.iter().find(|r| r.descriptor_id == "flow-kit").unwrap();
+        let fk_result = results
+            .iter()
+            .find(|r| r.descriptor_id == "flow-kit")
+            .unwrap();
         assert!(fk_result.detected);
         assert_eq!(fk_result.confidence, "verified");
         let _ = fs::remove_dir_all(&root);
@@ -403,7 +420,10 @@ mod tests {
         let root = temp_dir();
         fs::create_dir_all(root.join(".openspec")).unwrap();
         let results = detect_project(root.to_str().unwrap());
-        let os_result = results.iter().find(|r| r.descriptor_id == "openspec").unwrap();
+        let os_result = results
+            .iter()
+            .find(|r| r.descriptor_id == "openspec")
+            .unwrap();
         assert!(os_result.detected);
         assert_eq!(os_result.confidence, "verified");
         let _ = fs::remove_dir_all(&root);
@@ -427,7 +447,10 @@ mod tests {
         )
         .unwrap();
         let results = detect_project(root.to_str().unwrap());
-        let sk_result = results.iter().find(|r| r.descriptor_id == "spec-kit").unwrap();
+        let sk_result = results
+            .iter()
+            .find(|r| r.descriptor_id == "spec-kit")
+            .unwrap();
         assert!(sk_result.detected);
         assert_eq!(sk_result.confidence, "inferred");
         let _ = fs::remove_dir_all(&root);
@@ -441,7 +464,10 @@ mod tests {
             confidence: "verified".into(),
             signal_matches: vec![],
         }];
-        assert_eq!(recommend_preset_from_detections(&results), Some("full".into()));
+        assert_eq!(
+            recommend_preset_from_detections(&results),
+            Some("full".into())
+        );
     }
 
     #[test]

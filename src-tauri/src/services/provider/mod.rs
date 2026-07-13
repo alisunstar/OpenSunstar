@@ -1200,10 +1200,7 @@ impl ProviderService {
         // DB only stores keychain://ref/ placeholders; the real secrets live in
         // the platform keychain (Windows Credential Manager / macOS Keychain /
         // libsecret). See `provider_keychain` module docs for details.
-        crate::provider_keychain::migrate_provider_settings_to_keychain(
-            &mut provider,
-            &app_type,
-        )?;
+        crate::provider_keychain::migrate_provider_settings_to_keychain(&mut provider, &app_type)?;
 
         // Save to database
         state.db.save_provider(app_type.as_str(), &provider)?;

@@ -236,40 +236,34 @@ pub fn is_managed_ignore_file(text: &str) -> bool {
 
 /// 在目标文件旁边创建一个 `.opensunstar` 伴生标记文件。
 pub fn create_companion_marker(path: &std::path::Path) {
-    let marker = path.with_extension(
-        format!(
-            "{}.opensunstar",
-            path.extension()
-                .map(|e| e.to_string_lossy())
-                .unwrap_or_default()
-        ),
-    );
+    let marker = path.with_extension(format!(
+        "{}.opensunstar",
+        path.extension()
+            .map(|e| e.to_string_lossy())
+            .unwrap_or_default()
+    ));
     let _ = std::fs::write(&marker, b"managed");
 }
 
 /// 检查目标文件是否有 `.opensunstar` 伴生标记文件。
 pub fn has_companion_marker(path: &std::path::Path) -> bool {
-    let marker = path.with_extension(
-        format!(
-            "{}.opensunstar",
-            path.extension()
-                .map(|e| e.to_string_lossy())
-                .unwrap_or_default()
-        ),
-    );
+    let marker = path.with_extension(format!(
+        "{}.opensunstar",
+        path.extension()
+            .map(|e| e.to_string_lossy())
+            .unwrap_or_default()
+    ));
     marker.is_file()
 }
 
 /// 删除目标文件的 `.opensunstar` 伴生标记文件。
 pub fn remove_companion_marker(path: &std::path::Path) {
-    let marker = path.with_extension(
-        format!(
-            "{}.opensunstar",
-            path.extension()
-                .map(|e| e.to_string_lossy())
-                .unwrap_or_default()
-        ),
-    );
+    let marker = path.with_extension(format!(
+        "{}.opensunstar",
+        path.extension()
+            .map(|e| e.to_string_lossy())
+            .unwrap_or_default()
+    ));
     let _ = std::fs::remove_file(&marker);
 }
 
@@ -305,7 +299,8 @@ mod tests {
 
     #[test]
     fn inject_empty_removes_section_preserves_outside() {
-        let with_gentle = "# Custom\n\n<!-- gentle-ai:persona -->\nGentle\n<!-- /gentle-ai:persona -->\n";
+        let with_gentle =
+            "# Custom\n\n<!-- gentle-ai:persona -->\nGentle\n<!-- /gentle-ai:persona -->\n";
         let with_os = inject_markdown_section(with_gentle, PROMPT_SECTION_ID, "managed");
         let cleared = inject_markdown_section(&with_os, PROMPT_SECTION_ID, "");
         assert!(!cleared.contains("opensunstar:managed-prompt"));

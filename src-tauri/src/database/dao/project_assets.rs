@@ -336,7 +336,9 @@ mod tests {
         let db = test_db();
         seed_project(&db, "p1");
         db.link_project_prompt("p1", "pr1", "claude", true).unwrap();
-        let links = db.get_project_asset_links("p1", Some(ASSET_PROMPT)).unwrap();
+        let links = db
+            .get_project_asset_links("p1", Some(ASSET_PROMPT))
+            .unwrap();
         assert_eq!(links.len(), 1);
         assert_eq!(links[0].asset_id, "pr1");
         assert_eq!(links[0].asset_app_type, "claude");

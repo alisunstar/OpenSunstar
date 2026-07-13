@@ -77,10 +77,7 @@ fn run_list(
     current_only: bool,
     json: bool,
 ) -> Result<(), String> {
-    let providers = state
-        .db
-        .get_all_providers(app)
-        .map_err(|e| e.to_string())?;
+    let providers = state.db.get_all_providers(app).map_err(|e| e.to_string())?;
     let current_id = state
         .db
         .get_current_provider(app)
@@ -136,10 +133,7 @@ fn run_list(
             return Ok(());
         }
 
-        println!(
-            "Providers for {app} ({} total):\n",
-            providers.len()
-        );
+        println!("Providers for {app} ({} total):\n", providers.len());
         println!(
             "  {:<6} {:<24} {:<12} {}",
             "ACTIVE", "NAME", "CATEGORY", "ID"
@@ -149,10 +143,7 @@ fn run_list(
             let is_current = current_id.as_deref() == Some(&p.id);
             let active = if is_current { "✓" } else { "·" };
             let cat = p.category.as_deref().unwrap_or("-");
-            println!(
-                "  {:<6} {:<24} {:<12} {}",
-                active, p.name, cat, p.id
-            );
+            println!("  {:<6} {:<24} {:<12} {}", active, p.name, cat, p.id);
         }
     }
 
@@ -170,8 +161,7 @@ fn run_switch(
     let provider_id = match id {
         Some(id) => id.to_string(),
         None => {
-            let providers =
-                open_sunstar_lib::cli_api::cli_provider_list(state, app)?;
+            let providers = open_sunstar_lib::cli_api::cli_provider_list(state, app)?;
             let names: Vec<String> = providers.keys().cloned().collect();
             match output::select("Select provider", &names, json) {
                 Some(idx) => names[idx].clone(),
@@ -187,9 +177,7 @@ fn run_switch(
         .map_err(|e| e.to_string())?;
 
     if provider.is_none() {
-        return Err(format!(
-            "供应商不存在: id={provider_id}, app={app}"
-        ));
+        return Err(format!("供应商不存在: id={provider_id}, app={app}"));
     }
 
     // Interactive confirmation (unless --yes or --json)
@@ -216,8 +204,7 @@ fn run_switch(
         return Ok(());
     }
 
-    let switch_result =
-        open_sunstar_lib::cli_api::cli_provider_switch(state, app, &provider_id)?;
+    let switch_result = open_sunstar_lib::cli_api::cli_provider_switch(state, app, &provider_id)?;
 
     if json {
         let result = serde_json::json!({
@@ -240,18 +227,12 @@ fn run_switch(
     Ok(())
 }
 
-fn run_verify(
-    base_url: &str,
-    api_key: &str,
-    protocol: &str,
-    json: bool,
-) -> Result<(), String> {
+fn run_verify(base_url: &str, api_key: &str, protocol: &str, json: bool) -> Result<(), String> {
     let proto = match protocol {
         "anthropic" => open_sunstar_lib::VerifyProtocol::Anthropic,
         _ => open_sunstar_lib::VerifyProtocol::OpenAi,
     };
-    let result =
-        open_sunstar_lib::cli_api::cli_provider_verify(base_url, api_key, proto)?;
+    let result = open_sunstar_lib::cli_api::cli_provider_verify(base_url, api_key, proto)?;
 
     if json {
         output::print_result(&result, true);

@@ -6,23 +6,23 @@ use crate::services::permission_sync::PermissionLists;
 
 pub fn sync_permissions(lists: &PermissionLists) -> Result<(), AppError> {
     let mut config = read_openclaw_config()?;
-    let root = config.as_object_mut().ok_or_else(|| {
-        AppError::Config("OpenClaw 配置根节点不是对象".into())
-    })?;
+    let root = config
+        .as_object_mut()
+        .ok_or_else(|| AppError::Config("OpenClaw 配置根节点不是对象".into()))?;
 
     let agents = root
         .entry("agents".to_string())
         .or_insert_with(|| json!({}));
-    let agents_obj = agents.as_object_mut().ok_or_else(|| {
-        AppError::Config("OpenClaw agents 节点无效".into())
-    })?;
+    let agents_obj = agents
+        .as_object_mut()
+        .ok_or_else(|| AppError::Config("OpenClaw agents 节点无效".into()))?;
 
     let defaults = agents_obj
         .entry("defaults".to_string())
         .or_insert_with(|| json!({}));
-    let defaults_obj = defaults.as_object_mut().ok_or_else(|| {
-        AppError::Config("OpenClaw agents.defaults 节点无效".into())
-    })?;
+    let defaults_obj = defaults
+        .as_object_mut()
+        .ok_or_else(|| AppError::Config("OpenClaw agents.defaults 节点无效".into()))?;
 
     let mut allow = lists.allow.clone();
     allow.extend(lists.auto_approve.clone());
