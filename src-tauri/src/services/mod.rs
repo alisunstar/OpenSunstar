@@ -23,6 +23,7 @@ pub mod marker_merge;
 pub mod mcp;
 pub mod model_fetch;
 pub mod omo;
+pub mod orchestration_plan;
 pub mod onboarding;
 pub mod permission;
 pub mod permission_sync;

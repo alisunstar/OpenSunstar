@@ -13,8 +13,6 @@ import {
 import type { AppId } from "@/lib/api";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import {
-  isWindows,
-  isLinux,
   DRAG_REGION_ATTR,
   DRAG_REGION_STYLE,
 } from "@/lib/platform";
@@ -81,8 +79,12 @@ export type PageView =
 
 // ── 常量 ──────────────────────────────────────────
 
-const DEFAULT_DRAG_BAR_HEIGHT = isWindows() || isLinux() ? 0 : 28;
-const HEADER_HEIGHT = 40;
+// Tauri window uses `titleBarStyle: "Overlay"`, so the WebView can extend under
+// native window controls on both macOS and Windows high-DPI displays.
+// Reserve a small top strip before rendering the app chrome to keep the sidebar
+// logo away from traffic-light / titlebar controls.
+const OVERLAY_TITLEBAR_SAFE_TOP = 34;
+const DEFAULT_DRAG_BAR_HEIGHT = OVERLAY_TITLEBAR_SAFE_TOP;
 
 const APP_STORAGE_KEY = "OpenSunstar-ext-last-app";
 const VIEW_STORAGE_KEY = "OpenSunstar-ext-last-view";
@@ -250,9 +252,7 @@ function App() {
   const useAppWindowControls = settings?.useAppWindowControls ?? false;
   // macOS 叠加标题栏需要自定义拖拽区；Win/Linux 默认用系统标题栏，不额外占位
   const needsCustomTitlebar = dragBarHeight > 0 || useAppWindowControls;
-  const contentTopOffset = needsCustomTitlebar
-    ? dragBarHeight + HEADER_HEIGHT
-    : 0;
+  const contentTopOffset = needsCustomTitlebar ? dragBarHeight : 0;
 
   // ── Refs ────────────────────────────────────
   const commandsPanelRef = useRef<any>(null);
@@ -695,13 +695,12 @@ return <MethodologyPage projects={projects} />;
       {/* ── Titlebar（macOS 叠加标题栏 / 应用级窗口按钮时显示）── */}
       {needsCustomTitlebar && (
         <header
-          className="fixed z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"
+          className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"
           {...DRAG_REGION_ATTR}
           style={
             {
               ...DRAG_REGION_STYLE,
-              top: dragBarHeight,
-              height: HEADER_HEIGHT,
+              height: dragBarHeight,
             } as React.CSSProperties
           }
         />

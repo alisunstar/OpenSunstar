@@ -1,12 +1,12 @@
 {
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "OpenSunstar CLI (os) — governance, provider switch, TUI",
   "homepage": "https://github.com/alisunstar/OpenSunstar",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/alisunstar/OpenSunstar/releases/download/v1.1.6/OpenSunstar-v1.1.6-os-windows-x86_64.zip",
-      "hash": "TODO: run scoop hash OpenSunstar-v1.1.6-os-windows-x86_64.zip after release"
+      "url": "https://github.com/alisunstar/OpenSunstar/releases/download/v1.1.7/OpenSunstar-v1.1.7-os-windows-x86_64.zip",
+      "hash": "TODO: run scoop hash OpenSunstar-v1.1.7-os-windows-x86_64.zip after release"
     }
   },
   "bin": "os.exe",

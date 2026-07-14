@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.7] - 2026-07-14
+
+### Added
+
+- **Orchestration plan / receipt**: plan → snapshot → apply → verify → receipt with rollback from latest receipt
+- **Flow orchestrator**: richer apply/export APIs, orchestration log, and restore-from-receipt command
+- **Project Flow Orchestrator UI**: plan preview, dry-run, verification receipts, and rollback entry points
+
+### Changed
+
+- **Marker merge & project config sync**: safer merge/conflict handling for orchestration writes
+- **Window chrome**: larger default window (1180×720); overlay titlebar safe top for high-DPI Windows/macOS
+- **Methodology page**: wiring updates for flow orchestration entry
+
+### Fixed
+
+- **API cleanup**: remove unused vscode config import/export helpers
+
 ## [1.1.6] - 2026-07-13
 
 ### Added

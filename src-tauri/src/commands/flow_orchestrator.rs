@@ -6,10 +6,14 @@ use crate::database::Database;
 use crate::services::flow_orchestrator::{
     export_flow_config, export_flow_config_strict, export_project_workflow_profile,
     export_project_workflow_profile_strict, get_workflow_preset, list_workflow_modules,
+    read_orchestration_log,
     list_workflow_presets, preview_flow_config_export, preview_project_workflow_profile_export,
     scan_project_specs_workflow, validate_workflow_stage_gate, FlowConfig, FlowWritePlan,
-    SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetSummary,
+    OrchestrationLogEntry, SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetSummary,
     WorkflowProfile,
+};
+use crate::services::orchestration_plan::{
+    restore_latest_orchestration_receipt, OrchestrationReceipt,
 };
 use crate::store::AppState;
 
@@ -206,4 +210,33 @@ pub async fn export_flow_config_cmd(
         )
     };
     result.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn read_orchestration_log_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+    limit: Option<usize>,
+) -> Result<Vec<OrchestrationLogEntry>, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    read_orchestration_log(&path, limit).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub async fn restore_latest_orchestration_receipt_cmd(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<OrchestrationReceipt, String> {
+    let path = project_path_for_id(&state.db, &project_id)?;
+    let receipt = restore_latest_orchestration_receipt(&path).map_err(|e| e.to_string())?;
+    if let Err(e) = crate::services::flow_orchestrator::append_orchestration_log(
+        &path,
+        serde_json::json!({
+            "event": "orchestration_rollback",
+            "stepCount": receipt.steps.len(),
+        }),
+    ) {
+        log::warn!("写入 orchestration rollback log 失败: {e}");
+    }
+    Ok(receipt)
 }

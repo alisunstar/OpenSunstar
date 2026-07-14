@@ -4,8 +4,10 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronRight,
+  Copy,
   FileOutput,
   GitBranch,
+  History,
   Loader2,
   ShieldCheck,
   Workflow,
@@ -19,6 +21,7 @@ import {
   flowOrchestratorApi,
   type FlowWritePlan,
   type FlowConfig,
+  type OrchestrationLogEntry,
   type SpecsChangeIndex,
   type SpecsWorkflowIndex,
   type StageGateResult,
@@ -81,6 +84,115 @@ function ChangeRow({ change }: { change: SpecsChangeIndex }) {
   );
 }
 
+function FlowStepCard({
+  done,
+  title,
+  description,
+}: {
+  done: boolean;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border px-3 py-2 space-y-1",
+        done
+          ? "border-emerald-500/30 bg-emerald-500/10"
+          : "border-border/60 bg-background/40",
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-xs font-medium">
+        {done ? (
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+        ) : (
+          <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
+        )}
+        <span>{title}</span>
+      </div>
+      <p className="text-[10px] text-muted-foreground leading-relaxed">
+        {description}
+      </p>
+    </div>
+  );
+}
+
+function SupportStatusMatrix({
+  hasWorkflowProfile,
+  hasRecipeSpecs,
+  hasFlowConfig,
+}: {
+  hasWorkflowProfile: boolean;
+  hasRecipeSpecs: boolean;
+  hasFlowConfig: boolean;
+}) {
+  const rows = [
+    {
+      label: "项目流程与上下文",
+      status: hasWorkflowProfile ? "已自动写入" : "待自动写入",
+      detail: "保存团队约定，并刷新 Agent 可读的项目上下文索引。",
+      tone: hasWorkflowProfile ? "emerald" : "muted",
+    },
+    {
+      label: "变更执行工件",
+      status: hasRecipeSpecs ? "已自动写入" : "需手动生成变更材料",
+      detail: "到“变更执行方案”生成需求、设计、任务材料；未生成前 Agent/CI 只能提示缺失。",
+      tone: hasRecipeSpecs ? "emerald" : "amber",
+    },
+    {
+      label: "自动检查配置",
+      status: hasFlowConfig ? "已自动写入" : "待自动写入",
+      detail: "导出后生成检查规则与风险分层评审策略；GitHub Actions 模板只在缺失时创建。",
+      tone: hasFlowConfig ? "emerald" : "muted",
+    },
+    {
+      label: "Agent 规则桥接",
+      status: hasWorkflowProfile || hasFlowConfig ? "已自动写入" : "只读发现",
+      detail: "AGENTS.md / CLAUDE.md / GEMINI.md 只注入 OpenSunstar 管理段，保留用户内容。",
+      tone: hasWorkflowProfile || hasFlowConfig ? "emerald" : "muted",
+    },
+    {
+      label: "多 Agent 深度适配",
+      status: "实验性",
+      detail: "当前先保证项目上下文与门禁可消费；不同 Agent 的原生能力后续按适配器分级开放。",
+      tone: "blue",
+    },
+  ];
+
+  const toneClass = (tone: string) =>
+    tone === "emerald"
+      ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20"
+      : tone === "amber"
+        ? "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+        : tone === "blue"
+          ? "bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20"
+          : "bg-muted text-muted-foreground border-border/50";
+
+  return (
+    <div className="rounded-lg border border-border/50 bg-background/30 p-3 space-y-2">
+      <div>
+        <p className="text-xs font-semibold">落地状态矩阵</p>
+        <p className="text-[10px] text-muted-foreground mt-0.5">
+          明确哪些会自动写入、哪些需要手动确认，避免误以为所有能力都已完全接管。
+        </p>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {rows.map((row) => (
+          <div key={row.label} className="rounded-md border border-border/50 bg-muted/10 px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-medium">{row.label}</span>
+              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", toneClass(row.tone))}>
+                {row.status}
+              </span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{row.detail}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Collapsible section header */
 function SectionToggle({
   label,
@@ -123,9 +235,11 @@ export function ProjectFlowOrchestratorPanel({
   const [scanning, setScanning] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [configExporting, setConfigExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
   const [validating, setValidating] = useState(false);
   const [profileExportPlan, setProfileExportPlan] = useState<FlowWritePlan | null>(null);
   const [flowConfigExportPlan, setFlowConfigExportPlan] = useState<FlowWritePlan | null>(null);
+  const [strictSemantics, setStrictSemantics] = useState(true);
 
   const [presetId, setPresetId] = useState("standard");
   const [projectType, setProjectType] =
@@ -134,6 +248,7 @@ export function ProjectFlowOrchestratorPanel({
   const [selectedChangeId, setSelectedChangeId] = useState("");
   const [targetStage, setTargetStage] = useState("3-task");
   const [gateResult, setGateResult] = useState<StageGateResult | null>(null);
+  const [orchestrationLog, setOrchestrationLog] = useState<OrchestrationLogEntry[]>([]);
 
   // --- A-1: Module multi-select ---
   const [modules, setModules] = useState<WorkflowModule[]>([]);
@@ -145,11 +260,21 @@ export function ProjectFlowOrchestratorPanel({
   const [resolvedStages, setResolvedStages] = useState<string[]>([]);
   const [enabledStages, setEnabledStages] = useState<Set<string>>(new Set());
   const [stagesExpanded, setStagesExpanded] = useState(false);
+  const [advancedDetailsExpanded, setAdvancedDetailsExpanded] = useState(false);
 
   const selectedPreset = useMemo(
     () => presets.find((p) => p.id === presetId),
     [presets, presetId],
   );
+
+  const loadOrchestrationLog = useCallback(async () => {
+    try {
+      const entries = await flowOrchestratorApi.readOrchestrationLog(projectId, 8);
+      setOrchestrationLog(entries);
+    } catch (error) {
+      console.warn("[ProjectFlowOrchestratorPanel] load orchestration log failed", error);
+    }
+  }, [projectId]);
 
   // --- Load presets + modules on mount ---
   const loadPresets = useCallback(async () => {
@@ -239,6 +364,10 @@ export function ProjectFlowOrchestratorPanel({
   }, [loadPresets]);
 
   useEffect(() => {
+    void loadOrchestrationLog();
+  }, [loadOrchestrationLog]);
+
+  useEffect(() => {
     appliedInitialPreset.current = false;
   }, [projectId]);
 
@@ -268,6 +397,23 @@ export function ProjectFlowOrchestratorPanel({
   const selectedChangeIdError = useMemo(
     () => (selectedChangeId ? validateChangeId(selectedChangeId) : null),
     [selectedChangeId],
+  );
+
+  const ciValidateCommand = useMemo(
+    () =>
+      `os flow validate --project-path . --project-type ${projectType} --change-id ${
+        selectedChangeId || "<change-id>"
+      } --target-stage ${targetStage} --strict --json`,
+    [projectType, selectedChangeId, targetStage],
+  );
+
+  const githubActionsSnippet = useMemo(
+    () =>
+      [
+        "- name: OpenSunstar flow gate",
+        `  run: ${ciValidateCommand}`,
+      ].join("\n"),
+    [ciValidateCommand],
   );
 
   // --- Handlers ---
@@ -337,6 +483,7 @@ export function ProjectFlowOrchestratorPanel({
         selectedChangeId || undefined,
         Array.from(selectedModules),
         disabledStages.length > 0 ? disabledStages : undefined,
+        strictSemantics,
       );
       toast.success(
         t("flowOrchestrator.exportOk", {
@@ -346,6 +493,7 @@ export function ProjectFlowOrchestratorPanel({
       // Show semantic validation warnings if any (S1-S5)
       showSemanticWarnings(profile?.semanticWarnings);
       await refreshScan();
+      await loadOrchestrationLog();
     } catch (e) {
       toast.error(String(e));
     } finally {
@@ -382,6 +530,7 @@ export function ProjectFlowOrchestratorPanel({
         projectType,
         Array.from(selectedModules),
         disabledStages.length > 0 ? disabledStages : undefined,
+        strictSemantics,
       );
       toast.success(
         t("flowOrchestrator.flowConfigOk", {
@@ -401,10 +550,44 @@ export function ProjectFlowOrchestratorPanel({
       );
       // Show semantic validation warnings if any (S1-S5)
       showSemanticWarnings(config.semantic_warnings);
+      await refreshScan();
+      await loadOrchestrationLog();
     } catch (e) {
       toast.error(String(e));
     } finally {
       setConfigExporting(false);
+    }
+  };
+
+  const handleCopyCiCommand = async () => {
+    try {
+      await navigator.clipboard.writeText(githubActionsSnippet);
+      toast.success(
+        t("flowOrchestrator.ciSnippetCopied", {
+          defaultValue: "已复制 CI 门禁片段",
+        }),
+      );
+    } catch (error) {
+      toast.error(String(error));
+    }
+  };
+
+  const handleRestoreLatestReceipt = async () => {
+    setRestoring(true);
+    try {
+      const receipt = await flowOrchestratorApi.restoreLatestReceipt(projectId);
+      toast.success(
+        t("flowOrchestrator.rollbackOk", {
+          defaultValue: "已恢复最近一次编排变更（{{count}} 个文件操作）",
+          count: receipt.steps.length,
+        }),
+      );
+      await refreshScan();
+      await loadOrchestrationLog();
+    } catch (error) {
+      toast.error(String(error));
+    } finally {
+      setRestoring(false);
     }
   };
 
@@ -428,6 +611,7 @@ export function ProjectFlowOrchestratorPanel({
         targetStage,
       });
       setGateResult(result);
+      await loadOrchestrationLog();
     } catch (e) {
       toast.error(String(e));
     } finally {
@@ -441,6 +625,10 @@ export function ProjectFlowOrchestratorPanel({
     fullPreset?.stages.forEach((s) => map.set(s.id, s.name));
     return map;
   }, [fullPreset]);
+
+  const hasWorkflowProfile = Boolean(index?.savedProfile);
+  const hasRecipeSpecs = Boolean(index?.hasSpecsDir && index.changes.length > 0);
+  const hasFlowConfig = Boolean(index?.hasFlowConfig);
 
   if (loading) {
     return (
@@ -459,7 +647,7 @@ export function ProjectFlowOrchestratorPanel({
           <Workflow className="h-4 w-4 text-primary shrink-0" />
           <div>
             <h3 className="text-sm font-semibold text-foreground">
-              {t("flowOrchestrator.title", { defaultValue: "SDD 流程编排" })}
+              {t("flowOrchestrator.title", { defaultValue: "项目工作规则" })}
             </h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {t("flowOrchestrator.subtitle", {
@@ -530,10 +718,152 @@ export function ProjectFlowOrchestratorPanel({
         </label>
       </div>
 
+      {/* Delivery loop guidance */}
+      <div className="rounded-lg border border-border/60 bg-background/35 p-3 space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold">
+              {t("flowOrchestrator.loopTitle", {
+                defaultValue: "让项目规则真正生效",
+              })}
+            </p>
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+              {t("flowOrchestrator.loopHint", {
+                defaultValue:
+                  "先保存项目工作规则，再生成变更材料，最后接入自动检查；高级文件细节可在下方展开查看。",
+              })}
+            </p>
+          </div>
+          <label className="flex items-start gap-2 rounded-md border border-border/50 bg-muted/20 px-2 py-1.5 cursor-pointer">
+            <Checkbox
+              checked={strictSemantics}
+              onCheckedChange={(checked) => setStrictSemantics(checked === true)}
+              className="mt-0.5"
+            />
+            <span className="space-y-0.5">
+              <span className="block text-[11px] font-medium">
+                {t("flowOrchestrator.strictMode", {
+                  defaultValue: "发现明显冲突时先拦住",
+                })}
+              </span>
+              <span className="block text-[10px] text-muted-foreground leading-relaxed">
+                {t("flowOrchestrator.strictModeHint", {
+                  defaultValue:
+                    "默认开启。适合团队协作；探索期可关闭，先生成文件再人工确认。",
+                })}
+              </span>
+            </span>
+          </label>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-3">
+          <FlowStepCard
+            done={hasWorkflowProfile}
+            title={t("flowOrchestrator.stepProfile", {
+              defaultValue: "1. 保存项目流程",
+            })}
+            description={
+              hasWorkflowProfile
+                ? t("flowOrchestrator.stepProfileDone", {
+                    defaultValue: "项目工作规则已保存",
+                  })
+                : t("flowOrchestrator.stepProfileTodo", {
+                    defaultValue: "选择档位、模块和阶段后保存",
+                  })
+            }
+          />
+          <FlowStepCard
+            done={hasRecipeSpecs}
+            title={t("flowOrchestrator.stepSpecs", {
+              defaultValue: "2. 生成变更材料",
+            })}
+            description={
+              hasRecipeSpecs
+                ? t("flowOrchestrator.stepSpecsDone", {
+                    defaultValue: "已检测到 .specs 变更工件",
+                  })
+                : t("flowOrchestrator.stepSpecsTodo", {
+                    defaultValue: "到“变更执行方案”生成 .specs",
+                  })
+            }
+          />
+          <FlowStepCard
+            done={hasFlowConfig}
+            title={t("flowOrchestrator.stepCi", {
+              defaultValue: "3. 接入门禁校验",
+            })}
+            description={
+              hasFlowConfig
+                ? t("flowOrchestrator.stepCiDone", {
+                    defaultValue: "自动检查规则已生成",
+                  })
+                : t("flowOrchestrator.stepCiTodo", {
+                    defaultValue: "导出 CI 检查配置并复制命令",
+                  })
+            }
+          />
+        </div>
+
+        <SupportStatusMatrix
+          hasWorkflowProfile={hasWorkflowProfile}
+          hasRecipeSpecs={hasRecipeSpecs}
+          hasFlowConfig={hasFlowConfig}
+        />
+
+        <div className="rounded-md bg-muted/30 border border-border/50 p-2 space-y-2">
+          <SectionToggle
+            label={t("flowOrchestrator.advancedDetails", { defaultValue: "高级详情：CI 命令与生成文件" })}
+            expanded={advancedDetailsExpanded}
+            onToggle={() => setAdvancedDetailsExpanded((v) => !v)}
+          />
+          {advancedDetailsExpanded && (
+            <>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-medium text-muted-foreground">
+                  {t("flowOrchestrator.ciSnippet", {
+                    defaultValue: "GitHub Actions / 自动检查片段",
+                  })}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[10px]"
+                  onClick={() => void handleCopyCiCommand()}
+                >
+                  <Copy className="h-3 w-3 mr-1" />
+                  {t("common.copy", { defaultValue: "复制" })}
+                </Button>
+              </div>
+              <pre className="text-[10px] leading-relaxed overflow-x-auto whitespace-pre-wrap break-words font-mono text-muted-foreground">
+                {githubActionsSnippet}
+              </pre>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                自动写入：`.opensunstar/workflow.profile.json`、`.opensunstar/flow-config.yaml`、`.opensunstar/agent-context.md`。只在缺失时创建：`.github/workflows/opensunstar-flow-gate.yml`。
+              </p>
+              <div className="flex items-center justify-between gap-2 rounded-md border border-amber-500/20 bg-amber-500/5 px-2 py-2">
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  写入前会保存快照。如误操作，可按最近一次编排 receipt 恢复。
+                </p>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2 text-[10px] shrink-0"
+                  disabled={restoring}
+                  onClick={() => void handleRestoreLatestReceipt()}
+                >
+                  {restoring ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
+                  {t("flowOrchestrator.rollbackLatest", { defaultValue: "恢复上次编排" })}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* A-1: Module multi-select */}
       <div className="rounded-lg border border-border/50 bg-background/30 p-3 space-y-2">
         <SectionToggle
-          label={t("flowOrchestrator.modules", { defaultValue: "方法论模块" })}
+          label={t("flowOrchestrator.modules", { defaultValue: "高级：选择规则模块" })}
           count={`${selectedModules.size}/${modules.length}`}
           expanded={modulesExpanded}
           onToggle={() => setModulesExpanded((v) => !v)}
@@ -568,7 +898,7 @@ export function ProjectFlowOrchestratorPanel({
       {resolvedStages.length > 0 && (
         <div className="rounded-lg border border-border/50 bg-background/30 p-3 space-y-2">
           <SectionToggle
-            label={t("flowOrchestrator.stages", { defaultValue: "阶段裁剪" })}
+            label={t("flowOrchestrator.stages", { defaultValue: "高级：调整执行步骤" })}
             count={`${enabledStages.size}/${resolvedStages.length}`}
             expanded={stagesExpanded}
             onToggle={() => setStagesExpanded((v) => !v)}
@@ -720,6 +1050,52 @@ export function ProjectFlowOrchestratorPanel({
                 </ul>
               )}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Orchestration activity timeline */}
+      <div className="rounded-lg border border-border/60 bg-background/30 p-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="text-xs font-semibold flex items-center gap-1.5">
+            <History className="h-3.5 w-3.5" />
+            {t("flowOrchestrator.activity", { defaultValue: "最近编排操作" })}
+          </h4>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 px-2 text-[10px]"
+            onClick={() => void loadOrchestrationLog()}
+          >
+            {t("common.refresh", { defaultValue: "刷新" })}
+          </Button>
+        </div>
+        {orchestrationLog.length === 0 ? (
+          <p className="text-[10px] text-muted-foreground">
+            {t("flowOrchestrator.noActivity", {
+              defaultValue: "暂无编排操作。保存流程、生成自动检查配置或运行检查后会显示在这里。",
+            })}
+          </p>
+        ) : (
+          <div className="space-y-1.5 max-h-36 overflow-y-auto">
+            {orchestrationLog.map((entry, index) => (
+              <div
+                key={`${entry.ts ?? "no-ts"}-${entry.event}-${index}`}
+                className="rounded-md border border-border/40 bg-muted/20 px-2 py-1.5"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-medium truncate">
+                    {entry.summary}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground shrink-0">
+                    {entry.ts ? new Date(entry.ts).toLocaleString() : "-"}
+                  </span>
+                </div>
+                <p className="text-[9px] text-muted-foreground font-mono mt-0.5">
+                  {entry.event}
+                </p>
+              </div>
+            ))}
           </div>
         )}
       </div>

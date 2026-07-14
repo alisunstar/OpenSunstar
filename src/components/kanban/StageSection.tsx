@@ -156,7 +156,7 @@ export function StageSection({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3">
                 {sorted.map((project) => (
                   <ProjectCard
                     key={project.id}

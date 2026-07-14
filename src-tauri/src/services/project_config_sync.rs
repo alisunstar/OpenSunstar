@@ -21,14 +21,21 @@ use crate::prompt_files::{
 use crate::services::agent_codex::markdown_agent_to_codex_toml;
 use crate::services::marker_merge::{
     inject_markdown_section, is_managed_command_file, is_managed_subagent_file,
+    merge_markdown_section_file,
     wrap_managed_command, wrap_managed_subagent, wrap_managed_subagent_codex, AGENTS_BRIDGE_LINE,
     AGENTS_BRIDGE_SECTION_ID, PROMPT_SECTION_ID,
+};
+use crate::services::orchestration_plan::{
+    execute_text_write_plan_without_receipt, verification, PlannedTextWrite,
 };
 use crate::services::permission_sync::collect_permission_lists;
 use crate::services::prompt::PromptService;
 use crate::services::skill::SkillService;
 use crate::store::AppState;
 use crate::tool_permission::ToolPermission;
+
+const ORCHESTRATION_CONTEXT_SECTION_ID: &str = "orchestration-context";
+const ORCHESTRATION_CONTEXT_REL: &str = ".opensunstar/agent-context.md";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -112,7 +119,152 @@ pub fn sync_all_for_project_path(state: &AppState, project_path: &str) -> Result
     sync_project_skills_for_all_apps(state, &root)?;
     sync_project_subagents_for_all_apps(state, &root)?;
     sync_project_ignore_for_all_apps(state, &root)?;
+    sync_orchestration_agent_context(project_path)?;
     Ok(())
+}
+
+/// Refresh the project-level Agent context bridge for orchestration artifacts.
+///
+/// This does not overwrite user content. It writes a stable context index under
+/// `.opensunstar/agent-context.md` and injects a small managed section into
+/// `AGENTS.md` / `CLAUDE.md` / `GEMINI.md` so common coding agents are explicitly told
+/// to read the workflow, specs, design and gate artifacts before changing code.
+pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppError> {
+    let root = PathBuf::from(project_path);
+    if !root.is_dir() {
+        return Ok(());
+    }
+
+    let dot = root.join(".opensunstar");
+    let has_profile = dot.join("workflow.profile.json").is_file();
+    let has_flow_config = dot.join("flow-config.yaml").is_file();
+    let has_recipe_dir = dot.join("recipe").is_dir();
+    let has_specs = root.join(".specs").is_dir();
+    let has_design = root.join("DESIGN.md").is_file();
+    let has_design_manifest = dot.join("design-system.json").is_file();
+
+    if !has_profile && !has_flow_config && !has_recipe_dir && !has_specs && !has_design {
+        return Ok(());
+    }
+
+    let mut lines = vec![
+        "# OpenSunstar Agent Context".to_string(),
+        String::new(),
+        "> Managed by OpenSunstar. Treat this as the project execution context index.".to_string(),
+        String::new(),
+        "## Required Reading".to_string(),
+        String::new(),
+    ];
+
+    push_context_line(
+        &mut lines,
+        has_profile,
+        ".opensunstar/workflow.profile.json",
+        "Project workflow preset, enabled modules, stages, and active change.",
+    );
+    push_context_line(
+        &mut lines,
+        has_flow_config,
+        ".opensunstar/flow-config.yaml",
+        "CI/stage-gate rules. Respect enabled stages and safety valves.",
+    );
+    push_context_line(
+        &mut lines,
+        has_specs,
+        ".specs/",
+        "Change-scoped requirements, design, tasks, tests, reviews, and shared context.",
+    );
+    push_context_line(
+        &mut lines,
+        has_design,
+        "DESIGN.md",
+        "UI/product design contract. Follow before frontend or UX changes.",
+    );
+    push_context_line(
+        &mut lines,
+        has_design_manifest,
+        ".opensunstar/design-system.json",
+        "Design system manifest used to detect design artifact drift.",
+    );
+    push_context_line(
+        &mut lines,
+        has_recipe_dir,
+        ".opensunstar/recipe/",
+        "Saved change execution recipes and templates.",
+    );
+
+    lines.extend([
+        String::new(),
+        "## Agent Rules".to_string(),
+        String::new(),
+        "- Before editing code, identify the active change from `workflow.profile.json` or `STATE.md` when present.".to_string(),
+        "- If `.specs/<change-id>/TASK.md` exists, implement only tasks in scope and preserve unchecked tasks.".to_string(),
+        "- If a required upstream artifact is missing, stop and ask to run `os flow validate --strict --json`.".to_string(),
+        "- For frontend/UI changes, follow `DESIGN.md` and `.specs/<change-id>/design-context.md` when present.".to_string(),
+        "- Do not delete or rewrite OpenSunstar managed artifacts unless the user explicitly asks.".to_string(),
+    ]);
+
+    let context_path = root.join(ORCHESTRATION_CONTEXT_REL);
+    if let Some(parent) = context_path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+    }
+    let context_body = lines.join("\n");
+
+    let bridge = format!(
+        "## OpenSunstar Project Workflow Context\n\nAgents must read `{}` before making project changes. It points to workflow, specs, design and gate artifacts that define the current execution contract.",
+        ORCHESTRATION_CONTEXT_REL
+    );
+    let mut steps = vec![PlannedTextWrite::replace(
+        "agent-context-index",
+        "刷新 Agent 上下文索引",
+        context_path,
+        context_body,
+    )];
+    for file_name in ["AGENTS.md", "CLAUDE.md", "GEMINI.md"] {
+        let path = root.join(file_name);
+        let merged = merge_orchestration_context_section(&path, &bridge)?;
+        steps.push(PlannedTextWrite::replace(
+            &format!("agent-context-{}", file_name.to_lowercase()),
+            &format!("注入 {file_name} 项目上下文桥接段"),
+            path,
+            merged,
+        ));
+    }
+    let receipt = execute_text_write_plan_without_receipt(
+        project_path,
+        "agent-context-sync",
+        steps,
+        false,
+        vec![verification(
+            "managed-sections",
+            "Agent 上下文 managed section 已刷新",
+            true,
+            Some("AGENTS.md / CLAUDE.md / GEMINI.md".to_string()),
+        )],
+    )?;
+    log::debug!(
+        "OpenSunstar Agent 上下文同步完成: steps={}, snapshots={}",
+        receipt.steps.len(),
+        receipt.steps.iter().filter(|s| s.snapshot_path.is_some()).count()
+    );
+    Ok(())
+}
+
+fn push_context_line(lines: &mut Vec<String>, present: bool, path: &str, description: &str) {
+    let status = if present { "required" } else { "missing" };
+    lines.push(format!("- `{path}` — **{status}** — {description}"));
+}
+
+fn merge_orchestration_context_section(path: &Path, body: &str) -> Result<String, AppError> {
+    let report = merge_markdown_section_file(path, ORCHESTRATION_CONTEXT_SECTION_ID, body)?;
+    if report.orphan_markers_removed {
+        log::warn!(
+            "清理孤儿 OpenSunstar managed marker: {} section={}",
+            path.display(),
+            ORCHESTRATION_CONTEXT_SECTION_ID
+        );
+    }
+    Ok(report.content)
 }
 
 /// 按就绪度检查项写回单类项目级资产（漂移一键修复 P0-B）

@@ -61,6 +61,23 @@ export interface FlowConfigRules {
   require_diff_boundary: boolean;
 }
 
+export interface FlowConfigReviewTier {
+  enabled: boolean;
+  lenses: string[];
+  max_lenses?: number | null;
+  default_lens?: string | null;
+  paths?: string[];
+  changed_lines_threshold?: number | null;
+}
+
+export interface FlowConfigReviewPolicy {
+  mode: string;
+  trivial: FlowConfigReviewTier;
+  standard: FlowConfigReviewTier;
+  hot_path: FlowConfigReviewTier;
+  large_diff: FlowConfigReviewTier;
+}
+
 export interface FlowConfig {
   schema_version: number;
   preset_id: string;
@@ -68,6 +85,7 @@ export interface FlowConfig {
   modules: string[];
   stages: FlowConfigStage[];
   rules: FlowConfigRules;
+  review_policy: FlowConfigReviewPolicy;
   semantic_warnings?: string[];
 }
 
@@ -110,6 +128,7 @@ export interface SpecsWorkflowIndex {
   projectPath: string;
   workspaceExists: boolean;
   hasFlowKit: boolean;
+  hasFlowConfig: boolean;
   hasSpecsDir: boolean;
   activeChangeId?: string | null;
   savedProfile?: WorkflowProfile | null;
@@ -129,6 +148,44 @@ export interface FlowWritePlan {
   files: InstallFileEntry[];
   audit: InstallAuditSummary;
   semanticWarnings: string[];
+}
+
+export interface OrchestrationLogEntry {
+  ts?: string | null;
+  event: string;
+  summary: string;
+  payload: Record<string, unknown>;
+}
+
+export type OrchestrationStepStatus = "planned" | "applied" | "skipped" | "verified" | "failed";
+
+export interface OrchestrationStepReceipt {
+  id: string;
+  label: string;
+  targetPath: string;
+  action: string;
+  status: OrchestrationStepStatus;
+  beforeChecksum?: string | null;
+  afterChecksum?: string | null;
+  snapshotPath?: string | null;
+  reason?: string | null;
+}
+
+export interface OrchestrationVerification {
+  id: string;
+  label: string;
+  passed: boolean;
+  detail?: string | null;
+}
+
+export interface OrchestrationReceipt {
+  schema: string;
+  operation: string;
+  projectPath: string;
+  dryRun: boolean;
+  createdAt: string;
+  steps: OrchestrationStepReceipt[];
+  verifications: OrchestrationVerification[];
 }
 
 export const flowOrchestratorApi = {
@@ -247,6 +304,22 @@ export const flowOrchestratorApi = {
       projectType,
       selectedModules: selectedModules ?? null,
       disabledStages: disabledStages ?? null,
+    });
+  },
+
+  async readOrchestrationLog(
+    projectId: string,
+    limit = 20,
+  ): Promise<OrchestrationLogEntry[]> {
+    return await invoke<OrchestrationLogEntry[]>("read_orchestration_log_cmd", {
+      projectId,
+      limit,
+    });
+  },
+
+  async restoreLatestReceipt(projectId: string): Promise<OrchestrationReceipt> {
+    return await invoke<OrchestrationReceipt>("restore_latest_orchestration_receipt_cmd", {
+      projectId,
     });
   },
 };

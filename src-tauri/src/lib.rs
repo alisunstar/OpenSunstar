@@ -99,6 +99,7 @@ pub use services::flow_orchestrator::{
     SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetPaths,
     WorkflowPresetSummary, WorkflowProfile, WorkflowStage, WorkflowStageSkipWhen,
 };
+pub use services::orchestration_plan::{OrchestrationReceipt, OrchestrationStepReceipt, OrchestrationVerification};
 pub use services::provider::{VerifyKeyResult, VerifyProtocol};
 pub use services::recipe_composer::{
     CompositionRecipe, InstallResult as RecipeInstallResult, RecipeArtifact, RecipeComposeParams,
@@ -1772,6 +1773,8 @@ pub fn run() {
             commands::export_project_workflow_profile_cmd,
             commands::preview_flow_config_export_cmd,
             commands::export_flow_config_cmd,
+            commands::read_orchestration_log_cmd,
+            commands::restore_latest_orchestration_receipt_cmd,
             commands::build_stage_graph_cmd,
             commands::compose_recipe_cmd,
             commands::preview_recipe_cmd,

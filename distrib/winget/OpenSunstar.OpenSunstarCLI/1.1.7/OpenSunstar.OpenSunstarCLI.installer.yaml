@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+
+PackageIdentifier: OpenSunstar.OpenSunstarCLI
+PackageVersion: 1.1.7
+InstallerLocale: en-US
+InstallerType: zip
+NestedInstallerType: portable
+NestedInstallerFiles:
+  - RelativeFilePath: os.exe
+    PortableCommandAlias: os
+InstallModes:
+  - silent
+UpgradeBehavior: uninstallPrevious
+Commands:
+  - os
+Installers:
+  - Architecture: x64
+    Platform:
+      - Windows.Desktop
+    InstallerUrl: https://github.com/alisunstar/OpenSunstar/releases/download/v1.1.7/OpenSunstar-v1.1.7-os-windows-x86_64.zip
+    InstallerSha256: TODO_UPDATE_AFTER_RELEASE
+    Scope: user
+ManifestType: installer
+ManifestVersion: 1.9.0

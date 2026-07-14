@@ -6,10 +6,14 @@ use std::path::{Path, PathBuf};
 
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
-use crate::config::write_text_file;
 use crate::error::AppError;
 use crate::services::design_contract::{InstallAuditSummary, InstallFileEntry};
+use crate::services::orchestration_plan::{
+    execute_text_write_plan, verification, OrchestrationReceipt, OrchestrationStepStatus,
+    PlannedTextWrite,
+};
 use crate::services::project_artifacts::project_workspace_exists;
 
 const OPENSUNSTAR_DIR: &str = ".opensunstar";
@@ -18,6 +22,7 @@ const FLOW_KIT_GO: &str = "flow-kit/GO.md";
 const PROFILE_FILENAME: &str = "workflow.profile.json";
 const ORCH_LOG_FILENAME: &str = "orchestration.log.jsonl";
 const STATE_FILENAME: &str = "STATE.md";
+const CI_WORKFLOW_REL: &str = ".github/workflows/opensunstar-flow-gate.yml";
 
 const MODULES_JSON: &str = include_str!("../../assets/workflow/modules.json");
 const PRESET_MVP: &str = include_str!("../../assets/workflow/presets/mvp.json");
@@ -161,6 +166,12 @@ const R96_ROLE_SEPARATION: bool = true;
 const R96_REQUIRE_DIFF_BOUNDARY: bool = true;
 
 const FLOW_CONFIG_FILENAME: &str = "flow-config.yaml";
+const REVIEW_LENSES_4R: &[&str] = &[
+    "review-risk",
+    "review-resilience",
+    "review-readability",
+    "review-reliability",
+];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -191,6 +202,31 @@ pub struct FlowConfigRules {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+pub struct FlowConfigReviewTier {
+    pub enabled: bool,
+    pub lenses: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_lenses: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_lens: Option<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub paths: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub changed_lines_threshold: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct FlowConfigReviewPolicy {
+    pub mode: String,
+    pub trivial: FlowConfigReviewTier,
+    pub standard: FlowConfigReviewTier,
+    pub hot_path: FlowConfigReviewTier,
+    pub large_diff: FlowConfigReviewTier,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct FlowConfig {
     pub schema_version: u32,
     pub preset_id: String,
@@ -198,6 +234,7 @@ pub struct FlowConfig {
     pub modules: Vec<String>,
     pub stages: Vec<FlowConfigStage>,
     pub rules: FlowConfigRules,
+    pub review_policy: FlowConfigReviewPolicy,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub semantic_warnings: Vec<String>,
 }
@@ -246,6 +283,7 @@ pub struct SpecsWorkflowIndex {
     pub project_path: String,
     pub workspace_exists: bool,
     pub has_flow_kit: bool,
+    pub has_flow_config: bool,
     pub has_specs_dir: bool,
     #[serde(default)]
     pub active_change_id: Option<String>,
@@ -263,6 +301,16 @@ pub struct StageGateResult {
     pub missing_artifacts: Vec<String>,
     pub satisfied_artifacts: Vec<String>,
     pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OrchestrationLogEntry {
+    #[serde(default)]
+    pub ts: Option<String>,
+    pub event: String,
+    pub summary: String,
+    pub payload: Value,
 }
 
 pub fn list_workflow_modules(project_path: Option<&str>) -> Result<Vec<WorkflowModule>, AppError> {
@@ -770,6 +818,7 @@ pub fn scan_project_specs_workflow(
 ) -> Result<SpecsWorkflowIndex, AppError> {
     let workspace_exists = project_workspace_exists(project_path);
     let has_flow_kit = workspace_exists && PathBuf::from(project_path).join(FLOW_KIT_GO).is_file();
+    let has_flow_config = opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME).is_file();
     let specs_dir = specs_root(project_path);
     let has_specs_dir = specs_dir.is_dir();
 
@@ -859,6 +908,7 @@ pub fn scan_project_specs_workflow(
         project_path: project_path.to_string(),
         workspace_exists,
         has_flow_kit,
+        has_flow_config,
         has_specs_dir,
         active_change_id,
         saved_profile,
@@ -1131,8 +1181,61 @@ fn build_flow_config(
             role_separation: R96_ROLE_SEPARATION,
             require_diff_boundary: R96_REQUIRE_DIFF_BOUNDARY,
         },
+        review_policy: default_review_policy(),
         semantic_warnings: semantic_issues,
     })
+}
+
+fn default_review_policy() -> FlowConfigReviewPolicy {
+    let lenses_4r = REVIEW_LENSES_4R.iter().map(|s| (*s).to_string()).collect::<Vec<_>>();
+    FlowConfigReviewPolicy {
+        mode: "risk-aware".to_string(),
+        trivial: FlowConfigReviewTier {
+            enabled: true,
+            lenses: vec![],
+            max_lenses: Some(0),
+            default_lens: None,
+            paths: vec![],
+            changed_lines_threshold: None,
+        },
+        standard: FlowConfigReviewTier {
+            enabled: true,
+            lenses: vec![
+                "review-readability".to_string(),
+                "review-reliability".to_string(),
+                "review-resilience".to_string(),
+                "review-risk".to_string(),
+            ],
+            max_lenses: Some(1),
+            default_lens: Some("review-readability".to_string()),
+            paths: vec![],
+            changed_lines_threshold: None,
+        },
+        hot_path: FlowConfigReviewTier {
+            enabled: true,
+            lenses: lenses_4r.clone(),
+            max_lenses: Some(4),
+            default_lens: None,
+            paths: vec![
+                "**/auth/**".to_string(),
+                "**/security/**".to_string(),
+                "**/payments/**".to_string(),
+                "**/permission/**".to_string(),
+                "**/permissions/**".to_string(),
+                "**/proxy/**".to_string(),
+                "**/sync/**".to_string(),
+            ],
+            changed_lines_threshold: None,
+        },
+        large_diff: FlowConfigReviewTier {
+            enabled: true,
+            lenses: lenses_4r,
+            max_lenses: Some(4),
+            default_lens: None,
+            paths: vec![],
+            changed_lines_threshold: Some(400),
+        },
+    }
 }
 
 fn flow_write_file_entry(path: PathBuf, rel_path: &str, new_content: String) -> InstallFileEntry {
@@ -1151,6 +1254,67 @@ fn flow_write_file_entry(path: PathBuf, rel_path: &str, new_content: String) -> 
         new_content: Some(new_content),
         existing_content,
     }
+}
+
+fn flow_create_file_entry(path: PathBuf, rel_path: &str, new_content: String) -> InstallFileEntry {
+    let existing_content = if path.is_file() {
+        fs::read_to_string(&path).ok()
+    } else {
+        None
+    };
+    InstallFileEntry {
+        path: rel_path.to_string(),
+        status: if existing_content.is_some() {
+            "skip".into()
+        } else {
+            "create".into()
+        },
+        new_content: if existing_content.is_some() { None } else { Some(new_content) },
+        existing_content,
+    }
+}
+
+fn ci_workflow_path(project_path: &str) -> PathBuf {
+    PathBuf::from(project_path).join(CI_WORKFLOW_REL)
+}
+
+fn generate_ci_workflow(project_type: &str, target_stage: &str) -> String {
+    format!(
+        r#"name: OpenSunstar Flow Gate
+
+on:
+  pull_request:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  flow-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install OpenSunstar CLI
+        run: npm install -g opensunstar-os
+      - name: Validate OpenSunstar workflow artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHANGE_ID=""
+          if [ -f STATE.md ]; then
+            CHANGE_ID="$(awk -F: '/^change_id:/ {{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2; exit }}' STATE.md)"
+          fi
+          if [ -z "$CHANGE_ID" ] && [ -d .specs ]; then
+            CHANGE_ID="$(find .specs -mindepth 1 -maxdepth 1 -type d -printf '%f\n' | sort | head -n 1)"
+          fi
+          if [ -z "$CHANGE_ID" ]; then
+            echo "No change id found. Create STATE.md or .specs/<change-id>/ first."
+            exit 1
+          fi
+          os flow validate --project-path . --project-type {project_type} --change-id "$CHANGE_ID" --target-stage {target_stage} --strict --json
+"#
+    )
 }
 
 pub fn preview_project_workflow_profile_export(
@@ -1200,12 +1364,26 @@ pub fn preview_flow_config_export(
     )?;
     let yaml = serde_yaml::to_string(&config)
         .map_err(|e| AppError::Message(format!("序列化 flow-config.yaml 失败: {e}")))?;
+    let target_stage = config
+        .stages
+        .iter()
+        .rev()
+        .find(|s| s.enabled)
+        .map(|s| s.id.as_str())
+        .unwrap_or("6-review");
     Ok(FlowWritePlan {
-        files: vec![flow_write_file_entry(
-            opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME),
-            ".opensunstar/flow-config.yaml",
-            yaml,
-        )],
+        files: vec![
+            flow_write_file_entry(
+                opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME),
+                ".opensunstar/flow-config.yaml",
+                yaml,
+            ),
+            flow_create_file_entry(
+                ci_workflow_path(project_path),
+                CI_WORKFLOW_REL,
+                generate_ci_workflow(project_type, target_stage),
+            ),
+        ],
         audit: empty_install_audit(),
         semantic_warnings: config.semantic_warnings,
     })
@@ -1267,12 +1445,26 @@ fn export_project_workflow_profile_with_semantic_enforcement(
         disabled_stages,
         enforce_semantics,
     )?;
-    let out_dir = opensunstar_dir(project_path);
-    fs::create_dir_all(&out_dir).map_err(|e| AppError::io(&out_dir, e))?;
-    let out_path = out_dir.join(PROFILE_FILENAME);
+    let out_path = opensunstar_dir(project_path).join(PROFILE_FILENAME);
     let json = serde_json::to_string_pretty(&profile)
         .map_err(|e| AppError::Message(format!("序列化 workflow profile 失败: {e}")))?;
-    write_text_file(&out_path, &json)?;
+    let receipt = execute_text_write_plan(
+        project_path,
+        "workflow-profile-export",
+        vec![PlannedTextWrite::replace(
+            "profile",
+            "保存项目流程",
+            out_path.clone(),
+            json,
+        )],
+        false,
+        vec![verification(
+            "profile-exists",
+            "workflow.profile.json 已生成",
+            true,
+            Some(out_path.to_string_lossy().to_string()),
+        )],
+    )?;
     append_orchestration_log(
         project_path,
         serde_json::json!({
@@ -1282,8 +1474,11 @@ fn export_project_workflow_profile_with_semantic_enforcement(
             "activeChangeId": active_change_id,
             "resolvedStageCount": profile.resolved_stages.len(),
             "semanticEnforcement": enforce_semantics,
+            "receiptStepCount": receipt.steps.len(),
+            "rollbackSnapshots": receipt.steps.iter().filter(|s| s.snapshot_path.is_some()).count(),
         }),
     )?;
+    append_post_apply_verification_log(project_path, "workflow-profile-export", &receipt)?;
     Ok(profile)
 }
 
@@ -1340,10 +1535,52 @@ fn export_flow_config_with_semantic_enforcement(
     )?;
     let yaml = serde_yaml::to_string(&config)
         .map_err(|e| AppError::Message(format!("序列化 flow-config.yaml 失败: {e}")))?;
-    let out_dir = opensunstar_dir(project_path);
-    fs::create_dir_all(&out_dir).map_err(|e| AppError::io(&out_dir, e))?;
-    let out_path = out_dir.join(FLOW_CONFIG_FILENAME);
-    write_text_file(&out_path, &yaml)?;
+    let out_path = opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME);
+    let target_stage = config
+        .stages
+        .iter()
+        .rev()
+        .find(|s| s.enabled)
+        .map(|s| s.id.as_str())
+        .unwrap_or("6-review");
+    let ci_path = ci_workflow_path(project_path);
+    let receipt = execute_text_write_plan(
+        project_path,
+        "flow-config-export",
+        vec![
+            PlannedTextWrite::replace(
+                "flow-config",
+                "导出门禁配置",
+                out_path.clone(),
+                yaml,
+            ),
+            PlannedTextWrite::create_if_missing(
+                "ci-workflow",
+                "接入 CI 门禁模板",
+                ci_path.clone(),
+                generate_ci_workflow(project_type, target_stage),
+            ),
+        ],
+        false,
+        vec![
+            verification(
+                "flow-config-exists",
+                "flow-config.yaml 已生成",
+                true,
+                Some(out_path.to_string_lossy().to_string()),
+            ),
+            verification(
+                "ci-workflow-present",
+                "CI workflow 已存在或已创建",
+                true,
+                Some(ci_path.to_string_lossy().to_string()),
+            ),
+        ],
+    )?;
+    let ci_workflow_created = receipt
+        .steps
+        .iter()
+        .any(|s| s.id == "ci-workflow" && s.status == OrchestrationStepStatus::Applied);
     append_orchestration_log(
         project_path,
         serde_json::json!({
@@ -1353,9 +1590,47 @@ fn export_flow_config_with_semantic_enforcement(
             "stageCount": config.stages.len(),
             "r96Enforced": true,
             "semanticEnforcement": enforce_semantics,
+            "ciWorkflow": CI_WORKFLOW_REL,
+            "ciWorkflowCreated": ci_workflow_created,
+            "receiptStepCount": receipt.steps.len(),
+            "rollbackSnapshots": receipt.steps.iter().filter(|s| s.snapshot_path.is_some()).count(),
         }),
     )?;
+    append_post_apply_verification_log(project_path, "flow-config-export", &receipt)?;
     Ok(config)
+}
+
+fn append_post_apply_verification_log(
+    project_path: &str,
+    operation: &str,
+    receipt: &OrchestrationReceipt,
+) -> Result<(), AppError> {
+    let total = receipt.verifications.len();
+    let passed = receipt.verifications.iter().filter(|v| v.passed).count();
+    let failed = total.saturating_sub(passed);
+    let failed_items = receipt
+        .verifications
+        .iter()
+        .filter(|v| !v.passed)
+        .map(|v| {
+            serde_json::json!({
+                "id": v.id,
+                "label": v.label,
+                "detail": v.detail,
+            })
+        })
+        .collect::<Vec<_>>();
+    append_orchestration_log(
+        project_path,
+        serde_json::json!({
+            "event": "post_apply_verification",
+            "operation": operation,
+            "passed": passed,
+            "failed": failed,
+            "total": total,
+            "failedItems": failed_items,
+        }),
+    )
 }
 
 pub fn append_orchestration_log(
@@ -1383,7 +1658,118 @@ pub fn append_orchestration_log(
         .open(&log_path)
         .map_err(|e| AppError::io(&log_path, e))?;
     writeln!(file, "{line}").map_err(|e| AppError::io(&log_path, e))?;
+    if let Err(e) = crate::services::project_config_sync::sync_orchestration_agent_context(project_path) {
+        log::warn!("刷新 OpenSunstar Agent 上下文失败: {e}");
+    }
     Ok(())
+}
+
+pub fn read_orchestration_log(
+    project_path: &str,
+    limit: Option<usize>,
+) -> Result<Vec<OrchestrationLogEntry>, AppError> {
+    let log_path = opensunstar_dir(project_path).join(ORCH_LOG_FILENAME);
+    if !log_path.is_file() {
+        return Ok(Vec::new());
+    }
+
+    let text = fs::read_to_string(&log_path).map_err(|e| AppError::io(&log_path, e))?;
+    let take = limit.unwrap_or(20).clamp(1, 100);
+    let mut entries = Vec::new();
+    for line in text.lines().rev() {
+        if line.trim().is_empty() {
+            continue;
+        }
+        let Ok(value) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let event = value
+            .get("event")
+            .and_then(Value::as_str)
+            .unwrap_or("unknown")
+            .to_string();
+        let ts = value.get("ts").and_then(Value::as_str).map(str::to_string);
+        entries.push(OrchestrationLogEntry {
+            summary: orchestration_event_summary(&value, &event),
+            event,
+            ts,
+            payload: value,
+        });
+        if entries.len() >= take {
+            break;
+        }
+    }
+    Ok(entries)
+}
+
+fn orchestration_event_summary(value: &Value, event: &str) -> String {
+    let str_field = |key: &str| value.get(key).and_then(Value::as_str).unwrap_or("-");
+    match event {
+        "profile_export" => format!(
+            "保存项目流程：{} / {}，阶段 {} 个",
+            str_field("presetId"),
+            str_field("projectType"),
+            value
+                .get("resolvedStageCount")
+                .and_then(Value::as_u64)
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".into())
+        ),
+        "flow_config_export" => format!(
+            "生成自动检查配置：{} / {}，阶段 {} 个",
+            str_field("presetId"),
+            str_field("projectType"),
+            value
+                .get("stageCount")
+                .and_then(Value::as_u64)
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".into())
+        ),
+        "stage_gate" => format!(
+            "检查是否能进入下一步：{} → {}，{}",
+            str_field("changeId"),
+            str_field("targetStage"),
+            if value.get("allowed").and_then(Value::as_bool).unwrap_or(false) {
+                "通过"
+            } else {
+                "未通过"
+            }
+        ),
+        "recipe_export" => format!("保存改动模板：{}", str_field("name")),
+        "recipe_install" => format!(
+            "生成改动模板：{} / {}",
+            str_field("name"),
+            str_field("changeId")
+        ),
+        "design_contract_export" => format!("导出 UI 设计约束：{}", str_field("name")),
+        "design_contract_install" => format!("安装 UI 设计约束：{}", str_field("name")),
+        "orchestration_rollback" => format!(
+            "恢复最近一次编排：{} 个文件操作",
+            value
+                .get("stepCount")
+                .and_then(Value::as_u64)
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".into())
+        ),
+        "post_apply_verification" => format!(
+            "写后验证：{}/{} 通过{}",
+            value
+                .get("passed")
+                .and_then(Value::as_u64)
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".into()),
+            value
+                .get("total")
+                .and_then(Value::as_u64)
+                .map(|v| v.to_string())
+                .unwrap_or_else(|| "-".into()),
+            match value.get("failed").and_then(Value::as_u64).unwrap_or(0) {
+                0 => "".to_string(),
+                n => format!("，{} 项失败", n),
+            }
+        ),
+        _ => event.to_string(),
+    }
 }
 
 #[cfg(test)]

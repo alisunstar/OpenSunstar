@@ -3,6 +3,12 @@
 //! OpenSunstar-owned blocks use `<!-- opensunstar:ID -->` … `<!-- /opensunstar:ID -->`.
 //! Content outside managed markers (including `<!-- gentle-ai:* -->` sections) is preserved.
 
+use serde::{Deserialize, Serialize};
+use std::path::Path;
+
+use crate::error::AppError;
+use crate::services::orchestration_plan::checksum_text;
+
 pub const PROMPT_SECTION_ID: &str = "managed-prompt";
 /// Claude Code 跨工具 SSOT 桥接行（写入独立 marker 段）
 pub const AGENTS_BRIDGE_SECTION_ID: &str = "agents-bridge";
@@ -13,6 +19,45 @@ pub const MANAGED_COMMAND_MARKER_PREFIX: &str = "<!-- opensunstar:managed-comman
 const MARKER_PREFIX: &str = "<!-- opensunstar:";
 const MARKER_SUFFIX: &str = " -->";
 const CLOSE_PREFIX: &str = "<!-- /opensunstar:";
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum ManagedSectionAction {
+    Appended,
+    Replaced,
+    Removed,
+    Noop,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ManagedSectionMergeResult {
+    pub content: String,
+    pub section_id: String,
+    pub action: ManagedSectionAction,
+    pub orphan_markers_removed: bool,
+    pub before_checksum: String,
+    pub after_checksum: String,
+}
+
+/// Merge a managed Markdown section from an on-disk file.
+///
+/// This is the preferred file-level entry point for OpenSunstar managed blocks:
+/// callers get a deterministic merge report without duplicating read/empty-file
+/// fallback logic. Actual writes should still go through orchestration_plan so
+/// snapshots, receipts and rollback stay centralized.
+pub fn merge_markdown_section_file(
+    path: &Path,
+    section_id: &str,
+    content: &str,
+) -> Result<ManagedSectionMergeResult, AppError> {
+    let existing = if path.is_file() {
+        std::fs::read_to_string(path).map_err(|e| AppError::io(path, e))?
+    } else {
+        String::new()
+    };
+    Ok(merge_markdown_section(&existing, section_id, content))
+}
 
 fn open_marker(section_id: &str) -> String {
     format!("{MARKER_PREFIX}{section_id}{MARKER_SUFFIX}")
@@ -34,47 +79,78 @@ pub fn extract_markdown_section(content: &str, section_id: &str) -> Option<Strin
 
 /// Replace or append a marked section. Empty `content` removes the section only.
 pub fn inject_markdown_section(existing: &str, section_id: &str, content: &str) -> String {
+    merge_markdown_section(existing, section_id, content).content
+}
+
+/// Replace or append a marked section and return an observable merge report.
+pub fn merge_markdown_section(
+    existing: &str,
+    section_id: &str,
+    content: &str,
+) -> ManagedSectionMergeResult {
     let open = open_marker(section_id);
     let close = close_marker(section_id);
 
-    let existing = strip_orphan_markers(existing, &open, &close);
+    let before_checksum = checksum_text(existing);
+    let cleaned = strip_orphan_markers(existing, &open, &close);
+    let orphan_markers_removed = cleaned != existing;
 
-    if let Some((open_idx, close_idx)) = find_marker_pair(&existing, &open, &close) {
+    let (merged, action) = if let Some((open_idx, close_idx)) = find_marker_pair(&cleaned, &open, &close) {
         if content.is_empty() {
-            return join_without_section(&existing, open_idx, close_idx, &close);
+            (
+                join_without_section(&cleaned, open_idx, close_idx, &close),
+                ManagedSectionAction::Removed,
+            )
+        } else {
+            let before = &cleaned[..open_idx];
+            let after = &cleaned[close_idx + close.len()..];
+            (
+                format!(
+                    "{}{}{}\n{}\n{}{}",
+                    before,
+                    open,
+                    "\n",
+                    content.trim_end_matches('\n'),
+                    if content.ends_with('\n') { "" } else { "\n" },
+                    format!("{close}{after}")
+                ),
+                ManagedSectionAction::Replaced,
+            )
         }
-
-        let before = &existing[..open_idx];
-        let after = &existing[close_idx + close.len()..];
-        return format!(
-            "{}{}{}\n{}\n{}{}",
-            before,
-            open,
-            "\n",
-            content.trim_end_matches('\n'),
-            if content.ends_with('\n') { "" } else { "\n" },
-            format!("{close}{after}")
-        );
-    }
-
-    if content.is_empty() {
-        return existing.to_string();
-    }
-
-    let mut result = existing.to_string();
-    if !result.is_empty() && !result.ends_with('\n') {
+    } else if content.is_empty() {
+        (cleaned, ManagedSectionAction::Noop)
+    } else {
+        let mut result = cleaned;
+        if !result.is_empty() && !result.ends_with('\n') {
+            result.push('\n');
+        }
+        if !result.is_empty() {
+            result.push('\n');
+        }
+        result.push_str(&open);
         result.push('\n');
-    }
-    if !result.is_empty() {
+        result.push_str(content.trim_end_matches('\n'));
         result.push('\n');
+        result.push_str(&close);
+        result.push('\n');
+        (result, ManagedSectionAction::Appended)
+    };
+
+    let after_checksum = checksum_text(&merged);
+    let action = if before_checksum == after_checksum && !orphan_markers_removed {
+        ManagedSectionAction::Noop
+    } else {
+        action
+    };
+
+    ManagedSectionMergeResult {
+        content: merged,
+        section_id: section_id.to_string(),
+        action,
+        orphan_markers_removed,
+        before_checksum,
+        after_checksum,
     }
-    result.push_str(&open);
-    result.push('\n');
-    result.push_str(content.trim_end_matches('\n'));
-    result.push('\n');
-    result.push_str(&close);
-    result.push('\n');
-    result
 }
 
 fn find_marker_pair<'a>(content: &'a str, open: &str, close: &str) -> Option<(usize, usize)> {

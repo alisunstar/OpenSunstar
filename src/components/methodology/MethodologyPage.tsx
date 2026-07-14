@@ -690,7 +690,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             ) : (
               <RefreshCw className="w-4 h-4 mr-1.5" />
             )}
-            {t("methodology.scanAll", { defaultValue: "扫描所有项目" })}
+            {t("methodology.scanAll", { defaultValue: "只读发现项目" })}
           </Button>
         </div>
       </div>
@@ -714,7 +714,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
               </span>
             </TabsTrigger>
             <TabsTrigger value="market">
-              {t("methodology.tabMarket", { defaultValue: "方法论识别" })}
+              {t("methodology.tabMarket", { defaultValue: "现状发现" })}
               {detectedFrameworkCount > 0 && (
                 <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
                   {detectedFrameworkCount}
@@ -742,13 +742,13 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                   <div className="space-y-1">
                     <p className="text-sm font-medium text-foreground">
                       {t("methodology.scanPromptTitle", {
-                        defaultValue: "尚未扫描项目中的方法论框架",
+                        defaultValue: "尚未发现项目中的方法论痕迹",
                       })}
                     </p>
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {t("methodology.scanPromptBody", {
                         defaultValue:
-                          "点击「扫描所有项目」进行只读探测，或直接进入工作流配置 / 变更执行方案——无需先安装或检测框架。",
+                          "点击「只读发现项目」进行无写入探测，只用于识别已有实践与推荐流程档位；也可以直接进入工作流配置 / 变更执行方案。",
                       })}
                     </p>
                   </div>
@@ -765,7 +765,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     ) : (
                       <RefreshCw className="w-4 h-4 mr-1.5" />
                     )}
-                    {t("methodology.scanAll", { defaultValue: "扫描所有项目" })}
+                    {t("methodology.scanAll", { defaultValue: "只读发现项目" })}
                   </Button>
                   <Button
                     size="sm"
@@ -800,7 +800,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <p className="text-xs text-muted-foreground leading-relaxed">
                       {t("methodology.directOrchestrationHint", {
                         defaultValue:
-                          "工作流配置与变更执行方案可独立使用，导出 workflow.profile.json 或变更执行方案文件。",
+                          "可独立保存项目工作规则，也可生成变更执行材料；具体文件名放在高级详情中查看。",
                       })}
                     </p>
                   </div>
@@ -834,13 +834,13 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">
                     {t("methodology.noneDetectedTitle", {
-                      defaultValue: "未检测到任何方法论框架",
+                      defaultValue: "未发现可识别的方法论痕迹",
                     })}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     {t("methodology.noneDetectedGuidance", {
                       defaultValue:
-                        "推荐从 flow-kit（纯 Markdown 模板体系）或 spec-kit（规格工具链）入手。review-only 预设适合已有代码审查流程的项目，无需安装框架。",
+                        "这不阻断编排。可从工作流配置直接选择 review-only / mvp / standard，也可后续再引入 flow-kit 或 spec-kit。",
                     })}
                   </p>
                 </div>
@@ -853,7 +853,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                   <h3 className="text-sm font-semibold text-foreground">
                     {t("methodology.detectedFrameworks", {
-                      defaultValue: "已检测到的框架",
+                      defaultValue: "已发现的实践痕迹",
                     })}
                   </h3>
                 </div>
@@ -877,13 +877,13 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <div className="text-left">
                       <p className="text-sm font-semibold text-foreground">
                         {t("methodology.recommendedFrameworks", {
-                          defaultValue: "框架参考目录",
+                          defaultValue: "方法论参考目录",
                         })}
                       </p>
                       <p className="text-xs text-muted-foreground font-normal mt-0.5">
                         {t("methodology.recommendedFrameworksHint", {
                           defaultValue:
-                            "受支持的开源方法论一览，供了解与选型参考（非安装向导）",
+                            "仅作为了解与选型参考；当前页面不会安装框架，也不会修改项目文件",
                         })}
                       </p>
                     </div>
@@ -932,7 +932,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {t("methodology.orchestrationHint", {
                     defaultValue:
-                      "独立维度：选择一个项目，配置流程档位、模块和阶段，导出 workflow.profile.json 或 flow-config.yaml。无需先完成方法论框架扫描。",
+                      "独立维度：选择一个项目，保存团队工作规则并生成自动检查配置。无需先完成方法论框架扫描。",
                   })}
                 </p>
 
@@ -987,7 +987,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <p className="text-sm text-muted-foreground">
                       {t("methodology.orchestrationPickProjectHint", {
                         defaultValue:
-                          "请在上方下拉框选择一个项目，开始配置 SDD 流程编排。",
+                          "请在上方下拉框选择一个项目，开始配置项目工作规则。",
                       })}
                     </p>
                   </div>
@@ -1015,7 +1015,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {t("methodology.recipeHint", {
                     defaultValue:
-                      "独立维度：可视化阶段图 + 自由组合阶段与模块，导出 YAML+Markdown 混合格式 Recipe 文件。可独立使用，无需先配置其他维度。",
+                      "独立维度：用可视化步骤图生成变更执行材料。可独立使用，无需先配置其他维度。",
                   })}
                 </p>
 
@@ -1069,7 +1069,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <p className="text-sm text-muted-foreground">
                       {t("methodology.recipePickProjectHint", {
                         defaultValue:
-                          "请在上方下拉框选择一个项目，开始编排 Recipe。",
+                          "请在上方下拉框选择一个项目，开始生成变更执行材料。",
                       })}
                     </p>
                   </div>
@@ -1097,7 +1097,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {t("methodology.designContractHint", {
                     defaultValue:
-                      "独立维度：选择品牌模板或自定义配色，生成 DESIGN.md + DTCG tokens。与 SDD 方法论无关，任何有前端/UI 的项目均可独立使用。",
+                      "独立维度：选择品牌模板或自定义配色，生成设计说明与设计令牌。任何有前端/UI 的项目均可独立使用。",
                   })}
                 </p>
 
