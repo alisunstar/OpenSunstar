@@ -9,6 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.8] - 2026-07-15
+
+### Added
+
+- **Asset health**: derived healthy/attention/unhealthy status from deployment receipts and runtime evidence (snapshot + repair paths)
+- **Project environment snapshots**: capture / restore provider · MCP · Skills · Prompt dimensions per project
+- **Quick Start backend service**: idempotent apply pipeline with upstream verification receipts (no raw key in audit)
+- **Quick Start usage dialog** and expanded unit/integration coverage for apply/verify and asset health UI
+- **Database schema v36**: DAOs for asset_health, project_environment, and quick_start operations
+
+### Changed
+
+- **Simple Connect UI removed**: desk-side SimpleConnect panels deleted; Quick Start is the sole onboarding connect surface
+- **Quick Start apply/verify**: stronger pipeline, provider build, and verification flows
+- **Project asset panel**: asset capability contracts and health summary wiring
+- **Providers / usage**: API and pricing panel updates aligned with the Quick Start path
+
+### Fixed
+
+- **i18n**: new strings for asset health, environment snapshots, and Quick Start flows
+
 ## [1.1.7] - 2026-07-14
 
 ### Added

@@ -1,9 +1,7 @@
 import type { ClaudeApiFormat } from "@/types";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
 
-export type QuickStartStep = 1 | 2 | 3;
-
-/** Step ① 选中项：预设或自定义 */
+/** 已选中的预设或自定义供应商。 */
 export type QuickStartSelection =
   | {
       mode: "preset";

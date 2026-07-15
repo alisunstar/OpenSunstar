@@ -104,7 +104,10 @@ function buildClaudeFromPreset(
   fields: QuickStartFormFields,
   displayName: string,
 ): Omit<Provider, "id"> {
-  const settingsConfig = cloneJson(preset.settingsConfig) as Record<string, any>;
+  const settingsConfig = cloneJson(preset.settingsConfig) as Record<
+    string,
+    any
+  >;
   const keyField =
     fields.advancedClaude?.apiKeyField ??
     preset.apiKeyField ??
@@ -120,7 +123,8 @@ function buildClaudeFromPreset(
   }
   settingsConfig.env = env;
 
-  const apiFormat = fields.advancedClaude?.apiFormat ?? preset.apiFormat ?? "anthropic";
+  const apiFormat =
+    fields.advancedClaude?.apiFormat ?? preset.apiFormat ?? "anthropic";
   const baseUrl = env.ANTHROPIC_BASE_URL ?? "";
   const meta: ProviderMeta = {
     apiFormat,
@@ -182,9 +186,7 @@ function buildDesktopFromPreset(
   };
 
   const apiFormat =
-    fields.advancedDesktop?.apiFormat ??
-    preset.apiFormat ??
-    "anthropic";
+    fields.advancedDesktop?.apiFormat ?? preset.apiFormat ?? "anthropic";
 
   return {
     name: displayName,
@@ -257,7 +259,9 @@ function buildCodexFromPreset(
 }
 
 function getCodexBaseUrlFromPreset(preset: CodexProviderPreset): string {
-  const fromUtil = getCodexBaseUrl({ auth: preset.auth, config: preset.config });
+  const fromUtil = getCodexBaseUrl({
+    settingsConfig: { auth: preset.auth, config: preset.config },
+  });
   if (fromUtil) return fromUtil;
   return preset.endpointCandidates?.[0] ?? "https://api.openai.com/v1";
 }
@@ -267,7 +271,10 @@ function buildGeminiFromPreset(
   fields: QuickStartFormFields,
   displayName: string,
 ): Omit<Provider, "id"> {
-  const settingsConfig = cloneJson(preset.settingsConfig) as Record<string, any>;
+  const settingsConfig = cloneJson(preset.settingsConfig) as Record<
+    string,
+    any
+  >;
   const env = (settingsConfig.env ?? {}) as Record<string, string>;
   env.GEMINI_API_KEY = fields.apiKey.trim();
   if (fields.advancedGemini?.baseUrl) {
@@ -410,7 +417,10 @@ export function defaultAdvancedFields(
   switch (appId) {
     case "claude": {
       const raw = preset.raw as ProviderPreset;
-      const env = raw.settingsConfig?.env as Record<string, string> | undefined;
+      const settingsConfig = raw.settingsConfig as
+        | { env?: Record<string, string> }
+        | undefined;
+      const env = settingsConfig?.env;
       return {
         advancedClaude: {
           apiFormat: raw.apiFormat ?? "anthropic",
@@ -441,7 +451,10 @@ export function defaultAdvancedFields(
     }
     case "gemini": {
       const raw = preset.raw as GeminiProviderPreset;
-      const env = raw.settingsConfig?.env as Record<string, string> | undefined;
+      const settingsConfig = raw.settingsConfig as
+        | { env?: Record<string, string> }
+        | undefined;
+      const env = settingsConfig?.env;
       return {
         advancedGemini: {
           baseUrl: env?.GOOGLE_GEMINI_BASE_URL ?? raw.baseURL ?? "",

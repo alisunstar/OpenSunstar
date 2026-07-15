@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { act, screen, waitFor } from "@testing-library/react";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderAppWithProviders } from "../renderWithProviders";
 import { emitTauriEvent } from "../msw/tauriMocks";
@@ -15,12 +15,6 @@ vi.mock("sonner", () => ({
 
 vi.mock("@/components/onboarding/OnboardingWizard", () => ({
   OnboardingWizard: () => null,
-}));
-
-vi.mock("@/components/simpleConnect/SimpleConnectPage", () => ({
-  SimpleConnectPage: () => (
-    <div data-testid="simple-connect-page">Simple Connect</div>
-  ),
 }));
 
 vi.mock("@/components/kanban/KanbanPage", () => ({
@@ -67,5 +61,22 @@ describe("App integration with MSW", () => {
       error: "s3 timeout",
     });
     expect(toastErrorMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps legacy API-key import links reachable after the old page is removed", async () => {
+    const { default: App } = await import("@/App");
+    renderAppWithProviders(App);
+
+    await waitFor(() =>
+      expect(screen.getByTestId("workspace-page")).toBeInTheDocument(),
+    );
+    await act(async () => {
+      emitTauriEvent("simple-connect-import", {
+        keys: ["sk-test-key-1234"],
+        supplierId: "deepseek",
+      });
+    });
+
+    expect(await screen.findByRole("dialog")).toBeInTheDocument();
   });
 });

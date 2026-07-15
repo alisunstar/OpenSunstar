@@ -5,6 +5,7 @@
 pub mod agent_readiness;
 pub mod asset_app_support;
 pub mod asset_effective_state;
+pub mod asset_health;
 pub mod client;
 pub mod project_id;
 pub mod prompts;

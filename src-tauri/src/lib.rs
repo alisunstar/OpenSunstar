@@ -82,6 +82,7 @@ pub use ai::asset_effective_state::{
     EffectiveItemState, EffectiveScanContext, EffectiveScanResult, RepairAssetDriftResult,
     RepairProjectDriftResult,
 };
+pub use ai::asset_health::{get_project_asset_health, AssetHealthPlan, AssetHealthRecord};
 pub use ai::types::AgentReadinessItem;
 
 // CLI Phase B/C 类型重导出（供 `os` CLI 二进制直接引用，无需访问私有模块）
@@ -99,7 +100,13 @@ pub use services::flow_orchestrator::{
     SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetPaths,
     WorkflowPresetSummary, WorkflowProfile, WorkflowStage, WorkflowStageSkipWhen,
 };
-pub use services::orchestration_plan::{OrchestrationReceipt, OrchestrationStepReceipt, OrchestrationVerification};
+pub use services::orchestration_plan::{
+    OrchestrationReceipt, OrchestrationStepReceipt, OrchestrationVerification,
+};
+pub use services::project_environment::{
+    ProjectEnvironmentApplyPreview, ProjectEnvironmentApplyReceipt, ProjectEnvironmentDiff,
+    ProjectEnvironmentDimension, ProjectEnvironmentSnapshotDto, ProjectEnvironmentVerification,
+};
 pub use services::provider::{VerifyKeyResult, VerifyProtocol};
 pub use services::recipe_composer::{
     CompositionRecipe, InstallResult as RecipeInstallResult, RecipeArtifact, RecipeComposeParams,
@@ -176,33 +183,6 @@ fn handle_deeplink_url(
     focus_main_window: bool,
     source: &str,
 ) -> bool {
-    if crate::services::simple_connect::deeplink::is_simple_connect_import_url(url_str) {
-        let redacted_url = redact_url_for_log(url_str);
-        log::info!("✓ Simple Connect import URL from {source}: {redacted_url}");
-        match crate::services::simple_connect::deeplink::try_parse_url(url_str) {
-            Ok(payload) => {
-                if let Err(e) = app.emit("simple-connect-import", &payload) {
-                    log::error!("✗ Failed to emit simple-connect-import: {e}");
-                } else if focus_main_window {
-                    if let Some(window) = app.get_webview_window("main") {
-                        let _ = window.unminimize();
-                        let _ = window.show();
-                        let _ = window.set_focus();
-                    }
-                }
-            }
-            Err(e) => {
-                if let Err(emit_err) = app.emit(
-                    "simple-connect-import-error",
-                    serde_json::json!({ "url": url_str, "error": e.to_string() }),
-                ) {
-                    log::error!("✗ Failed to emit simple-connect-import-error: {emit_err}");
-                }
-            }
-        }
-        return true;
-    }
-
     if !url_str.starts_with("OpenSunstar://") {
         return false;
     }
@@ -1543,6 +1523,13 @@ pub fn run() {
             commands::is_proxy_running,
             commands::is_live_takeover_active,
             commands::switch_proxy_provider,
+            // QuickStart transactional workflow
+            commands::quick_start_apply,
+            commands::quick_start_get_operation,
+            commands::quick_start_list_recoverable,
+            commands::quick_start_list_recent,
+            commands::quick_start_get_events,
+            commands::quick_start_rollback,
             // Proxy failover commands
             commands::get_provider_health,
             commands::reset_circuit_breaker,
@@ -1725,37 +1712,6 @@ pub fn run() {
             commands::set_project_skills,
             commands::get_project_prompts,
             commands::link_project_prompt,
-            // Simple Connect — Phase 0 Spike
-            commands::simple_connect_list_suppliers,
-            commands::simple_connect_list_tools,
-            commands::simple_connect_all_tools,
-            commands::simple_connect_get_state,
-            commands::simple_connect_set_supplier,
-            commands::simple_connect_save_state,
-            commands::simple_connect_store_key,
-            commands::simple_connect_store_pool_key,
-            commands::simple_connect_remove_pool_key,
-            commands::simple_connect_key_configured,
-            commands::simple_connect_list_tool_status,
-            commands::simple_connect_apply,
-            commands::simple_connect_clear,
-            commands::simple_connect_fetch_models,
-            commands::simple_connect_spike_apply_claude,
-            commands::simple_connect_spike_start_proxy,
-            commands::simple_connect_spike_stop_proxy,
-            commands::simple_connect_spike_proxy_info,
-            commands::simple_connect_spike_fetch_models,
-            commands::simple_connect_spike_pool_demo,
-            commands::simple_connect_pool_stats,
-            commands::simple_connect_is_import_url,
-            commands::simple_connect_parse_import_url,
-            commands::simple_connect_import_from_url,
-            commands::simple_connect_import_keys,
-            commands::simple_connect_verify_key,
-            commands::simple_connect_usage_summary,
-            commands::simple_connect_backup_audit,
-            commands::simple_connect_security_p0_audit,
-            commands::simple_connect_spike_run_all,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
             commands::set_project_target_app,
@@ -1812,6 +1768,17 @@ pub fn run() {
             commands::set_project_assets,
             commands::get_project_all_asset_counts,
             commands::list_extended_project_asset_types,
+            commands::get_project_asset_health_cmd,
+            commands::plan_project_asset_health_cmd,
+            commands::apply_project_asset_health_plan_cmd,
+            commands::rollback_project_asset_health_receipt_cmd,
+            commands::register_asset_revision_cmd,
+            commands::list_project_environment_snapshots,
+            commands::create_project_environment_snapshot,
+            commands::delete_project_environment_snapshot,
+            commands::preview_project_environment_snapshot_apply,
+            commands::apply_project_environment_snapshot,
+            commands::rollback_project_environment_snapshot,
             // Commands & Hooks (v0.6.5 M1)
             commands::get_all_commands,
             commands::upsert_command,

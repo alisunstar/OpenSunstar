@@ -3,10 +3,7 @@ import type { ClaudeDesktopProviderPreset } from "@/config/claudeDesktopProvider
 import type { CodexProviderPreset } from "@/config/codexProviderPresets";
 import type { GeminiProviderPreset } from "@/config/geminiProviderPresets";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
-import {
-  fetchModelsForConfig,
-  type FetchedModel,
-} from "@/lib/api/model-fetch";
+import { fetchModelsForConfig, type FetchedModel } from "@/lib/api/model-fetch";
 import { providersApi, type VerifyProtocol } from "@/lib/api";
 import { getCodexBaseUrl } from "@/utils/providerConfigUtils";
 import type { QuickStartFormFields, QuickStartSelection } from "./types";
@@ -15,7 +12,7 @@ import { resolvePresetByName } from "./resolvePresets";
 export function inferVerifyProtocol(
   appId: QuickStartAppId,
   selection: QuickStartSelection,
-  fields: QuickStartFormFields,
+  _fields: QuickStartFormFields,
 ): VerifyProtocol {
   if (selection.mode === "custom") {
     // 自定义默认按 OpenAI 兼容验证（Codex/Gemini 网关）；Claude 自定义走 Anthropic
@@ -83,7 +80,10 @@ export function resolveVerifyBaseUrl(
   switch (appId) {
     case "claude": {
       const raw = preset.raw as ProviderPreset;
-      const env = raw.settingsConfig?.env as Record<string, string> | undefined;
+      const settingsConfig = raw.settingsConfig as
+        | { env?: Record<string, string> }
+        | undefined;
+      const env = settingsConfig?.env;
       return (env?.ANTHROPIC_BASE_URL ?? "").trim().replace(/\/+$/, "");
     }
     case "claude-desktop": {
@@ -92,16 +92,23 @@ export function resolveVerifyBaseUrl(
     }
     case "codex": {
       const raw = preset.raw as CodexProviderPreset;
-      return getCodexBaseUrl({ auth: raw.auth, config: raw.config }) ?? "";
+      return (
+        getCodexBaseUrl({
+          settingsConfig: { auth: raw.auth, config: raw.config },
+        }) ??
+        raw.endpointCandidates?.[0] ??
+        ""
+      )
+        .trim()
+        .replace(/\/+$/, "");
     }
     case "gemini": {
       const raw = preset.raw as GeminiProviderPreset;
-      const env = raw.settingsConfig?.env as Record<string, string> | undefined;
-      return (
-        env?.GOOGLE_GEMINI_BASE_URL ??
-        raw.baseURL ??
-        ""
-      )
+      const settingsConfig = raw.settingsConfig as
+        | { env?: Record<string, string> }
+        | undefined;
+      const env = settingsConfig?.env;
+      return (env?.GOOGLE_GEMINI_BASE_URL ?? raw.baseURL ?? "")
         .trim()
         .replace(/\/+$/, "");
     }
@@ -130,7 +137,9 @@ export async function verifyQuickStartKey(
   if (!apiKey) {
     return {
       ok: false,
-      message: t("quickStart.error.emptyKey", { defaultValue: "请填写 API Key" }),
+      message: t("quickStart.error.emptyKey", {
+        defaultValue: "请填写 API Key",
+      }),
       protocol,
       models: [],
     };
@@ -147,7 +156,11 @@ export async function verifyQuickStartKey(
     };
   }
 
-  const result = await providersApi.verifyProviderKey(baseUrl, apiKey, protocol);
+  const result = await providersApi.verifyProviderKey(
+    baseUrl,
+    apiKey,
+    protocol,
+  );
 
   if (!result.ok) {
     return {
@@ -159,8 +172,7 @@ export async function verifyQuickStartKey(
   }
 
   let message =
-    result.error ??
-    t("quickStart.verifyOk", { defaultValue: "Key 有效！" });
+    result.error ?? t("quickStart.verifyOk", { defaultValue: "Key 有效！" });
 
   let models: FetchedModel[] = [];
 
@@ -175,11 +187,7 @@ export async function verifyQuickStartKey(
           ? (preset.raw as ProviderPreset).modelsUrl
           : undefined;
 
-      models = await fetchModelsForConfig({
-        baseUrl,
-        apiKey,
-        modelsUrl,
-      });
+      models = await fetchModelsForConfig(baseUrl, apiKey, false, modelsUrl);
 
       if (models.length > 0) {
         message = t("quickStart.verifyOkWithModels", {

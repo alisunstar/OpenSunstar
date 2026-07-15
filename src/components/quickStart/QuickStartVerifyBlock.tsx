@@ -5,19 +5,24 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
 import type { FetchedModel } from "@/lib/api/model-fetch";
-import type { QuickStartFormFields, QuickStartSelection } from "@/lib/quickStart/types";
+import type {
+  QuickStartFormFields,
+  QuickStartSelection,
+} from "@/lib/quickStart/types";
 import { verifyQuickStartKey } from "@/lib/quickStart/verify";
 
 interface QuickStartVerifyBlockProps {
   appId: QuickStartAppId;
   selection: QuickStartSelection;
   fields: QuickStartFormFields;
+  onVerificationChange?: (verified: boolean) => void;
 }
 
 export function QuickStartVerifyBlock({
   appId,
   selection,
   fields,
+  onVerificationChange,
 }: QuickStartVerifyBlockProps) {
   const { t } = useTranslation();
   const [verifying, setVerifying] = useState(false);
@@ -36,16 +41,18 @@ export function QuickStartVerifyBlock({
       setOk(outcome.ok);
       setMessage(outcome.message);
       setModels(outcome.models);
+      onVerificationChange?.(outcome.ok);
       if (outcome.models.length > 0) {
         setModelsOpen(true);
       }
     } catch (error) {
       setOk(false);
       setMessage(String(error));
+      onVerificationChange?.(false);
     } finally {
       setVerifying(false);
     }
-  }, [appId, selection, fields, t]);
+  }, [appId, selection, fields, onVerificationChange, t]);
 
   return (
     <div className="space-y-2">

@@ -3,6 +3,15 @@ import type { ProjectAssetType } from "@/types/projectAsset";
 import supportContract from "./assetAppSupport.contract.json";
 
 export type AssetAppSupportStatus = "supported" | "partial" | "unsupported";
+export type AssetWriteMode = "project_file" | "global_path" | "none";
+export type AssetVerificationMode = "config_parse" | "native_probe";
+
+export interface AssetCapability {
+  support: AssetAppSupportStatus;
+  write_mode: AssetWriteMode;
+  verify_modes: AssetVerificationMode[];
+  limitations: string[];
+}
 
 export interface AssetAppSupport {
   status: AssetAppSupportStatus;
@@ -15,171 +24,90 @@ export type AssetAppSupportMatrix = Record<
   Record<AppId, AssetAppSupport>
 >;
 
-/**
- * 8 类资产 × 7 应用同步能力矩阵（与开发文档 4.0 一致，以当前源码能力为准）
- * 项目级开关据此置灰 / 展示 partial 提示，避免“点了才报错”。
- */
-const LEGACY_ASSET_APP_SUPPORT: AssetAppSupportMatrix = {
-  mcp: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不参与统一 MCP 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.openclawMcp",
-      reasonDefault: "OpenClaw 当前不支持 MCP 同步",
-    },
-    hermes: { status: "supported" },
-  },
-  skill: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不参与 Skills 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.openclawSkills",
-      reasonDefault: "OpenClaw 当前不支持 Skills 同步",
-    },
-    hermes: { status: "supported" },
-  },
-  prompt: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不参与 Prompts 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: { status: "supported" },
-    hermes: { status: "supported" },
-  },
-  command: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不支持 Commands",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.openclawCommands",
-      reasonDefault: "OpenClaw 当前不支持 Commands 同步",
-    },
-    hermes: { status: "supported" },
-  },
-  hook: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksClaudeOnly",
-      reasonDefault: "Claude Desktop 暂不支持 Hooks 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksOpencode",
-      reasonDefault: "OpenCode 需 TypeScript 插件，暂不支持 Hooks 同步",
-    },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hooksOpenclaw",
-      reasonDefault: "OpenClaw 暂不支持 Hooks 同步",
-    },
-    hermes: { status: "supported" },
-  },
-  ignore: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不参与 Ignore 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.openclawIgnore",
-      reasonDefault: "OpenClaw 当前不支持 Ignore 同步",
-    },
-    hermes: { status: "supported" },
-  },
-  permission: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.permissionsClaudeOnly",
-      reasonDefault: "Claude Desktop 暂不支持 Permissions 同步",
-    },
-    codex: { status: "supported" },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: { status: "supported" },
-    hermes: {
-      status: "partial",
-      reasonKey: "projectAssets.support.hermesPermissions",
-      reasonDefault: "Hermes Permissions 为最佳努力写入 config.yaml",
-    },
-  },
-  subagent: {
-    claude: { status: "supported" },
-    "claude-desktop": {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.claudeDesktop",
-      reasonDefault: "Claude Desktop 暂不支持 Subagents",
-    },
-    codex: {
-      status: "partial",
-      reasonKey: "projectAssets.support.codexSubagent",
-      reasonDefault: "Codex 通过 TOML 转换写入 ~/.codex/agents/",
-    },
-    gemini: { status: "supported" },
-    opencode: { status: "supported" },
-    openclaw: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.openclawSubagents",
-      reasonDefault: "OpenClaw 当前不支持 Subagents 同步",
-    },
-    hermes: {
-      status: "unsupported",
-      reasonKey: "projectAssets.support.hermesSubagents",
-      reasonDefault: "Hermes 不支持 Subagent 文件同步",
-    },
-  },
-};
+interface AssetCapabilityContractSource {
+  schema_version: number;
+  apps: AppId[];
+  assets: Record<
+    ProjectAssetType,
+    {
+      adapter_id: string;
+      fixture_id: string;
+      supported: AppId[];
+      partial: AppId[];
+      unsupported: AppId[];
+      write_mode: AssetWriteMode;
+      write_mode_overrides?: Partial<Record<AppId, AssetWriteMode>>;
+      verify_modes: AssetVerificationMode[];
+      limitations: Partial<Record<AppId, string[]>>;
+    }
+  >;
+}
 
-/** Single source of truth for support status, shared with the Rust backend. */
+export const ASSET_CAPABILITY_CONTRACT =
+  supportContract as AssetCapabilityContractSource;
+
+export function getAssetCapability(
+  assetType: ProjectAssetType,
+  appId: AppId,
+): AssetCapability {
+  const source = ASSET_CAPABILITY_CONTRACT.assets[assetType];
+  const support = source.supported.includes(appId)
+    ? "supported"
+    : source.partial.includes(appId)
+      ? "partial"
+      : "unsupported";
+
+  return {
+    support,
+    write_mode:
+      support === "unsupported"
+        ? "none"
+        : (source.write_mode_overrides?.[appId] ?? source.write_mode),
+    verify_modes: support === "unsupported" ? [] : source.verify_modes,
+    limitations: source.limitations[appId] ?? [],
+  };
+}
+
+export function getAssetCapabilityEntries(
+  assetType: ProjectAssetType,
+): [AppId, AssetCapability][] {
+  return ASSET_CAPABILITY_CONTRACT.apps.map((appId) => [
+    appId,
+    getAssetCapability(assetType, appId),
+  ]);
+}
+
+/**
+ * UI view derived entirely from the versioned capability contract. Reason text
+ * is generated from contract limitations, so adding an app or asset never
+ * requires maintaining a second 8×7 matrix in TypeScript.
+ */
 export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = Object.fromEntries(
-  Object.entries(LEGACY_ASSET_APP_SUPPORT).map(([assetType, legacyApps]) => [
-    assetType,
-    Object.fromEntries(
-      Object.entries(legacyApps).map(([appId, legacySupport]) => [
-        appId,
-        {
-          ...legacySupport,
-          status: supportContract[assetType as ProjectAssetType][appId as AppId] as AssetAppSupportStatus,
-        },
-      ]),
-    ),
-  ]),
+  Object.keys(ASSET_CAPABILITY_CONTRACT.assets).map((assetTypeValue) => {
+    const assetType = assetTypeValue as ProjectAssetType;
+    return [
+      assetType,
+      Object.fromEntries(
+        ASSET_CAPABILITY_CONTRACT.apps.map((appId) => {
+          const capability = getAssetCapability(assetType, appId);
+          const limitation = capability.limitations[0];
+          const support: AssetAppSupport = { status: capability.support };
+          if (capability.support !== "supported") {
+            support.reasonKey = `projectAssets.capability.${capability.support}`;
+            support.reasonDefault =
+              limitation === "global_side_effect"
+                ? `${appId} 当前会写入全局目录，需单独确认`
+                : limitation === "best_effort"
+                  ? `${appId} 当前为尽力写入，需人工复核`
+                  : limitation === "plugin_required"
+                    ? `${appId} 需要额外插件，当前未启用同步`
+                    : `${appId} 当前不支持 ${assetType} 项目级同步`;
+          }
+          return [appId, support];
+        }),
+      ),
+    ];
+  }),
 ) as AssetAppSupportMatrix;
 
 /** Prompt 同步支持的应用（与 ASSET_APP_SUPPORT.prompt 一致） */
@@ -204,9 +132,11 @@ export function getAssetAppSupport(
 }
 
 /** 汇总该资产类型的支持摘要（用于 section 标题下 helper） */
-export function summarizeAssetSupport(
-  assetType: ProjectAssetType,
-): { hasSupported: boolean; hasPartial: boolean; allUnsupported: boolean } {
+export function summarizeAssetSupport(assetType: ProjectAssetType): {
+  hasSupported: boolean;
+  hasPartial: boolean;
+  allUnsupported: boolean;
+} {
   const entries = Object.values(ASSET_APP_SUPPORT[assetType]);
   const hasSupported = entries.some((e) => e.status === "supported");
   const hasPartial = entries.some((e) => e.status === "partial");

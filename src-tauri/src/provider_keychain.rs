@@ -38,7 +38,7 @@ const KNOWN_KEY_FIELDS: &[&str] = &[
     "api_key",
 ];
 
-fn is_known_key_field(field: &str) -> bool {
+pub(crate) fn is_known_key_field(field: &str) -> bool {
     KNOWN_KEY_FIELDS.iter().any(|f| *f == field)
 }
 
@@ -101,6 +101,36 @@ pub fn resolve_provider_settings_for_use(
     let mut resolved = provider.clone();
     resolve_value_in_place(&mut resolved.settings_config)?;
     Ok(resolved)
+}
+
+/// Strictly verify that every persisted keychain reference can be resolved.
+///
+/// The normal read path deliberately tolerates missing entries for imported
+/// cross-device configuration. Transaction completion cannot: QuickStart must
+/// not report success when the credential backing a persisted reference is
+/// absent.
+pub fn verify_provider_keychain_refs(provider: &Provider) -> Result<(), AppError> {
+    verify_keychain_refs_in_value(&provider.settings_config)
+}
+
+fn verify_keychain_refs_in_value(value: &Value) -> Result<(), AppError> {
+    match value {
+        Value::Object(map) => {
+            for value in map.values() {
+                verify_keychain_refs_in_value(value)?;
+            }
+        }
+        Value::Array(values) => {
+            for value in values {
+                verify_keychain_refs_in_value(value)?;
+            }
+        }
+        Value::String(value) if keychain::is_keychain_ref(value) => {
+            keychain::resolve_value(value).map(|_| ())?;
+        }
+        _ => {}
+    }
+    Ok(())
 }
 
 /// 就地解析 `settings_config` 里的所有 keychain 占位符。

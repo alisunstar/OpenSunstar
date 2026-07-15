@@ -1,26 +1,34 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { ProviderIcon } from "@/components/ProviderIcon";
-import { useSwitchProviderMutation } from "@/lib/query/mutations";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EditProviderDialog } from "@/components/providers/EditProviderDialog";
+import { ProviderList } from "@/components/providers/ProviderList";
+import { useProviderActions } from "@/hooks/useProviderActions";
 import { useProvidersQuery } from "@/lib/query/queries";
 import { useProxyStatus } from "@/hooks/useProxyStatus";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
-import { cn } from "@/lib/utils";
+import type { Provider, UsageScript } from "@/types";
+import { QuickStartUsageDialog } from "./QuickStartUsageDialog";
 
 interface QuickStartProviderListProps {
   appId: QuickStartAppId;
-  onOpenManage?: () => void;
+  onAddProvider?: () => void;
 }
 
 export function QuickStartProviderList({
   appId,
-  onOpenManage,
+  onAddProvider,
 }: QuickStartProviderListProps) {
   const { t } = useTranslation();
   const { data } = useProvidersQuery(appId);
-  const switchMutation = useSwitchProviderMutation(appId);
   const { takeoverStatus, isRunning } = useProxyStatus();
+  const [editingProvider, setEditingProvider] = useState<Provider | null>(null);
+  const [deletingProvider, setDeletingProvider] = useState<Provider | null>(
+    null,
+  );
+  const [usageProvider, setUsageProvider] = useState<Provider | null>(null);
+  const [isSavingUsage, setIsSavingUsage] = useState(false);
 
   const providers = data?.providers ?? {};
   const currentId = data?.currentProviderId ?? "";
@@ -35,80 +43,138 @@ export function QuickStartProviderList({
           ? takeoverStatus?.gemini
           : isRunning;
 
-  if (entries.length === 0) {
-    return null;
-  }
+  const {
+    addProvider,
+    updateProvider,
+    switchProvider,
+    deleteProvider,
+    saveUsageScript,
+  } = useProviderActions(appId, isRunning, takeoverActive);
+
+  const handleDuplicate = async (provider: Provider) => {
+    const {
+      id: _id,
+      createdAt: _createdAt,
+      sortIndex: _sortIndex,
+      ...copy
+    } = provider;
+    try {
+      await addProvider({
+        ...copy,
+        name: t("provider.copyName", {
+          defaultValue: "{{name}} 副本",
+          name: provider.name,
+        }),
+        meta: provider.meta ? { ...provider.meta } : undefined,
+      });
+    } catch {
+      // The provider mutation surfaces the actionable error to the user.
+    }
+  };
+
+  const handleDeleteRequest = (provider: Provider) => {
+    if (provider.id === currentId) {
+      toast.error(
+        t("quickStart.cannotDeleteCurrent", {
+          defaultValue: "当前使用中的供应商不能删除，请先切换到其他供应商。",
+        }),
+      );
+      return;
+    }
+    setDeletingProvider(provider);
+  };
+
+  const handleSaveUsage = async (script: UsageScript) => {
+    if (!usageProvider) return;
+    setIsSavingUsage(true);
+    try {
+      await saveUsageScript(usageProvider, script);
+      setUsageProvider(null);
+    } finally {
+      setIsSavingUsage(false);
+    }
+  };
 
   return (
-    <div className="w-full max-w-lg space-y-2 text-left">
-      <h3 className="text-sm font-medium">
-        {t("quickStart.myProviders", {
-          defaultValue: "我的供应商",
+    <div className="w-full max-w-4xl space-y-3 text-left">
+      <div className="flex items-end justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-medium">
+            {t("quickStart.myProviders", { defaultValue: "我的供应商" })}
+            {entries.length > 0 ? `（${entries.length}）` : ""}
+          </h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("quickStart.myProvidersHint", {
+              defaultValue:
+                "拖动左侧手柄可排序；悬停供应商可进行编辑、复制、检测、用量配置或删除。",
+            })}
+          </p>
+        </div>
+        {takeoverActive && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            {t("quickStart.badge.proxy", { defaultValue: "本地路由" })}
+          </span>
+        )}
+      </div>
+
+      <ProviderList
+        providers={providers}
+        currentProviderId={currentId}
+        appId={appId}
+        onSwitch={(provider) => void switchProvider(provider)}
+        onEdit={setEditingProvider}
+        onDelete={handleDeleteRequest}
+        onDuplicate={(provider) => void handleDuplicate(provider)}
+        onConfigureUsage={setUsageProvider}
+        onOpenWebsite={(url) =>
+          window.open(url, "_blank", "noopener,noreferrer")
+        }
+        onCreate={onAddProvider}
+        isProxyRunning={isRunning}
+        isProxyTakeover={takeoverActive}
+      />
+
+      <EditProviderDialog
+        open={editingProvider !== null}
+        provider={editingProvider}
+        onOpenChange={(open) => {
+          if (!open) setEditingProvider(null);
+        }}
+        onSubmit={({ provider, originalId }) =>
+          updateProvider(provider, originalId)
+        }
+        appId={appId}
+        isProxyTakeover={takeoverActive}
+      />
+
+      <ConfirmDialog
+        isOpen={deletingProvider !== null}
+        title={t("provider.deleteProvider", { defaultValue: "删除供应商" })}
+        message={t("quickStart.deleteProviderMessage", {
+          defaultValue:
+            "将删除 {{name}} 的已保存配置。此操作不会删除供应商平台上的账户或 API Key。",
+          name: deletingProvider?.name ?? "",
         })}
-      </h3>
-      <ul className="space-y-2">
-        {entries.map((provider) => {
-          const isCurrent = provider.id === currentId;
-          return (
-            <li
-              key={provider.id}
-              className={cn(
-                "flex items-center gap-3 rounded-lg border border-border bg-card p-3",
-                isCurrent && "border-primary/40",
-              )}
-            >
-              <ProviderIcon
-                icon={provider.icon}
-                name={provider.name}
-                color={provider.iconColor}
-                size={32}
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{provider.name}</p>
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {isCurrent && (
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                      {t("quickStart.badge.current", { defaultValue: "当前" })}
-                    </span>
-                  )}
-                  {takeoverActive && (
-                    <span className="rounded bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400">
-                      {t("quickStart.badge.proxy", {
-                        defaultValue: "本地路由",
-                      })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {!isCurrent && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={switchMutation.isPending}
-                  onClick={() => switchMutation.mutate(provider.id)}
-                >
-                  {switchMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    t("quickStart.switch", { defaultValue: "切换" })
-                  )}
-                </Button>
-              )}
-            </li>
-          );
-        })}
-      </ul>
-      {onOpenManage && (
-        <Button
-          type="button"
-          variant="link"
-          size="sm"
-          className="h-auto px-0 text-xs"
-          onClick={onOpenManage}
-        >
-          {t("quickStart.openManage", { defaultValue: "管理全部供应商 →" })}
-        </Button>
-      )}
+        confirmText={t("common.delete", { defaultValue: "删除" })}
+        onCancel={() => setDeletingProvider(null)}
+        onConfirm={() => {
+          if (!deletingProvider) return;
+          void deleteProvider(deletingProvider.id)
+            .then(() => setDeletingProvider(null))
+            .catch(() => undefined);
+        }}
+      />
+
+      <QuickStartUsageDialog
+        open={usageProvider !== null}
+        provider={usageProvider}
+        isSaving={isSavingUsage}
+        onOpenChange={(open) => {
+          if (!open) setUsageProvider(null);
+        }}
+        onSave={handleSaveUsage}
+      />
     </div>
   );
 }

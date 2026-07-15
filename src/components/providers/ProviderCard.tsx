@@ -353,6 +353,37 @@ export function ProviderCard({
                 {provider.name}
               </h3>
 
+              {isActiveProvider && (
+                <span
+                  role="status"
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                    shouldUseGreen
+                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                      : "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+                  )}
+                  title={
+                    shouldUseGreen
+                      ? t("provider.activeRouteHint", {
+                          defaultValue: "当前请求正通过本地路由使用此供应商",
+                        })
+                      : t("provider.activeProviderHint", {
+                          defaultValue: "当前请求将使用此供应商",
+                        })
+                  }
+                >
+                  <span
+                    className={cn(
+                      "h-1.5 w-1.5 rounded-full animate-pulse",
+                      shouldUseGreen ? "bg-emerald-500" : "bg-blue-500",
+                    )}
+                  />
+                  {shouldUseGreen
+                    ? t("provider.routed", { defaultValue: "路由中" })
+                    : t("provider.inUse", { defaultValue: "使用中" })}
+                </span>
+              )}
+
               {isOmo && (
                 <span className="inline-flex items-center rounded-md bg-violet-100 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 dark:bg-violet-900/40 dark:text-violet-300">
                   OMO

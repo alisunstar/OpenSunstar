@@ -12,10 +12,7 @@ import {
 } from "lucide-react";
 import type { AppId } from "@/lib/api";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import {
-  DRAG_REGION_ATTR,
-  DRAG_REGION_STYLE,
-} from "@/lib/platform";
+import { DRAG_REGION_ATTR, DRAG_REGION_STYLE } from "@/lib/platform";
 import { Button } from "@/components/ui/button";
 import { AppSwitcher } from "@/components/AppSwitcher";
 import UnifiedMcpPanel from "@/components/mcp/UnifiedMcpPanel";
@@ -52,10 +49,7 @@ import {
 } from "@/lib/settingsNavigation";
 
 import type { WorkspaceTab } from "@/types/workspace";
-import {
-  getInitialWorkspaceTab,
-  persistWorkspaceTab,
-} from "@/types/workspace";
+import { getInitialWorkspaceTab, persistWorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailTab } from "@/types/projectDetail";
 
 export type PageView =
@@ -138,7 +132,8 @@ const getInitialApp = (): AppId => {
 const getInitialView = (): PageView => {
   const saved = localStorage.getItem(VIEW_STORAGE_KEY);
   if (saved === "syncBackup") return "settings";
-  if (saved && VALID_VIEWS.includes(saved as PageView)) return saved as PageView;
+  if (saved && VALID_VIEWS.includes(saved as PageView))
+    return saved as PageView;
   return "kanban";
 };
 
@@ -164,7 +159,10 @@ const PAGE_META: Record<PageView, PageMeta> = {
   permissions: { titleKey: "permissions.title", defaultTitle: "Permissions" },
   agents: { titleKey: "agents.title", defaultTitle: "Subagents" },
   skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
-  skillsDiscovery: { titleKey: "skills.discover", defaultTitle: "Discover Skills" },
+  skillsDiscovery: {
+    titleKey: "skills.discover",
+    defaultTitle: "Discover Skills",
+  },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
@@ -226,7 +224,12 @@ function App() {
   }, []);
 
   // ── 项目管理 ────────────────────────────────
-  const { projects, add: addProject, remove: removeProject, reload: reloadProjects } = useProjects();
+  const {
+    projects,
+    add: addProject,
+    remove: removeProject,
+    reload: reloadProjects,
+  } = useProjects();
 
   // ── localStorage 同步 ──────────────────────
   useEffect(() => {
@@ -378,13 +381,9 @@ function App() {
   const renderPageContent = () => {
     switch (currentView) {
       case "simpleConnect":
-        return (
-          <QuickStartPage onOpenSettings={openProxySettings} />
-        );
+        return <QuickStartPage onOpenSettings={openProxySettings} />;
       case "mcp":
-        return (
-          <UnifiedMcpPanel ref={mcpPanelRef} onOpenChange={() => {}} />
-        );
+        return <UnifiedMcpPanel ref={mcpPanelRef} onOpenChange={() => {}} />;
       case "mcpDiscovery":
         return (
           <ErrorBoundary
@@ -469,8 +468,8 @@ function App() {
         );
       case "tokenStats":
         return <TokenStatsPage />;
-case "methodology":
-return <MethodologyPage projects={projects} />;
+      case "methodology":
+        return <MethodologyPage projects={projects} />;
       case "settings":
         return (
           <SettingsPageContent
@@ -736,9 +735,7 @@ return <MethodologyPage projects={projects} />;
             {!hideContentHeader && (
               <div
                 className="sticky top-0 z-10 shrink-0 flex items-center justify-between gap-4 px-6 py-2.5 border-b border-border/30 bg-background/90 backdrop-blur-sm"
-                style={
-                  { WebkitAppRegion: "no-drag" } as React.CSSProperties
-                }
+                style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               >
                 <div className="flex items-center gap-3 min-w-0">
                   {showBackButton && (
@@ -781,10 +778,7 @@ return <MethodologyPage projects={projects} />;
               fallbackDescription={t("errors.pageLoadFailedDescription")}
               onGoBack={() => setCurrentView("mcp")}
             >
-              <div
-                key={currentView}
-                className="flex-1 min-h-0 flex flex-col"
-              >
+              <div key={currentView} className="flex-1 min-h-0 flex flex-col">
                 {renderPageContent()}
               </div>
             </ErrorBoundary>

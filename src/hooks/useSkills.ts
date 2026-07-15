@@ -14,7 +14,6 @@ import {
   type SkillsShSearchResult,
   type ClawHubSearchResult,
   type ModelScopeSearchResult,
-  type ModelScopeDiscoverableSkill,
 } from "@/lib/api/skills";
 import type { AppId } from "@/lib/api/types";
 import { mergeImportedSkills } from "@/hooks/useSkills.helpers";

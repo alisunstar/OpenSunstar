@@ -24,8 +24,12 @@ export interface SwitchResult {
 /** API Key 校验所用的协议类型 */
 export type VerifyProtocol = "openai" | "anthropic";
 
-// VerifyKeyResult 复用 simpleConnect 模块的定义（结构相同：ok / model_count / error），
-// 避免重复类型声明。见 ./simpleConnect.ts。
+/** Shared response shape for the provider-native API Key verification command. */
+export interface VerifyKeyResult {
+  ok: boolean;
+  model_count: number;
+  error?: string | null;
+}
 
 export interface OpenTerminalOptions {
   cwd?: string;
@@ -107,7 +111,7 @@ export const providersApi = {
     baseUrl: string,
     apiKey: string,
     protocol: VerifyProtocol,
-  ): Promise<import("./simpleConnect").VerifyKeyResult> {
+  ): Promise<VerifyKeyResult> {
     return await invoke("verify_provider_key", {
       baseUrl,
       apiKey,

@@ -27,21 +27,6 @@ export * as configApi from "./config";
 export * as authApi from "./auth";
 export * as copilotApi from "./copilot";
 export type { ProviderSwitchEvent } from "./providers";
-export { simpleConnectApi } from "./simpleConnect";
-export type {
-  ApplyResult,
-  PoolKeyMeta,
-  PoolKeyStat,
-  SimpleConnectImportPayload,
-  SimpleConnectImportResult,
-  SimpleConnectRuntimeStats,
-  SimpleConnectState,
-  SimpleConnectUsageSummary,
-  BackupAuditReport,
-  SupplierProfile,
-  ToolConfigStatus,
-  VerifyKeyResult,
-} from "./simpleConnect";
 export type { Prompt, PromptActivationPreview } from "./prompts";
 export type { Command } from "./commands";
 export type { Hook } from "./hooks";

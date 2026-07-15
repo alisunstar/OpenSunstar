@@ -113,10 +113,16 @@ pub fn get_model_pricing(state: State<'_, AppState>) -> Result<Vec<ModelPricingI
     }
 
     let mut stmt = conn.prepare(
-        "SELECT model_id, display_name, input_cost_per_million, output_cost_per_million,
-                cache_read_cost_per_million, cache_creation_cost_per_million
-         FROM model_pricing
-         ORDER BY display_name",
+        "SELECT p.model_id, p.display_name, p.input_cost_per_million, p.output_cost_per_million,
+                p.cache_read_cost_per_million, p.cache_creation_cost_per_million,
+                provenance.source, provenance.source_version, provenance.effective_at,
+                provenance.currency,
+                provenance.long_context_threshold_tokens,
+                provenance.long_context_input_multiplier,
+                provenance.long_context_output_multiplier
+         FROM model_pricing p
+         LEFT JOIN model_pricing_provenance provenance ON provenance.model_id = p.model_id
+         ORDER BY p.display_name",
     )?;
 
     let rows = stmt.query_map([], |row| {
@@ -127,6 +133,13 @@ pub fn get_model_pricing(state: State<'_, AppState>) -> Result<Vec<ModelPricingI
             output_cost_per_million: row.get(3)?,
             cache_read_cost_per_million: row.get(4)?,
             cache_creation_cost_per_million: row.get(5)?,
+            pricing_source: row.get(6)?,
+            pricing_source_version: row.get(7)?,
+            pricing_effective_at: row.get(8)?,
+            pricing_currency: row.get(9)?,
+            long_context_threshold_tokens: row.get(10)?,
+            long_context_input_multiplier: row.get(11)?,
+            long_context_output_multiplier: row.get(12)?,
         })
     })?;
 
@@ -193,10 +206,16 @@ pub fn update_model_pricing(
     {
         let conn = crate::database::lock_conn!(db.conn);
         conn.execute(
-            "INSERT OR REPLACE INTO model_pricing (
+            "INSERT INTO model_pricing (
                 model_id, display_name, input_cost_per_million, output_cost_per_million,
                 cache_read_cost_per_million, cache_creation_cost_per_million
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+            ON CONFLICT(model_id) DO UPDATE SET
+                display_name = excluded.display_name,
+                input_cost_per_million = excluded.input_cost_per_million,
+                output_cost_per_million = excluded.output_cost_per_million,
+                cache_read_cost_per_million = excluded.cache_read_cost_per_million,
+                cache_creation_cost_per_million = excluded.cache_creation_cost_per_million",
             rusqlite::params![
                 model_id,
                 display_name,
@@ -207,6 +226,18 @@ pub fn update_model_pricing(
             ],
         )
         .map_err(|e| AppError::Database(format!("更新模型定价失败: {e}")))?;
+
+        conn.execute(
+            "INSERT INTO model_pricing_provenance (
+                model_id, source, source_version, effective_at, currency
+            ) VALUES (?1, 'user_override', 'manual', strftime('%Y-%m-%d', 'now'), 'USD')
+            ON CONFLICT(model_id) DO UPDATE SET
+                source = excluded.source,
+                source_version = excluded.source_version,
+                effective_at = excluded.effective_at",
+            [model_id.as_str()],
+        )
+        .map_err(|e| AppError::Database(format!("记录模型定价来源失败: {e}")))?;
     }
 
     if let Err(e) = db.backfill_missing_usage_costs_for_model(&model_id) {
@@ -310,4 +341,11 @@ pub struct ModelPricingInfo {
     pub output_cost_per_million: String,
     pub cache_read_cost_per_million: String,
     pub cache_creation_cost_per_million: String,
+    pub pricing_source: Option<String>,
+    pub pricing_source_version: Option<String>,
+    pub pricing_effective_at: Option<String>,
+    pub pricing_currency: Option<String>,
+    pub long_context_threshold_tokens: Option<u32>,
+    pub long_context_input_multiplier: Option<String>,
+    pub long_context_output_multiplier: Option<String>,
 }

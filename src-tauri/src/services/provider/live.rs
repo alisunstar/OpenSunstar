@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use toml_edit::{DocumentMut, Item, TableLike};
 
@@ -661,7 +662,7 @@ pub(crate) fn normalize_provider_common_config_for_storage(
 }
 
 /// Live configuration snapshot for backup/restore
-#[derive(Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub(crate) enum LiveSnapshot {
     Claude {
@@ -670,6 +671,7 @@ pub(crate) enum LiveSnapshot {
     Codex {
         auth: Option<Value>,
         config: Option<String>,
+        model_catalog: Option<Vec<u8>>,
     },
     Gemini {
         env: Option<HashMap<String, String>>,
@@ -689,9 +691,14 @@ impl LiveSnapshot {
                     delete_file(&path)?;
                 }
             }
-            LiveSnapshot::Codex { auth, config } => {
+            LiveSnapshot::Codex {
+                auth,
+                config,
+                model_catalog,
+            } => {
                 let auth_path = get_codex_auth_path();
                 let config_path = get_codex_config_path();
+                let model_catalog_path = crate::codex_config::get_codex_model_catalog_path();
                 if let Some(value) = auth {
                     write_json_file(&auth_path, value)?;
                 } else if auth_path.exists() {
@@ -702,6 +709,12 @@ impl LiveSnapshot {
                     crate::config::write_text_file(&config_path, text)?;
                 } else if config_path.exists() {
                     delete_file(&config_path)?;
+                }
+
+                if let Some(content) = model_catalog {
+                    crate::config::atomic_write(&model_catalog_path, content)?;
+                } else if model_catalog_path.exists() {
+                    delete_file(&model_catalog_path)?;
                 }
             }
             LiveSnapshot::Gemini { env, .. } => {
@@ -730,6 +743,58 @@ impl LiveSnapshot {
             }
         }
         Ok(())
+    }
+}
+
+/// Capture the exact client-side files that a provider switch may mutate.
+pub(crate) fn capture_live_snapshot(app_type: &AppType) -> Result<LiveSnapshot, AppError> {
+    match app_type {
+        AppType::Claude => {
+            let path = get_claude_settings_path();
+            let settings = path.exists().then(|| read_json_file(&path)).transpose()?;
+            Ok(LiveSnapshot::Claude { settings })
+        }
+        AppType::Codex => {
+            let auth_path = get_codex_auth_path();
+            let config_path = get_codex_config_path();
+            let model_catalog_path = crate::codex_config::get_codex_model_catalog_path();
+            let auth = auth_path
+                .exists()
+                .then(|| read_json_file(&auth_path))
+                .transpose()?;
+            let config = config_path
+                .exists()
+                .then(|| std::fs::read_to_string(&config_path))
+                .transpose()
+                .map_err(|e| AppError::io(&config_path, e))?;
+            let model_catalog = model_catalog_path
+                .exists()
+                .then(|| std::fs::read(&model_catalog_path))
+                .transpose()
+                .map_err(|e| AppError::io(&model_catalog_path, e))?;
+            Ok(LiveSnapshot::Codex {
+                auth,
+                config,
+                model_catalog,
+            })
+        }
+        AppType::Gemini => {
+            use crate::gemini_config::{
+                get_gemini_env_path, get_gemini_settings_path, read_gemini_env,
+            };
+            let env_path = get_gemini_env_path();
+            let settings_path = get_gemini_settings_path();
+            let env = env_path.exists().then(read_gemini_env).transpose()?;
+            let config = settings_path
+                .exists()
+                .then(|| read_json_file(&settings_path))
+                .transpose()?;
+            Ok(LiveSnapshot::Gemini { env, config })
+        }
+        _ => Err(AppError::InvalidInput(format!(
+            "Live snapshot is unsupported for {}",
+            app_type.as_str()
+        ))),
     }
 }
 

@@ -4,6 +4,11 @@ import type {
   ProjectAllAssetCounts,
   ProjectAssetLink,
 } from "@/types/projectAsset";
+import type {
+  AssetDeploymentReceipt,
+  AssetHealthPlan,
+  AssetHealthRecord,
+} from "@/types/assetHealth";
 
 /** 项目信息 */
 export interface Project {
@@ -34,6 +39,71 @@ export interface ProjectPromptLink {
   prompt_app_type: string;
   enabled: boolean;
   created_at: number;
+}
+
+export interface AppEnvironmentState {
+  provider?: string | null;
+  mcp: string[];
+  skills: string[];
+  prompt?: string | null;
+}
+
+export type ProjectEnvironmentDimension =
+  | "provider"
+  | "mcp"
+  | "skills"
+  | "prompt";
+
+export interface ProjectEnvironmentPayload {
+  schemaVersion: number;
+  capturedAt: string;
+  includedDimensions: ProjectEnvironmentDimension[];
+  apps: Record<string, AppEnvironmentState>;
+}
+
+export interface ProjectEnvironmentSnapshot {
+  id: string;
+  projectId: string;
+  name: string;
+  payload: ProjectEnvironmentPayload;
+  createdAt: number;
+  updatedAt: number;
+  lastAppliedAt?: number | null;
+}
+
+export interface ProjectEnvironmentDiff {
+  app: string;
+  dimension: string;
+  before: string[];
+  after: string[];
+  action: string;
+}
+
+export interface ProjectEnvironmentApplyPreview {
+  snapshot: ProjectEnvironmentSnapshot;
+  diff: ProjectEnvironmentDiff[];
+  warnings: string[];
+}
+
+export interface ProjectEnvironmentVerification {
+  app: string;
+  dimension: string;
+  passed: boolean;
+  detail: string;
+}
+
+export interface ProjectEnvironmentApplyReceipt {
+  operationId: string;
+  operation: string;
+  snapshotId: string;
+  projectId: string;
+  createdAt: string;
+  diff: ProjectEnvironmentDiff[];
+  before: ProjectEnvironmentPayload;
+  target: ProjectEnvironmentPayload;
+  after: ProjectEnvironmentPayload;
+  verifications: ProjectEnvironmentVerification[];
+  warnings: string[];
 }
 
 export const projectsApi = {
@@ -84,6 +154,50 @@ export const projectsApi = {
     return await invoke("set_project_target_app", {
       projectId,
       targetApp,
+    });
+  },
+
+  async listEnvironmentSnapshots(
+    projectId: string,
+  ): Promise<ProjectEnvironmentSnapshot[]> {
+    return await invoke("list_project_environment_snapshots", { projectId });
+  },
+
+  async createEnvironmentSnapshot(
+    projectId: string,
+    name: string,
+    includedDimensions: ProjectEnvironmentDimension[],
+  ): Promise<ProjectEnvironmentSnapshot> {
+    return await invoke("create_project_environment_snapshot", {
+      projectId,
+      name,
+      includedDimensions,
+    });
+  },
+
+  async deleteEnvironmentSnapshot(snapshotId: string): Promise<boolean> {
+    return await invoke("delete_project_environment_snapshot", { snapshotId });
+  },
+
+  async previewEnvironmentSnapshotApply(
+    snapshotId: string,
+  ): Promise<ProjectEnvironmentApplyPreview> {
+    return await invoke("preview_project_environment_snapshot_apply", {
+      snapshotId,
+    });
+  },
+
+  async applyEnvironmentSnapshot(
+    snapshotId: string,
+  ): Promise<ProjectEnvironmentApplyReceipt> {
+    return await invoke("apply_project_environment_snapshot", { snapshotId });
+  },
+
+  async rollbackEnvironmentSnapshot(
+    snapshotId: string,
+  ): Promise<ProjectEnvironmentApplyReceipt> {
+    return await invoke("rollback_project_environment_snapshot", {
+      snapshotId,
     });
   },
 
@@ -206,6 +320,34 @@ export const projectsApi = {
 
   async getAllAssetCounts(projectId: string): Promise<ProjectAllAssetCounts> {
     return await invoke("get_project_all_asset_counts", { projectId });
+  },
+
+  async getAssetHealth(projectId: string): Promise<AssetHealthRecord[]> {
+    return await invoke("get_project_asset_health_cmd", { projectId });
+  },
+
+  async planAssetHealth(projectId: string): Promise<AssetHealthPlan> {
+    return await invoke("plan_project_asset_health_cmd", { projectId });
+  },
+
+  async applyAssetHealthPlan(
+    projectId: string,
+    planSha256: string,
+  ): Promise<AssetDeploymentReceipt[]> {
+    return await invoke("apply_project_asset_health_plan_cmd", {
+      projectId,
+      planSha256,
+      confirmed: true,
+    });
+  },
+
+  async rollbackAssetHealthReceipt(
+    receiptId: string,
+  ): Promise<AssetDeploymentReceipt> {
+    return await invoke("rollback_project_asset_health_receipt_cmd", {
+      receiptId,
+      confirmed: true,
+    });
   },
 
   async getAssetLinks(

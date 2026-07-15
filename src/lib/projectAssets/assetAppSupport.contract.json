@@ -1,10 +1,102 @@
 {
-  "mcp": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
-  "skill": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
-  "prompt": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "supported", "hermes": "supported" },
-  "command": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
-  "hook": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "unsupported", "openclaw": "unsupported", "hermes": "supported" },
-  "ignore": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "supported" },
-  "permission": { "claude": "supported", "claude-desktop": "unsupported", "codex": "supported", "gemini": "supported", "opencode": "supported", "openclaw": "supported", "hermes": "partial" },
-  "subagent": { "claude": "supported", "claude-desktop": "unsupported", "codex": "partial", "gemini": "supported", "opencode": "supported", "openclaw": "unsupported", "hermes": "unsupported" }
+  "schema_version": 1,
+  "apps": [
+    "claude",
+    "claude-desktop",
+    "codex",
+    "gemini",
+    "opencode",
+    "openclaw",
+    "hermes"
+  ],
+  "assets": {
+    "mcp": {
+      "adapter_id": "project-config-sync:mcp_enabled:v1",
+      "fixture_id": "project-config-sync:mcp",
+      "supported": ["claude", "codex", "gemini", "opencode", "hermes"],
+      "partial": [],
+      "unsupported": ["claude-desktop", "openclaw"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": {}
+    },
+    "skill": {
+      "adapter_id": "project-config-sync:skills_configured:v1",
+      "fixture_id": "project-config-sync:skill",
+      "supported": ["claude", "codex", "gemini", "opencode", "hermes"],
+      "partial": [],
+      "unsupported": ["claude-desktop", "openclaw"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": {}
+    },
+    "prompt": {
+      "adapter_id": "project-config-sync:prompt_files:v1",
+      "fixture_id": "project-config-sync:prompt",
+      "supported": [
+        "claude",
+        "codex",
+        "gemini",
+        "opencode",
+        "openclaw",
+        "hermes"
+      ],
+      "partial": [],
+      "unsupported": ["claude-desktop"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": {}
+    },
+    "command": {
+      "adapter_id": "project-config-sync:commands_configured:v1",
+      "fixture_id": "project-config-sync:command",
+      "supported": ["claude", "codex", "gemini", "opencode", "hermes"],
+      "partial": [],
+      "unsupported": ["claude-desktop", "openclaw"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": {}
+    },
+    "hook": {
+      "adapter_id": "project-config-sync:hooks_configured:v1",
+      "fixture_id": "project-config-sync:hook",
+      "supported": ["claude", "codex", "gemini", "hermes"],
+      "partial": [],
+      "unsupported": ["claude-desktop", "opencode", "openclaw"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": { "opencode": ["plugin_required"] }
+    },
+    "ignore": {
+      "adapter_id": "project-config-sync:ignore_rules:v1",
+      "fixture_id": "project-config-sync:ignore",
+      "supported": ["claude", "codex", "gemini", "opencode", "hermes"],
+      "partial": [],
+      "unsupported": ["claude-desktop", "openclaw"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": {}
+    },
+    "permission": {
+      "adapter_id": "project-config-sync:permissions:v1",
+      "fixture_id": "project-config-sync:permission",
+      "supported": ["claude", "codex", "gemini", "opencode", "openclaw"],
+      "partial": ["hermes"],
+      "unsupported": ["claude-desktop"],
+      "write_mode": "project_file",
+      "verify_modes": ["config_parse"],
+      "limitations": { "hermes": ["best_effort"] }
+    },
+    "subagent": {
+      "adapter_id": "project-config-sync:subagents_configured:v1",
+      "fixture_id": "project-config-sync:subagent",
+      "supported": ["claude", "gemini", "opencode"],
+      "partial": ["codex"],
+      "unsupported": ["claude-desktop", "openclaw", "hermes"],
+      "write_mode": "project_file",
+      "write_mode_overrides": { "codex": "global_path" },
+      "verify_modes": ["config_parse"],
+      "limitations": { "codex": ["global_side_effect"] }
+    }
+  }
 }

@@ -4,7 +4,7 @@ use super::calculator::{CostBreakdown, CostCalculator, ModelPricing};
 use super::parser::TokenUsage;
 use crate::database::{Database, PRICING_SOURCE_REQUEST, PRICING_SOURCE_RESPONSE};
 use crate::error::AppError;
-use crate::services::usage_stats::{find_model_pricing_row, is_placeholder_pricing_model};
+use crate::services::usage_stats::{find_model_pricing, is_placeholder_pricing_model};
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -197,15 +197,7 @@ impl<'a> UsageLogger<'a> {
     /// 获取模型定价
     pub fn get_model_pricing(&self, model_id: &str) -> Result<Option<ModelPricing>, AppError> {
         let conn = crate::database::lock_conn!(self.db.conn);
-        let row = find_model_pricing_row(&conn, model_id)?;
-        match row {
-            Some((input, output, cache_read, cache_creation)) => {
-                ModelPricing::from_strings(&input, &output, &cache_read, &cache_creation)
-                    .map(Some)
-                    .map_err(|e| AppError::Database(format!("解析定价数据失败: {e}")))
-            }
-            None => Ok(None),
-        }
+        Ok(find_model_pricing(&conn, model_id))
     }
 
     /// 获取有效的倍率与计费模式来源（供应商优先，未配置则回退全局默认）

@@ -22,6 +22,8 @@ use std::sync::Mutex;
 const SERVICE_NAME: &str = "opensunstar";
 const KEYCHAIN_REF_PREFIX: &str = "keychain://ref/";
 const FALLBACK_SALT: &[u8] = b"opensunstar-fallback-keystore-v1";
+const LOCAL_SECRET_ENVELOPE_PREFIX: &str = "enc:v1:";
+const LOCAL_SECRET_ENVELOPE_KEY: &str = "local/secret-envelope-v1";
 
 static KEYCHAIN_AVAILABLE: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
 static FALLBACK_STORE: std::sync::OnceLock<Mutex<FallbackStore>> = std::sync::OnceLock::new();
@@ -31,6 +33,8 @@ static FALLBACK_STORE: std::sync::OnceLock<Mutex<FallbackStore>> = std::sync::On
 /// `set_password` returns Ok but `get_password` returns NoEntry for a short window.
 /// Also avoids redundant OS calls for frequently-read keys within the same session.
 static KEYCHAIN_CACHE: std::sync::OnceLock<Mutex<HashMap<String, String>>> =
+    std::sync::OnceLock::new();
+static LOCAL_SECRET_ENVELOPE_KEY_LOCK: std::sync::OnceLock<Mutex<()>> =
     std::sync::OnceLock::new();
 
 #[cfg(test)]
@@ -296,6 +300,60 @@ pub fn decrypt_data(key: &[u8; 32], encrypted: &[u8]) -> Result<Vec<u8>, AppErro
 
 // ─── Platform detection ─────────────────────────────────────
 
+/// Seal a sensitive local value for storage in SQLite or filesystem snapshots.
+/// The envelope key is kept in the platform keychain (or encrypted fallback).
+pub fn seal_local_secret(plaintext: &str) -> Result<String, AppError> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let key = ensure_local_secret_envelope_key()?;
+    let encrypted = encrypt_data(&key, plaintext.as_bytes())?;
+    Ok(format!(
+        "{LOCAL_SECRET_ENVELOPE_PREFIX}{}",
+        STANDARD.encode(encrypted)
+    ))
+}
+
+/// Open a value produced by [`seal_local_secret`]. Plaintext input remains
+/// readable for backwards compatibility with backups created by older builds.
+pub fn open_local_secret(value: &str) -> Result<String, AppError> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let Some(encoded) = value.strip_prefix(LOCAL_SECRET_ENVELOPE_PREFIX) else {
+        return Ok(value.to_string());
+    };
+    let encrypted = STANDARD
+        .decode(encoded)
+        .map_err(|e| AppError::Config(format!("Invalid local secret envelope: {e}")))?;
+    let key = ensure_local_secret_envelope_key()?;
+    let plaintext = decrypt_data(&key, &encrypted)?;
+    String::from_utf8(plaintext)
+        .map_err(|e| AppError::Config(format!("Invalid UTF-8 in local secret envelope: {e}")))
+}
+
+fn ensure_local_secret_envelope_key() -> Result<[u8; 32], AppError> {
+    use base64::{engine::general_purpose::STANDARD, Engine};
+
+    let key_lock = LOCAL_SECRET_ENVELOPE_KEY_LOCK.get_or_init(|| Mutex::new(()));
+    let _guard = key_lock
+        .lock()
+        .map_err(|e| AppError::Config(format!("Local secret envelope key lock failed: {e}")))?;
+
+    if let Some(encoded) = get_secret(LOCAL_SECRET_ENVELOPE_KEY)? {
+        let bytes = STANDARD.decode(encoded).map_err(|e| {
+            AppError::Config(format!("Invalid local secret envelope key encoding: {e}"))
+        })?;
+        return bytes.try_into().map_err(|_| {
+            AppError::Config("Invalid local secret envelope key length".to_string())
+        });
+    }
+
+    let mut key = [0u8; 32];
+    use rand::RngCore;
+    rand::thread_rng().fill_bytes(&mut key);
+    store_secret(LOCAL_SECRET_ENVELOPE_KEY, &STANDARD.encode(key))?;
+    Ok(key)
+}
+
 fn is_platform_keychain_available() -> bool {
     *KEYCHAIN_AVAILABLE.get_or_init(|| {
         let test_key = "__opensunstar_keychain_probe__";
@@ -504,5 +562,24 @@ mod tests {
     fn test_non_ref_value_not_detected() {
         assert!(!is_keychain_ref("sk-abc123"));
         assert!(!is_keychain_ref(""));
+    }
+
+    #[test]
+    fn test_local_secret_envelope_roundtrip_and_tamper_detection() {
+        let plaintext = r#"{"auth":{"OPENAI_API_KEY":"sk-sensitive"}}"#;
+
+        let sealed = seal_local_secret(plaintext).expect("seal local secret");
+        assert!(sealed.starts_with("enc:v1:"));
+        assert!(!sealed.contains("sk-sensitive"));
+        assert_eq!(
+            open_local_secret(&sealed).expect("open local secret"),
+            plaintext
+        );
+
+        let mut tampered = sealed.into_bytes();
+        let last = tampered.last_mut().expect("sealed value is not empty");
+        *last = if *last == b'A' { b'B' } else { b'A' };
+        let tampered = String::from_utf8(tampered).expect("valid utf-8");
+        assert!(open_local_secret(&tampered).is_err());
     }
 }

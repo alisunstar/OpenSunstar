@@ -379,6 +379,7 @@ export function PricingConfigPanel() {
                     <TableHead className="text-right">
                       {t("usage.cacheWriteCost")}
                     </TableHead>
+                    <TableHead>{t("usage.pricingAudit", "审计")}</TableHead>
                     <TableHead className="text-right">
                       {t("common.actions")}
                     </TableHead>
@@ -402,6 +403,35 @@ export function PricingConfigPanel() {
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm">
                         ${model.cacheCreationCostPerMillion}
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1 text-xs">
+                          <span
+                            className={
+                              model.pricingSource === "user_override"
+                                ? "inline-flex rounded-sm bg-amber-500/10 px-1.5 py-0.5 font-medium text-amber-700 dark:text-amber-300"
+                                : "inline-flex rounded-sm bg-sky-500/10 px-1.5 py-0.5 font-medium text-sky-700 dark:text-sky-300"
+                            }
+                          >
+                            {model.pricingSource === "user_override"
+                              ? t("usage.pricingUserOverride", "用户自定义")
+                              : t("usage.pricingBuiltinPublic", "内置公开价格")}
+                          </span>
+                          {model.pricingEffectiveAt && (
+                            <p className="whitespace-nowrap text-muted-foreground">
+                              {t("usage.pricingEffectiveAt", "生效")}: {model.pricingEffectiveAt}
+                              {model.pricingCurrency
+                                ? ` · ${model.pricingCurrency}`
+                                : ""}
+                            </p>
+                          )}
+                          {model.longContextThresholdTokens && (
+                            <p className="whitespace-nowrap text-muted-foreground">
+                              {t("usage.longContextRate", "长上下文")}: &gt;
+                              {Math.round(model.longContextThresholdTokens / 1000)}K
+                            </p>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-1">

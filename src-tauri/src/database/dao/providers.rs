@@ -309,6 +309,21 @@ impl Database {
         Ok(())
     }
 
+    /// Clear the current-provider marker without selecting a replacement.
+    ///
+    /// This is required by transactional rollback when QuickStart created the
+    /// first provider for an app and therefore has no previous provider to
+    /// restore.
+    pub fn clear_current_provider(&self, app_type: &str) -> Result<(), AppError> {
+        let conn = lock_conn!(self.conn);
+        conn.execute(
+            "UPDATE providers SET is_current = 0 WHERE app_type = ?1",
+            params![app_type],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
+        Ok(())
+    }
+
     pub fn update_provider_settings_config(
         &self,
         app_type: &str,

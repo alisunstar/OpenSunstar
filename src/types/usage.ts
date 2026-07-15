@@ -63,6 +63,13 @@ export interface ModelPricing {
   outputCostPerMillion: string;
   cacheReadCostPerMillion: string;
   cacheCreationCostPerMillion: string;
+  pricingSource?: string;
+  pricingSourceVersion?: string;
+  pricingEffectiveAt?: string;
+  pricingCurrency?: string;
+  longContextThresholdTokens?: number;
+  longContextInputMultiplier?: string;
+  longContextOutputMultiplier?: string;
 }
 
 export interface UsageSummary {

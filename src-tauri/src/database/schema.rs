@@ -236,6 +236,8 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+        Self::create_model_pricing_provenance_table(conn)?;
+
         // 12. Stream Check Logs 表
         conn.execute("CREATE TABLE IF NOT EXISTS stream_check_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT, provider_id TEXT NOT NULL, provider_name TEXT NOT NULL,
@@ -341,6 +343,9 @@ impl Database {
         // 30. SDD 框架描述符目录 + 项目探测结果
         Self::create_sdd_descriptors_table(conn)?;
         Self::create_project_sdd_detections_table(conn)?;
+
+        // 31. 项目环境快照（项目绑定的运行态配置快照）
+        Self::create_project_environment_snapshots_table(conn)?;
 
         // 尝试添加 live_takeover_active 列到 proxy_config 表
         let _ = conn.execute(
@@ -583,6 +588,46 @@ impl Database {
                         log::info!("迁移数据库从 v27 到 v28（projects 增加 stage / mvp_progress）");
                         Self::migrate_v27_to_v28(conn)?;
                         Self::set_user_version(conn, 28)?;
+                    }
+                    28 => {
+                        log::info!("迁移数据库从 v28 到 v29（项目 AI 资产健康事实表）");
+                        Self::migrate_v28_to_v29(conn)?;
+                        Self::set_user_version(conn, 29)?;
+                    }
+                    29 => {
+                        log::info!("迁移数据库从 v29 到 v30（资产部署逐文件回执）");
+                        Self::migrate_v29_to_v30(conn)?;
+                        Self::set_user_version(conn, 30)?;
+                    }
+                    30 => {
+                        log::info!("迁移数据库从 v30 到 v31（部署回执绑定资产修订）");
+                        Self::migrate_v30_to_v31(conn)?;
+                        Self::set_user_version(conn, 31)?;
+                    }
+                    31 => {
+                        log::info!("迁移数据库从 v31 到 v32（项目环境快照）");
+                        Self::migrate_v31_to_v32(conn)?;
+                        Self::set_user_version(conn, 32)?;
+                    }
+                    32 => {
+                        log::info!("Migrating database from v32 to v33 (QuickStart operation state and protected backups)");
+                        Self::migrate_v32_to_v33(conn)?;
+                        Self::set_user_version(conn, 33)?;
+                    }
+                    33 => {
+                        log::info!("Migrating database from v33 to v34 (encrypted QuickStart live snapshots)");
+                        Self::migrate_v33_to_v34(conn)?;
+                        Self::set_user_version(conn, 34)?;
+                    }
+                    34 => {
+                        log::info!("Migrating database from v34 to v35 (QuickStart rollback ownership guard)");
+                        Self::migrate_v34_to_v35(conn)?;
+                        Self::set_user_version(conn, 35)?;
+                    }
+                    35 => {
+                        log::info!("Migrating database from v35 to v36 (auditable model pricing provenance)");
+                        Self::migrate_v35_to_v36(conn)?;
+                        Self::set_user_version(conn, 36)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -1970,6 +2015,278 @@ impl Database {
         Ok(())
     }
 
+    /// v28 -> v29: 资产健康模型的不可变修订、项目期望、部署回执和验证证据。
+    ///
+    /// 现有 `project_asset_links` 保持为用户选择的兼容层；新表只追加健康事实，
+    /// 不迁移或删除历史关联，避免把旧 `asset_app_type` 的多重语义当作目标应用。
+    fn migrate_v28_to_v29(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS asset_revisions (
+                revision_id TEXT PRIMARY KEY,
+                asset_type TEXT NOT NULL,
+                asset_id TEXT NOT NULL,
+                version_label TEXT,
+                content_sha256 TEXT NOT NULL,
+                source_kind TEXT NOT NULL,
+                source_ref TEXT,
+                source_revision TEXT,
+                metadata_json TEXT NOT NULL DEFAULT '{}',
+                created_at INTEGER NOT NULL,
+                UNIQUE(asset_type, asset_id, content_sha256)
+            );
+            CREATE INDEX IF NOT EXISTS idx_asset_revisions_asset
+                ON asset_revisions(asset_type, asset_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS project_asset_expectations (
+                expectation_id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                asset_type TEXT NOT NULL,
+                asset_id TEXT NOT NULL,
+                target_app TEXT NOT NULL,
+                desired_state TEXT NOT NULL DEFAULT 'enabled',
+                required_revision_id TEXT,
+                verification_policy TEXT,
+                scope TEXT NOT NULL DEFAULT 'project',
+                source TEXT NOT NULL DEFAULT 'manual',
+                owner_mode TEXT NOT NULL DEFAULT 'observed',
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                UNIQUE(project_id, asset_type, asset_id, target_app),
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+                FOREIGN KEY(required_revision_id) REFERENCES asset_revisions(revision_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_asset_expectations_project
+                ON project_asset_expectations(project_id, target_app, desired_state);
+
+            CREATE TABLE IF NOT EXISTS asset_deployment_receipts (
+                receipt_id TEXT PRIMARY KEY,
+                expectation_id TEXT NOT NULL,
+                operation_id TEXT NOT NULL,
+                adapter_id TEXT NOT NULL,
+                adapter_version TEXT NOT NULL,
+                plan_sha256 TEXT NOT NULL,
+                dry_run INTEGER NOT NULL DEFAULT 0,
+                outcome TEXT NOT NULL,
+                target_path TEXT,
+                before_sha256 TEXT,
+                after_sha256 TEXT,
+                snapshot_ref TEXT,
+                reason_code TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(expectation_id) REFERENCES project_asset_expectations(expectation_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_asset_receipts_expectation
+                ON asset_deployment_receipts(expectation_id, created_at DESC);
+
+            CREATE TABLE IF NOT EXISTS asset_runtime_evidence (
+                evidence_id TEXT PRIMARY KEY,
+                expectation_id TEXT NOT NULL,
+                evidence_kind TEXT NOT NULL,
+                status TEXT NOT NULL,
+                observed_revision_sha256 TEXT,
+                confidence TEXT NOT NULL,
+                collector TEXT NOT NULL,
+                collector_version TEXT NOT NULL,
+                observed_at INTEGER NOT NULL,
+                expires_at INTEGER,
+                details_json TEXT NOT NULL DEFAULT '{}',
+                FOREIGN KEY(expectation_id) REFERENCES project_asset_expectations(expectation_id)
+            );
+            CREATE INDEX IF NOT EXISTS idx_asset_evidence_expectation
+                ON asset_runtime_evidence(expectation_id, observed_at DESC);",
+        )
+        .map_err(|e| AppError::Database(format!("创建资产健康事实表失败: {e}")))?;
+        log::info!("v28 -> v29 迁移完成：资产健康事实表");
+        Ok(())
+    }
+
+    /// v29 -> v30: per-file deployment receipts. Only relative paths and
+    /// content digests are persisted; file bodies and secrets are excluded.
+    fn migrate_v29_to_v30(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS asset_receipt_files (
+                file_id TEXT PRIMARY KEY NOT NULL,
+                receipt_id TEXT NOT NULL,
+                relative_path TEXT NOT NULL,
+                action TEXT NOT NULL,
+                before_sha256 TEXT,
+                after_sha256 TEXT,
+                snapshot_ref TEXT,
+                reason_code TEXT,
+                created_at INTEGER NOT NULL,
+                FOREIGN KEY(receipt_id) REFERENCES asset_deployment_receipts(receipt_id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_asset_receipt_files_receipt
+                ON asset_receipt_files(receipt_id, created_at);",
+        )
+        .map_err(|error| AppError::Database(format!("创建资产逐文件回执表失败: {error}")))?;
+        Ok(())
+    }
+
+    /// v30 -> v31: bind every deployment receipt to the immutable asset
+    /// revision that was required when its plan was confirmed.
+    fn migrate_v30_to_v31(conn: &Connection) -> Result<(), AppError> {
+        if !Self::has_column(conn, "asset_deployment_receipts", "required_revision_id")? {
+            conn.execute(
+                "ALTER TABLE asset_deployment_receipts ADD COLUMN required_revision_id TEXT",
+                [],
+            )
+            .map_err(|error| {
+                AppError::Database(format!("为资产部署回执增加修订引用失败: {error}"))
+            })?;
+        }
+        Ok(())
+    }
+
+    fn create_project_environment_snapshots_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS project_environment_snapshots (
+                id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL,
+                last_applied_at INTEGER,
+                last_apply_receipt TEXT,
+                UNIQUE(project_id, name),
+                FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS idx_project_environment_snapshots_project
+                ON project_environment_snapshots(project_id, updated_at DESC);",
+        )
+        .map_err(|error| AppError::Database(format!("创建项目环境快照表失败: {error}")))?;
+        Ok(())
+    }
+
+    fn migrate_v31_to_v32(conn: &Connection) -> Result<(), AppError> {
+        Self::create_project_environment_snapshots_table(conn)
+    }
+
+    fn migrate_v32_to_v33(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS quick_start_operations (
+                id                   TEXT PRIMARY KEY,
+                idempotency_key      TEXT NOT NULL UNIQUE,
+                request_fingerprint  TEXT NOT NULL,
+                app_type             TEXT NOT NULL CHECK(app_type IN ('claude','claude-desktop','codex','gemini')),
+                provider_id          TEXT,
+                previous_provider_id TEXT,
+                status               TEXT NOT NULL CHECK(status IN ('pending','applying','verifying','succeeded','failed','rolling_back','rolled_back','rollback_failed')),
+                current_step         TEXT NOT NULL,
+                revision             INTEGER NOT NULL DEFAULT 0,
+                provider_created     INTEGER NOT NULL DEFAULT 0,
+                provider_switched    INTEGER NOT NULL DEFAULT 0,
+                takeover_enabled     INTEGER NOT NULL DEFAULT 0,
+                proxy_started        INTEGER NOT NULL DEFAULT 0,
+                post_verified        INTEGER NOT NULL DEFAULT 0,
+                takeover_was_enabled INTEGER NOT NULL DEFAULT 0,
+                proxy_was_running    INTEGER NOT NULL DEFAULT 0,
+                error_code           TEXT,
+                error_message        TEXT,
+                created_at           TEXT NOT NULL,
+                updated_at           TEXT NOT NULL,
+                completed_at         TEXT
+            );
+            CREATE INDEX IF NOT EXISTS idx_quick_start_operations_status_updated
+                ON quick_start_operations(status, updated_at DESC);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_quick_start_operations_active_app
+                ON quick_start_operations(app_type)
+                WHERE status IN ('pending','applying','verifying','rolling_back','rollback_failed');
+            CREATE TABLE IF NOT EXISTS quick_start_operation_events (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                operation_id  TEXT NOT NULL REFERENCES quick_start_operations(id) ON DELETE CASCADE,
+                sequence      INTEGER NOT NULL,
+                event_type    TEXT NOT NULL,
+                from_status   TEXT,
+                to_status     TEXT,
+                step          TEXT NOT NULL,
+                error_code    TEXT,
+                error_message TEXT,
+                detail_json   TEXT,
+                created_at    TEXT NOT NULL,
+                UNIQUE(operation_id, sequence)
+            );
+            CREATE INDEX IF NOT EXISTS idx_quick_start_events_operation
+                ON quick_start_operation_events(operation_id, sequence);",
+        )
+        .map_err(|e| AppError::Database(format!("Create QuickStart operation tables failed: {e}")))?;
+
+        if Self::table_exists(conn, "proxy_live_backup")? {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT app_type, original_config FROM proxy_live_backup
+                     WHERE original_config NOT LIKE 'enc:v1:%'",
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let plaintext_rows: Vec<(String, String)> = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .map_err(|e| AppError::Database(e.to_string()))?
+                .collect::<Result<_, _>>()
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            drop(stmt);
+            for (app_type, plaintext) in plaintext_rows {
+                let sealed = crate::keychain::seal_local_secret(&plaintext)?;
+                conn.execute(
+                    "UPDATE proxy_live_backup SET original_config = ?1 WHERE app_type = ?2",
+                    rusqlite::params![sealed, app_type],
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            }
+        }
+        Ok(())
+    }
+
+    fn migrate_v33_to_v34(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(conn, "quick_start_operations", "live_snapshot", "TEXT")?;
+        Ok(())
+    }
+
+    fn migrate_v34_to_v35(conn: &Connection) -> Result<(), AppError> {
+        Self::add_column_if_missing(
+            conn,
+            "quick_start_operations",
+            "applied_live_fingerprint",
+            "TEXT",
+        )?;
+        Ok(())
+    }
+
+    fn migrate_v35_to_v36(conn: &Connection) -> Result<(), AppError> {
+        Self::create_model_pricing_provenance_table(conn)?;
+        // 旧数据库尚未包含 GPT-5.6 价格时，先用 INSERT OR IGNORE 补齐内置项；
+        // 既有用户自定义价格不会被覆盖。
+        Self::seed_model_pricing(conn)?;
+        Self::seed_gpt_5_6_pricing_provenance(conn)
+    }
+
+    fn create_model_pricing_provenance_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS model_pricing_provenance (
+                model_id TEXT PRIMARY KEY NOT NULL,
+                source TEXT NOT NULL,
+                source_version TEXT NOT NULL,
+                effective_at TEXT NOT NULL,
+                currency TEXT NOT NULL DEFAULT 'USD',
+                long_context_threshold_tokens INTEGER,
+                long_context_input_multiplier TEXT NOT NULL DEFAULT '1',
+                long_context_output_multiplier TEXT NOT NULL DEFAULT '1',
+                FOREIGN KEY(model_id) REFERENCES model_pricing(model_id) ON DELETE CASCADE
+            );",
+        )
+        .map_err(|e| AppError::Database(format!("创建 model_pricing_provenance 表失败: {e}")))?;
+
+        // v36 开发期内曾创建过不含 currency 的同名表；不能仅依赖 user_version，
+        // 启动时对既有表做幂等补列，避免种子写入阻断整个数据库初始化。
+        Self::add_column_if_missing(
+            conn,
+            "model_pricing_provenance",
+            "currency",
+            "TEXT NOT NULL DEFAULT 'USD'",
+        )?;
+        Ok(())
+    }
+
     /// 从旧三表之一拷贝行到 `project_asset_links`；冲突时以 legacy 行的 enabled/时间戳为准并打审计日志
     fn migrate_legacy_project_link_table(
         conn: &Connection,
@@ -2388,6 +2705,24 @@ impl Database {
                 "3.75",
             ),
             // GPT-5.5 系列
+            // GPT-5.6：公开 API 价格。`gpt-5.6` 是 Sol 的别名；reasoning 后缀是
+            // OpenSunstar/Codex 配置归一化键，而非额外的公开 API 模型声明。
+            ("gpt-5.6", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-sol", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            (
+                "gpt-5.6-terra",
+                "GPT-5.6 Terra",
+                "2.50",
+                "15",
+                "0.25",
+                "3.125",
+            ),
+            ("gpt-5.6-luna", "GPT-5.6 Luna", "1", "6", "0.10", "1.25"),
+            ("gpt-5.6-low", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-medium", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-high", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-xhigh", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-minimal", "GPT-5.6 Sol", "5", "30", "0.50", "6.25"),
             ("gpt-5.5", "GPT-5.5", "5", "30", "0.50", "0"),
             ("gpt-5.5-low", "GPT-5.5", "5", "30", "0.50", "0"),
             ("gpt-5.5-medium", "GPT-5.5", "5", "30", "0.50", "0"),
@@ -3085,6 +3420,41 @@ impl Database {
         }
 
         log::info!("已插入 {} 条默认模型定价数据", pricing_data.len());
+        Self::seed_gpt_5_6_pricing_provenance(conn)?;
+        Ok(())
+    }
+
+    fn seed_gpt_5_6_pricing_provenance(conn: &Connection) -> Result<(), AppError> {
+        for (model_id, input, output, cache_read, cache_creation) in [
+            ("gpt-5.6", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-sol", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-terra", "2.50", "15", "0.25", "3.125"),
+            ("gpt-5.6-luna", "1", "6", "0.10", "1.25"),
+            ("gpt-5.6-low", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-medium", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-high", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-xhigh", "5", "30", "0.50", "6.25"),
+            ("gpt-5.6-minimal", "5", "30", "0.50", "6.25"),
+        ] {
+            conn.execute(
+                "INSERT OR IGNORE INTO model_pricing_provenance (
+                    model_id, source, source_version, effective_at,
+                    currency,
+                    long_context_threshold_tokens,
+                    long_context_input_multiplier, long_context_output_multiplier
+                ) SELECT ?1, 'openai_public_api', '2026-07-09', '2026-07-09', 'USD', 272000, '2', '1.5'
+                  WHERE EXISTS (
+                    SELECT 1 FROM model_pricing
+                    WHERE model_id = ?1
+                      AND input_cost_per_million = ?2
+                      AND output_cost_per_million = ?3
+                      AND cache_read_cost_per_million = ?4
+                      AND cache_creation_cost_per_million = ?5
+                  )",
+                params![model_id, input, output, cache_read, cache_creation],
+            )
+            .map_err(|e| AppError::Database(format!("写入 GPT-5.6 定价来源失败: {e}")))?;
+        }
         Ok(())
     }
 

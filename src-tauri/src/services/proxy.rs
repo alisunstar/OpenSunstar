@@ -976,17 +976,13 @@ impl ProxyService {
                                     }
                                 }
 
-                                if let Err(e) = self.db.update_provider_settings_config(
-                                    "claude",
-                                    &provider_id,
-                                    &provider.settings_config,
-                                ) {
-                                    log::warn!("同步 Claude Token 到数据库失败: {e}");
-                                } else {
-                                    log::info!(
-                                        "已同步 Claude Token 到数据库 (provider: {provider_id})"
-                                    );
-                                }
+                                self.persist_provider_settings_securely(
+                                    &AppType::Claude,
+                                    &mut provider,
+                                )?;
+                                log::info!(
+                                    "已同步 Claude Token 到数据库 (provider: {provider_id})"
+                                );
                             }
                         }
                     }
@@ -1031,15 +1027,11 @@ impl ProxyService {
                                 }
                             }
 
-                            if let Err(e) = self.db.update_provider_settings_config(
-                                "codex",
-                                &provider_id,
-                                &provider.settings_config,
-                            ) {
-                                log::warn!("同步 Codex Token 到数据库失败: {e}");
-                            } else {
-                                log::info!("已同步 Codex Token 到数据库 (provider: {provider_id})");
-                            }
+                            self.persist_provider_settings_securely(
+                                &AppType::Codex,
+                                &mut provider,
+                            )?;
+                            log::info!("已同步 Codex Token 到数据库 (provider: {provider_id})");
                         }
                     }
                 }
@@ -1083,17 +1075,13 @@ impl ProxyService {
                                 }
                             }
 
-                            if let Err(e) = self.db.update_provider_settings_config(
-                                "gemini",
-                                &provider_id,
-                                &provider.settings_config,
-                            ) {
-                                log::warn!("同步 Gemini Token 到数据库失败: {e}");
-                            } else {
-                                log::info!(
-                                    "已同步 Gemini Token 到数据库 (provider: {provider_id})"
-                                );
-                            }
+                            self.persist_provider_settings_securely(
+                                &AppType::Gemini,
+                                &mut provider,
+                            )?;
+                            log::info!(
+                                "已同步 Gemini Token 到数据库 (provider: {provider_id})"
+                            );
                         }
                     }
                 }
@@ -1102,6 +1090,22 @@ impl ProxyService {
         }
 
         Ok(())
+    }
+
+    fn persist_provider_settings_securely(
+        &self,
+        app_type: &AppType,
+        provider: &mut Provider,
+    ) -> Result<(), String> {
+        crate::provider_keychain::migrate_provider_settings_to_keychain(provider, app_type)
+            .map_err(|e| format!("安全迁移 {} 凭据失败: {e}", app_type.as_str()))?;
+        self.db
+            .update_provider_settings_config(
+                app_type.as_str(),
+                &provider.id,
+                &provider.settings_config,
+            )
+            .map_err(|e| format!("持久化 {} 供应商配置失败: {e}", app_type.as_str()))
     }
 
     async fn sync_live_to_providers(&self) -> Result<(), String> {
@@ -4456,13 +4460,60 @@ model = "gpt-5.1-codex"
             .and_then(|v| v.as_object())
             .expect("env object");
 
+        let stored = env
+            .get("ANTHROPIC_AUTH_TOKEN")
+            .and_then(|v| v.as_str())
+            .expect("stored auth token");
+        assert!(crate::keychain::is_keychain_ref(stored));
         assert_eq!(
-            env.get("ANTHROPIC_AUTH_TOKEN").and_then(|v| v.as_str()),
-            Some("fresh")
+            crate::keychain::resolve_value(stored).expect("resolve auth token"),
+            "fresh"
         );
         assert!(
             !env.contains_key("ANTHROPIC_API_KEY"),
             "should not add ANTHROPIC_API_KEY when absent"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn sync_codex_token_keeps_plaintext_out_of_provider_database() {
+        let _home = TempHome::new();
+        crate::settings::reload_settings().expect("reload settings");
+
+        let db = Arc::new(Database::memory().expect("init db"));
+        let service = ProxyService::new(db.clone());
+        let provider = Provider::with_id(
+            "secure-codex".to_string(),
+            "Secure Codex".to_string(),
+            json!({"auth": {"OPENAI_API_KEY": "stale-secret"}}),
+            None,
+        );
+        db.save_provider("codex", &provider).expect("save provider");
+        db.set_current_provider("codex", "secure-codex")
+            .expect("set current provider");
+
+        service
+            .sync_live_config_to_provider(
+                &AppType::Codex,
+                &json!({"auth": {"OPENAI_API_KEY": "fresh-secret"}}),
+            )
+            .await
+            .expect("sync");
+
+        let updated = db
+            .get_provider_by_id("secure-codex", "codex")
+            .expect("get provider")
+            .expect("provider exists");
+        let stored = updated
+            .settings_config
+            .pointer("/auth/OPENAI_API_KEY")
+            .and_then(Value::as_str)
+            .expect("stored key");
+        assert!(crate::keychain::is_keychain_ref(stored));
+        assert_eq!(
+            crate::keychain::resolve_value(stored).expect("resolve stored key"),
+            "fresh-secret"
         );
     }
 
@@ -4512,9 +4563,14 @@ model = "gpt-5.1-codex"
             .and_then(|v| v.as_object())
             .expect("env object");
 
+        let stored = env
+            .get("ANTHROPIC_API_KEY")
+            .and_then(|v| v.as_str())
+            .expect("stored api key");
+        assert!(crate::keychain::is_keychain_ref(stored));
         assert_eq!(
-            env.get("ANTHROPIC_API_KEY").and_then(|v| v.as_str()),
-            Some("fresh")
+            crate::keychain::resolve_value(stored).expect("resolve api key"),
+            "fresh"
         );
         assert!(
             !env.contains_key("ANTHROPIC_AUTH_TOKEN"),

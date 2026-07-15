@@ -53,9 +53,21 @@ describe("assetAppSupport", () => {
 
   it("exposes every shared-contract asset/app status to the UI", () => {
     for (const type of ALL_TYPES) {
-      for (const [appId, status] of Object.entries(supportContract[type])) {
-        expect(ASSET_APP_SUPPORT[type][appId as keyof typeof ASSET_APP_SUPPORT[typeof type]].status)
-          .toBe(status);
+      for (const appId of supportContract.apps) {
+        const source = supportContract.assets[type] as {
+          supported: string[];
+          partial: string[];
+        };
+        const status = source.supported.includes(appId)
+          ? "supported"
+          : source.partial.includes(appId)
+            ? "partial"
+            : "unsupported";
+        expect(
+          ASSET_APP_SUPPORT[type][
+            appId as keyof (typeof ASSET_APP_SUPPORT)[typeof type]
+          ].status,
+        ).toBe(status);
       }
     }
   });

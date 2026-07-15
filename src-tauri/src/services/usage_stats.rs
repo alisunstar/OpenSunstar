@@ -435,6 +435,15 @@ fn local_day_start_rfc3339(day: NaiveDate) -> String {
     local_midnight.to_rfc3339()
 }
 
+#[derive(Clone)]
+struct PricingInfo {
+    input: rust_decimal::Decimal,
+    output: rust_decimal::Decimal,
+    cache_read: rust_decimal::Decimal,
+    cache_creation: rust_decimal::Decimal,
+    long_context_surcharge: Option<crate::proxy::usage::calculator::LongContextSurcharge>,
+}
+
 impl Database {
     /// 获取使用量汇总
     pub fn get_usage_summary(
@@ -1454,14 +1463,6 @@ pub struct ProviderLimitStatus {
     pub monthly_exceeded: bool,
 }
 
-#[derive(Clone)]
-struct PricingInfo {
-    input: rust_decimal::Decimal,
-    output: rust_decimal::Decimal,
-    cache_read: rust_decimal::Decimal,
-    cache_creation: rust_decimal::Decimal,
-}
-
 impl Database {
     /// Recalculate stored zero-cost usage rows once pricing becomes available.
     pub(crate) fn backfill_missing_usage_costs(&self) -> Result<u64, AppError> {
@@ -1582,10 +1583,23 @@ impl Database {
         } else {
             log.input_tokens as u64
         };
+        let long_context_surcharge = pricing
+            .long_context_surcharge
+            .as_ref()
+            .filter(|surcharge| log.input_tokens as u64 > surcharge.threshold_tokens as u64);
+        let input_multiplier = long_context_surcharge
+            .map(|surcharge| surcharge.input_multiplier)
+            .unwrap_or(rust_decimal::Decimal::ONE);
+        let output_multiplier = long_context_surcharge
+            .map(|surcharge| surcharge.output_multiplier)
+            .unwrap_or(rust_decimal::Decimal::ONE);
         let input_cost =
-            rust_decimal::Decimal::from(billable_input_tokens) * pricing.input / million;
-        let output_cost =
-            rust_decimal::Decimal::from(log.output_tokens as u64) * pricing.output / million;
+            rust_decimal::Decimal::from(billable_input_tokens) * pricing.input * input_multiplier
+                / million;
+        let output_cost = rust_decimal::Decimal::from(log.output_tokens as u64)
+            * pricing.output
+            * output_multiplier
+            / million;
         let cache_read_cost = rust_decimal::Decimal::from(log.cache_read_tokens as u64)
             * pricing.cache_read
             / million;
@@ -1633,20 +1647,15 @@ impl Database {
             return Ok(Some(info.clone()));
         }
 
-        let row = find_model_pricing_row(conn, model)?;
-        let Some((input, output, cache_read, cache_creation)) = row else {
+        let Some(model_pricing) = find_model_pricing(conn, model) else {
             return Ok(None);
         };
-
         let pricing = PricingInfo {
-            input: rust_decimal::Decimal::from_str(&input)
-                .map_err(|e| AppError::Database(format!("解析输入价格失败: {e}")))?,
-            output: rust_decimal::Decimal::from_str(&output)
-                .map_err(|e| AppError::Database(format!("解析输出价格失败: {e}")))?,
-            cache_read: rust_decimal::Decimal::from_str(&cache_read)
-                .map_err(|e| AppError::Database(format!("解析缓存读取价格失败: {e}")))?,
-            cache_creation: rust_decimal::Decimal::from_str(&cache_creation)
-                .map_err(|e| AppError::Database(format!("解析缓存写入价格失败: {e}")))?,
+            input: model_pricing.input_cost_per_million,
+            output: model_pricing.output_cost_per_million,
+            cache_read: model_pricing.cache_read_cost_per_million,
+            cache_creation: model_pricing.cache_creation_cost_per_million,
+            long_context_surcharge: model_pricing.long_context_surcharge,
         };
 
         cache.insert(model.to_string(), pricing.clone());
@@ -1696,12 +1705,46 @@ impl Database {
 }
 
 pub(crate) fn find_model_pricing(conn: &Connection, model_id: &str) -> Option<ModelPricing> {
-    find_model_pricing_row(conn, model_id)
-        .ok()
-        .flatten()
-        .and_then(|(input, output, cache_read, cache_creation)| {
-            ModelPricing::from_strings(&input, &output, &cache_read, &cache_creation).ok()
-        })
+    let (input, output, cache_read, cache_creation) =
+        find_model_pricing_row(conn, model_id).ok().flatten()?;
+
+    let schedule = model_pricing_candidates(model_id)
+        .into_iter()
+        .find_map(|candidate| {
+            conn.query_row(
+                "SELECT long_context_threshold_tokens,
+                        long_context_input_multiplier, long_context_output_multiplier
+                 FROM model_pricing_provenance
+                 WHERE model_id = ?1 AND long_context_threshold_tokens IS NOT NULL",
+                [candidate],
+                |row| {
+                    Ok((
+                        row.get::<_, u32>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                },
+            )
+            .optional()
+            .ok()
+            .flatten()
+        });
+
+    match schedule {
+        Some((threshold, input_multiplier, output_multiplier)) => {
+            ModelPricing::from_strings_with_long_context_surcharge(
+                &input,
+                &output,
+                &cache_read,
+                &cache_creation,
+                threshold,
+                &input_multiplier,
+                &output_multiplier,
+            )
+            .ok()
+        }
+        None => ModelPricing::from_strings(&input, &output, &cache_read, &cache_creation).ok(),
+    }
 }
 
 pub(crate) fn find_model_pricing_row(
@@ -1956,6 +1999,11 @@ fn strip_reasoning_effort_suffix(model_id: &str) -> Option<String> {
 }
 
 fn should_try_pricing_prefix_match(model_id: &str) -> bool {
+    // GPT-5.6 的公开 tiers 和本地 effort alias 全部显式列出；未知后缀不能
+    // 靠前缀继承价格，以免把未公布/自定义模型误标为官方参考成本。
+    if model_id.starts_with("gpt-5.6-") {
+        return false;
+    }
     let dash_count = model_id.matches('-').count();
 
     if model_id.starts_with("claude-") {
@@ -3433,6 +3481,13 @@ mod tests {
             result.is_some(),
             "缺少专门 effort 价格时应回退到 gpt-5.4 基础模型定价"
         );
+
+        let gpt_5_6 = find_model_pricing(&conn, "gpt-5.6-sol")
+            .expect("GPT-5.6 Sol must have an auditable pricing schedule");
+        assert!(gpt_5_6.long_context_surcharge.is_some());
+
+        let result = find_model_pricing_row(&conn, "gpt-5.6-unpublished-preview")?;
+        assert!(result.is_none(), "未知 GPT-5.6 后缀不得继承官方价格");
 
         // Kimi Code 是订阅/额度模型，不应伪装成公开按 token 计费模型
         let result = find_model_pricing_row(&conn, "kimi-for-coding")?;

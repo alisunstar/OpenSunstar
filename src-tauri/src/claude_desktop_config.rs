@@ -1,4 +1,5 @@
-﻿use serde::Serialize;
+use serde::Deserialize;
+use serde::Serialize;
 use serde_json::{json, Value};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -77,10 +78,15 @@ pub struct DirectGatewayCredentials {
     pub api_key: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct FileSnapshot {
     path: PathBuf,
     content: Option<Vec<u8>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub(crate) struct ClaudeDesktopConfigSnapshot {
+    files: Vec<FileSnapshot>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -118,6 +124,19 @@ struct InferenceModelSpec {
 pub fn apply_provider(db: &Database, provider: &Provider) -> Result<(), AppError> {
     let paths = current_platform_paths()?;
     apply_provider_to_paths(db, provider, &paths)
+}
+
+pub(crate) fn capture_config_snapshot() -> Result<ClaudeDesktopConfigSnapshot, AppError> {
+    let paths = current_platform_paths()?;
+    Ok(ClaudeDesktopConfigSnapshot {
+        files: snapshot_files(&paths)?,
+    })
+}
+
+pub(crate) fn restore_config_snapshot(
+    snapshot: &ClaudeDesktopConfigSnapshot,
+) -> Result<(), AppError> {
+    restore_snapshots(&snapshot.files)
 }
 
 pub fn get_status(db: &Database, proxy_running: bool) -> Result<ClaudeDesktopStatus, AppError> {

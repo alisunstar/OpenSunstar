@@ -45,6 +45,12 @@ pub enum AssetAction {
         #[arg(long)]
         target_app: Option<String>,
     },
+    /// 查看项目资产健康证据链（期望、最近回执与验证状态）
+    Health {
+        /// 项目 ID
+        #[arg(long)]
+        project_id: String,
+    },
 }
 
 pub fn run(args: AssetArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
@@ -58,7 +64,34 @@ pub fn run(args: AssetArgs, state: &open_sunstar_lib::AppState, json: bool) -> R
             project_path,
             target_app,
         } => run_diff(state, &asset_type, &project_path, target_app, json),
+        AssetAction::Health { project_id } => run_health(state, &project_id, json),
     }
+}
+
+fn run_health(
+    state: &open_sunstar_lib::AppState,
+    project_id: &str,
+    json: bool,
+) -> Result<(), String> {
+    let records = open_sunstar_lib::get_project_asset_health(&state.db, project_id)
+        .map_err(|error| error.to_string())?;
+    if json {
+        output::print_result(&records, true);
+    } else if records.is_empty() {
+        output::info("No enabled project assets found.");
+    } else {
+        output::header(&format!("Asset health for project '{project_id}':"));
+        for record in records {
+            println!(
+                "  {:<12} {:<16} {:<10} {}",
+                record.expectation.asset_type,
+                record.expectation.target_app,
+                record.status,
+                record.reason_code
+            );
+        }
+    }
+    Ok(())
 }
 
 fn run_list(

@@ -3,6 +3,36 @@
 //! 包含 Schema 迁移和基本功能的测试。
 
 use super::*;
+
+#[test]
+fn v32_to_current_encrypts_existing_proxy_live_backups() {
+    let db = Database::memory().expect("database");
+    {
+        let conn = db.conn.lock().expect("lock");
+        conn.execute(
+            "INSERT OR REPLACE INTO proxy_live_backup (app_type, original_config, backed_up_at)
+             VALUES ('codex', ?1, datetime('now'))",
+            [r#"{"auth":{"OPENAI_API_KEY":"legacy-plaintext-secret"}}"#],
+        )
+        .expect("insert legacy backup");
+        Database::set_user_version(&conn, 32).expect("set v32");
+    }
+
+    db.apply_schema_migrations().expect("migrate to current");
+
+    let raw: String = db
+        .conn
+        .lock()
+        .expect("lock")
+        .query_row(
+            "SELECT original_config FROM proxy_live_backup WHERE app_type = 'codex'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read backup");
+    assert!(raw.starts_with("enc:v1:"));
+    assert!(!raw.contains("legacy-plaintext-secret"));
+}
 use crate::app_config::MultiAppConfig;
 use crate::provider::{Provider, ProviderManager};
 use indexmap::IndexMap;
@@ -744,6 +774,87 @@ fn schema_model_pricing_is_seeded_on_init() {
 }
 
 #[test]
+fn gpt_5_6_pricing_seed_has_auditable_schedule_metadata() {
+    let db = Database::memory().expect("create memory db");
+    let conn = db.conn.lock().expect("lock conn");
+
+    let sol: (String, String, String, String) = conn
+        .query_row(
+            "SELECT input_cost_per_million, output_cost_per_million,
+                    cache_read_cost_per_million, cache_creation_cost_per_million
+             FROM model_pricing WHERE model_id = 'gpt-5.6-sol'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .expect("GPT-5.6 Sol pricing must be seeded");
+    assert_eq!(sol, ("5".into(), "30".into(), "0.50".into(), "6.25".into()));
+
+    let provenance: (String, String, String, String, i64, String, String) = conn
+        .query_row(
+            "SELECT source, source_version, effective_at, currency,
+                    long_context_threshold_tokens,
+                    long_context_input_multiplier, long_context_output_multiplier
+             FROM model_pricing_provenance WHERE model_id = 'gpt-5.6-sol'",
+            [],
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get(2)?,
+                    row.get(3)?,
+                    row.get(4)?,
+                    row.get(5)?,
+                    row.get(6)?,
+                ))
+            },
+        )
+        .expect("GPT-5.6 provenance must be seeded");
+    assert_eq!(
+        provenance,
+        (
+            "openai_public_api".into(),
+            "2026-07-09".into(),
+            "2026-07-09".into(),
+            "USD".into(),
+            272_000,
+            "2".into(),
+            "1.5".into(),
+        )
+    );
+}
+
+#[test]
+fn schema_repairs_existing_pricing_provenance_without_currency_column() {
+    let db = Database::memory().expect("create memory db");
+
+    {
+        let conn = db.conn.lock().expect("lock database");
+        conn.execute_batch(
+            "DROP TABLE model_pricing_provenance;
+             CREATE TABLE model_pricing_provenance (
+                 model_id TEXT PRIMARY KEY NOT NULL,
+                 source TEXT NOT NULL,
+                 source_version TEXT NOT NULL,
+                 effective_at TEXT NOT NULL,
+                 long_context_threshold_tokens INTEGER,
+                 long_context_input_multiplier TEXT NOT NULL DEFAULT '1',
+                 long_context_output_multiplier TEXT NOT NULL DEFAULT '1'
+             );",
+        )
+        .expect("create v36 provenance schema without currency");
+    }
+
+    db.create_tables()
+        .expect("create tables must repair missing provenance column");
+
+    let conn = db.conn.lock().expect("lock repaired database");
+    assert!(
+        Database::has_column(&conn, "model_pricing_provenance", "currency")
+            .expect("inspect repaired provenance schema")
+    );
+}
+
+#[test]
 fn model_pricing_seed_repairs_known_outdated_builtin_prices() {
     let db = Database::memory().expect("create memory db");
 
@@ -1205,5 +1316,60 @@ fn upgrade_local_open_sunstar_db_copy_on_disk() {
     assert!(
         post_all_links >= pre_links + pre_legacy_mcp,
         "total links should not shrink after migration"
+    );
+}
+
+#[test]
+fn schema_v29_creates_asset_health_fact_tables() {
+    let db = Database::memory().expect("create memory database");
+    let conn = db.conn.lock().expect("lock database");
+
+    for table in [
+        "asset_revisions",
+        "project_asset_expectations",
+        "asset_deployment_receipts",
+        "asset_runtime_evidence",
+    ] {
+        let exists: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+                [table],
+                |row| row.get(0),
+            )
+            .expect("query sqlite schema");
+        assert_eq!(exists, 1, "{table} should exist after migration");
+    }
+
+    assert_eq!(
+        Database::get_user_version(&conn).expect("schema version"),
+        SCHEMA_VERSION
+    );
+}
+
+#[test]
+fn schema_v30_creates_asset_receipt_files_table() {
+    let db = Database::memory().expect("create memory database");
+    let conn = db.conn.lock().unwrap();
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'asset_receipt_files'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(count, 1);
+}
+
+#[test]
+fn schema_v31_binds_receipts_to_asset_revisions() {
+    let db = Database::memory().expect("create memory database");
+    let conn = db.conn.lock().expect("lock database");
+    assert!(
+        Database::has_column(&conn, "asset_deployment_receipts", "required_revision_id")
+            .expect("inspect receipt schema")
+    );
+    assert_eq!(
+        Database::get_user_version(&conn).expect("schema version"),
+        SCHEMA_VERSION
     );
 }

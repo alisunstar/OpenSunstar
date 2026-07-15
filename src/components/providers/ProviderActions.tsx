@@ -193,6 +193,9 @@ export function ProviderActions({
           "bg-gray-200 text-muted-foreground hover:bg-gray-200 hover:text-muted-foreground dark:bg-gray-700 dark:hover:bg-gray-700",
         icon: <Check className="h-4 w-4" />,
         text: t("provider.inUse"),
+        title: t("provider.activeProviderHint", {
+          defaultValue: "当前请求将使用此供应商",
+        }),
       };
     }
 

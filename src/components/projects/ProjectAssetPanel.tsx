@@ -34,7 +34,12 @@ import {
   ProjectAssetEnableSwitch,
   ProjectAssetSupportTooltipProvider,
 } from "./ProjectAssetSupport";
-import { summarizeAssetSupport, PROMPT_SYNC_APP_IDS } from "@/lib/projectAssets/assetAppSupport";
+import { ProjectAssetHealthSummary } from "./ProjectAssetHealthSummary";
+import {
+  summarizeAssetSupport,
+  PROMPT_SYNC_APP_IDS,
+} from "@/lib/projectAssets/assetAppSupport";
+import { ProjectEnvironmentSnapshotPanel } from "./ProjectEnvironmentSnapshotPanel";
 
 interface ProjectAssetPanelProps {
   projectId: string;
@@ -97,7 +102,9 @@ export function ProjectAssetPanel({
     setProbingMcp(true);
     try {
       const result = await mcpApi.probeProjectRuntime(projectId, app);
-      setMcpRuntimeStatus(`${app === "claude" ? "Claude Code" : "Gemini CLI"}：${result.summary}`);
+      setMcpRuntimeStatus(
+        `${app === "claude" ? "Claude Code" : "Gemini CLI"}：${result.summary}`,
+      );
     } catch (error) {
       setMcpRuntimeStatus(String(error));
     } finally {
@@ -168,7 +175,10 @@ export function ProjectAssetPanel({
   }, [scrollToSection, loading, globalLoading]);
 
   const promptRows = useMemo(() => {
-    const byKey = new Map<string, { id: string; name: string; appType: AppId }>();
+    const byKey = new Map<
+      string,
+      { id: string; name: string; appType: AppId }
+    >();
     for (const item of promptCatalog) {
       byKey.set(`${item.appType}:${item.id}`, item);
     }
@@ -294,18 +304,21 @@ export function ProjectAssetPanel({
     <section ref={setSectionRef(section)}>
       {renderSectionHeader(
         section,
-        t(`projectConfig.${section === "subagent" ? "subagents" : section + "s"}`, {
-          defaultValue:
-            section === "command"
-              ? "Commands"
-              : section === "hook"
-                ? "Hooks"
-                : section === "ignore"
-                  ? "Ignore"
-                  : section === "permission"
-                    ? "Permissions"
-                    : "Subagents",
-        }),
+        t(
+          `projectConfig.${section === "subagent" ? "subagents" : section + "s"}`,
+          {
+            defaultValue:
+              section === "command"
+                ? "Commands"
+                : section === "hook"
+                  ? "Hooks"
+                  : section === "ignore"
+                    ? "Ignore"
+                    : section === "permission"
+                      ? "Permissions"
+                      : "Subagents",
+          },
+        ),
         extended.enabledCount(section),
         items.length,
       )}
@@ -364,6 +377,11 @@ export function ProjectAssetPanel({
   return (
     <ProjectAssetSupportTooltipProvider>
       <div className="space-y-6">
+        <ProjectAssetHealthSummary projectId={projectId} />
+        <ProjectEnvironmentSnapshotPanel
+          projectId={projectId}
+          onApplied={notifyChanged}
+        />
         <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2.5 space-y-1.5">
           <p className="text-xs text-muted-foreground leading-relaxed">
             {t("projectAssets.hint", {
@@ -388,10 +406,30 @@ export function ProjectAssetPanel({
           ) : (
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2 rounded-md bg-muted/30 px-3 py-2">
-                <span className="text-xs text-muted-foreground">运行时读取验证：</span>
-                <Button size="sm" variant="outline" disabled={probingMcp} onClick={() => void probeMcpRuntime("claude")}>验证 Claude Code</Button>
-                <Button size="sm" variant="outline" disabled={probingMcp} onClick={() => void probeMcpRuntime("gemini")}>验证 Gemini CLI</Button>
-                {mcpRuntimeStatus && <span className="text-xs text-muted-foreground">{mcpRuntimeStatus}</span>}
+                <span className="text-xs text-muted-foreground">
+                  运行时读取验证：
+                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={probingMcp}
+                  onClick={() => void probeMcpRuntime("claude")}
+                >
+                  验证 Claude Code
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={probingMcp}
+                  onClick={() => void probeMcpRuntime("gemini")}
+                >
+                  验证 Gemini CLI
+                </Button>
+                {mcpRuntimeStatus && (
+                  <span className="text-xs text-muted-foreground">
+                    {mcpRuntimeStatus}
+                  </span>
+                )}
               </div>
               {Object.entries(allMcp).map(([id, server]) => (
                 <div
@@ -399,7 +437,9 @@ export function ProjectAssetPanel({
                   className="flex items-center justify-between px-3 py-2 rounded-md border border-border/50 bg-card/50"
                 >
                   <div className="min-w-0">
-                    <p className="text-sm font-medium truncate">{server.name}</p>
+                    <p className="text-sm font-medium truncate">
+                      {server.name}
+                    </p>
                   </div>
                   <ProjectAssetEnableSwitch
                     assetType="mcp"
@@ -494,7 +534,8 @@ export function ProjectAssetPanel({
                     onCheckedChange={(checked) => {
                       void (async () => {
                         try {
-                          if (checked) await prompts.link(item.id, item.appType);
+                          if (checked)
+                            await prompts.link(item.id, item.appType);
                           else await prompts.unlink(item.id, item.appType);
                           notifyChanged();
                         } catch {

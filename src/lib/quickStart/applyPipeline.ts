@@ -1,24 +1,76 @@
+import { invoke } from "@tauri-apps/api/core";
 import type { QueryClient } from "@tanstack/react-query";
-import type { AppId } from "@/lib/api";
-import { proxyApi, simpleConnectApi } from "@/lib/api";
 import type { Provider } from "@/types";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
+import { generateUUID } from "@/utils/uuid";
+
+export type QuickStartOperationStatus =
+  | "pending"
+  | "applying"
+  | "verifying"
+  | "succeeded"
+  | "failed"
+  | "rolling_back"
+  | "rolled_back"
+  | "rollback_failed";
+
+export interface QuickStartOperation {
+  id: string;
+  idempotencyKey: string;
+  appType: QuickStartAppId;
+  providerId?: string | null;
+  previousProviderId?: string | null;
+  status: QuickStartOperationStatus;
+  currentStep: string;
+  revision: number;
+  providerCreated: boolean;
+  providerSwitched: boolean;
+  takeoverEnabled: boolean;
+  takeoverWasEnabled: boolean;
+  proxyStarted: boolean;
+  proxyWasRunning: boolean;
+  postVerified: boolean;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string | null;
+}
+
+export interface QuickStartOperationEvent {
+  sequence: number;
+  eventType: string;
+  fromStatus?: QuickStartOperationStatus | null;
+  toStatus?: QuickStartOperationStatus | null;
+  step: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  detailJson?: string | null;
+  createdAt: string;
+}
 
 export interface QuickStartApplyDeps {
   appId: QuickStartAppId;
-  addProvider: (
-    input: Omit<Provider, "id"> & {
-      addToLive?: boolean;
-      ensureClaudeDesktopOfficialSeed?: boolean;
-    },
-  ) => Promise<Provider>;
-  switchProvider: (id: string) => Promise<unknown>;
   queryClient: QueryClient;
 }
 
 export interface QuickStartApplyResult {
+  operation: QuickStartOperation;
   takeoverOk: boolean;
   providerId: string;
+  identity: QuickStartAttemptIdentity;
+}
+
+export interface QuickStartAttemptIdentity {
+  providerId: string;
+  idempotencyKey: string;
+}
+
+export function createQuickStartAttemptIdentity(): QuickStartAttemptIdentity {
+  return {
+    providerId: generateUUID(),
+    idempotencyKey: generateUUID(),
+  };
 }
 
 export async function runQuickStartApplyPipeline(
@@ -26,38 +78,91 @@ export async function runQuickStartApplyPipeline(
   providerInput: Omit<Provider, "id"> & {
     ensureClaudeDesktopOfficialSeed?: boolean;
   },
+  attemptIdentity = createQuickStartAttemptIdentity(),
 ): Promise<QuickStartApplyResult> {
-  const { appId, addProvider, switchProvider, queryClient } = deps;
-
-  const created = await addProvider({
-    ...providerInput,
-    addToLive: true,
+  const { appId, queryClient } = deps;
+  const { ensureClaudeDesktopOfficialSeed: _ignoredSeed, ...providerFields } =
+    providerInput;
+  const provider: Provider = {
+    ...providerFields,
+    id: attemptIdentity.providerId,
+    createdAt: Date.now(),
+  };
+  let operation = await invoke<QuickStartOperation>("quick_start_apply", {
+    request: {
+      idempotencyKey: attemptIdentity.idempotencyKey,
+      appType: appId,
+      provider,
+    },
   });
+  operation = await waitForTerminalOperation(operation);
 
-  if (appId === "claude") {
-    try {
-      await simpleConnectApi.clear("claude-code");
-    } catch (e) {
-      console.warn("[QuickStart] simple_connect_clear failed:", e);
-    }
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["providers", appId] }),
+    queryClient.invalidateQueries({ queryKey: ["proxyStatus"] }),
+    queryClient.invalidateQueries({ queryKey: ["proxyTakeover"] }),
+  ]);
+
+  return {
+    operation,
+    takeoverOk:
+      operation.status === "succeeded" &&
+      (appId === "claude-desktop" ||
+        operation.takeoverEnabled ||
+        operation.takeoverWasEnabled),
+    providerId: provider.id,
+    identity: attemptIdentity,
+  };
+}
+
+const TERMINAL_STATUSES: ReadonlySet<QuickStartOperationStatus> = new Set([
+  "succeeded",
+  "failed",
+  "rolled_back",
+  "rollback_failed",
+]);
+
+async function waitForTerminalOperation(
+  initial: QuickStartOperation,
+): Promise<QuickStartOperation> {
+  let operation = initial;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (TERMINAL_STATUSES.has(operation.status)) return operation;
+    await new Promise((resolve) => window.setTimeout(resolve, 500));
+    operation = await invoke<QuickStartOperation>("quick_start_get_operation", {
+      operationId: operation.id,
+    });
   }
+  throw new Error(
+    `QuickStart operation ${operation.id} is still running; retry to resume it`,
+  );
+}
 
-  await switchProvider(created.id);
+export async function rollbackQuickStartOperation(
+  operation: QuickStartOperation,
+): Promise<QuickStartOperation> {
+  return invoke<QuickStartOperation>("quick_start_rollback", {
+    operationId: operation.id,
+    expectedRevision: operation.revision,
+  });
+}
 
-  let takeoverOk = false;
-  try {
-    if (appId === "claude" || appId === "codex" || appId === "gemini") {
-      await proxyApi.setProxyTakeoverForApp(appId as AppId, true);
-    }
-    await proxyApi.startProxyServer();
-    await queryClient.invalidateQueries({ queryKey: ["proxyStatus"] });
-    await queryClient.invalidateQueries({ queryKey: ["proxyTakeover"] });
-    takeoverOk = true;
-  } catch (e) {
-    console.error("[QuickStart] proxy pipeline failed:", e);
-  }
+export async function listRecoverableQuickStartOperations(): Promise<
+  QuickStartOperation[]
+> {
+  return invoke<QuickStartOperation[]>("quick_start_list_recoverable");
+}
 
-  await queryClient.invalidateQueries({ queryKey: ["providers", appId] });
+export async function listRecentQuickStartOperations(
+  limit = 20,
+): Promise<QuickStartOperation[]> {
+  return invoke<QuickStartOperation[]>("quick_start_list_recent", { limit });
+}
 
-  return { takeoverOk, providerId: created.id };
+export async function getQuickStartOperationEvents(
+  operationId: string,
+): Promise<QuickStartOperationEvent[]> {
+  return invoke<QuickStartOperationEvent[]>("quick_start_get_events", {
+    operationId,
+  });
 }

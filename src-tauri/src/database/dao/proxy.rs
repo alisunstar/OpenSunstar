@@ -751,13 +751,14 @@ impl Database {
         app_type: &str,
         config_json: &str,
     ) -> Result<(), AppError> {
+        let protected_config = crate::keychain::seal_local_secret(config_json)?;
         let conn = lock_conn!(self.conn);
         let now = chrono::Utc::now().to_rfc3339();
 
         conn.execute(
             "INSERT OR REPLACE INTO proxy_live_backup (app_type, original_config, backed_up_at)
              VALUES (?1, ?2, ?3)",
-            rusqlite::params![app_type, config_json, now],
+            rusqlite::params![app_type, protected_config, now],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
@@ -793,7 +794,11 @@ impl Database {
         );
 
         match result {
-            Ok(backup) => Ok(Some(backup)),
+            Ok(mut backup) => {
+                backup.original_config =
+                    crate::keychain::open_local_secret(&backup.original_config)?;
+                Ok(Some(backup))
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AppError::Database(e.to_string())),
         }
@@ -876,6 +881,31 @@ impl Database {
 mod tests {
     use crate::database::Database;
     use crate::error::AppError;
+
+    #[tokio::test]
+    async fn live_backup_is_encrypted_at_rest_and_transparently_restored() -> Result<(), AppError> {
+        let db = Database::memory()?;
+        let plaintext = r#"{"auth":{"OPENAI_API_KEY":"sk-backup-secret"}}"#;
+
+        db.save_live_backup("codex", plaintext).await?;
+
+        let raw: String = db
+            .conn
+            .lock()
+            .map_err(|e| AppError::Database(e.to_string()))?
+            .query_row(
+                "SELECT original_config FROM proxy_live_backup WHERE app_type = 'codex'",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        assert!(raw.starts_with("enc:v1:"));
+        assert!(!raw.contains("sk-backup-secret"));
+
+        let restored = db.get_live_backup("codex").await?.expect("backup exists");
+        assert_eq!(restored.original_config, plaintext);
+        Ok(())
+    }
 
     #[tokio::test]
     async fn test_default_cost_multiplier_round_trip() -> Result<(), AppError> {
