@@ -228,7 +228,8 @@ static ALL_RULES: LazyLock<Vec<AuditRule>> = LazyLock::new(|| {
             Severity::Critical,
             "hardcoded-secret",
             "检测到硬编码 AWS Access Key ID",
-            r"(?i)AKIA[0-9A-Z]{16}|(?<![A-Z0-9])[A-Z0-9]{20}(?![A-Z0-9])",
+            // Rust regex 不支持环视；改为直接消费令牌边界，确保规则可以编译生效。
+            r"(?:^|[^A-Z0-9])(?:AKIA[0-9A-Z]{16}|[A-Z0-9]{20})(?:$|[^A-Z0-9])",
         ),
         r(
             "hardcoded-secret-slack-webhook",
@@ -567,7 +568,7 @@ mod tests {
         // 凭证检测
         let test_cases = vec![
             (
-                "AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ01234",
+                "AIzaSyABCDEFGHIJKLMNOPQRSTUVWXYZ0123456",
                 "hardcoded-secret-google-api",
             ),
             (

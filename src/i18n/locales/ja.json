@@ -674,8 +674,8 @@
     "skipClaudeOnboarding": "Claude Code の初回確認をスキップ",
     "skipClaudeOnboardingDescription": "オンにすると Claude Code の初回インストール確認をスキップします",
     "codexAuth": "Codex アプリ拡張",
-    "preserveCodexOfficialAuthOnSwitch": "サードパーティ切替時に公式ログインを保持",
-    "preserveCodexOfficialAuthOnSwitchDescription": "オンにすると、サードパーティ API を使用する際に Codex アプリの公式プラグインやスマホからのリモート操作などの機能を利用できます。",
+    "preserveCodexOfficialAuthOnSwitch": "Codex 公式ログインを保護",
+    "preserveCodexOfficialAuthOnSwitchDescription": "常に有効：プロバイダー切替とローカルプロキシは Codex の公式ログイン認証情報を上書きまたは保存しません。",
     "appVisibility": {
       "title": "ホームページ表示",
       "description": "ホームページに表示するアプリを選択",

@@ -160,7 +160,7 @@ impl ProxyServer {
             loop {
                 tokio::select! {
                     result = listener.accept() => {
-                        let (stream, _remote_addr) = match result {
+                        let (stream, remote_addr) = match result {
                             Ok(v) => v,
                             Err(e) => {
                                 log::error!("[{SRV}] accept 失败: {e}", SRV = log_srv::ACCEPT_ERR);
@@ -201,6 +201,7 @@ impl ProxyServer {
 
                                     // Insert our own header case map alongside hyper's internal one
                                     parts.extensions.insert(cases);
+                                    parts.extensions.insert(remote_addr);
 
                                     let body = axum::body::Body::new(body);
                                     let axum_req = http::Request::from_parts(parts, body);
@@ -351,11 +352,19 @@ impl ProxyServer {
             // OpenAI Models API (Codex CLI reachability check)
             .route("/models", get(handlers::handle_models))
             .route("/v1/models", get(handlers::handle_models))
+            .route("/codex/models", get(handlers::handle_models))
+            .route("/codex/v1/models", get(handlers::handle_models))
+            .route("/backend-api/codex/models", get(handlers::handle_models))
             // OpenAI Responses API (Codex CLI，支持带前缀和不带前缀)
             .route("/responses", post(handlers::handle_responses))
             .route("/v1/responses", post(handlers::handle_responses))
             .route("/v1/v1/responses", post(handlers::handle_responses))
             .route("/codex/v1/responses", post(handlers::handle_responses))
+            .route("/codex/responses", post(handlers::handle_responses))
+            .route(
+                "/backend-api/codex/responses",
+                post(handlers::handle_responses),
+            )
             // OpenAI Responses Compact API (Codex CLI 远程压缩，透传)
             .route(
                 "/responses/compact",
@@ -371,6 +380,14 @@ impl ProxyServer {
             )
             .route(
                 "/codex/v1/responses/compact",
+                post(handlers::handle_responses_compact),
+            )
+            .route(
+                "/codex/responses/compact",
+                post(handlers::handle_responses_compact),
+            )
+            .route(
+                "/backend-api/codex/responses/compact",
                 post(handlers::handle_responses_compact),
             )
             // Gemini API (支持带前缀和不带前缀)
@@ -435,7 +452,8 @@ impl ProxyServer {
 // 1. 速率限制检查（滑动窗口，默认 100 req/s）
 // 2. 从 Authorization: Bearer <token> 或 x-api-key 头提取令牌
 // 3. 与 ProxyState.auth_token 比对
-// 4. 不匹配则返回 401，被限流则返回 429
+// 4. 回环连接可使用接管占位符；官方 Codex 则以请求自带 OAuth token 透传
+// 5. 不匹配则返回 401，被限流则返回 429
 
 async fn proxy_auth_middleware(
     State(state): State<ProxyState>,
@@ -462,26 +480,116 @@ async fn proxy_auth_middleware(
         .headers()
         .get(http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "));
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(str::to_string);
 
-    let api_key = req.headers().get("x-api-key").and_then(|v| v.to_str().ok());
+    let api_key = req
+        .headers()
+        .get("x-api-key")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
 
-    let token = auth_header.or(api_key);
+    let token = auth_header.as_deref().or(api_key.as_deref());
+    let is_loopback = req
+        .extensions()
+        .get::<SocketAddr>()
+        .is_some_and(|address| address.ip().is_loopback());
+    let standard_proxy_auth = token.is_some_and(|value| value == state.auth_token);
+    let managed_takeover_auth = is_loopback && token == Some("PROXY_MANAGED");
+    let official_codex_auth = if is_loopback
+        && auth_header
+            .as_deref()
+            .is_some_and(|value| !value.is_empty() && value != "PROXY_MANAGED")
+        && is_codex_api_path(req.uri().path())
+    {
+        current_codex_provider_is_official(&state).await
+    } else {
+        false
+    };
 
-    match token {
-        Some(t) if t == state.auth_token => next.run(req).await,
-        _ => {
-            log::warn!(
-                "[ProxyAuth] 未授权的代理访问请求 (path: {})",
-                req.uri().path()
-            );
-            axum::response::Response::builder()
+    if standard_proxy_auth || managed_takeover_auth || official_codex_auth {
+        next.run(req).await
+    } else {
+        log::warn!(
+            "[ProxyAuth] 未授权的代理访问请求 (path: {})",
+            req.uri().path()
+        );
+        axum::response::Response::builder()
                 .status(StatusCode::UNAUTHORIZED)
                 .header("Content-Type", "application/json")
                 .body(axum::body::Body::from(
                     r#"{"type":"proxy_error","error":{"type":"authentication_error","message":"Unauthorized: invalid or missing auth token. Use the proxy auth token from OpenSunstar settings."}}"#,
                 ))
                 .unwrap()
+    }
+}
+
+fn is_codex_api_path(path: &str) -> bool {
+    matches!(
+        path,
+        "/models"
+            | "/v1/models"
+            | "/codex/models"
+            | "/codex/v1/models"
+            | "/backend-api/codex/models"
+            | "/responses"
+            | "/v1/responses"
+            | "/v1/v1/responses"
+            | "/codex/responses"
+            | "/codex/v1/responses"
+            | "/backend-api/codex/responses"
+            | "/responses/compact"
+            | "/v1/responses/compact"
+            | "/v1/v1/responses/compact"
+            | "/codex/responses/compact"
+            | "/codex/v1/responses/compact"
+            | "/backend-api/codex/responses/compact"
+    )
+}
+
+async fn current_codex_provider_is_official(state: &ProxyState) -> bool {
+    let active_provider_id = state
+        .current_providers
+        .read()
+        .await
+        .get("codex")
+        .map(|(id, _)| id.clone());
+    let provider_id = match active_provider_id {
+        Some(id) => Some(id),
+        None => crate::settings::get_effective_current_provider(
+            state.db.as_ref(),
+            &crate::app_config::AppType::Codex,
+        )
+        .ok()
+        .flatten(),
+    };
+
+    provider_id
+        .and_then(|id| state.db.get_provider_by_id(&id, "codex").ok().flatten())
+        .is_some_and(|provider| provider.category.as_deref() == Some("official"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_codex_api_path;
+
+    #[test]
+    fn official_oauth_passthrough_is_scoped_to_codex_routes() {
+        for path in [
+            "/v1/responses",
+            "/codex/responses",
+            "/backend-api/codex/responses",
+            "/codex/responses/compact",
+            "/backend-api/codex/models",
+        ] {
+            assert!(is_codex_api_path(path), "expected Codex route: {path}");
+        }
+
+        for path in ["/v1/messages", "/v1beta/models", "/health", "/unknown"] {
+            assert!(
+                !is_codex_api_path(path),
+                "must reject non-Codex route: {path}"
+            );
         }
     }
 }

@@ -393,7 +393,7 @@ base_url = "http://localhost:8080"
         );
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
     #[serial]
     async fn update_current_claude_provider_syncs_live_when_proxy_takeover_detected_without_backup()
     {
@@ -481,13 +481,19 @@ base_url = "http://localhost:8080"
             .await
             .expect("get live backup")
             .expect("backup exists");
-        let stored_provider = db
-            .get_provider_by_id("p1", "claude")
-            .expect("get stored provider")
-            .expect("stored provider exists");
-        let expected_backup =
-            serde_json::to_string(&stored_provider.settings_config).expect("serialize");
-        assert_eq!(backup.original_config, expected_backup);
+        let backup_value: Value =
+            serde_json::from_str(&backup.original_config).expect("parse live backup");
+        assert_eq!(
+            backup_value
+                .pointer("/env/ANTHROPIC_API_KEY")
+                .and_then(Value::as_str),
+            Some("token-updated"),
+            "加密 Live 备份应保存可恢复的令牌值，而不是数据库中的 keychain 引用"
+        );
+        assert_eq!(
+            backup_value.get("permissions"),
+            updated.settings_config.get("permissions")
+        );
 
         let live: Value = read_json_file(&get_claude_settings_path()).expect("read live");
         assert_eq!(
@@ -1672,9 +1678,11 @@ impl ProviderService {
 
         let should_hot_switch = is_app_taken_over || live_taken_over;
 
-        // Block switching to official providers when proxy takeover is active.
-        // Using a proxy with official APIs (Anthropic/OpenAI/Google) may cause account bans.
-        if should_hot_switch && _provider.category.as_deref() == Some("official") {
+        // Claude/Gemini 官方 API 仍保持原限制；Codex 官方订阅使用本地请求级透传。
+        if should_hot_switch
+            && _provider.category.as_deref() == Some("official")
+            && !matches!(app_type, AppType::Codex)
+        {
             return Err(AppError::localized(
                 "switch.official_blocked_by_proxy",
                 "代理接管模式下不能切换到官方供应商，使用代理访问官方 API 可能导致账号被封禁。请先关闭代理接管，或选择第三方供应商。",

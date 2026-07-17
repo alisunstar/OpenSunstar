@@ -751,7 +751,20 @@ impl Database {
         app_type: &str,
         config_json: &str,
     ) -> Result<(), AppError> {
-        let protected_config = crate::keychain::seal_local_secret(config_json)?;
+        let config_json = if app_type == "codex" {
+            let settings: serde_json::Value = serde_json::from_str(config_json).map_err(|e| {
+                AppError::Serialization(format!("Parse Codex live backup failed: {e}"))
+            })?;
+            serde_json::to_string(
+                &crate::codex_config::sanitize_codex_live_backup_for_storage(&settings)?,
+            )
+            .map_err(|e| {
+                AppError::Serialization(format!("Serialize Codex live backup failed: {e}"))
+            })?
+        } else {
+            config_json.to_string()
+        };
+        let protected_config = crate::keychain::seal_local_secret(&config_json)?;
         let conn = lock_conn!(self.conn);
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -885,7 +898,7 @@ mod tests {
     #[tokio::test]
     async fn live_backup_is_encrypted_at_rest_and_transparently_restored() -> Result<(), AppError> {
         let db = Database::memory()?;
-        let plaintext = r#"{"auth":{"OPENAI_API_KEY":"sk-backup-secret"}}"#;
+        let plaintext = r#"{"auth":{"OPENAI_API_KEY":"sk-backup-secret","tokens":{"access_token":"oauth-secret"}},"config":"model_provider = \"custom\"\n\n[model_providers.custom]\nbase_url = \"https://example.test/v1\"\nwire_api = \"responses\"\n"}"#;
 
         db.save_live_backup("codex", plaintext).await?;
 
@@ -901,9 +914,21 @@ mod tests {
             .map_err(|e| AppError::Database(e.to_string()))?;
         assert!(raw.starts_with("enc:v1:"));
         assert!(!raw.contains("sk-backup-secret"));
+        assert!(!raw.contains("oauth-secret"));
 
         let restored = db.get_live_backup("codex").await?.expect("backup exists");
-        assert_eq!(restored.original_config, plaintext);
+        let restored: serde_json::Value = serde_json::from_str(&restored.original_config)
+            .map_err(|e| AppError::Serialization(e.to_string()))?;
+        assert_eq!(restored.get("auth"), Some(&serde_json::json!({})));
+        let config = restored
+            .get("config")
+            .and_then(|value| value.as_str())
+            .expect("sanitized config");
+        assert_eq!(
+            crate::codex_config::extract_codex_experimental_bearer_token(config).as_deref(),
+            Some("sk-backup-secret")
+        );
+        assert!(!restored.to_string().contains("oauth-secret"));
         Ok(())
     }
 

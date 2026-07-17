@@ -58,7 +58,7 @@ impl Default for StreamCheckConfig {
             max_retries: 2,
             degraded_threshold_ms: 6000,
             claude_model: "claude-haiku-4-5-20251001".to_string(),
-            codex_model: "gpt-5.5@low".to_string(),
+            codex_model: "gpt-5.6-sol@low".to_string(),
             gemini_model: "gemini-3.5-flash".to_string(),
             test_prompt: default_test_prompt(),
         }
@@ -573,11 +573,23 @@ impl StreamCheckService {
 
         // Provider 级自定义 User-Agent（meta.customUserAgent）覆盖默认 codex UA，与 forwarder
         // 转发路径口径一致——否则 Stream Check 会用与真实流量不同的 UA 探测（如 Kimi UA 白名单）。
-        let user_agent = Self::custom_user_agent(provider).unwrap_or_else(|| {
+        let user_agent = if auth.strategy == AuthStrategy::CodexOAuth {
+            crate::proxy::providers::codex_official_client_identity_headers()
+                .into_iter()
+                .find(|(name, _)| name == reqwest::header::USER_AGENT)
+                .map(|(_, value)| value)
+        } else {
+            Self::custom_user_agent(provider)
+        }
+        .unwrap_or_else(|| {
             reqwest::header::HeaderValue::from_str(&format!(
-                "codex_cli_rs/0.80.0 ({os_name} 15.7.2; {arch_name}) Terminal"
+                "{}/{} ({os_name}; {arch_name}) terminal-agent",
+                crate::proxy::providers::CODEX_CLIENT_ORIGINATOR,
+                crate::proxy::providers::CODEX_COMPAT_CLIENT_VERSION
             ))
-            .unwrap_or_else(|_| reqwest::header::HeaderValue::from_static("codex_cli_rs/0.80.0"))
+            .unwrap_or_else(|_| {
+                reqwest::header::HeaderValue::from_static("codex_cli_rs/0.144.5 terminal-agent")
+            })
         });
 
         let mut body = if uses_chat {
@@ -618,7 +630,14 @@ impl StreamCheckService {
                 .header("accept", "text/event-stream")
                 .header("accept-encoding", "identity")
                 .header("user-agent", user_agent.clone())
-                .header("originator", "codex_cli_rs")
+                .header(
+                    "originator",
+                    crate::proxy::providers::CODEX_CLIENT_ORIGINATOR,
+                )
+                .header(
+                    "version",
+                    crate::proxy::providers::CODEX_COMPAT_CLIENT_VERSION,
+                )
                 .timeout(timeout)
                 .json(&body)
                 .send()

@@ -47,9 +47,20 @@ pub enum AssetAction {
     },
     /// 查看项目资产健康证据链（期望、最近回执与验证状态）
     Health {
-        /// 项目 ID
-        #[arg(long)]
-        project_id: String,
+        /// 项目 ID（与 --project-path 二选一）
+        #[arg(
+            long,
+            conflicts_with = "project_path",
+            required_unless_present = "project_path"
+        )]
+        project_id: Option<String>,
+        /// 项目路径（支持尚未纳管的仓库）
+        #[arg(
+            long,
+            conflicts_with = "project_id",
+            required_unless_present = "project_id"
+        )]
+        project_path: Option<String>,
     },
 }
 
@@ -64,24 +75,32 @@ pub fn run(args: AssetArgs, state: &open_sunstar_lib::AppState, json: bool) -> R
             project_path,
             target_app,
         } => run_diff(state, &asset_type, &project_path, target_app, json),
-        AssetAction::Health { project_id } => run_health(state, &project_id, json),
+        AssetAction::Health {
+            project_id,
+            project_path,
+        } => run_health(state, project_id.as_deref(), project_path.as_deref(), json),
     }
 }
 
 fn run_health(
     state: &open_sunstar_lib::AppState,
-    project_id: &str,
+    project_id: Option<&str>,
+    project_path: Option<&str>,
     json: bool,
 ) -> Result<(), String> {
-    let records = open_sunstar_lib::get_project_asset_health(&state.db, project_id)
-        .map_err(|error| error.to_string())?;
+    let result =
+        open_sunstar_lib::cli_api::cli_project_asset_health(state, project_id, project_path)?;
     if json {
-        output::print_result(&records, true);
-    } else if records.is_empty() {
-        output::info("No enabled project assets found.");
+        output::print_result(&result, true);
+    } else if !result.managed {
+        output::warning("Project is unmanaged; asset health is unknown.");
+        output::info("Run `os project scan --project-path <path> --save` to adopt it.");
+    } else if result.records.is_empty() {
+        output::info("No enabled project assets found; health is unknown.");
     } else {
-        output::header(&format!("Asset health for project '{project_id}':"));
-        for record in records {
+        let identity = result.project_id.as_deref().unwrap_or("unknown");
+        output::header(&format!("Asset health for project '{identity}':"));
+        for record in result.records {
             println!(
                 "  {:<12} {:<16} {:<10} {}",
                 record.expectation.asset_type,

@@ -7,7 +7,7 @@ use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ai::agent_readiness::AGENT_READINESS_MAX_SCORE;
+use crate::ai::agent_readiness::{readiness_item_is_actionable_gap, AGENT_READINESS_MAX_SCORE};
 use crate::ai::types::{AgentReadinessItem, AgentReadinessResult};
 use crate::app_config::AppType;
 use crate::config::write_text_file;
@@ -130,13 +130,18 @@ fn render_agent_context_hints(result: &AgentReadinessResult) -> String {
     lines.push(String::new());
     lines.push("## Recommended next steps".to_string());
     lines.push(String::new());
-    for item in result.details.iter().filter(|i| i.score < i.weight) {
+    let actionable_gaps: Vec<&AgentReadinessItem> = result
+        .details
+        .iter()
+        .filter(|item| readiness_item_is_actionable_gap(item))
+        .collect();
+    for item in &actionable_gaps {
         if let Some(action) = readiness_action_hint(item) {
             lines.push(format!("- {action}"));
         }
     }
 
-    if result.details.iter().all(|i| i.score >= i.weight) {
+    if actionable_gaps.is_empty() {
         lines.push("- All tracked asset categories meet the readiness threshold.".to_string());
     }
 
@@ -582,5 +587,35 @@ mod tests {
         let md = render_agent_context_hints(&result);
         assert!(md.contains("Agent Context Hints"));
         assert!(md.contains("Configure MCP"));
+    }
+
+    #[test]
+    fn not_required_items_do_not_generate_configuration_actions() {
+        let result = AgentReadinessResult {
+            score: 0,
+            max_score: 100,
+            details: vec![AgentReadinessItem {
+                check_name: "mcp_enabled".to_string(),
+                label: "MCP".to_string(),
+                weight: 15,
+                score: 0,
+                detail: "unsupported".to_string(),
+                status: Some("not_required".to_string()),
+                configured_state: None,
+                effective_state: None,
+                effective_detail: None,
+                effective_scanned_at: None,
+                live_path: None,
+            }],
+            llm_suggestion: None,
+            is_cached: false,
+            evaluated_at: Some(1),
+            target_app: Some("openclaw".to_string()),
+        };
+
+        let markdown = render_agent_context_hints(&result);
+
+        assert!(!markdown.contains("Configure MCP"));
+        assert!(markdown.contains("meet the readiness threshold"));
     }
 }

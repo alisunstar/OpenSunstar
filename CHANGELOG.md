@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.9] - 2026-07-17
+
+### Added
+
+- **Subscription accounts panel**: settings view for Claude / Codex / Gemini subscription account health and quota tiers
+- **Subscription routing**: project-scoped pinned / advisory-failover routes (account IDs only — no OAuth secrets stored)
+- **Brand refresh**: regenerated app / tray / website icons from updated OpenSunstar logo assets
+- **Database schema v37**: support tables and migrations for subscription account metadata
+
+### Changed
+
+- **Proxy & Codex OAuth**: stronger Codex auth, streaming chat path, and forwarder/server handling
+- **Auth center / Quick Start**: navigation and provider preset wiring aligned with subscription accounts
+- **Agent readiness / asset effective state**: backend refinements for readiness and CLI project/asset commands
+
+### Fixed
+
+- **i18n / settings navigation**: subscription account labels and settings deep-link targets
+
 ## [1.1.8] - 2026-07-15
 
 ### Added

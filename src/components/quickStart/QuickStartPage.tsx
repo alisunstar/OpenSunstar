@@ -60,6 +60,7 @@ import { QuickStartVerifyBlock } from "./QuickStartVerifyBlock";
 
 interface QuickStartPageProps {
   onOpenSettings?: () => void;
+  onOpenSubscriptionAccounts?: () => void;
 }
 
 const EMPTY_FIELDS: QuickStartFormFields = {
@@ -106,7 +107,10 @@ function formatUpstreamVerificationReceipt(
   }
 }
 
-export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
+export function QuickStartPage({
+  onOpenSettings,
+  onOpenSubscriptionAccounts,
+}: QuickStartPageProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeApp, setActiveApp] = useState<QuickStartAppId>("claude");
@@ -123,9 +127,9 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
   const [recoverableOperations, setRecoverableOperations] = useState<
     QuickStartOperation[]
   >([]);
-  const [recentOperations, setRecentOperations] = useState<QuickStartOperation[]>(
-    [],
-  );
+  const [recentOperations, setRecentOperations] = useState<
+    QuickStartOperation[]
+  >([]);
   const [auditEvents, setAuditEvents] = useState<QuickStartOperationEvent[]>(
     [],
   );
@@ -376,7 +380,12 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
         setApplying(false);
       }
     },
-    [invalidateAppState, refreshRecentOperations, refreshRecoverableOperations, t],
+    [
+      invalidateAppState,
+      refreshRecentOperations,
+      refreshRecoverableOperations,
+      t,
+    ],
   );
 
   const operationSucceeded = lastOperation?.status === "succeeded";
@@ -424,7 +433,11 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
           </p>
         </div>
         {selection?.mode === "official" && selectedPreset ? (
-          <OfficialLoginNotice preset={selectedPreset} onCancel={resetForm} />
+          <OfficialLoginNotice
+            preset={selectedPreset}
+            onCancel={resetForm}
+            onManageAccounts={onOpenSubscriptionAccounts}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {officialGroups.flatMap((group) =>
@@ -484,11 +497,13 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
         </section>
       )}
 
-      {recentOperations.filter((operation) => operation.appType === activeApp).length >
-        0 && (
+      {recentOperations.filter((operation) => operation.appType === activeApp)
+        .length > 0 && (
         <section
           data-testid="quick-start-operation-history"
-          aria-label={t("quickStart.history.title", { defaultValue: "最近接入操作" })}
+          aria-label={t("quickStart.history.title", {
+            defaultValue: "最近接入操作",
+          })}
           className="space-y-3 rounded-xl border border-border/70 p-4"
         >
           <div>
@@ -497,7 +512,8 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
             </h2>
             <p className="text-xs text-muted-foreground">
               {t("quickStart.history.hint", {
-                defaultValue: "重启后仍可查看审计记录；成功操作可在安全守卫通过时撤销。",
+                defaultValue:
+                  "重启后仍可查看审计记录；成功操作可在安全守卫通过时撤销。",
               })}
             </p>
           </div>
@@ -533,7 +549,9 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
                       disabled={applying}
                     >
                       <Undo2 className="mr-1.5 h-4 w-4" />
-                      {t("quickStart.rollback", { defaultValue: "撤销本次接入" })}
+                      {t("quickStart.rollback", {
+                        defaultValue: "撤销本次接入",
+                      })}
                     </Button>
                   )}
                 </div>
@@ -541,7 +559,8 @@ export function QuickStartPage({ onOpenSettings }: QuickStartPageProps) {
                   <ol className="w-full space-y-1 border-t border-border/60 pt-3 text-xs text-muted-foreground">
                     {auditEvents.map((event) => (
                       <li key={event.sequence}>
-                        #{event.sequence} · {event.step} · {event.toStatus ?? event.eventType}
+                        #{event.sequence} · {event.step} ·{" "}
+                        {event.toStatus ?? event.eventType}
                         {formatUpstreamVerificationReceipt(event)
                           ? ` · ${formatUpstreamVerificationReceipt(event)}`
                           : ""}
@@ -903,9 +922,11 @@ function ProviderForm({
 function OfficialLoginNotice({
   preset,
   onCancel,
+  onManageAccounts,
 }: {
   preset: ResolvedQuickStartPreset;
   onCancel: () => void;
+  onManageAccounts?: () => void;
 }) {
   const { t } = useTranslation();
   const title = preset.nameKey ? String(t(preset.nameKey)) : preset.name;
@@ -922,6 +943,13 @@ function OfficialLoginNotice({
         <Button variant="outline" onClick={onCancel}>
           {t("common.back", { defaultValue: "返回" })}
         </Button>
+        {onManageAccounts && (
+          <Button variant="outline" onClick={onManageAccounts}>
+            {t("quickStart.manageSubscriptionAccounts", {
+              defaultValue: "管理订阅账号",
+            })}
+          </Button>
+        )}
         {preset.websiteUrl && (
           <Button asChild>
             <a href={preset.websiteUrl} target="_blank" rel="noreferrer">

@@ -45,6 +45,7 @@ import { useSettingsQuery } from "@/lib/query";
 import {
   buildProxySettingsIntent,
   buildAiProviderSettingsIntent,
+  buildSubscriptionAccountsIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
 
@@ -211,6 +212,11 @@ function App() {
 
   const openAiProviderSettings = useCallback(() => {
     setSettingsNavIntent(buildAiProviderSettingsIntent());
+    setCurrentView("settings");
+  }, []);
+
+  const openSubscriptionAccounts = useCallback(() => {
+    setSettingsNavIntent(buildSubscriptionAccountsIntent());
     setCurrentView("settings");
   }, []);
 
@@ -381,7 +387,12 @@ function App() {
   const renderPageContent = () => {
     switch (currentView) {
       case "simpleConnect":
-        return <QuickStartPage onOpenSettings={openProxySettings} />;
+        return (
+          <QuickStartPage
+            onOpenSettings={openProxySettings}
+            onOpenSubscriptionAccounts={openSubscriptionAccounts}
+          />
+        );
       case "mcp":
         return <UnifiedMcpPanel ref={mcpPanelRef} onOpenChange={() => {}} />;
       case "mcpDiscovery":

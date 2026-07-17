@@ -5,7 +5,8 @@
 use tauri::State;
 
 use crate::ai::agent_readiness::{
-    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
+    compute_readiness_items, detect_repo_mcp_file, readiness_item_is_actionable_gap,
+    ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
     merge_effective_into_details, scan_effective_states, EffectiveScanContext, EffectiveScanResult,
@@ -1214,6 +1215,7 @@ pub async fn get_agent_readiness_score(
                     },
                 );
                 merge_effective_into_details(&mut parsed.details, &scan);
+                parsed.score = parsed.details.iter().map(|item| item.score).sum();
                 parsed.is_cached = false;
             }
             return Ok(parsed);
@@ -1272,7 +1274,7 @@ pub async fn get_agent_readiness_score(
     let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
     let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
 
-    let (total_score, mut details) = compute_readiness_items(&ReadinessCheckInput {
+    let (_, mut details) = compute_readiness_items(&ReadinessCheckInput {
         mcp_project_count: mcp_count,
         has_repo_mcp: detect_repo_mcp_file(&project_path),
         skills_count,
@@ -1301,12 +1303,13 @@ pub async fn get_agent_readiness_score(
         );
         merge_effective_into_details(&mut details, &scan);
     }
+    let total_score: u32 = details.iter().map(|item| item.score).sum();
 
     // 4. 可选: LLM 补充建议（仅当有 AI 配置且存在缺失项时）
     let llm_suggestion = if let Some(ref config) = provider_config {
         let missing: Vec<String> = details
             .iter()
-            .filter(|d| d.score == 0)
+            .filter(|item| readiness_item_is_actionable_gap(item))
             .map(|d| d.label.clone())
             .collect();
         if !missing.is_empty() {

@@ -487,7 +487,7 @@ mod tests {
         .unwrap();
         assert_eq!(
             url,
-            "https://dav.example.com/remote.php/dav/files/demo/cc%20switch-sync/v2/db-v6/default%20profile/manifest.json"
+            "https://dav.example.com/remote.php/dav/files/demo/OpenSunstar-sync/v2/db-v6/default%20profile/manifest.json"
         );
         assert!(!url.contains("//cc"), "should not have double-slash");
     }

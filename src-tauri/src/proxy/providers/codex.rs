@@ -14,6 +14,35 @@ use std::collections::HashSet;
 use std::sync::LazyLock;
 use toml::Value as TomlValue;
 
+pub const CHATGPT_CODEX_BASE_URL: &str = "https://chatgpt.com/backend-api/codex";
+pub const CODEX_CLIENT_ORIGINATOR: &str = "codex_cli_rs";
+pub const CODEX_COMPAT_CLIENT_VERSION: &str = "0.144.5";
+
+/// Headers used by the first-party Codex client when it calls the ChatGPT
+/// Codex backend. Keep this in one place so runtime forwarding, model discovery
+/// and stream checks cannot drift to different client identities.
+pub fn codex_official_client_identity_headers() -> Vec<(http::HeaderName, http::HeaderValue)> {
+    let user_agent = format!(
+        "{CODEX_CLIENT_ORIGINATOR}/{CODEX_COMPAT_CLIENT_VERSION} ({}; {}) terminal-agent",
+        std::env::consts::OS,
+        std::env::consts::ARCH
+    );
+    let user_agent = http::HeaderValue::from_str(&user_agent)
+        .unwrap_or_else(|_| http::HeaderValue::from_static("codex_cli_rs/0.144.5 terminal-agent"));
+
+    vec![
+        (
+            http::HeaderName::from_static("originator"),
+            http::HeaderValue::from_static(CODEX_CLIENT_ORIGINATOR),
+        ),
+        (
+            http::HeaderName::from_static("version"),
+            http::HeaderValue::from_static(CODEX_COMPAT_CLIENT_VERSION),
+        ),
+        (http::header::USER_AGENT, user_agent),
+    ]
+}
+
 /// 官方 Codex 客户端 User-Agent 正则
 #[allow(dead_code)]
 static CODEX_CLIENT_REGEX: LazyLock<Regex> =
@@ -480,6 +509,10 @@ impl ProviderAdapter for CodexAdapter {
     }
 
     fn extract_base_url(&self, provider: &Provider) -> Result<String, ProxyError> {
+        if provider.category.as_deref() == Some("official") {
+            return Ok(CHATGPT_CODEX_BASE_URL.to_string());
+        }
+
         // 1. 尝试直接获取 base_url 字段
         if let Some(url) = provider
             .settings_config
@@ -533,7 +566,15 @@ impl ProviderAdapter for CodexAdapter {
 
     fn build_url(&self, base_url: &str, endpoint: &str) -> String {
         let base_trimmed = base_url.trim_end_matches('/');
-        let endpoint_trimmed = endpoint.trim_start_matches('/');
+        let mut endpoint_trimmed = endpoint.trim_start_matches('/');
+
+        // ChatGPT subscription traffic uses `/backend-api/codex/responses`,
+        // not the public OpenAI `/v1/responses` path.
+        if base_trimmed.eq_ignore_ascii_case(CHATGPT_CODEX_BASE_URL) {
+            endpoint_trimmed = endpoint_trimmed
+                .strip_prefix("v1/")
+                .unwrap_or(endpoint_trimmed);
+        }
 
         // OpenAI/Codex 的 base_url 可能是：
         // - 纯 origin: https://api.openai.com  (需要自动补 /v1)
@@ -607,6 +648,44 @@ mod tests {
 
         let url = adapter.extract_base_url(&provider).unwrap();
         assert_eq!(url, "https://api.openai.com/v1");
+    }
+
+    #[test]
+    fn official_provider_uses_chatgpt_codex_backend_without_stored_credentials() {
+        let adapter = CodexAdapter::new();
+        let mut provider = create_provider(json!({"auth": {}, "config": ""}));
+        provider.category = Some("official".to_string());
+
+        assert_eq!(
+            adapter.extract_base_url(&provider).unwrap(),
+            CHATGPT_CODEX_BASE_URL
+        );
+        assert!(adapter.extract_auth(&provider).is_none());
+        assert_eq!(
+            adapter.build_url(CHATGPT_CODEX_BASE_URL, "/v1/responses"),
+            "https://chatgpt.com/backend-api/codex/responses"
+        );
+    }
+
+    #[test]
+    fn official_client_identity_includes_compatible_luna_headers() {
+        let headers: http::HeaderMap = codex_official_client_identity_headers()
+            .into_iter()
+            .collect();
+        assert_eq!(
+            headers
+                .get("originator")
+                .and_then(|value| value.to_str().ok()),
+            Some(CODEX_CLIENT_ORIGINATOR)
+        );
+        assert_eq!(
+            headers.get("version").and_then(|value| value.to_str().ok()),
+            Some(CODEX_COMPAT_CLIENT_VERSION)
+        );
+        assert!(headers
+            .get(http::header::USER_AGENT)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with("codex_cli_rs/0.144.5")));
     }
 
     #[test]

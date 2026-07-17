@@ -9,8 +9,8 @@ interface CodexAuthSettingsProps {
 }
 
 export function CodexAuthSettings({
-  settings,
-  onChange,
+  settings: _,
+  onChange: __,
 }: CodexAuthSettingsProps) {
   const { t } = useTranslation();
 
@@ -25,10 +25,9 @@ export function CodexAuthSettings({
         icon={<KeyRound className="h-4 w-4 text-emerald-500" />}
         title={t("settings.preserveCodexOfficialAuthOnSwitch")}
         description={t("settings.preserveCodexOfficialAuthOnSwitchDescription")}
-        checked={settings.preserveCodexOfficialAuthOnSwitch ?? false}
-        onCheckedChange={(value) =>
-          onChange({ preserveCodexOfficialAuthOnSwitch: value })
-        }
+        checked
+        disabled
+        onCheckedChange={() => undefined}
       />
     </section>
   );

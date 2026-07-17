@@ -25,6 +25,7 @@ export { openclawApi } from "./openclaw";
 export { sessionsApi } from "./sessions";
 export * as configApi from "./config";
 export * as authApi from "./auth";
+export * from "./subscription-accounts";
 export * as copilotApi from "./copilot";
 export type { ProviderSwitchEvent } from "./providers";
 export type { Prompt, PromptActivationPreview } from "./prompts";

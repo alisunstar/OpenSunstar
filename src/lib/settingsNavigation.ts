@@ -1,7 +1,7 @@
 const SETTINGS_NAV_KEY = "opensunstar.settingsNav";
 
 export interface SettingsNavIntent {
-  tab?: "general" | "advanced" | "about";
+  tab?: "general" | "auth" | "advanced" | "about";
   /** ProxyTabContent accordion values, e.g. `proxy`, `failover` */
   openSections?: string[];
 }
@@ -33,4 +33,8 @@ export function buildAiProviderSettingsIntent(): SettingsNavIntent {
     tab: "advanced",
     openSections: ["aiProvider"],
   };
+}
+
+export function buildSubscriptionAccountsIntent(): SettingsNavIntent {
+  return { tab: "auth" };
 }

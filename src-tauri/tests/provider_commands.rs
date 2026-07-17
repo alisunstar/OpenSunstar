@@ -1,4 +1,4 @@
-﻿use serde_json::json;
+use serde_json::json;
 use std::path::{Path, PathBuf};
 
 use open_sunstar_lib::{
@@ -180,10 +180,15 @@ command = "echo"
         "OAuth-only live Codex installs should keep official behavior"
     );
     assert_eq!(
-        provider.settings_config.pointer("/auth/tokens/id_token"),
-        Some(&json!("oauth-id")),
-        "import should preserve OAuth login material"
+        provider.settings_config.get("auth"),
+        Some(&json!({})),
+        "official OAuth login material must not be copied into provider storage"
     );
+    assert!(!provider.settings_config.to_string().contains("oauth-id"));
+    assert!(!provider
+        .settings_config
+        .to_string()
+        .contains("oauth-access"));
 }
 
 #[test]

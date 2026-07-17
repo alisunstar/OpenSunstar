@@ -289,7 +289,8 @@ pub struct AgentReadinessItem {
     pub weight: u32,
     pub score: u32,
     pub detail: String,
-    /// ready | partial | global_only | detected_only | missing
+    /// ready | partial | global_only | detected_only | unmanaged | unknown |
+    /// not_required | missing | unhealthy
     #[serde(default)]
     pub status: Option<String>,
     /// configured | unconfigured（双指标：配置态）

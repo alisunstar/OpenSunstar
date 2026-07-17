@@ -4,7 +4,8 @@
 //! 暴露干净的 pub 函数供 CLI 直接调用，避免修改命令层可见性。
 
 use crate::ai::agent_readiness::{
-    compute_readiness_items, detect_repo_mcp_file, ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
+    classify_unmanaged_readiness, compute_readiness_items, detect_repo_mcp_file,
+    ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
     scan_effective_states, EffectiveScanContext, EffectiveScanResult, RepairAssetDriftResult,
@@ -15,6 +16,9 @@ use crate::app_config::AppType;
 use crate::database::Database;
 use crate::services::ProviderService;
 use crate::store::AppState;
+use std::path::Path;
+#[cfg(target_os = "windows")]
+use std::path::PathBuf;
 use std::sync::Arc;
 
 // ── 内部辅助（与 commands/ai_insight.rs 同构，避免跨模块暴露私有函数） ──
@@ -30,21 +34,75 @@ fn detect_prompt_files(project_path: &str) -> Vec<String> {
 }
 
 struct ProjectReadinessContext {
+    project_path: String,
     sqlite_id: Option<String>,
+    managed: bool,
     effective_target_app: Option<String>,
     details: Vec<AgentReadinessItem>,
+}
+
+fn normalize_project_path(project_path: &str) -> Result<String, String> {
+    let canonical = std::fs::canonicalize(project_path)
+        .map_err(|error| format!("项目路径不可访问 {project_path}: {error}"))?;
+    if !canonical.is_dir() {
+        return Err(format!("项目路径不是目录: {}", canonical.display()));
+    }
+
+    #[cfg(target_os = "windows")]
+    let canonical = {
+        let value = canonical.to_string_lossy();
+        if let Some(unc) = value.strip_prefix(r"\\?\UNC\") {
+            PathBuf::from(format!(r"\\{unc}"))
+        } else if let Some(stripped) = value.strip_prefix(r"\\?\") {
+            PathBuf::from(stripped)
+        } else {
+            canonical
+        }
+    };
+
+    Ok(canonical.to_string_lossy().to_string())
+}
+
+fn resolve_project_by_path(
+    db: &Database,
+    project_path: &str,
+) -> Result<(String, Option<crate::database::Project>), String> {
+    let resolved = normalize_project_path(project_path)?;
+    if let Some(project) = db
+        .get_project_by_path(&resolved)
+        .map_err(|error| error.to_string())?
+    {
+        return Ok((resolved, Some(project)));
+    }
+    if resolved != project_path {
+        if let Some(project) = db
+            .get_project_by_path(project_path)
+            .map_err(|error| error.to_string())?
+        {
+            return Ok((resolved, Some(project)));
+        }
+    }
+    let equivalent = db
+        .get_all_projects()
+        .map_err(|error| error.to_string())?
+        .into_iter()
+        .find(|project| {
+            normalize_project_path(&project.path)
+                .map(|path| path == resolved)
+                .unwrap_or(false)
+        });
+    Ok((resolved, equivalent))
 }
 
 fn build_project_readiness_context(
     db: &Database,
     project_path: &str,
     target_app: Option<String>,
-) -> ProjectReadinessContext {
-    let sqlite_id = db.get_project_id_by_path(project_path).ok().flatten();
-    let project_target_app = sqlite_id
-        .as_deref()
-        .and_then(|id| db.get_project(id).ok().flatten())
-        .and_then(|p| p.target_app.clone());
+) -> Result<ProjectReadinessContext, String> {
+    let (project_path, project) = resolve_project_by_path(db, project_path)?;
+    let sqlite_id = project.as_ref().map(|project| project.id.clone());
+    let managed = sqlite_id.is_some();
+    let project_target_app = project.and_then(|project| project.target_app);
     let effective_target_app = project_target_app.or(target_app);
 
     let mcp_count = sqlite_id
@@ -59,7 +117,7 @@ fn build_project_readiness_context(
         .as_deref()
         .and_then(|id| db.count_enabled_project_prompts(id).ok())
         .unwrap_or(0);
-    let prompt_files = detect_prompt_files(project_path);
+    let prompt_files = detect_prompt_files(&project_path);
     let commands_count = sqlite_id
         .as_deref()
         .and_then(|id| db.count_enabled_project_assets(id, "command").ok())
@@ -98,9 +156,9 @@ fn build_project_readiness_context(
     let ninety_days_ago = chrono::Utc::now().timestamp() - 7_776_000;
     let recent_update_within_90d = matches!(max_ts, Some(ts) if ts > ninety_days_ago);
 
-    let (_, details) = compute_readiness_items(&ReadinessCheckInput {
+    let (_, mut details) = compute_readiness_items(&ReadinessCheckInput {
         mcp_project_count: mcp_count,
-        has_repo_mcp: detect_repo_mcp_file(project_path),
+        has_repo_mcp: detect_repo_mcp_file(&project_path),
         skills_count,
         prompt_db_count: db_prompt_count,
         prompt_files,
@@ -114,12 +172,17 @@ fn build_project_readiness_context(
         recent_update_within_90d,
         target_app: effective_target_app.clone(),
     });
+    if !managed {
+        classify_unmanaged_readiness(&mut details);
+    }
 
-    ProjectReadinessContext {
+    Ok(ProjectReadinessContext {
+        project_path,
         sqlite_id,
+        managed,
         effective_target_app,
         details,
-    }
+    })
 }
 
 fn scan_project_effective_for_details(
@@ -146,10 +209,10 @@ fn repair_asset_drift_inner(
     check_name: &str,
     target_app: Option<String>,
 ) -> Result<RepairAssetDriftResult, String> {
-    let ctx = build_project_readiness_context(&state.db, project_path, target_app);
+    let ctx = build_project_readiness_context(&state.db, project_path, target_app)?;
     let before_scan = scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -174,7 +237,7 @@ fn repair_asset_drift_inner(
 
     crate::services::project_config_sync::sync_asset_for_project_path(
         state,
-        project_path,
+        &ctx.project_path,
         check_name,
     )
     .map_err(|e| e.to_string())?;
@@ -197,7 +260,7 @@ fn repair_asset_drift_inner(
 
     let after_scan = scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -227,10 +290,10 @@ pub fn cli_drift_check(
     project_path: &str,
     target_app: Option<String>,
 ) -> Result<EffectiveScanResult, String> {
-    let ctx = build_project_readiness_context(&state.db, project_path, target_app);
+    let ctx = build_project_readiness_context(&state.db, project_path, target_app)?;
     Ok(scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -239,12 +302,12 @@ pub fn cli_drift_check(
 
 /// CLI: 刷新治理缓存（就绪度缓存失效），供 `os drift check --refresh` 使用
 pub fn cli_invalidate_readiness_cache(state: &AppState, project_path: &str) {
-    let project_id = state.db.get_project_id_by_path(project_path).ok().flatten();
-    if let Some(ref pid) = project_id {
+    let resolved = resolve_project_by_path(&state.db, project_path).ok();
+    if let Some((path, Some(project))) = resolved {
         crate::ai::readiness_cache::invalidate_agent_readiness_for_project(
             &state.db,
-            pid,
-            Some(project_path),
+            &project.id,
+            Some(&path),
         );
     }
 }
@@ -265,10 +328,10 @@ pub fn cli_drift_repair_all(
     project_path: &str,
     target_app: Option<String>,
 ) -> Result<RepairProjectDriftResult, String> {
-    let ctx = build_project_readiness_context(&state.db, project_path, target_app.clone());
+    let ctx = build_project_readiness_context(&state.db, project_path, target_app.clone())?;
     let initial_scan = scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -284,7 +347,7 @@ pub fn cli_drift_repair_all(
     for check_name in drifted {
         let result = repair_asset_drift_inner(
             state,
-            project_path,
+            &ctx.project_path,
             &check_name,
             ctx.effective_target_app.clone(),
         )?;
@@ -293,7 +356,7 @@ pub fn cli_drift_repair_all(
 
     let final_scan = scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -318,12 +381,12 @@ pub fn cli_readiness_score(
     project_path: &str,
     target_app: Option<String>,
 ) -> Result<ReadinessScoreOutput, String> {
-    let ctx = build_project_readiness_context(&state.db, project_path, target_app.clone());
+    let ctx = build_project_readiness_context(&state.db, project_path, target_app.clone())?;
 
     // 运行生效态扫描，合并到 details 中
     let scan = scan_project_effective_for_details(
         state,
-        project_path,
+        &ctx.project_path,
         ctx.sqlite_id.as_deref(),
         ctx.effective_target_app.as_deref(),
         &ctx.details,
@@ -335,8 +398,10 @@ pub fn cli_readiness_score(
     let total_score: u32 = details.iter().map(|d| d.score).sum();
 
     Ok(ReadinessScoreOutput {
-        project_path: project_path.to_string(),
-        score: total_score,
+        project_path: ctx.project_path,
+        managed: ctx.managed,
+        assessment_state: if ctx.managed { "managed" } else { "unmanaged" }.to_string(),
+        score: ctx.managed.then_some(total_score),
         max_score: AGENT_READINESS_MAX_SCORE,
         target_app: ctx
             .effective_target_app
@@ -356,7 +421,9 @@ pub fn cli_readiness_score(
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct ReadinessScoreOutput {
     pub project_path: String,
-    pub score: u32,
+    pub managed: bool,
+    pub assessment_state: String,
+    pub score: Option<u32>,
     pub max_score: u32,
     pub target_app: String,
     pub details: Vec<AgentReadinessItem>,
@@ -704,10 +771,68 @@ pub fn cli_project_get(
     state.db.get_project(project_id).map_err(|e| e.to_string())
 }
 
+#[derive(serde::Serialize, Debug)]
+pub struct ProjectScanSaveOutput {
+    pub project_id: String,
+    pub project_path: String,
+    pub registered_now: bool,
+    pub recommended_preset: Option<String>,
+    pub detections: Vec<crate::services::sdd::SddDetectionResult>,
+}
+
+/// Adopt a repository into the project SSOT and persist its framework scan.
+/// Repeating the operation for an equivalent path reuses the existing identity.
+pub fn cli_project_save_scan(
+    state: &AppState,
+    project_path: &str,
+) -> Result<ProjectScanSaveOutput, String> {
+    let (resolved, existing) = resolve_project_by_path(&state.db, project_path)?;
+    let registered_now = existing.is_none();
+    let now = chrono::Utc::now().timestamp();
+    let mut project = existing.unwrap_or_else(|| crate::database::Project {
+        id: format!("proj_{}", uuid::Uuid::new_v4()),
+        name: Path::new(&resolved)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty())
+            .unwrap_or("project")
+            .to_string(),
+        path: resolved.clone(),
+        git_remote_url: None,
+        created_at: now,
+        updated_at: now,
+        target_app: None,
+        blueprint_id: None,
+        stage: "mvp".to_string(),
+        mvp_progress: None,
+    });
+    project.path = resolved.clone();
+    project.updated_at = now;
+    state
+        .db
+        .upsert_project(&project)
+        .map_err(|error| error.to_string())?;
+
+    let detections = crate::services::sdd::detect_project(&resolved);
+    crate::services::sdd::save_detection_results(&state.db, &project.id, &detections)
+        .map_err(|error| error.to_string())?;
+    let recommended_preset = crate::services::sdd::recommend_preset_from_detections(&detections);
+
+    Ok(ProjectScanSaveOutput {
+        project_id: project.id,
+        project_path: resolved,
+        registered_now,
+        recommended_preset,
+        detections,
+    })
+}
+
 /// 项目统一上下文：桥接 DB (project_id) 与文件系统 (project_path)，
 /// 聚合编排状态（flow profile / recipe / design contract / specs）+ 资产计数。
 #[derive(serde::Serialize, Debug)]
 pub struct ProjectContext {
+    pub managed: bool,
+    pub assessment_state: String,
     pub project: crate::database::Project,
     pub asset_counts: crate::database::ProjectAllAssetCounts,
     pub workspace_exists: bool,
@@ -723,27 +848,45 @@ pub struct ProjectContext {
 
 /// CLI: `os project status` — 聚合项目全景上下文
 pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<ProjectContext, String> {
-    use std::path::Path;
-    let dot = Path::new(project_path).join(".opensunstar");
+    let (project_path, registered_project) = resolve_project_by_path(&state.db, project_path)?;
+    let managed = registered_project.is_some();
+    let dot = Path::new(&project_path).join(".opensunstar");
 
     // 1. DB: project metadata
-    let project = state
-        .db
-        .get_project_by_path(project_path)
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| format!("项目未注册: {project_path}"))?;
+    let mut project = registered_project.unwrap_or_else(|| crate::database::Project {
+        id: String::new(),
+        name: Path::new(&project_path)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .filter(|name| !name.is_empty())
+            .unwrap_or("project")
+            .to_string(),
+        path: project_path.clone(),
+        git_remote_url: None,
+        created_at: 0,
+        updated_at: 0,
+        target_app: None,
+        blueprint_id: None,
+        stage: "unmanaged".to_string(),
+        mvp_progress: None,
+    });
+    project.path = project_path.clone();
 
     // 2. DB: asset counts
-    let asset_counts = state
-        .db
-        .get_project_all_asset_counts(&project.id)
-        .map_err(|e| e.to_string())?;
+    let asset_counts = if managed {
+        state
+            .db
+            .get_project_all_asset_counts(&project.id)
+            .map_err(|e| e.to_string())?
+    } else {
+        crate::database::ProjectAllAssetCounts::default()
+    };
 
     // 3. Filesystem: orchestration state
     let workspace_exists = dot.is_dir();
     let has_flow_profile = dot.join("workflow.profile.json").is_file();
     let has_flow_config = dot.join("flow-config.yaml").is_file();
-    let has_design_contract = Path::new(project_path).join("DESIGN.md").is_file();
+    let has_design_contract = Path::new(&project_path).join("DESIGN.md").is_file();
 
     let recipe_count = std::fs::read_dir(dot.join("recipe"))
         .map(|d| d.count())
@@ -751,10 +894,10 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
     let contract_count = std::fs::read_dir(dot.join("contract"))
         .map(|d| d.count())
         .unwrap_or(0);
-    let specs_exists = Path::new(project_path).join(".specs").is_dir();
+    let specs_exists = Path::new(&project_path).join(".specs").is_dir();
 
     // 4. Active change ID from STATE.md
-    let active_change_id = std::fs::read_to_string(Path::new(project_path).join("STATE.md"))
+    let active_change_id = std::fs::read_to_string(Path::new(&project_path).join("STATE.md"))
         .ok()
         .and_then(|content| {
             content
@@ -765,7 +908,7 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
 
     // 5. Total artifact completeness from flow scan (best-effort)
     let total_artifact_completeness = if specs_exists {
-        crate::services::flow_orchestrator::scan_project_specs_workflow(project_path, None, None)
+        crate::services::flow_orchestrator::scan_project_specs_workflow(&project_path, None, None)
             .ok()
             .map(|idx| {
                 if idx.changes.is_empty() {
@@ -784,6 +927,8 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
     };
 
     Ok(ProjectContext {
+        managed,
+        assessment_state: if managed { "managed" } else { "unmanaged" }.to_string(),
         project,
         asset_counts,
         workspace_exists,
@@ -920,6 +1065,85 @@ pub fn cli_skill_list(
         .db
         .get_all_installed_skills()
         .map_err(|e| e.to_string())
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct ProjectAssetHealthOutput {
+    pub managed: bool,
+    pub assessment_state: String,
+    pub project_id: Option<String>,
+    pub project_path: Option<String>,
+    pub records: Vec<crate::ai::asset_health::AssetHealthRecord>,
+}
+
+/// Resolve asset health by either stable project ID or repository path.
+/// An arbitrary repository returns an explicit unmanaged result instead of an
+/// empty list that could be mistaken for healthy.
+pub fn cli_project_asset_health(
+    state: &AppState,
+    project_id: Option<&str>,
+    project_path: Option<&str>,
+) -> Result<ProjectAssetHealthOutput, String> {
+    let (resolved_path, project) = match (project_id, project_path) {
+        (Some(_), Some(_)) => {
+            return Err("--project-id 与 --project-path 只能指定一个".to_string());
+        }
+        (Some(id), None) => {
+            let project = state
+                .db
+                .get_project(id)
+                .map_err(|error| error.to_string())?
+                .ok_or_else(|| format!("项目不存在: {id}"))?;
+            (Some(project.path.clone()), Some(project))
+        }
+        (None, Some(path)) => {
+            let (resolved, project) = resolve_project_by_path(&state.db, path)?;
+            (Some(resolved), project)
+        }
+        (None, None) => {
+            return Err("需要 --project-id 或 --project-path".to_string());
+        }
+    };
+
+    let Some(project) = project else {
+        return Ok(ProjectAssetHealthOutput {
+            managed: false,
+            assessment_state: "unmanaged".to_string(),
+            project_id: None,
+            project_path: resolved_path,
+            records: Vec::new(),
+        });
+    };
+    let records = crate::ai::asset_health::get_project_asset_health(&state.db, &project.id)
+        .map_err(|error| error.to_string())?;
+    let assessment_state = if records
+        .iter()
+        .any(|record| record.status == crate::ai::asset_health::UNHEALTHY)
+    {
+        "unhealthy"
+    } else if records.is_empty()
+        || records.iter().any(|record| {
+            record.status == crate::ai::asset_health::UNKNOWN
+                || record.status == crate::ai::asset_health::ATTENTION
+        })
+    {
+        "unknown"
+    } else if records
+        .iter()
+        .all(|record| record.status == crate::ai::asset_health::UNSUPPORTED)
+    {
+        "not_required"
+    } else {
+        "healthy"
+    };
+
+    Ok(ProjectAssetHealthOutput {
+        managed: true,
+        assessment_state: assessment_state.to_string(),
+        project_id: Some(project.id),
+        project_path: resolved_path,
+        records,
+    })
 }
 
 /// CLI: `os asset list --project <id> [--type <asset_type>]`

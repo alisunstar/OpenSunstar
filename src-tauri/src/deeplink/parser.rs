@@ -19,7 +19,8 @@ pub fn parse_deeplink_url(url_str: &str) -> Result<DeepLinkImportRequest, AppErr
 
     // Validate scheme
     let scheme = url.scheme();
-    if scheme != "OpenSunstar" {
+    // WHATWG URL 解析会把 scheme 规范化为小写；协议匹配必须忽略大小写。
+    if !scheme.eq_ignore_ascii_case("opensunstar") {
         return Err(AppError::InvalidInput(format!(
             "Invalid scheme: expected 'OpenSunstar', got '{scheme}'"
         )));

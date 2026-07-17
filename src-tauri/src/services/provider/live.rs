@@ -9,7 +9,7 @@ use serde_json::{json, Value};
 use toml_edit::{DocumentMut, Item, TableLike};
 
 use crate::app_config::AppType;
-use crate::codex_config::{get_codex_auth_path, get_codex_config_path};
+use crate::codex_config::get_codex_config_path;
 use crate::config::{delete_file, get_claude_settings_path, read_json_file, write_json_file};
 use crate::database::Database;
 use crate::error::AppError;
@@ -692,19 +692,12 @@ impl LiveSnapshot {
                 }
             }
             LiveSnapshot::Codex {
-                auth,
+                auth: _,
                 config,
                 model_catalog,
             } => {
-                let auth_path = get_codex_auth_path();
                 let config_path = get_codex_config_path();
                 let model_catalog_path = crate::codex_config::get_codex_model_catalog_path();
-                if let Some(value) = auth {
-                    write_json_file(&auth_path, value)?;
-                } else if auth_path.exists() {
-                    delete_file(&auth_path)?;
-                }
-
                 if let Some(text) = config {
                     crate::config::write_text_file(&config_path, text)?;
                 } else if config_path.exists() {
@@ -755,13 +748,8 @@ pub(crate) fn capture_live_snapshot(app_type: &AppType) -> Result<LiveSnapshot, 
             Ok(LiveSnapshot::Claude { settings })
         }
         AppType::Codex => {
-            let auth_path = get_codex_auth_path();
             let config_path = get_codex_config_path();
             let model_catalog_path = crate::codex_config::get_codex_model_catalog_path();
-            let auth = auth_path
-                .exists()
-                .then(|| read_json_file(&auth_path))
-                .transpose()?;
             let config = config_path
                 .exists()
                 .then(|| std::fs::read_to_string(&config_path))
@@ -773,7 +761,9 @@ pub(crate) fn capture_live_snapshot(app_type: &AppType) -> Result<LiveSnapshot, 
                 .transpose()
                 .map_err(|e| AppError::io(&model_catalog_path, e))?;
             Ok(LiveSnapshot::Codex {
-                auth,
+                // auth.json belongs to the official Codex client. Provider
+                // switching never mutates it, so rollback must not persist it.
+                auth: None,
                 config,
                 model_catalog,
             })
@@ -1369,6 +1359,14 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
         }
         .to_string(),
     );
+
+    if matches!(app_type, AppType::Codex) {
+        provider.settings_config =
+            crate::codex_config::sanitize_codex_settings_for_storage_with_category(
+                &provider.settings_config,
+                provider.category.as_deref(),
+            );
+    }
 
     state.db.save_provider(app_type.as_str(), &provider)?;
     state

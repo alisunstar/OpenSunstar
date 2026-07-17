@@ -278,6 +278,61 @@ pub fn codex_auth_has_oauth_login_material(auth: &Value) -> bool {
     })
 }
 
+/// Remove Codex login material before provider settings are persisted.
+///
+/// `auth.json` is owned by the official Codex client. OpenSunstar only needs a
+/// third-party provider's `OPENAI_API_KEY`; ChatGPT access/refresh tokens and
+/// account metadata must stay in the live file and in request memory.
+/// Category-aware variant used by provider persistence. An official provider
+/// never owns a reusable API key either, so its entire auth object is dropped.
+pub fn sanitize_codex_settings_for_storage_with_category(
+    settings: &Value,
+    category: Option<&str>,
+) -> Value {
+    let mut sanitized = settings.clone();
+    let Some(root) = sanitized.as_object_mut() else {
+        return sanitized;
+    };
+
+    let had_auth_field = root.contains_key("auth");
+    let provider_api_key = (category != Some("official"))
+        .then(|| root.get("auth").and_then(extract_codex_auth_api_key))
+        .flatten();
+    if category == Some("official") || had_auth_field {
+        root.insert(
+            "auth".to_string(),
+            provider_api_key
+                .map(|key| json!({ "OPENAI_API_KEY": key }))
+                .unwrap_or_else(|| json!({})),
+        );
+    }
+    sanitized
+}
+
+/// Convert a Codex Live snapshot into a config-only backup.
+///
+/// Legacy third-party API keys are lifted into `config.toml`; all `auth.json`
+/// material is removed. Restoring this value therefore never needs to write or
+/// delete the official client's credential file.
+pub fn sanitize_codex_live_backup_for_storage(settings: &Value) -> Result<Value, AppError> {
+    let mut sanitized = settings.clone();
+    let auth = sanitized.get("auth").cloned().unwrap_or_else(|| json!({}));
+    let config_text = sanitized
+        .get("config")
+        .and_then(Value::as_str)
+        .unwrap_or("");
+    let config_text =
+        prepare_codex_live_config_text_with_optional_catalog(&sanitized, config_text)?;
+    let config_text = prepare_codex_provider_live_config(&auth, &config_text)?;
+
+    let root = sanitized.as_object_mut().ok_or_else(|| {
+        AppError::InvalidInput("Codex live backup must be a JSON object".to_string())
+    })?;
+    root.insert("auth".to_string(), json!({}));
+    root.insert("config".to_string(), json!(config_text));
+    Ok(sanitized)
+}
+
 pub fn should_restore_codex_provider_token_for_backfill(
     category: Option<&str>,
     template_settings: &Value,
@@ -935,7 +990,10 @@ pub fn extract_codex_experimental_bearer_token(config_text: &str) -> Option<Stri
         .map(str::to_string)
 }
 
-fn set_codex_experimental_bearer_token(config_text: &str, token: &str) -> Result<String, AppError> {
+pub(crate) fn set_codex_experimental_bearer_token(
+    config_text: &str,
+    token: &str,
+) -> Result<String, AppError> {
     if config_text.trim().is_empty() {
         return Err(AppError::localized(
             "provider.codex.config.missing",
@@ -1047,24 +1105,18 @@ pub fn read_codex_live_settings() -> Result<Value, AppError> {
 
 /// Route a Codex live write between full auth+config or config-only.
 ///
-/// Official providers with usable login material own `auth.json`. Third-party
-/// providers only touch `config.toml` when the compatibility setting is enabled
-/// so the user's ChatGPT login cache survives provider switches.
+/// The official client exclusively owns `auth.json`. Every provider switch
+/// writes only `config.toml`; third-party keys are provider-scoped bearer tokens
+/// so the user's ChatGPT login cache survives unconditionally.
 pub fn write_codex_live_for_provider(
-    category: Option<&str>,
+    _category: Option<&str>,
     auth: &Value,
     config_text: Option<&str>,
 ) -> Result<(), AppError> {
-    let should_write_auth = (category == Some("official") && codex_auth_has_login_material(auth))
-        || (category != Some("official")
-            && !crate::settings::preserve_codex_official_auth_on_switch());
-
-    if should_write_auth {
-        write_codex_live_atomic(auth, config_text)
-    } else {
-        let live_config = prepare_codex_provider_live_config(auth, config_text.unwrap_or(""))?;
-        write_codex_live_config_atomic(Some(&live_config))
-    }
+    // Provider switching never owns auth.json. Third-party API keys are scoped
+    // to config.toml; official OAuth material remains exactly as Codex wrote it.
+    let live_config = prepare_codex_provider_live_config(auth, config_text.unwrap_or(""))?;
+    write_codex_live_config_atomic(Some(&live_config))
 }
 
 /// Build the live Codex config for provider switching.
@@ -1146,7 +1198,8 @@ pub fn restore_codex_settings_for_backfill(
 ///   otherwise falls back to top-level `base_url`.
 /// - `"wire_api"`: writes to `[model_providers.<current>].wire_api` if `model_provider` exists,
 ///   otherwise falls back to top-level `wire_api`.
-/// - `"model"` / `"model_catalog_json"`: writes to top-level field.
+/// - `"model"` / `"model_catalog_json"` / `"model_provider"` /
+///   `"openai_base_url"` / `"chatgpt_base_url"`: writes to top-level field.
 ///
 /// Empty value removes the field.
 pub fn update_codex_toml_field(toml_str: &str, field: &str, value: &str) -> Result<String, String> {
@@ -1193,7 +1246,8 @@ pub fn update_codex_toml_field(toml_str: &str, field: &str, value: &str) -> Resu
                 doc[field] = toml_edit::value(trimmed);
             }
         }
-        "model" | "model_catalog_json" => {
+        "model" | "model_catalog_json" | "model_provider" | "openai_base_url"
+        | "chatgpt_base_url" => {
             if trimmed.is_empty() {
                 doc.as_table_mut().remove(field);
             } else {
@@ -1258,6 +1312,74 @@ pub fn remove_codex_toml_base_url_if(toml_str: &str, predicate: impl Fn(&str) ->
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn storage_sanitizer_strips_oauth_and_keeps_only_custom_provider_key() {
+        let settings = json!({
+            "auth": {
+                "OPENAI_API_KEY": "third-party-key",
+                "tokens": {
+                    "access_token": "oauth-access",
+                    "refresh_token": "oauth-refresh"
+                },
+                "account_id": "account-1"
+            },
+            "config": "model_provider = \"custom\"\n"
+        });
+
+        let custom = sanitize_codex_settings_for_storage_with_category(&settings, Some("custom"));
+        assert_eq!(
+            custom.get("auth"),
+            Some(&json!({"OPENAI_API_KEY": "third-party-key"}))
+        );
+        assert!(!custom.to_string().contains("oauth-access"));
+        assert!(!custom.to_string().contains("oauth-refresh"));
+        assert!(!custom.to_string().contains("account-1"));
+
+        let official =
+            sanitize_codex_settings_for_storage_with_category(&settings, Some("official"));
+        assert_eq!(official.get("auth"), Some(&json!({})));
+        assert!(!official.to_string().contains("third-party-key"));
+        assert!(!official.to_string().contains("oauth-access"));
+    }
+
+    #[test]
+    fn storage_sanitizer_preserves_missing_custom_auth_for_validation() {
+        let settings = json!({
+            "config": "model_provider = \"custom\"\n"
+        });
+
+        let sanitized =
+            sanitize_codex_settings_for_storage_with_category(&settings, Some("custom"));
+        assert!(
+            sanitized.get("auth").is_none(),
+            "sanitization must not turn an invalid custom provider into an auth-less valid one"
+        );
+    }
+
+    #[test]
+    fn live_backup_sanitizer_lifts_custom_key_and_drops_oauth_material() {
+        let settings = json!({
+            "auth": {
+                "OPENAI_API_KEY": "third-party-key",
+                "tokens": {"access_token": "oauth-access"}
+            },
+            "config": "model_provider = \"custom\"\n\n[model_providers.custom]\nbase_url = \"https://example.test/v1\"\nwire_api = \"responses\"\n"
+        });
+
+        let backup =
+            sanitize_codex_live_backup_for_storage(&settings).expect("sanitize config-only backup");
+        assert_eq!(backup.get("auth"), Some(&json!({})));
+        let config = backup
+            .get("config")
+            .and_then(Value::as_str)
+            .expect("backup config");
+        assert_eq!(
+            extract_codex_experimental_bearer_token(config).as_deref(),
+            Some("third-party-key")
+        );
+        assert!(!backup.to_string().contains("oauth-access"));
+    }
 
     #[test]
     fn extract_base_url_prefers_active_provider_section() {

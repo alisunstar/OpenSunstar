@@ -13,7 +13,13 @@ pub const STATUS_PARTIAL: &str = "partial";
 pub const STATUS_GLOBAL_ONLY: &str = "global_only";
 pub const STATUS_DETECTED_ONLY: &str = "detected_only";
 pub const STATUS_MISSING: &str = "missing";
-pub const STATUS_NOT_APPLICABLE: &str = "not_applicable";
+pub const STATUS_UNMANAGED: &str = "unmanaged";
+pub const STATUS_UNKNOWN: &str = "unknown";
+pub const STATUS_NOT_REQUIRED: &str = "not_required";
+pub const STATUS_UNHEALTHY: &str = "unhealthy";
+/// Compatibility alias for callers that used the old capability status name.
+#[allow(dead_code)]
+pub const STATUS_NOT_APPLICABLE: &str = STATUS_NOT_REQUIRED;
 
 #[derive(Debug, Clone, Default)]
 pub struct ReadinessCheckInput {
@@ -76,8 +82,8 @@ fn apply_target_app_support(
     match asset_support(asset_type, target_app) {
         AssetSupport::Supported => (score, status.to_string(), detail),
         AssetSupport::Unsupported => (
-            0,
-            STATUS_NOT_APPLICABLE.to_string(),
+            weight,
+            STATUS_NOT_REQUIRED.to_string(),
             format!(
                 "{}（当前目标 CLI「{}」不支持此项，已从评分中排除）",
                 detail,
@@ -371,6 +377,48 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
     (total_score, details)
 }
 
+/// Reclassify a discovery-only repository that has not been adopted into OpenSunstar.
+///
+/// A zero database count is not evidence that an unmanaged repository is missing an
+/// asset. Local or global evidence is therefore `unknown`, unsupported capabilities
+/// are `not_required`, and the remaining checks are `unmanaged`. No readiness credit
+/// is awarded until the repository has an explicit SSOT identity.
+pub fn classify_unmanaged_readiness(details: &mut [AgentReadinessItem]) {
+    for item in details {
+        let prior = item.status.as_deref();
+        let discovered = item.score > 0
+            || matches!(
+                prior,
+                Some(STATUS_DETECTED_ONLY | STATUS_GLOBAL_ONLY | STATUS_READY | STATUS_PARTIAL)
+            );
+        let next = if prior == Some(STATUS_NOT_REQUIRED) {
+            STATUS_NOT_REQUIRED
+        } else if discovered {
+            STATUS_UNKNOWN
+        } else {
+            STATUS_UNMANAGED
+        };
+        item.score = 0;
+        item.status = Some(next.to_string());
+        item.detail = match next {
+            STATUS_UNKNOWN => format!(
+                "{}（检测到线索，但项目尚未纳入 OpenSunstar，无法确认治理状态）",
+                item.detail
+            ),
+            STATUS_UNMANAGED => "项目尚未纳入 OpenSunstar，不能判定为缺失".to_string(),
+            _ => item.detail.clone(),
+        };
+    }
+}
+
+pub fn readiness_item_is_actionable_gap(item: &AgentReadinessItem) -> bool {
+    item.score < item.weight
+        && !matches!(
+            item.status.as_deref(),
+            Some(STATUS_NOT_REQUIRED | STATUS_UNMANAGED | STATUS_UNKNOWN)
+        )
+}
+
 pub fn detect_repo_mcp_file(project_path: &str) -> bool {
     std::path::Path::new(project_path)
         .join(".mcp.json")
@@ -435,7 +483,7 @@ mod tests {
     }
 
     #[test]
-    fn codex_skips_unsupported_gaps() {
+    fn codex_penalizes_supported_asset_gaps() {
         let input = ReadinessCheckInput {
             recent_update_within_90d: true,
             target_app: Some("codex".to_string()),
@@ -446,19 +494,19 @@ mod tests {
             .iter()
             .find(|i| i.check_name == "commands_configured")
             .unwrap();
-        assert_eq!(commands.score, 10);
-        assert_eq!(commands.status.as_deref(), Some(STATUS_PARTIAL));
+        assert_eq!(commands.score, 0);
+        assert_eq!(commands.status.as_deref(), Some(STATUS_MISSING));
         let hooks = items
             .iter()
             .find(|i| i.check_name == "hooks_configured")
             .unwrap();
-        assert_eq!(hooks.score, 10);
+        assert_eq!(hooks.score, 0);
         let perms = items
             .iter()
             .find(|i| i.check_name == "permissions")
             .unwrap();
-        assert_eq!(perms.score, 10);
-        assert_eq!(score, 39);
+        assert_eq!(perms.score, 0);
+        assert_eq!(score, 9);
     }
 
     #[test]
@@ -479,21 +527,15 @@ mod tests {
     }
 
     #[test]
-    fn claude_desktop_unsupported_items_excluded() {
+    fn claude_desktop_uses_claude_code_scoring() {
         let input = ReadinessCheckInput {
             recent_update_within_90d: true,
             target_app: Some("claude-desktop".to_string()),
             ..Default::default()
         };
         let (score, items) = compute_readiness_items(&input);
-        // MCP is unsupported for claude-desktop
-        let mcp = items
-            .iter()
-            .find(|i| i.check_name == "mcp_enabled")
-            .unwrap();
-        assert_eq!(mcp.score, 0);
-        assert_eq!(mcp.status.as_deref(), Some(STATUS_NOT_APPLICABLE));
-        // All asset types are unsupported for claude-desktop
+        // normalize_target_app 会按 Claude Code 能力矩阵评估 Claude Desktop，
+        // 因此受支持但未配置的资产应记为缺口。
         for check in &[
             "mcp_enabled",
             "skills_configured",
@@ -508,12 +550,58 @@ mod tests {
             assert_eq!(item.score, 0, "{} should score 0 for claude-desktop", check);
             assert_eq!(
                 item.status.as_deref(),
-                Some(STATUS_NOT_APPLICABLE),
-                "{} should be not_applicable for claude-desktop",
+                Some(STATUS_MISSING),
+                "{} should be missing under Claude Code scoring",
                 check
             );
         }
         // Only recent_updates contributes to score
         assert_eq!(score, 9);
+    }
+
+    #[test]
+    fn unmanaged_project_is_not_reported_as_missing() {
+        let input = ReadinessCheckInput {
+            prompt_files: vec!["AGENTS.md".to_string()],
+            target_app: Some("codex".to_string()),
+            ..Default::default()
+        };
+        let (_, mut items) = compute_readiness_items(&input);
+
+        classify_unmanaged_readiness(&mut items);
+
+        assert!(items
+            .iter()
+            .all(|item| item.status.as_deref() != Some(STATUS_MISSING)));
+        assert_eq!(
+            items
+                .iter()
+                .find(|item| item.check_name == "prompt_files")
+                .and_then(|item| item.status.as_deref()),
+            Some(STATUS_UNKNOWN)
+        );
+        assert_eq!(
+            items
+                .iter()
+                .find(|item| item.check_name == "skills_configured")
+                .and_then(|item| item.status.as_deref()),
+            Some(STATUS_UNMANAGED)
+        );
+        assert!(items.iter().all(|item| item.score == 0));
+    }
+
+    #[test]
+    fn unsupported_asset_is_not_required() {
+        let input = ReadinessCheckInput {
+            target_app: Some("openclaw".to_string()),
+            ..Default::default()
+        };
+        let (_, items) = compute_readiness_items(&input);
+        let mcp = items
+            .iter()
+            .find(|item| item.check_name == "mcp_enabled")
+            .unwrap();
+        assert_eq!(mcp.status.as_deref(), Some(STATUS_NOT_REQUIRED));
+        assert_eq!(mcp.score, mcp.weight);
     }
 }

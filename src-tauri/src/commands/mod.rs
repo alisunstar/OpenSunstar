@@ -42,6 +42,7 @@ mod settings;
 pub mod skill;
 mod stream_check;
 mod subscription;
+mod subscription_accounts;
 mod sync_support;
 
 mod asset_health;
@@ -98,6 +99,7 @@ pub use recipe_composer::*;
 pub use sdd::*;
 pub use session_manager::*;
 pub use settings::*;
+pub use subscription_accounts::*;
 pub use skill::*;
 pub use stream_check::*;
 pub use subscription::*;

@@ -10,7 +10,7 @@ use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
 use crate::agent::agent_sync_supported;
-use crate::ai::agent_readiness::STATUS_MISSING;
+use crate::ai::agent_readiness::{STATUS_MISSING, STATUS_NOT_REQUIRED, STATUS_UNHEALTHY};
 use crate::ai::asset_app_support::{asset_support, normalize_target_app, AssetSupport};
 use crate::ai::types::AgentReadinessItem;
 use crate::app_config::AppType;
@@ -141,7 +141,7 @@ fn normalize_json_value(value: &Value) -> Value {
 
 pub fn derive_configured_state(item: &AgentReadinessItem) -> &'static str {
     match item.status.as_deref() {
-        Some(STATUS_MISSING) => UNCONFIGURED,
+        Some(STATUS_MISSING | STATUS_NOT_REQUIRED) => UNCONFIGURED,
         Some(_) if item.score > 0 => CONFIGURED,
         _ if item.score > 0 => CONFIGURED,
         _ => UNCONFIGURED,
@@ -1663,6 +1663,10 @@ pub fn merge_effective_into_details(
             item.effective_detail = eff.effective_detail.clone();
             item.effective_scanned_at = Some(scan.scanned_at);
             item.live_path = eff.live_path.clone();
+            if eff.effective_state == DRIFTED {
+                item.status = Some(STATUS_UNHEALTHY.to_string());
+                item.score = 0;
+            }
         }
     }
 }
@@ -1727,5 +1731,38 @@ mod tests {
         );
         assert_eq!(state.effective_state, DRIFTED);
         assert!(state.effective_detail.unwrap().contains("a、b"));
+    }
+
+    #[test]
+    fn drifted_item_is_reported_as_unhealthy_and_loses_readiness_credit() {
+        let mut details = vec![AgentReadinessItem {
+            check_name: "mcp_enabled".into(),
+            label: "MCP".into(),
+            weight: 15,
+            score: 15,
+            detail: "configured".into(),
+            status: Some("ready".into()),
+            configured_state: None,
+            effective_state: None,
+            effective_detail: None,
+            effective_scanned_at: None,
+            live_path: None,
+        }];
+        let scan = EffectiveScanResult {
+            scanned_at: 42,
+            target_app: "claude".into(),
+            items: vec![EffectiveItemState {
+                check_name: "mcp_enabled".into(),
+                configured_state: CONFIGURED.into(),
+                effective_state: DRIFTED.into(),
+                effective_detail: Some("live file differs".into()),
+                live_path: Some(".mcp.json".into()),
+            }],
+        };
+
+        merge_effective_into_details(&mut details, &scan);
+
+        assert_eq!(details[0].status.as_deref(), Some("unhealthy"));
+        assert_eq!(details[0].score, 0);
     }
 }

@@ -2,7 +2,7 @@ use crate::database::{lock_conn, Database};
 use crate::error::AppError;
 use crate::provider::{Provider, ProviderMeta};
 use indexmap::IndexMap;
-use rusqlite::params;
+use rusqlite::{params, OptionalExtension};
 use std::collections::{HashMap, HashSet};
 
 type OmoProviderRow = (
@@ -183,6 +183,17 @@ impl Database {
             .transaction()
             .map_err(|e| AppError::Database(e.to_string()))?;
 
+        let settings_config = if app_type == "codex" {
+            crate::codex_config::sanitize_codex_settings_for_storage_with_category(
+                &provider.settings_config,
+                provider.category.as_deref(),
+            )
+        } else {
+            provider.settings_config.clone()
+        };
+        let settings_config_json = serde_json::to_string(&settings_config)
+            .map_err(|e| AppError::Database(format!("Failed to serialize settings_config: {e}")))?;
+
         let mut meta_clone = provider.meta.clone().unwrap_or_default();
         let endpoints = std::mem::take(&mut meta_clone.custom_endpoints);
 
@@ -216,9 +227,7 @@ impl Database {
                 WHERE id = ?13 AND app_type = ?14",
                 params![
                     provider.name,
-                    serde_json::to_string(&provider.settings_config).map_err(|e| {
-                        AppError::Database(format!("Failed to serialize settings_config: {e}"))
-                    })?,
+                    settings_config_json,
                     provider.website_url,
                     provider.category,
                     provider.created_at,
@@ -246,8 +255,7 @@ impl Database {
                     provider.id,
                     app_type,
                     provider.name,
-                    serde_json::to_string(&provider.settings_config)
-                        .map_err(|e| AppError::Database(format!("Failed to serialize settings_config: {e}")))?,
+                    settings_config_json,
                     provider.website_url,
                     provider.category,
                     provider.created_at,
@@ -331,12 +339,29 @@ impl Database {
         settings_config: &serde_json::Value,
     ) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
+        let settings_config = if app_type == "codex" {
+            let category: Option<String> = conn
+                .query_row(
+                    "SELECT category FROM providers WHERE id = ?1 AND app_type = ?2",
+                    params![provider_id, app_type],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| AppError::Database(e.to_string()))?
+                .flatten();
+            crate::codex_config::sanitize_codex_settings_for_storage_with_category(
+                settings_config,
+                category.as_deref(),
+            )
+        } else {
+            settings_config.clone()
+        };
         conn.execute(
             "UPDATE providers SET settings_config = ?1 WHERE id = ?2 AND app_type = ?3",
             params![
-                serde_json::to_string(settings_config).map_err(|e| AppError::Database(format!(
-                    "Failed to serialize settings_config: {e}"
-                )))?,
+                serde_json::to_string(&settings_config).map_err(|e| AppError::Database(
+                    format!("Failed to serialize settings_config: {e}")
+                ))?,
                 provider_id,
                 app_type
             ],

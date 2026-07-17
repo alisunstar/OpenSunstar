@@ -86,6 +86,28 @@ pub enum CodexOAuthError {
 
     #[error("账号不存在: {0}")]
     AccountNotFound(String),
+
+    #[error("安全凭据库错误: {0}")]
+    SecureStorage(String),
+}
+
+fn refresh_token_entry_key(account_id: &str) -> String {
+    format!("subscription/codex_oauth/{account_id}/refresh_token")
+}
+
+fn protect_refresh_token(account_id: &str, refresh_token: &str) -> Result<String, CodexOAuthError> {
+    if crate::keychain::is_keychain_ref(refresh_token) {
+        return Ok(refresh_token.to_string());
+    }
+    let key = refresh_token_entry_key(account_id);
+    crate::keychain::store_secret(&key, refresh_token)
+        .map_err(|error| CodexOAuthError::SecureStorage(error.to_string()))?;
+    Ok(crate::keychain::make_keychain_ref(&key))
+}
+
+fn resolve_refresh_token(value: &str) -> Result<String, CodexOAuthError> {
+    crate::keychain::resolve_value(value)
+        .map_err(|error| CodexOAuthError::SecureStorage(error.to_string()))
 }
 
 impl From<reqwest::Error> for CodexOAuthError {
@@ -529,22 +551,24 @@ impl CodexOAuthManager {
             }
         }
 
-        let refresh_token = {
+        let stored_refresh_token = {
             let accounts = self.accounts.read().await;
             accounts
                 .get(account_id)
                 .map(|a| a.refresh_token.clone())
                 .ok_or_else(|| CodexOAuthError::AccountNotFound(account_id.to_string()))?
         };
+        let refresh_token = resolve_refresh_token(&stored_refresh_token)?;
 
         let new_tokens = self.refresh_with_token(&refresh_token).await?;
 
         // 如果服务端返回了新的 refresh_token，更新存储
         if let Some(new_refresh) = new_tokens.refresh_token.clone() {
             if new_refresh != refresh_token {
+                let protected_refresh = protect_refresh_token(account_id, &new_refresh)?;
                 let mut accounts = self.accounts.write().await;
                 if let Some(account) = accounts.get_mut(account_id) {
-                    account.refresh_token = new_refresh;
+                    account.refresh_token = protected_refresh;
                 }
                 drop(accounts);
                 self.save_to_disk().await?;
@@ -594,11 +618,15 @@ impl CodexOAuthManager {
     pub async fn remove_account(&self, account_id: &str) -> Result<(), CodexOAuthError> {
         log::info!("[CodexOAuth] 移除账号: {account_id}");
 
-        {
+        let removed = {
             let mut accounts = self.accounts.write().await;
-            if accounts.remove(account_id).is_none() {
-                return Err(CodexOAuthError::AccountNotFound(account_id.to_string()));
-            }
+            accounts
+                .remove(account_id)
+                .ok_or_else(|| CodexOAuthError::AccountNotFound(account_id.to_string()))?
+        };
+        if let Some(key) = crate::keychain::extract_ref_key(&removed.refresh_token) {
+            crate::keychain::delete_secret(key)
+                .map_err(|error| CodexOAuthError::SecureStorage(error.to_string()))?;
         }
 
         {
@@ -642,9 +670,15 @@ impl CodexOAuthManager {
     pub async fn clear_auth(&self) -> Result<(), CodexOAuthError> {
         log::info!("[CodexOAuth] 清除所有认证");
 
-        {
+        let removed_accounts = {
             let mut accounts = self.accounts.write().await;
-            accounts.clear();
+            std::mem::take(&mut *accounts)
+        };
+        for account in removed_accounts.values() {
+            if let Some(key) = crate::keychain::extract_ref_key(&account.refresh_token) {
+                crate::keychain::delete_secret(key)
+                    .map_err(|error| CodexOAuthError::SecureStorage(error.to_string()))?;
+            }
         }
         {
             let mut default = self.default_account_id.write().await;
@@ -705,10 +739,11 @@ impl CodexOAuthManager {
     ) -> Result<GitHubAccount, CodexOAuthError> {
         let now = chrono::Utc::now().timestamp();
 
+        let protected_refresh = protect_refresh_token(&account_id, &refresh_token)?;
         let data = CodexAccountData {
             account_id: account_id.clone(),
             email,
-            refresh_token,
+            refresh_token: protected_refresh,
             authenticated_at: now,
         };
 
@@ -847,8 +882,31 @@ impl CodexOAuthManager {
         }
 
         let content = std::fs::read_to_string(&self.storage_path)?;
-        let store: CodexOAuthStore = serde_json::from_str(&content)
+        let mut store: CodexOAuthStore = serde_json::from_str(&content)
             .map_err(|e| CodexOAuthError::ParseError(e.to_string()))?;
+
+        // v1 曾将 refresh_token 直接写入 JSON。加载时一次性迁移到系统安全凭据库，
+        // 磁盘只保留 keychain 引用；迁移失败则保持旧值以避免无声丢失认证。
+        let mut migrated = false;
+        for account in store.accounts.values_mut() {
+            if !crate::keychain::is_keychain_ref(&account.refresh_token) {
+                match protect_refresh_token(&account.account_id, &account.refresh_token) {
+                    Ok(reference) => {
+                        account.refresh_token = reference;
+                        migrated = true;
+                    }
+                    Err(error) => log::warn!(
+                        "[CodexOAuth] 未能迁移账号 {} 到安全凭据库: {error}",
+                        account.account_id
+                    ),
+                }
+            }
+        }
+        if migrated {
+            let migrated_content = serde_json::to_string_pretty(&store)
+                .map_err(|e| CodexOAuthError::ParseError(e.to_string()))?;
+            self.write_store_atomic(&migrated_content)?;
+        }
 
         if let Ok(mut accounts) = self.accounts.try_write() {
             *accounts = store.accounts;
@@ -1101,6 +1159,44 @@ mod tests {
         let accounts = manager2.list_accounts().await;
         assert_eq!(accounts.len(), 1);
         assert_eq!(accounts[0].id, "acc-123");
+    }
+
+    #[tokio::test]
+    async fn test_refresh_token_is_not_written_to_the_account_store() {
+        let temp = tempfile::tempdir().unwrap();
+        let manager = CodexOAuthManager::new(temp.path().to_path_buf());
+        manager
+            .add_account_internal("acc-safe".to_string(), "rt-sensitive".to_string(), None)
+            .await
+            .unwrap();
+
+        let persisted = std::fs::read_to_string(temp.path().join("codex_oauth_auth.json")).unwrap();
+        assert!(!persisted.contains("rt-sensitive"));
+        assert!(persisted.contains("keychain://ref/"));
+    }
+
+    #[tokio::test]
+    async fn test_logout_removes_refresh_token_from_secure_storage() {
+        let temp = tempfile::tempdir().unwrap();
+        let manager = CodexOAuthManager::new(temp.path().to_path_buf());
+        let account_id = "acc-logout";
+        manager
+            .add_account_internal(account_id.to_string(), "rt-sensitive".to_string(), None)
+            .await
+            .unwrap();
+        assert!(
+            crate::keychain::get_secret(&refresh_token_entry_key(account_id))
+                .unwrap()
+                .is_some()
+        );
+
+        manager.clear_auth().await.unwrap();
+
+        assert!(
+            crate::keychain::get_secret(&refresh_token_entry_key(account_id))
+                .unwrap()
+                .is_none()
+        );
     }
 
     #[tokio::test]

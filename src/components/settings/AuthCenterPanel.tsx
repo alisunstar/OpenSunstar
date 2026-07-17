@@ -5,6 +5,7 @@ import { CodexIcon } from "@/components/BrandIcons";
 import { CopilotAuthSection } from "@/components/providers/forms/CopilotAuthSection";
 import { CodexOAuthSection } from "@/components/providers/forms/CodexOAuthSection";
 import { LocalCliAuthStatusPanel } from "@/components/settings/LocalCliAuthStatusPanel";
+import { SubscriptionAccountsPanel } from "@/components/settings/SubscriptionAccountsPanel";
 
 export function AuthCenterPanel() {
   const { t } = useTranslation();
@@ -34,6 +35,8 @@ export function AuthCenterPanel() {
           </Badge>
         </div>
       </section>
+
+      <SubscriptionAccountsPanel />
 
       <LocalCliAuthStatusPanel />
 

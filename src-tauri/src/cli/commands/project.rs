@@ -44,16 +44,19 @@ pub fn run(
                 Some(p) => p,
                 None => {
                     let projects = open_sunstar_lib::cli_api::cli_project_list(state)?;
-                    if projects.is_empty() {
-                        return Err("No projects registered".to_string());
-                    }
-                    let display: Vec<String> = projects
-                        .iter()
-                        .map(|p| format!("{} — {}", p.name, p.path))
-                        .collect();
-                    match output::select("Select project", &display, json) {
-                        Some(idx) => projects[idx].path.clone(),
-                        None => return Err("No project selected".to_string()),
+                    if projects.is_empty() || json {
+                        std::env::current_dir()
+                            .map(|path| path.to_string_lossy().to_string())
+                            .map_err(|error| error.to_string())?
+                    } else {
+                        let display: Vec<String> = projects
+                            .iter()
+                            .map(|p| format!("{} — {}", p.name, p.path))
+                            .collect();
+                        match output::select("Select project", &display, json) {
+                            Some(idx) => projects[idx].path.clone(),
+                            None => return Err("No project selected".to_string()),
+                        }
                     }
                 }
             };
@@ -84,19 +87,30 @@ fn run_list(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String
 }
 
 fn run_scan(
-    _state: &open_sunstar_lib::AppState,
+    state: &open_sunstar_lib::AppState,
     project_path: &str,
     save: bool,
     json: bool,
 ) -> Result<(), String> {
-    let results = open_sunstar_lib::cli_api::cli_sdd_detect(project_path);
-
-    if save {
-        output::warning("保存功能暂未实现 (cli_project_save_scan)，请使用 GUI 保存检测结果。");
-    }
+    let saved = if save {
+        Some(open_sunstar_lib::cli_api::cli_project_save_scan(
+            state,
+            project_path,
+        )?)
+    } else {
+        None
+    };
+    let results = saved
+        .as_ref()
+        .map(|result| result.detections.clone())
+        .unwrap_or_else(|| open_sunstar_lib::cli_api::cli_sdd_detect(project_path));
 
     if json {
-        output::print_result(&results, true);
+        if let Some(saved) = saved {
+            output::print_result(&saved, true);
+        } else {
+            output::print_result(&results, true);
+        }
     } else {
         output::header(&format!("Framework Detection: {project_path}"));
         eprintln!();
@@ -155,8 +169,12 @@ fn run_scan(
             output::info("No frameworks detected. Consider `review-only` preset.");
         }
 
-        if save {
-            output::dim("(保存功能暂未实现)");
+        if let Some(saved) = saved {
+            if saved.registered_now {
+                output::success(&format!("Project adopted: {}", saved.project_id));
+            } else {
+                output::success(&format!("Project scan refreshed: {}", saved.project_id));
+            }
         }
     }
 
@@ -175,6 +193,10 @@ fn run_status(
     } else {
         // ── Project metadata ──
         output::header(&format!("Project: {}", ctx.project.name));
+        output::info(&format!(
+            "  Managed:    {}",
+            if ctx.managed { "yes" } else { "no" }
+        ));
         output::info(&format!("  Path:       {}", ctx.project.path));
         output::info(&format!("  Stage:      {}", ctx.project.stage));
         if let Some(ref target) = ctx.project.target_app {
@@ -185,6 +207,9 @@ fn run_status(
         }
         if let Some(ref git) = ctx.project.git_remote_url {
             output::info(&format!("  Git Remote: {git}"));
+        }
+        if !ctx.managed {
+            output::info("  Adopt with: os project scan --project-path <path> --save");
         }
 
         eprintln!();

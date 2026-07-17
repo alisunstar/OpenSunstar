@@ -75,6 +75,14 @@ impl Database {
 
             for (id, provider) in &manager.providers {
                 let is_current = if id == current_id { 1 } else { 0 };
+                let settings_config = if app_type == "codex" {
+                    crate::codex_config::sanitize_codex_settings_for_storage_with_category(
+                        &provider.settings_config,
+                        provider.category.as_deref(),
+                    )
+                } else {
+                    provider.settings_config.clone()
+                };
 
                 // 处理 meta 和 endpoints
                 let mut meta_clone = provider.meta.clone().unwrap_or_default();
@@ -89,7 +97,7 @@ impl Database {
                         id,
                         app_type,
                         provider.name,
-                        to_json_string(&provider.settings_config)?,
+                        to_json_string(&settings_config)?,
                         provider.website_url,
                         provider.category,
                         provider.created_at,

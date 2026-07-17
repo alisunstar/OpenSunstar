@@ -4,8 +4,9 @@
 
 use super::{lock_conn, Database, SCHEMA_VERSION};
 use crate::error::AppError;
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::Serialize;
+use serde_json::Value;
 
 #[derive(Serialize)]
 struct LegacySkillMigrationRow {
@@ -628,6 +629,13 @@ impl Database {
                         log::info!("Migrating database from v35 to v36 (auditable model pricing provenance)");
                         Self::migrate_v35_to_v36(conn)?;
                         Self::set_user_version(conn, 36)?;
+                    }
+                    36 => {
+                        log::info!(
+                            "Migrating database from v36 to v37 (Codex credential isolation)"
+                        );
+                        Self::migrate_v36_to_v37(conn)?;
+                        Self::set_user_version(conn, 37)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -2253,11 +2261,133 @@ impl Database {
     }
 
     fn migrate_v35_to_v36(conn: &Connection) -> Result<(), AppError> {
+        // 部分历史/测试数据库只保留了业务表，不能假设旧迁移一定创建过定价表。
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS model_pricing (
+                model_id TEXT PRIMARY KEY, display_name TEXT NOT NULL,
+                input_cost_per_million TEXT NOT NULL, output_cost_per_million TEXT NOT NULL,
+                cache_read_cost_per_million TEXT NOT NULL DEFAULT '0',
+                cache_creation_cost_per_million TEXT NOT NULL DEFAULT '0'
+            )",
+            [],
+        )
+        .map_err(|e| AppError::Database(format!("创建 model_pricing 表失败: {e}")))?;
         Self::create_model_pricing_provenance_table(conn)?;
         // 旧数据库尚未包含 GPT-5.6 价格时，先用 INSERT OR IGNORE 补齐内置项；
         // 既有用户自定义价格不会被覆盖。
         Self::seed_model_pricing(conn)?;
         Self::seed_gpt_5_6_pricing_provenance(conn)
+    }
+
+    fn migrate_v36_to_v37(conn: &Connection) -> Result<(), AppError> {
+        if Self::table_exists(conn, "providers")? {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, settings_config, category FROM providers WHERE app_type = 'codex'",
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let rows: Vec<(String, String, Option<String>)> = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)))
+                .map_err(|e| AppError::Database(e.to_string()))?
+                .collect::<Result<_, _>>()
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            drop(stmt);
+
+            for (id, settings_json, category) in rows {
+                let settings: Value = serde_json::from_str(&settings_json).map_err(|e| {
+                    AppError::Database(format!(
+                        "解析 Codex Provider 凭据清理数据失败（provider={id}）: {e}"
+                    ))
+                })?;
+                let sanitized =
+                    crate::codex_config::sanitize_codex_settings_for_storage_with_category(
+                        &settings,
+                        category.as_deref(),
+                    );
+                let sanitized = serde_json::to_string(&sanitized)
+                    .map_err(|e| AppError::Serialization(e.to_string()))?;
+                conn.execute(
+                    "UPDATE providers SET settings_config = ?1 WHERE id = ?2 AND app_type = 'codex'",
+                    params![sanitized, id],
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            }
+        }
+
+        if Self::table_exists(conn, "proxy_live_backup")? {
+            let encrypted: Option<String> = conn
+                .query_row(
+                    "SELECT original_config FROM proxy_live_backup WHERE app_type = 'codex'",
+                    [],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            if let Some(encrypted) = encrypted {
+                let sanitized = crate::keychain::open_local_secret(&encrypted)
+                    .ok()
+                    .and_then(|json| serde_json::from_str::<Value>(&json).ok())
+                    .and_then(|settings| {
+                        crate::codex_config::sanitize_codex_live_backup_for_storage(&settings).ok()
+                    })
+                    .and_then(|settings| serde_json::to_string(&settings).ok())
+                    .and_then(|json| crate::keychain::seal_local_secret(&json).ok());
+                if let Some(sanitized) = sanitized {
+                    conn.execute(
+                        "UPDATE proxy_live_backup SET original_config = ?1 WHERE app_type = 'codex'",
+                        [sanitized],
+                    )
+                    .map_err(|e| AppError::Database(e.to_string()))?;
+                } else {
+                    log::warn!("无法安全清理旧 Codex Live 备份，已删除该凭据快照");
+                    conn.execute("DELETE FROM proxy_live_backup WHERE app_type = 'codex'", [])
+                        .map_err(|e| AppError::Database(e.to_string()))?;
+                }
+            }
+        }
+
+        if Self::table_exists(conn, "quick_start_operations")? {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT id, live_snapshot FROM quick_start_operations
+                     WHERE app_type = 'codex' AND live_snapshot IS NOT NULL",
+                )
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            let rows: Vec<(String, String)> = stmt
+                .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .map_err(|e| AppError::Database(e.to_string()))?
+                .collect::<Result<_, _>>()
+                .map_err(|e| AppError::Database(e.to_string()))?;
+            drop(stmt);
+
+            for (id, encrypted) in rows {
+                let sanitized = crate::keychain::open_local_secret(&encrypted)
+                    .ok()
+                    .and_then(|json| serde_json::from_str::<Value>(&json).ok())
+                    .and_then(|mut snapshot| {
+                        let codex = snapshot.pointer_mut("/Provider/Codex")?.as_object_mut()?;
+                        codex.insert("auth".to_string(), Value::Null);
+                        serde_json::to_string(&snapshot).ok()
+                    })
+                    .and_then(|json| crate::keychain::seal_local_secret(&json).ok());
+                if let Some(sanitized) = sanitized {
+                    conn.execute(
+                        "UPDATE quick_start_operations SET live_snapshot = ?1 WHERE id = ?2",
+                        params![sanitized, id],
+                    )
+                    .map_err(|e| AppError::Database(e.to_string()))?;
+                } else {
+                    log::warn!("无法安全清理旧 Codex QuickStart 快照，已删除该凭据快照");
+                    conn.execute(
+                        "UPDATE quick_start_operations SET live_snapshot = NULL WHERE id = ?1",
+                        [id],
+                    )
+                    .map_err(|e| AppError::Database(e.to_string()))?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     fn create_model_pricing_provenance_table(conn: &Connection) -> Result<(), AppError> {
@@ -3420,7 +3550,10 @@ impl Database {
         }
 
         log::info!("已插入 {} 条默认模型定价数据", pricing_data.len());
-        Self::seed_gpt_5_6_pricing_provenance(conn)?;
+        // 早期迁移也会调用本函数，当时来源表尚未创建；仅在表已存在时写入来源。
+        if Self::table_exists(conn, "model_pricing_provenance")? {
+            Self::seed_gpt_5_6_pricing_provenance(conn)?;
+        }
         Ok(())
     }
 

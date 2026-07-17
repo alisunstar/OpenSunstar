@@ -674,8 +674,8 @@
     "skipClaudeOnboarding": "跳過 Claude Code 初次安裝確認",
     "skipClaudeOnboardingDescription": "開啟後跳過 Claude Code 初次安裝確認",
     "codexAuth": "Codex 應用增強",
-    "preserveCodexOfficialAuthOnSwitch": "切換第三方時保留官方登入",
-    "preserveCodexOfficialAuthOnSwitchDescription": "開啟後可以在使用第三方 API 的時候使用 Codex 應用的官方外掛、手機遠端操作等功能",
+    "preserveCodexOfficialAuthOnSwitch": "Codex 官方登入保護",
+    "preserveCodexOfficialAuthOnSwitchDescription": "始終開啟：供應商切換和本機代理不會覆寫或儲存 Codex 官方登入憑據",
     "appVisibility": {
       "title": "主頁面顯示",
       "description": "選擇在主頁面顯示的應用程式",

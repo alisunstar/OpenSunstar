@@ -10,20 +10,24 @@ use std::time::Duration;
 const CODEX_OAUTH_MODELS_URL: &str = "https://chatgpt.com/backend-api/codex/models";
 const CODEX_OAUTH_FETCH_TIMEOUT_SECS: u64 = 15;
 const ERROR_BODY_MAX_CHARS: usize = 512;
-const CODEX_OAUTH_CLIENT_VERSION: &str = env!("CARGO_PKG_VERSION");
-
 pub async fn fetch_models_with_token(
     token: &str,
     account_id: &str,
 ) -> Result<Vec<FetchedModel>, String> {
     let client = crate::proxy::http_client::get();
-    let response = client
+    let mut request = client
         .get(CODEX_OAUTH_MODELS_URL)
-        .query(&[("client_version", CODEX_OAUTH_CLIENT_VERSION)])
+        .query(&[(
+            "client_version",
+            crate::proxy::providers::CODEX_COMPAT_CLIENT_VERSION,
+        )])
         .header("Authorization", format!("Bearer {token}"))
-        .header("originator", "OpenSunstar")
         .header("chatgpt-account-id", account_id)
-        .timeout(Duration::from_secs(CODEX_OAUTH_FETCH_TIMEOUT_SECS))
+        .timeout(Duration::from_secs(CODEX_OAUTH_FETCH_TIMEOUT_SECS));
+    for (name, value) in crate::proxy::providers::codex_official_client_identity_headers() {
+        request = request.header(name, value);
+    }
+    let response = request
         .send()
         .await
         .map_err(|e| format!("Request failed: {e}"))?;

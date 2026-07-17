@@ -12,7 +12,7 @@ fn v32_to_current_encrypts_existing_proxy_live_backups() {
         conn.execute(
             "INSERT OR REPLACE INTO proxy_live_backup (app_type, original_config, backed_up_at)
              VALUES ('codex', ?1, datetime('now'))",
-            [r#"{"auth":{"OPENAI_API_KEY":"legacy-plaintext-secret"}}"#],
+            [r#"{"auth":{"OPENAI_API_KEY":"legacy-plaintext-secret","tokens":{"access_token":"legacy-oauth-secret"}},"config":"model_provider = \"custom\"\n\n[model_providers.custom]\nbase_url = \"https://example.test/v1\"\nwire_api = \"responses\"\n"}"#],
         )
         .expect("insert legacy backup");
         Database::set_user_version(&conn, 32).expect("set v32");
@@ -32,6 +32,144 @@ fn v32_to_current_encrypts_existing_proxy_live_backups() {
         .expect("read backup");
     assert!(raw.starts_with("enc:v1:"));
     assert!(!raw.contains("legacy-plaintext-secret"));
+    assert!(!raw.contains("legacy-oauth-secret"));
+
+    let restored = futures::executor::block_on(db.get_live_backup("codex"))
+        .expect("decrypt migrated backup")
+        .expect("migrated backup exists");
+    let restored: serde_json::Value =
+        serde_json::from_str(&restored.original_config).expect("parse migrated backup");
+    assert_eq!(restored.get("auth"), Some(&json!({})));
+    assert!(!restored.to_string().contains("legacy-oauth-secret"));
+}
+
+#[test]
+fn v36_to_current_scrubs_codex_credentials_from_all_persisted_snapshots() {
+    let db = Database::memory().expect("database");
+    let legacy_config =
+        "model_provider = \"custom\"\n\n[model_providers.custom]\nbase_url = \"https://example.test/v1\"\nwire_api = \"responses\"\n";
+    let legacy_settings = json!({
+        "auth": {
+            "OPENAI_API_KEY": "third-party-key",
+            "tokens": {
+                "access_token": "oauth-access",
+                "refresh_token": "oauth-refresh"
+            }
+        },
+        "config": legacy_config
+    });
+    let official_settings = json!({
+        "auth": {
+            "OPENAI_API_KEY": "official-api-key",
+            "tokens": {"access_token": "official-oauth-access"}
+        },
+        "config": ""
+    });
+    let backup = crate::keychain::seal_local_secret(&legacy_settings.to_string())
+        .expect("seal legacy backup");
+    let quick_start_snapshot = crate::keychain::seal_local_secret(
+        &json!({
+            "Provider": {
+                "Codex": {
+                    "auth": {"tokens": {"access_token": "quick-start-oauth"}},
+                    "config": legacy_config,
+                    "model_catalog": null
+                }
+            }
+        })
+        .to_string(),
+    )
+    .expect("seal QuickStart snapshot");
+
+    {
+        let conn = db.conn.lock().expect("lock");
+        conn.execute(
+            "INSERT OR REPLACE INTO providers
+             (id, app_type, name, settings_config, category, meta)
+             VALUES ('legacy-custom', 'codex', 'Legacy Custom', ?1, 'custom', '{}')",
+            [legacy_settings.to_string()],
+        )
+        .expect("insert custom provider");
+        conn.execute(
+            "INSERT OR REPLACE INTO providers
+             (id, app_type, name, settings_config, category, meta)
+             VALUES ('legacy-official', 'codex', 'Legacy Official', ?1, 'official', '{}')",
+            [official_settings.to_string()],
+        )
+        .expect("insert official provider");
+        conn.execute(
+            "INSERT OR REPLACE INTO proxy_live_backup
+             (app_type, original_config, backed_up_at)
+             VALUES ('codex', ?1, datetime('now'))",
+            [backup],
+        )
+        .expect("insert encrypted backup");
+        conn.execute(
+            "INSERT INTO quick_start_operations
+             (id, idempotency_key, request_fingerprint, app_type, status, current_step,
+              created_at, updated_at, live_snapshot)
+             VALUES ('legacy-quick-start', 'legacy-quick-start-key', 'sha256:test', 'codex',
+                     'succeeded', 'done', datetime('now'), datetime('now'), ?1)",
+            [quick_start_snapshot],
+        )
+        .expect("insert QuickStart snapshot");
+        Database::set_user_version(&conn, 36).expect("set v36");
+    }
+
+    db.apply_schema_migrations().expect("migrate to current");
+
+    let custom = db
+        .get_provider_by_id("legacy-custom", "codex")
+        .expect("read custom provider")
+        .expect("custom provider exists");
+    assert_eq!(
+        custom.settings_config.get("auth"),
+        Some(&json!({"OPENAI_API_KEY": "third-party-key"}))
+    );
+    assert!(!custom.settings_config.to_string().contains("oauth-access"));
+    assert!(!custom.settings_config.to_string().contains("oauth-refresh"));
+
+    let official = db
+        .get_provider_by_id("legacy-official", "codex")
+        .expect("read official provider")
+        .expect("official provider exists");
+    assert_eq!(official.settings_config.get("auth"), Some(&json!({})));
+    assert!(!official
+        .settings_config
+        .to_string()
+        .contains("official-api-key"));
+    assert!(!official
+        .settings_config
+        .to_string()
+        .contains("official-oauth-access"));
+
+    let backup = futures::executor::block_on(db.get_live_backup("codex"))
+        .expect("read migrated backup")
+        .expect("backup exists");
+    let backup: serde_json::Value =
+        serde_json::from_str(&backup.original_config).expect("parse migrated backup");
+    assert_eq!(backup.get("auth"), Some(&json!({})));
+    assert!(!backup.to_string().contains("oauth-access"));
+    assert!(!backup.to_string().contains("oauth-refresh"));
+
+    let sealed_snapshot: String = db
+        .conn
+        .lock()
+        .expect("lock")
+        .query_row(
+            "SELECT live_snapshot FROM quick_start_operations WHERE id = 'legacy-quick-start'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read migrated QuickStart snapshot");
+    let snapshot = crate::keychain::open_local_secret(&sealed_snapshot)
+        .expect("open migrated QuickStart snapshot");
+    let snapshot: serde_json::Value =
+        serde_json::from_str(&snapshot).expect("parse migrated QuickStart snapshot");
+    assert!(snapshot
+        .pointer("/Provider/Codex/auth")
+        .is_some_and(|v| v.is_null()));
+    assert!(!snapshot.to_string().contains("quick-start-oauth"));
 }
 use crate::app_config::MultiAppConfig;
 use crate::provider::{Provider, ProviderManager};
@@ -788,6 +926,32 @@ fn gpt_5_6_pricing_seed_has_auditable_schedule_metadata() {
         )
         .expect("GPT-5.6 Sol pricing must be seeded");
     assert_eq!(sol, ("5".into(), "30".into(), "0.50".into(), "6.25".into()));
+
+    for (model, expected) in [
+        ("gpt-5.6-sol", ("5", "30", "0.50", "6.25")),
+        ("gpt-5.6-terra", ("2.50", "15", "0.25", "3.125")),
+        ("gpt-5.6-luna", ("1", "6", "0.10", "1.25")),
+    ] {
+        let actual: (String, String, String, String) = conn
+            .query_row(
+                "SELECT input_cost_per_million, output_cost_per_million,
+                        cache_read_cost_per_million, cache_creation_cost_per_million
+                 FROM model_pricing WHERE model_id = ?1",
+                [model],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap_or_else(|error| panic!("{model} pricing must be seeded: {error}"));
+        assert_eq!(
+            actual,
+            (
+                expected.0.into(),
+                expected.1.into(),
+                expected.2.into(),
+                expected.3.into(),
+            ),
+            "{model} pricing must include cache writes at 1.25x input price"
+        );
+    }
 
     let provenance: (String, String, String, String, i64, String, String) = conn
         .query_row(

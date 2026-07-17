@@ -219,7 +219,7 @@ function buildCodexFromPreset(
   const defaultModel =
     fields.advancedCodex?.defaultModel ??
     preset.modelCatalog?.[0]?.model ??
-    "gpt-5.5";
+    "gpt-5.6-sol";
 
   if (!preset.isOfficial && config) {
     config = generateThirdPartyConfig(
@@ -403,7 +403,7 @@ export function defaultAdvancedFields(
       customBaseUrl: "",
       customModel:
         appId === "codex"
-          ? "gpt-5.5"
+          ? "gpt-5.6-sol"
           : appId === "gemini"
             ? "gemini-3.5-flash"
             : "deepseek-v4-pro",
@@ -445,7 +445,7 @@ export function defaultAdvancedFields(
       return {
         advancedCodex: {
           apiFormat: raw.apiFormat ?? "openai_chat",
-          defaultModel: raw.modelCatalog?.[0]?.model ?? "gpt-5.5",
+          defaultModel: raw.modelCatalog?.[0]?.model ?? "gpt-5.6-sol",
         },
       };
     }

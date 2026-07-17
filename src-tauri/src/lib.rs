@@ -1369,6 +1369,10 @@ pub fn run() {
             commands::get_subscription_quota,
             commands::get_codex_oauth_quota,
             commands::get_codex_oauth_models,
+            commands::subscription_list_accounts,
+            commands::subscription_list_project_routes,
+            commands::subscription_save_project_route,
+            commands::subscription_recommend_project_account,
             commands::get_coding_plan_quota,
             commands::get_balance,
             // New MCP via config.json (SSOT)

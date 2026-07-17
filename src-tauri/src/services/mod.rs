@@ -50,6 +50,7 @@ pub mod speedtest;
 pub mod sql_helpers;
 pub mod stream_check;
 pub mod subscription;
+pub mod subscription_routing;
 pub mod sync_protocol;
 #[cfg(test)]
 pub(crate) mod sync_test_support;

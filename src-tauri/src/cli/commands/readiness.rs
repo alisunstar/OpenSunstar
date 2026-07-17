@@ -40,8 +40,8 @@ pub fn run(
                 print_readiness_report(&result);
             }
 
-            // Exit code: 0 = score >= 60, 1 = score < 60 (below readiness threshold)
-            if result.score < 60 {
+            // Exit code: 0 = score >= 60, 1 = below threshold or unmanaged/unscored.
+            if result.score.is_none_or(|score| score < 60) {
                 std::process::exit(1);
             }
 
@@ -63,20 +63,29 @@ fn resolve_project_path(path: &str) -> String {
 }
 
 fn print_readiness_report(result: &open_sunstar_lib::cli_api::ReadinessScoreOutput) {
-    let pct = (result.score as f64 / result.max_score as f64 * 100.0) as u32;
+    let Some(score) = result.score else {
+        output::warning("Readiness is not scored because this project is unmanaged.");
+        output::info(&format!(
+            "Project: {}  Target: {}",
+            result.project_path, result.target_app
+        ));
+        output::info("Run `os project scan --project-path <path> --save` to adopt it.");
+        return;
+    };
+    let pct = (score as f64 / result.max_score as f64 * 100.0) as u32;
     let bar = render_progress_bar(pct);
 
     // Colored score: green ≥80%, yellow ≥60%, red <60%
     let colored_score = if pct >= 80 {
-        console::style(format!("{}/{}", result.score, result.max_score))
+        console::style(format!("{}/{}", score, result.max_score))
             .green()
             .bold()
     } else if pct >= 60 {
-        console::style(format!("{}/{}", result.score, result.max_score))
+        console::style(format!("{}/{}", score, result.max_score))
             .yellow()
             .bold()
     } else {
-        console::style(format!("{}/{}", result.score, result.max_score))
+        console::style(format!("{}/{}", score, result.max_score))
             .red()
             .bold()
     };
@@ -97,7 +106,9 @@ fn print_readiness_report(result: &open_sunstar_lib::cli_api::ReadinessScoreOutp
         let status_icon = match item.status.as_deref() {
             Some("ready") => "✓",
             Some("partial") => "◐",
-            Some("missing") => "✗",
+            Some("missing" | "unhealthy") => "✗",
+            Some("unknown" | "unmanaged") => "?",
+            Some("not_required") => "-",
             _ => "·",
         };
         let drift_marker = item

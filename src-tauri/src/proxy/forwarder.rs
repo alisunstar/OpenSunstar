@@ -1407,13 +1407,17 @@ impl RequestForwarder {
             is_streaming_request(&effective_endpoint, &filtered_body, headers);
         let force_identity_encoding =
             needs_transform || codex_responses_to_chat || request_is_streaming;
+        let is_official_codex_passthrough =
+            matches!(app_type, AppType::Codex) && provider.category.as_deref() == Some("official");
 
         // Codex OAuth 需要注入的 ChatGPT-Account-Id（在动态 token 获取期间填充）
         let mut codex_oauth_account_id: Option<String> = None;
         let mut should_send_codex_oauth_session_headers = false;
 
         // 获取认证头（提前准备，用于内联替换）
-        let mut auth_headers = if let Some(mut auth) = adapter.extract_auth(provider) {
+        let mut auth_headers = if is_official_codex_passthrough {
+            official_codex_passthrough_auth_headers(headers)?
+        } else if let Some(mut auth) = adapter.extract_auth(provider) {
             // GitHub Copilot 特殊处理：从 CopilotAuthManager 获取真实 token
             if auth.strategy == AuthStrategy::GitHubCopilot {
                 if let Some(app_handle) = &self.app_handle {
@@ -2438,6 +2442,31 @@ fn build_codex_oauth_session_headers(
     headers
 }
 
+fn official_codex_passthrough_auth_headers(
+    headers: &http::HeaderMap,
+) -> Result<Vec<(http::HeaderName, http::HeaderValue)>, ProxyError> {
+    let authorization = headers
+        .get(http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| {
+            value.strip_prefix("Bearer ").is_some_and(|token| {
+                let token = token.trim();
+                !token.is_empty() && token != PROXY_AUTH_PLACEHOLDER
+            })
+        })
+        .ok_or_else(|| {
+            ProxyError::AuthError(
+                "Official Codex passthrough requires the client's in-memory ChatGPT bearer token"
+                    .to_string(),
+            )
+        })?;
+    let value = http::HeaderValue::from_str(authorization)
+        .map_err(|e| ProxyError::AuthError(format!("Invalid Codex authorization header: {e}")))?;
+
+    Ok(vec![(http::header::AUTHORIZATION, value)])
+}
+
 fn reject_proxy_placeholder_for_managed_account_upstream(
     url: &str,
     headers: &http::HeaderMap,
@@ -2956,6 +2985,37 @@ mod tests {
             err,
             ProxyError::AuthError(message) if message.contains("PROXY_MANAGED")
         ));
+    }
+
+    #[test]
+    fn official_codex_passthrough_forwards_only_the_request_authorization() {
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            http::header::AUTHORIZATION,
+            HeaderValue::from_static("Bearer live-chatgpt-token"),
+        );
+        headers.insert("chatgpt-account-id", HeaderValue::from_static("account-1"));
+
+        let auth = official_codex_passthrough_auth_headers(&headers)
+            .expect("valid request-scoped OAuth should pass");
+        assert_eq!(auth.len(), 1);
+        assert_eq!(auth[0].0, http::header::AUTHORIZATION);
+        assert_eq!(
+            auth[0].1,
+            HeaderValue::from_static("Bearer live-chatgpt-token")
+        );
+    }
+
+    #[test]
+    fn official_codex_passthrough_rejects_missing_or_proxy_placeholder_auth() {
+        assert!(official_codex_passthrough_auth_headers(&HeaderMap::new()).is_err());
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            http::header::AUTHORIZATION,
+            HeaderValue::from_static("Bearer PROXY_MANAGED"),
+        );
+        assert!(official_codex_passthrough_auth_headers(&headers).is_err());
     }
 
     #[test]

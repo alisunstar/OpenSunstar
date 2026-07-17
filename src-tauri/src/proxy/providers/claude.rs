@@ -833,13 +833,9 @@ impl ProviderAdapter for ClaudeAdapter {
             AuthStrategy::CodexOAuth => {
                 // 注意：bearer token 由 forwarder 动态注入到 auth.api_key
                 // ChatGPT-Account-Id 由 forwarder 注入额外 header
-                vec![
-                    (HeaderName::from_static("authorization"), hv(&bearer)?),
-                    (
-                        HeaderName::from_static("originator"),
-                        HeaderValue::from_static("OpenSunstar"),
-                    ),
-                ]
+                let mut headers = vec![(HeaderName::from_static("authorization"), hv(&bearer)?)];
+                headers.extend(super::codex::codex_official_client_identity_headers());
+                headers
             }
             AuthStrategy::GitHubCopilot => {
                 // 生成请求追踪 ID

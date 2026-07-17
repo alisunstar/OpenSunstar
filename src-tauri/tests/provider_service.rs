@@ -691,13 +691,11 @@ wire_api = "responses"
 }
 
 #[test]
-fn provider_service_switch_codex_default_overwrites_official_auth_when_preservation_off() {
+fn provider_service_switch_codex_always_preserves_official_auth() {
     let _guard = test_mutex().lock().expect("acquire test mutex");
     reset_test_fs();
-    // Intentionally do NOT enable preservation: this locks the default opt-out
-    // behavior where switching to a third-party provider rewrites auth.json,
-    // discarding the user's ChatGPT OAuth login. It is the dual of
-    // `provider_service_switch_codex_preserves_oauth_and_backfills_api_key_from_live_token`.
+    // Intentionally leave the legacy setting untouched: credential isolation
+    // is mandatory and no longer has an opt-out path.
     let _home = ensure_test_home();
 
     let live_auth = json!({
@@ -768,13 +766,14 @@ requires_openai_auth = true
     let auth_value: serde_json::Value =
         read_json_file(&open_sunstar_lib::get_codex_auth_path()).expect("read auth.json");
     assert_eq!(
-        auth_value.get("OPENAI_API_KEY").and_then(|v| v.as_str()),
-        Some("third-party-key"),
-        "default (preservation off) should overwrite auth.json with the third-party API key"
+        auth_value, live_auth,
+        "third-party switching must never overwrite the official ChatGPT login"
     );
+    let live_config =
+        std::fs::read_to_string(open_sunstar_lib::get_codex_config_path()).expect("read config");
     assert!(
-        auth_value.pointer("/tokens/access_token").is_none(),
-        "default switch must clear the official ChatGPT OAuth token from live auth.json"
+        live_config.contains("third-party-key"),
+        "the third-party API key should be scoped to config.toml"
     );
 }
 
@@ -868,7 +867,7 @@ requires_openai_auth = true
 }
 
 #[test]
-fn provider_service_switch_codex_official_accounts_write_auth_json() {
+fn provider_service_switch_codex_official_provider_never_stores_or_writes_credentials() {
     let _guard = test_mutex().lock().expect("acquire test mutex");
     reset_test_fs();
     let _home = ensure_test_home();
@@ -935,28 +934,33 @@ fn provider_service_switch_codex_official_accounts_write_auth_json() {
 
     let state = create_test_state_with_config(&initial_config).expect("create test state");
 
+    let stored_b = state
+        .db
+        .get_provider_by_id("official-b", AppType::Codex.as_str())
+        .expect("read stored official provider")
+        .expect("official provider exists");
+    assert_eq!(
+        stored_b.settings_config.get("auth"),
+        Some(&json!({})),
+        "official credentials must be stripped before database persistence"
+    );
+
     ProviderService::switch(&state, AppType::Codex, "official-b")
-        .expect("switch to official account B should write auth.json");
+        .expect("switch to official provider B");
     let auth_b: serde_json::Value =
         read_json_file(&open_sunstar_lib::get_codex_auth_path()).expect("read auth B");
     assert_eq!(
-        auth_b
-            .pointer("/tokens/access_token")
-            .and_then(|v| v.as_str()),
-        Some("official-b-token"),
-        "switching official accounts must replace auth.json with the selected account"
+        auth_b, live_auth_a,
+        "switching official provider records must leave the Codex-owned auth.json unchanged"
     );
 
     ProviderService::switch(&state, AppType::Codex, "official-a")
-        .expect("switch back to official account A should use backfilled live auth");
+        .expect("switch back to official provider A");
     let auth_a: serde_json::Value =
         read_json_file(&open_sunstar_lib::get_codex_auth_path()).expect("read auth A");
     assert_eq!(
-        auth_a
-            .pointer("/tokens/access_token")
-            .and_then(|v| v.as_str()),
-        Some("official-a-live-token"),
-        "backfill should preserve account A's latest live token for later official switches"
+        auth_a, live_auth_a,
+        "provider backfill must not turn live OAuth credentials into stored account records"
     );
 }
 
@@ -1319,8 +1323,8 @@ wire_api = "responses"
         serde_json::from_str(&backup.original_config).expect("parse backup");
     assert_eq!(
         backup_value.get("auth"),
-        Some(&auth_after),
-        "restore backup should preserve the official OAuth auth"
+        Some(&json!({})),
+        "restore backup must not persist the official OAuth auth"
     );
     let backup_config = backup_value
         .get("config")
