@@ -35,6 +35,13 @@ export function buildAiProviderSettingsIntent(): SettingsNavIntent {
   };
 }
 
+export function buildCloudSyncIntent(): SettingsNavIntent {
+  return {
+    tab: "advanced",
+    openSections: ["cloudSync"],
+  };
+}
+
 export function buildSubscriptionAccountsIntent(): SettingsNavIntent {
   return { tab: "auth" };
 }

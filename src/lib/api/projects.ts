@@ -41,6 +41,14 @@ export interface ProjectPromptLink {
   created_at: number;
 }
 
+/** 项目上下文文件状态 */
+export interface ProjectContextFile {
+  app: string;
+  filename: string;
+  exists: boolean;
+  managed: boolean;
+}
+
 export interface AppEnvironmentState {
   provider?: string | null;
   mcp: string[];
@@ -314,6 +322,13 @@ export const projectsApi = {
     prompts: [string, string][],
   ): Promise<void> {
     return await invoke("set_project_prompts", { projectId, prompts });
+  },
+
+  /** 获取项目上下文文件状态（各 CLI 的 CLAUDE.md / AGENTS.md / GEMINI.md 存在性与托管状态） */
+  async getContextFiles(
+    projectId: string,
+  ): Promise<ProjectContextFile[]> {
+    return await invoke("get_project_context_files", { projectId });
   },
 
   // ========== 项目资产（8 类均存 project_asset_links；此处为扩展 5 类 Tauri 命令）==========

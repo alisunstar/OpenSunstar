@@ -101,7 +101,11 @@ export const ASSET_APP_SUPPORT: AssetAppSupportMatrix = Object.fromEntries(
                   ? `${appId} 当前为尽力写入，需人工复核`
                   : limitation === "plugin_required"
                     ? `${appId} 需要额外插件，当前未启用同步`
-                    : `${appId} 当前不支持 ${assetType} 项目级同步`;
+                    : limitation === "project_sync_unverified"
+                      ? `${appId} 可能兼容项目级 .mcp.json，但尚未验证同步`
+                      : limitation === "project_sync_unsupported"
+                        ? `${appId} 无项目级 MCP 机制，仅全局配置生效`
+                        : `${appId} 当前不支持 ${assetType} 项目级同步`;
           }
           return [appId, support];
         }),

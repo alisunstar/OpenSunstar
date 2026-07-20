@@ -247,3 +247,60 @@ pub async fn set_project_prompts(
     touch_readiness(&state, &project_id);
     Ok(())
 }
+
+// ========== Project Context File Detection ==========
+
+/// Per-app context file info: filename, existence, and whether OpenSunstar manages it.
+#[derive(serde::Serialize)]
+pub struct ProjectContextFile {
+    pub app: String,
+    pub filename: String,
+    pub exists: bool,
+    pub managed: bool,
+}
+
+#[tauri::command]
+pub async fn get_project_context_files(
+    state: State<'_, AppState>,
+    project_id: String,
+) -> Result<Vec<ProjectContextFile>, String> {
+    use crate::app_config::AppType;
+    use crate::prompt_files::project_prompt_file_path;
+    use crate::services::marker_merge::has_companion_marker;
+    use std::path::Path;
+
+    let project = state
+        .db
+        .get_project(&project_id)
+        .map_err(|e| e.to_string())?
+        .ok_or_else(|| "Project not found".to_string())?;
+
+    let root = Path::new(&project.path);
+    let apps = [
+        AppType::Claude,
+        AppType::Codex,
+        AppType::Gemini,
+        AppType::OpenCode,
+        AppType::Hermes,
+    ];
+
+    let mut results = Vec::new();
+    for app in &apps {
+        if let Ok(file_path) = project_prompt_file_path(root, app) {
+            let filename = file_path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_default();
+            let exists = file_path.is_file();
+            let managed = exists && has_companion_marker(&file_path);
+            results.push(ProjectContextFile {
+                app: app.as_str().to_string(),
+                filename,
+                exists,
+                managed,
+            });
+        }
+    }
+
+    Ok(results)
+}

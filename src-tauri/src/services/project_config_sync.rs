@@ -425,15 +425,41 @@ fn sync_project_prompts_for_app(
 
     let prompts = db.get_prompts(app.as_str())?;
     let mut parts: Vec<String> = Vec::new();
+    let mut standalone_fragments: Vec<&crate::prompt::Prompt> = Vec::new();
+
     for link in &links {
         if let Some(prompt) = prompts.get(&link.prompt_id) {
             if prompt.is_fragment {
+                // Collect standalone fragments for project-level composition
+                standalone_fragments.push(prompt);
                 continue;
             }
-            let content = PromptService::resolve_effective_content(state, app, prompt)?;
+            // Use glob-aware resolution for parent prompts
+            let content = PromptService::resolve_effective_content_for_project(
+                state,
+                app,
+                prompt,
+                project_root,
+            )?;
             if !content.trim().is_empty() {
                 parts.push(content);
             }
+        }
+    }
+
+    // Compose standalone fragments with project tree context (globs checked against files)
+    if !standalone_fragments.is_empty() {
+        let owned: Vec<crate::prompt::Prompt> = standalone_fragments
+            .iter()
+            .map(|f| (*f).clone())
+            .collect();
+        let composed = crate::prompt::compose_prompt_fragments_for_project(
+            &owned,
+            app.as_str(),
+            project_root,
+        );
+        if !composed.trim().is_empty() {
+            parts.push(composed);
         }
     }
 

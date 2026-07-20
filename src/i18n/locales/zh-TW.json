@@ -1788,8 +1788,8 @@
     }
   },
   "prompts": {
-    "manage": "提示詞",
-    "title": "{{appName}} 提示詞管理",
+    "manage": "提示詞與指令",
+    "title": "提示詞與指令",
     "claudeTitle": "Claude 提示詞管理",
     "codexTitle": "Codex 提示詞管理",
     "add": "新增提示詞",
@@ -1838,7 +1838,7 @@
     }
   },
   "workspace": {
-    "title": "Workspace 檔案管理",
+    "title": "跨專案工作區",
     "manage": "Workspace",
     "files": {
       "agents": "Agent 操作指令和規則",
@@ -1879,7 +1879,7 @@
     },
     "subtitle": "監控彙總項目風險、進度與 AI 配置狀態，幫助你先處理關鍵問題",
     "sidebar": {
-      "section": "工作區",
+      "section": "跨專案工作區",
       "currentProjectAssets": "{{name}} · AI 配置"
     },
     "tabs": {
@@ -3030,9 +3030,9 @@
     "refresh": "重新整理"
   },
   "methodology": {
-    "sidebarSection": "專案設定",
-    "sidebar": "工作流程與治理",
-    "title": "工作流程與治理",
+    "sidebarSection": "跨專案治理",
+    "sidebar": "專案治理",
+    "title": "專案治理",
     "subtitle": "方法論、流程預設、自訂編排、設計合約——四個獨立配置維度，按需選用，無先後依賴。框架偵測為唯讀，不修改專案檔案。",
     "scanAll": "掃描所有專案",
     "scanAllNoProjects": "請先新增專案再掃描",
@@ -3086,7 +3086,24 @@
     "designContractNoProjects": "暫無專案。請先在工作區新增專案。",
     "designContractSelectProject": "選擇專案",
     "designContractPickPlaceholder": "— 選擇專案 —",
-    "designContractPickProjectHint": "請在上方下拉框選擇一個專案，開始設定設計合約。"
+    "designContractPickProjectHint": "請在上方下拉框選擇一個專案，開始設定設計合約。",
+    "tabRulesContext": "規則與上下文",
+    "rulesContextPickProjectHint": "請在上方下拉框選擇一個專案，查看關聯的規則片段與上下文檔案。"
+  },
+  "rulesContext": {
+    "title": "專案規則",
+    "hint": "已關聯到當前專案的規則片段。帶 Glob 的規則僅在符合檔案存在時生效。",
+    "empty": "暫無已關聯的規則。在 Agent 設定 > Prompts 中建立規則片段，然後在專案詳情中關聯。",
+    "fragment": "片段",
+    "allTargets": "所有工具",
+    "universal": "全域",
+    "contextFiles": "上下文檔案",
+    "contextFilesHint": "專案同步時為各 AI 工具產生的上下文檔案。僅關聯了 Prompt 的工具會產生檔案。",
+    "willSync": "將同步",
+    "managed": "已託管",
+    "userCreated": "使用者自建",
+    "pendingSync": "待同步",
+    "notLinked": "未關聯"
   },
   "recipeComposer": {
     "title": "變更執行方案",
@@ -3184,10 +3201,14 @@
     "syncBackup": "同步備份",
     "kanban": "項目AI看板",
     "tokenStats": "AI Tokens",
+    "agentConfig": "跨Agent配置",
+    "planning": "規劃中",
     "section": {
       "projects": "項目",
       "monitor": "運行監控",
-      "aiModels": "AI模型"
+      "aiModels": "AI模型",
+      "cloudSync": "跨設備雲同步",
+      "teamCollab": "團隊協作配置"
     }
   },
   "sync": {
@@ -3873,5 +3894,25 @@
     "filePath": "配置文件路徑",
     "viewProject": "查看項目資產",
     "goRepair": "去修復"
+  },
+  "cloudSyncDashboard": {
+    "title": "跨設備雲同步",
+    "subtitle": "配置數據在多台設備間即時同步，隨時隨地保持一致的開發環境",
+    "status": "同步狀態",
+    "backend": "同步後端",
+    "notConfigured": "未配置",
+    "notConfiguredHint": "請先在設定中配置雲同步後端（WebDAV / S3 / GitHub Gist）",
+    "goSettings": "前往同步設定",
+    "lastSync": "上次同步",
+    "never": "從未同步",
+    "webdav": "WebDAV",
+    "s3": "S3 物件儲存",
+    "gist": "GitHub Gist",
+    "enabled": "已啟用",
+    "disabled": "未啟用",
+    "autoSync": "自動同步",
+    "on": "開",
+    "off": "關",
+    "description": "雲同步解決的是「空間軸」問題——配置在多台設備間保持一致。與專案環境快照（時間軸·版本回溯）互為補充，按需選用。"
   }
 }

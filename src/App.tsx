@@ -9,7 +9,9 @@ import {
   Search,
   Settings,
   History,
+  ChevronRight,
 } from "lucide-react";
+import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 import type { AppId } from "@/lib/api";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { DRAG_REGION_ATTR, DRAG_REGION_STYLE } from "@/lib/platform";
@@ -37,6 +39,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { TokenStatsPage } from "@/components/usage/TokenStatsPage";
 import { MethodologyPage } from "@/components/methodology/MethodologyPage";
 import { KanbanPage } from "@/components/kanban/KanbanPage";
+import { CloudSyncDashboard } from "@/components/sync/CloudSyncDashboard";
 import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { useProjects } from "@/hooks/useProjects";
@@ -70,6 +73,7 @@ export type PageView =
   | "kanban"
   | "tokenStats"
   | "methodology"
+  | "cloudSync"
   | "settings";
 
 // ── 常量 ──────────────────────────────────────────
@@ -171,6 +175,10 @@ const PAGE_META: Record<PageView, PageMeta> = {
     titleKey: "methodology.title",
     defaultTitle: "Workflow & Governance",
   },
+  cloudSync: {
+    titleKey: "cloudSyncDashboard.title",
+    defaultTitle: "Cloud Sync",
+  },
   settings: { titleKey: "common.settings", defaultTitle: "Settings" },
 };
 
@@ -183,6 +191,18 @@ const AGENT_ASSET_PAGE_TITLES: Partial<Record<PageView, string>> = {
   agents: "Subagents",
   convert: "Convert",
 };
+
+/** 全局 Agent 配置页面集合 — 这些页面操作全局作用域 */
+const AGENT_CONFIG_VIEWS: PageView[] = [
+  "mcp",
+  "skills",
+  "prompts",
+  "commands",
+  "hooks",
+  "ignore",
+  "permissions",
+  "agents",
+];
 
 // ── 组件 ──────────────────────────────────────────
 
@@ -237,6 +257,12 @@ function App() {
     reload: reloadProjects,
   } = useProjects();
 
+  const selectedProject = useMemo(
+    () => projects.find((p) => p.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId],
+  );
+
+  const isAgentConfigView = AGENT_CONFIG_VIEWS.includes(currentView);
   // ── localStorage 同步 ──────────────────────
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
@@ -337,7 +363,7 @@ function App() {
   // ── 导航 ────────────────────────────────────
   const handleNavigate = useCallback((view: PageView) => {
     setCurrentView(view);
-    setSelectedProjectId(null);
+    // 保留项目上下文，用户可通过面包屑回到项目详情
   }, []);
 
   const openWorkspace = useCallback((tab: WorkspaceTab) => {
@@ -481,6 +507,15 @@ function App() {
         return <TokenStatsPage />;
       case "methodology":
         return <MethodologyPage projects={projects} />;
+      case "cloudSync":
+        return (
+          <CloudSyncDashboard
+            onNavigate={(view) => setCurrentView(view)}
+            onSettingsNavIntent={(intent) => {
+              setSettingsNavIntent(intent);
+            }}
+          />
+        );
       case "settings":
         return (
           <SettingsPageContent
@@ -759,12 +794,30 @@ function App() {
                       {t("common.back", { defaultValue: "返回" })}
                     </Button>
                   )}
+                  {/* 面包屑：在全局面板且有选中项目时，显示回链 */}
+                  {isAgentConfigView && selectedProject && (
+                    <button
+                      onClick={() => handleProjectClick(selectedProject.id)}
+                      className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                      title={t("scope.backToProject", {
+                        name: selectedProject.name,
+                        defaultValue: `返回项目：${selectedProject.name}`,
+                      })}
+                    >
+                      {selectedProject.name}
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
+                  )}
                   <h1 className="text-sm font-semibold text-foreground truncate">
                     {AGENT_ASSET_PAGE_TITLES[currentView] ??
                       t(pageMeta.titleKey, {
                         defaultValue: pageMeta.defaultTitle,
                       })}
                   </h1>
+                  {/* 作用域标记：全局 Agent 配置页面显示 "全局" badge */}
+                  {isAgentConfigView && (
+                    <PageScopeBadge scope="global" />
+                  )}
                   {showAppSwitcher && (
                     <AppSwitcher
                       activeApp={targetApp}

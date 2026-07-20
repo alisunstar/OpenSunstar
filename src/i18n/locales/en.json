@@ -1786,8 +1786,8 @@
     }
   },
   "prompts": {
-    "manage": "Prompts",
-    "title": "Prompts&rules",
+    "manage": "Prompts & Instructions",
+    "title": "Prompts & Instructions",
     "claudeTitle": "Claude Prompt Management",
     "codexTitle": "Codex Prompt Management",
     "add": "Add Prompt",
@@ -2001,10 +2001,10 @@
     }
   },
   "workspace": {
-    "title": "Workspace",
+    "title": "Cross-project Workspace",
     "subtitle": "Monitor project risk, progress, and AI config status so you can handle key issues first",
     "sidebar": {
-      "section": "Workspace",
+      "section": "Cross-project Workspace",
       "currentProjectAssets": "{{name}} · AI assets"
     },
     "tabs": {
@@ -3383,10 +3383,14 @@
     "kanban": "AI Kanban Board",
     "tokenStats": "AI Tokens",
     "syncBackup": "Sync Backup",
+    "agentConfig": "Cross-agent Config",
+    "planning": "Coming Soon",
     "section": {
       "projects": "Projects",
       "monitor": "Monitoring",
-      "aiModels": "AI Models"
+      "aiModels": "AI Models",
+      "cloudSync": "Cross-device Cloud Sync",
+      "teamCollab": "Team Collaboration"
     }
   },
   "kanban": {
@@ -3586,10 +3590,10 @@
     "refresh": "Refresh"
   },
   "methodology": {
-    "sidebarSection": "Project Config",
-    "sidebar": "Workflow & Governance",
-    "title": "Workflow & Governance",
-    "subtitle": "Build an executable project workflow, change execution plans, and governance checks. Methodology detection is optional diagnostics.",
+    "sidebarSection": "Cross-project Governance",
+    "sidebar": "Project Governance",
+    "title": "Project Governance",
+    "subtitle": "Build executable workflows and governance checks for projects. Methodology detection is optional diagnostics.",
     "scanAll": "Scan all projects",
     "scanAllNoProjects": "Add a project first to scan",
     "scanComplete": "Framework detection complete",
@@ -3642,7 +3646,24 @@
     "designContractNoProjects": "No projects yet. Please add a project to your workspace first.",
     "designContractSelectProject": "Select project",
     "designContractPickPlaceholder": "— Choose a project —",
-    "designContractPickProjectHint": "Pick a project from the dropdown above to start configuring a design contract."
+    "designContractPickProjectHint": "Pick a project from the dropdown above to start configuring a design contract.",
+    "tabRulesContext": "Rules & Context",
+    "rulesContextPickProjectHint": "Pick a project from the dropdown above to view linked rules and context files."
+  },
+  "rulesContext": {
+    "title": "Project Rules",
+    "hint": "Rule fragments linked to this project. Rules with globs only apply when matching files exist.",
+    "empty": "No linked rules yet. Create rule fragments in Agent Config > Prompts, then link them in the project detail.",
+    "fragment": "Fragment",
+    "allTargets": "All tools",
+    "universal": "Universal",
+    "contextFiles": "Context Files",
+    "contextFilesHint": "Context files generated per AI tool during project sync. Only tools with linked prompts will generate files.",
+    "willSync": "Will sync",
+    "managed": "Managed",
+    "userCreated": "User-created",
+    "pendingSync": "Pending sync",
+    "notLinked": "Not linked"
   },
   "recipeComposer": {
     "title": "Recipe Composer",
@@ -3833,5 +3854,35 @@
     "filePath": "Config file path",
     "viewProject": "View project assets",
     "goRepair": "Go to repair"
+  },
+  "scope": {
+    "globalEnabled": "Globally enabled",
+    "globalNotEnabled": "Not enabled globally",
+    "activeProject": "Project: {{name}}",
+    "backToProject": "Back to project: {{name}}",
+    "globalScope": "Global",
+    "projectScope": "Project",
+    "globalToast": "Enabled globally for {{app}}",
+    "globalDisableToast": "Disabled globally for {{app}}"
+  },
+  "cloudSyncDashboard": {
+    "title": "Cross-device Cloud Sync",
+    "subtitle": "Keep your config data in sync across devices — consistent dev environment anywhere",
+    "status": "Sync Status",
+    "backend": "Sync Backend",
+    "notConfigured": "Not Configured",
+    "notConfiguredHint": "Configure a cloud sync backend (WebDAV / S3 / GitHub Gist) in Settings first",
+    "goSettings": "Go to Sync Settings",
+    "lastSync": "Last Sync",
+    "never": "Never synced",
+    "webdav": "WebDAV",
+    "s3": "S3 Object Storage",
+    "gist": "GitHub Gist",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "autoSync": "Auto Sync",
+    "on": "On",
+    "off": "Off",
+    "description": "Cloud sync addresses the spatial axis — keeping config consistent across devices. Complements project environment snapshots (temporal axis · version rollback). Use as needed."
   }
 }

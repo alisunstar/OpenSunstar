@@ -50,3 +50,11 @@ tsc_output.txt
 !/docs/cli-distribution-p1.md
 !/docs/research/
 !/docs/LOGO素材/
+
+# One-off analysis / search artifacts (local only, not for public repo)
+scripts/gh-search-*.json
+scripts/gh-search-summary.txt
+scripts/parse-gh-search.py
+scripts/i18n-fill-missing.mjs
+scripts/i18n-ja-missing.json
+scripts/i18n-ja-remaining.json

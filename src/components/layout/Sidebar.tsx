@@ -28,6 +28,8 @@ import {
   Table2,
   Sparkles,
   Cpu,
+  Cloud,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -238,15 +240,32 @@ export function Sidebar({
               accent={activeView === "methodology"}
               collapsed
             />
+            <SidebarItem
+              icon={<Cloud className="w-4 h-4" />}
+              label=""
+              active={activeView === "cloudSync"}
+              onClick={() => onNavigate("cloudSync")}
+              accent={activeView === "cloudSync"}
+              collapsed
+              title={t("sidebar.section.cloudSync", { defaultValue: "跨设备云同步" })}
+            />
+            <SidebarItem
+              icon={<Users className="w-4 h-4" />}
+              label=""
+              active={false}
+              onClick={() => {}}
+              collapsed
+              title={`${t("sidebar.section.teamCollab", { defaultValue: "团队协作配置" })}（${t("sidebar.planning", { defaultValue: "规划中" })}）`}
+            />
           </div>
         ) : (
           <>
             <SectionLabel>
-              {t("workspace.sidebar.section", { defaultValue: "工作区" })}
+              {t("workspace.sidebar.section", { defaultValue: "跨项目工作区" })}
             </SectionLabel>
             <SidebarMenu
               icon={<LayoutGrid className="w-4 h-4" />}
-              label={t("workspace.title", { defaultValue: "工作区" })}
+              label={t("workspace.title", { defaultValue: "跨项目工作区" })}
               defaultOpen
               active={workspaceActive}
             >
@@ -316,7 +335,7 @@ export function Sidebar({
 
             {/* ▸ 工作流与治理（独立一级分组，与工作区/Agent配置/AI模型并列） */}
             <SectionLabel>
-              {t("methodology.sidebarSection", { defaultValue: "项目配置" })}
+              {t("methodology.sidebarSection", { defaultValue: "跨项目治理" })}
             </SectionLabel>
             <SidebarItem
               icon={<BookOpen className="w-4 h-4" />}
@@ -326,11 +345,23 @@ export function Sidebar({
             />
 
             <SectionLabel>
-              {t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
+              {t("sidebar.agentConfig", { defaultValue: "跨Agent配置" })}
             </SectionLabel>
+            {/* 项目作用域提示条：当有选中项目时显示，提醒用户 Agent 配置是全局操作 */}
+            {activeProject && (
+              <div className="mx-2 mb-1.5 px-2 py-1 rounded-md bg-accent/50 text-[10px] flex items-center gap-1.5 truncate">
+                <FolderOpen className="h-3 w-3 text-accent-foreground shrink-0" />
+                <span className="text-accent-foreground font-medium truncate">
+                  {t("scope.activeProject", {
+                    name: activeProject.name,
+                    defaultValue: `项目：${activeProject.name}`,
+                  })}
+                </span>
+              </div>
+            )}
             <SidebarMenu
               icon={<LayoutDashboard className="w-4 h-4" />}
-              label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
+              label={t("sidebar.agentConfig", { defaultValue: "跨Agent配置" })}
               defaultOpen={false}
               active={agentConfigActive}
             >
@@ -352,7 +383,7 @@ export function Sidebar({
               />
               <SidebarItem
                 icon={<BookOpen className="w-4 h-4" />}
-                label="Prompts"
+                label={t("prompts.manage", { defaultValue: "Prompts" })}
                 active={activeView === "prompts"}
                 onClick={() => onNavigate("prompts")}
                 indent
@@ -426,6 +457,32 @@ export function Sidebar({
               active={activeView === "tokenStats"}
               onClick={() => onNavigate("tokenStats")}
             />
+
+            {/* ▸ 跨设备云同步 */}
+            <SectionLabel>
+              {t("sidebar.section.cloudSync", { defaultValue: "跨设备云同步" })}
+            </SectionLabel>
+            <SidebarItem
+              icon={<Cloud className="w-4 h-4" />}
+              label={t("cloudSyncDashboard.title", { defaultValue: "跨设备云同步" })}
+              active={activeView === "cloudSync"}
+              onClick={() => onNavigate("cloudSync")}
+            />
+
+            {/* ▸ 团队协作配置（规划中） */}
+            <div className="opacity-50 cursor-not-allowed">
+              <SidebarItem
+                icon={<Users className="w-4 h-4" />}
+                label={t("sidebar.section.teamCollab", { defaultValue: "团队协作配置" })}
+                badge={
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                    {t("sidebar.planning", { defaultValue: "规划中" })}
+                  </span>
+                }
+                active={false}
+                onClick={() => {}}
+              />
+            </div>
 
           </>
         )}

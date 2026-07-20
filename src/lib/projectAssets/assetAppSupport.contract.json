@@ -13,12 +13,17 @@
     "mcp": {
       "adapter_id": "project-config-sync:mcp_enabled:v1",
       "fixture_id": "project-config-sync:mcp",
-      "supported": ["claude", "codex", "gemini", "opencode", "hermes"],
-      "partial": [],
+      "supported": ["claude"],
+      "partial": ["gemini", "codex", "opencode", "hermes"],
       "unsupported": ["claude-desktop", "openclaw"],
       "write_mode": "project_file",
       "verify_modes": ["config_parse"],
-      "limitations": {}
+      "limitations": {
+        "gemini": ["project_sync_unverified"],
+        "codex": ["project_sync_unsupported"],
+        "opencode": ["project_sync_unsupported"],
+        "hermes": ["project_sync_unsupported"]
+      }
     },
     "skill": {
       "adapter_id": "project-config-sync:skills_configured:v1",

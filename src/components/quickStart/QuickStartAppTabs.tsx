@@ -15,7 +15,6 @@ const APP_META: Record<
     icon: "claude",
     labelKey: "quickStart.apps.claude",
     defaultLabel: "Claude Code",
-    badge: Terminal,
   },
   "claude-desktop": {
     icon: "claude",

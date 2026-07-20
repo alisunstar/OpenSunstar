@@ -12,9 +12,12 @@ import {
   Shield,
   Bot,
   Info,
+  Globe2,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { useProjectAssets } from "@/hooks/useProjectAssets";
 import { mcpApi } from "@/lib/api/mcp";
 import { skillsApi, type InstalledSkill } from "@/lib/api/skills";
@@ -40,6 +43,7 @@ import {
   PROMPT_SYNC_APP_IDS,
 } from "@/lib/projectAssets/assetAppSupport";
 import { ProjectEnvironmentSnapshotPanel } from "./ProjectEnvironmentSnapshotPanel";
+import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 
 interface ProjectAssetPanelProps {
   projectId: string;
@@ -87,7 +91,7 @@ export function ProjectAssetPanel({
   const [allMcp, setAllMcp] = useState<McpServersMap>({});
   const [allSkills, setAllSkills] = useState<InstalledSkill[]>([]);
   const [promptCatalog, setPromptCatalog] = useState<
-    { id: string; name: string; appType: AppId }[]
+    { id: string; name: string; appType: AppId; enabled: boolean }[]
   >([]);
   const [allCommands, setAllCommands] = useState<Command[]>([]);
   const [allHooks, setAllHooks] = useState<Hook[]>([]);
@@ -140,6 +144,7 @@ export function ProjectAssetPanel({
               id,
               name: prompt.name,
               appType: app,
+              enabled: prompt.enabled,
             }));
           }),
         ]);
@@ -177,7 +182,7 @@ export function ProjectAssetPanel({
   const promptRows = useMemo(() => {
     const byKey = new Map<
       string,
-      { id: string; name: string; appType: AppId }
+      { id: string; name: string; appType: AppId; enabled: boolean }
     >();
     for (const item of promptCatalog) {
       byKey.set(`${item.appType}:${item.id}`, item);
@@ -189,6 +194,7 @@ export function ProjectAssetPanel({
           id: link.prompt_id,
           name: link.prompt_id,
           appType: link.prompt_app_type as AppId,
+          enabled: link.enabled,
         });
       }
     }
@@ -226,6 +232,61 @@ export function ProjectAssetPanel({
   const skillLinkedIds = new Set(skills.links.map((l) => l.config_id));
   const promptLinkedIds = new Set(
     prompts.links.map((l) => `${l.prompt_id}:${l.prompt_app_type}`),
+  );
+
+  // ── 全局启用状态检测 ─────────────────────────
+  const isMcpGloballyEnabled = (id: string) => {
+    const s = allMcp[id];
+    return s ? Object.values(s.apps).some(Boolean) : false;
+  };
+  const isSkillGloballyEnabled = (skill: InstalledSkill) =>
+    Object.values(skill.apps).some(Boolean);
+  const isPromptGloballyEnabled = (id: string, appType: string) =>
+    promptCatalog.some((p) => p.id === id && p.appType === appType && p.enabled);
+  const isExtendedGloballyEnabled = (
+    type: ExtendedProjectAssetType,
+    id: string,
+  ) => {
+    const lists: Record<string, { id: string; apps?: Record<string, boolean>; enabled?: boolean }[]> = {
+      command: allCommands,
+      hook: allHooks,
+      ignore: allIgnore,
+      permission: allPermissions,
+      subagent: allAgents,
+    };
+    const items = lists[type];
+    if (!items) return false;
+    const item = items.find((i) => i.id === id);
+    if (!item) return false;
+    if (item.apps) return Object.values(item.apps).some(Boolean);
+    if (item.enabled !== undefined) return item.enabled;
+    return true;
+  };
+
+  /** 小指示器：全局已启用 / 全局未启用 */
+  const GlobalStatus = ({ enabled }: { enabled: boolean }) => (
+    <span
+      className={cn(
+        "text-[10px] inline-flex items-center gap-1 shrink-0 px-1.5 py-0.5 rounded-full",
+        enabled
+          ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
+          : "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+      )}
+      title={
+        enabled
+          ? t("scope.globalEnabled", { defaultValue: "全局已启用" })
+          : t("scope.globalNotEnabled", { defaultValue: "全局未启用" })
+      }
+    >
+      {enabled ? (
+        <Globe2 className="h-3 w-3" />
+      ) : (
+        <AlertCircle className="h-3 w-3" />
+      )}
+      {enabled
+        ? t("scope.globalEnabled", { defaultValue: "全局已启用" })
+        : t("scope.globalNotEnabled", { defaultValue: "全局未启用" })}
+    </span>
   );
 
   const setSectionRef =
@@ -352,13 +413,16 @@ export function ProjectAssetPanel({
               key={item.id}
               className="flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-border/50 bg-card/50"
             >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium truncate">{item.title}</p>
-                {item.subtitle && (
-                  <p className="text-xs text-muted-foreground truncate">
-                    {item.subtitle}
-                  </p>
-                )}
+              <div className="min-w-0 flex-1 flex items-center gap-2">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{item.title}</p>
+                  {item.subtitle && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      {item.subtitle}
+                    </p>
+                  )}
+                </div>
+                <GlobalStatus enabled={isExtendedGloballyEnabled(section, item.id)} />
               </div>
               <ProjectAssetEnableSwitch
                 assetType={section}
@@ -382,13 +446,24 @@ export function ProjectAssetPanel({
           projectId={projectId}
           onApplied={notifyChanged}
         />
-        <div className="rounded-lg border border-border/50 bg-muted/15 px-3 py-2.5 space-y-1.5">
-          <p className="text-xs text-muted-foreground leading-relaxed">
+        {/* 作用域说明 banner */}
+        <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
+          <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+            <PageScopeBadge scope="project" projectName={project?.name} />
+          </div>
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            <span className="font-medium text-foreground">
+              {t("projectAssets.scopeTitle", {
+                defaultValue: "当前作用域：",
+              })}
+            </span>
+            {project?.name ?? ""}
+            <br />
             {t("projectAssets.hint", {
               defaultValue:
-                "为当前项目勾选要启用的 AI 资产子集。关联仅写入 OpenSunstar 本地库，不会自动修改项目仓库文件；写入各 CLI 仍由侧栏全局资产管理。",
+                "勾选后仅对当前项目生效。全局资产库的启用开关在侧栏 Agent 配置中管理。",
             })}
-          </p>
+          </div>
         </div>
 
         {/* MCP */}
@@ -436,10 +511,11 @@ export function ProjectAssetPanel({
                   key={id}
                   className="flex items-center justify-between px-3 py-2 rounded-md border border-border/50 bg-card/50"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
                     <p className="text-sm font-medium truncate">
                       {server.name}
                     </p>
+                    <GlobalStatus enabled={isMcpGloballyEnabled(id)} />
                   </div>
                   <ProjectAssetEnableSwitch
                     assetType="mcp"
@@ -481,7 +557,10 @@ export function ProjectAssetPanel({
                   key={skill.id}
                   className="flex items-center justify-between px-3 py-2 rounded-md border border-border/50 bg-card/50"
                 >
-                  <p className="text-sm font-medium truncate">{skill.name}</p>
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <p className="text-sm font-medium truncate">{skill.name}</p>
+                    <GlobalStatus enabled={isSkillGloballyEnabled(skill)} />
+                  </div>
                   <ProjectAssetEnableSwitch
                     assetType="skill"
                     checked={skillLinkedIds.has(skill.id)}
@@ -522,11 +601,14 @@ export function ProjectAssetPanel({
                   key={`${item.appType}:${item.id}`}
                   className="flex items-center justify-between px-3 py-2 rounded-md border border-border/50 bg-card/50"
                 >
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium truncate">{item.name}</p>
-                    <p className="text-[11px] text-muted-foreground truncate">
-                      {item.appType}
-                    </p>
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {item.appType}
+                      </p>
+                    </div>
+                    <GlobalStatus enabled={isPromptGloballyEnabled(item.id, item.appType)} />
                   </div>
                   <ProjectAssetEnableSwitch
                     assetType="prompt"

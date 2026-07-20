@@ -1768,8 +1768,8 @@
     }
   },
   "prompts": {
-    "manage": "プロンプト",
-    "title": "{{appName}} プロンプト管理",
+    "manage": "プロンプトと指示",
+    "title": "プロンプトと指示",
     "claudeTitle": "Claude プロンプト管理",
     "codexTitle": "Codex プロンプト管理",
     "add": "プロンプトを追加",
@@ -1809,7 +1809,7 @@
     }
   },
   "workspace": {
-    "title": "ワークスペースファイル",
+    "title": "クロスプロジェクト ワークスペース",
     "manage": "ワークスペース",
     "files": {
       "agents": "エージェントの操作指示とルール",
@@ -1847,6 +1847,11 @@
       "searching": "検索中...",
       "searchFailed": "検索に失敗しました",
       "matchCount": "{{count}}件一致"
+    },
+    "subtitle": "プロジェクトのリスク、進捗、AI設定状態を一元管理し、重要な問題に優先的に対応",
+    "sidebar": {
+      "section": "クロスプロジェクト ワークスペース",
+      "currentProjectAssets": "{{name}} · AI 設定"
     }
   },
   "openclaw": {
@@ -2988,9 +2993,9 @@
     "refresh": "更新"
   },
   "methodology": {
-    "sidebarSection": "プロジェクト設定",
-    "sidebar": "ワークフローとガバナンス",
-    "title": "ワークフローとガバナンス",
+    "sidebarSection": "クロスプロジェクト ガバナンス",
+    "sidebar": "プロジェクトガバナンス",
+    "title": "プロジェクトガバナンス",
     "subtitle": "方法論、プリセット編成、カスタム編成、デザイン契約——4つの独立した設定ディメンション。必要に応じて選択でき、順序依存はありません。フレームワーク検出は読み取り専用で、プロジェクトファイルを変更しません。",
     "scanAll": "全プロジェクトをスキャン",
     "scanAllNoProjects": "スキャンする前にプロジェクトを追加してください",
@@ -3044,7 +3049,24 @@
     "designContractNoProjects": "プロジェクトがありません。まずワークスペースにプロジェクトを追加してください。",
     "designContractSelectProject": "プロジェクトを選択",
     "designContractPickPlaceholder": "— プロジェクトを選択 —",
-    "designContractPickProjectHint": "上のドロップダウンからプロジェクトを選択して、デザイン契約の設定を開始してください。"
+    "designContractPickProjectHint": "上のドロップダウンからプロジェクトを選択して、デザイン契約の設定を開始してください。",
+    "tabRulesContext": "ルールとコンテキスト",
+    "rulesContextPickProjectHint": "上のドロップダウンからプロジェクトを選択して、リンク済みのルールとコンテキスト ファイルを表示します。"
+  },
+  "rulesContext": {
+    "title": "プロジェクト ルール",
+    "hint": "このプロジェクトにリンク済みのルール フラグメント。Glob 付きのルールは、一致するファイルが存在する場合にのみ適用されます。",
+    "empty": "リンク済みのルールがありません。エージェント設定 > プロンプトでルール フラグメントを作成し、プロジェクト詳細でリンクしてください。",
+    "fragment": "フラグメント",
+    "allTargets": "全ツール",
+    "universal": "グローバル",
+    "contextFiles": "コンテキスト ファイル",
+    "contextFilesHint": "プロジェクト同期時に各 AI ツール向けに生成されるコンテキスト ファイル。プロンプトがリンクされているツールのみがファイルを生成します。",
+    "willSync": "同期予定",
+    "managed": "管理中",
+    "userCreated": "ユーザー作成",
+    "pendingSync": "同期待ち",
+    "notLinked": "未リンク"
   },
   "recipeComposer": {
     "title": "変更実行プラン",
@@ -3139,7 +3161,18 @@
     "confirmInstall": "インストール確認"
   },
   "sidebar": {
-    "syncBackup": "同期バックアップ"
+    "kanban": "プロジェクトAIカンバン",
+    "tokenStats": "AI Tokens",
+    "syncBackup": "同期バックアップ",
+    "agentConfig": "クロスAgent設定",
+    "planning": "計画中",
+    "section": {
+      "projects": "プロジェクト",
+      "monitor": "モニタリング",
+      "aiModels": "AIモデル",
+      "cloudSync": "クロスデバイス クラウド同期",
+      "teamCollab": "チームコラボ設定"
+    }
   },
   "sync": {
     "waiting": "変更を待っています",
@@ -3238,5 +3271,25 @@
     "filePath": "設定ファイルパス",
     "viewProject": "プロジェクトアセットを表示",
     "goRepair": "修復へ"
+  },
+  "cloudSyncDashboard": {
+    "title": "クロスデバイス クラウド同期",
+    "subtitle": "複数デバイス間で設定データを同期し、どこでも一貫した開発環境を維持",
+    "status": "同期状態",
+    "backend": "同期バックエンド",
+    "notConfigured": "未設定",
+    "notConfiguredHint": "先に設定でクラウド同期バックエンド（WebDAV / S3 / GitHub Gist）を設定してください",
+    "goSettings": "同期設定へ",
+    "lastSync": "最終同期",
+    "never": "未同期",
+    "webdav": "WebDAV",
+    "s3": "S3オブジェクトストレージ",
+    "gist": "GitHub Gist",
+    "enabled": "有効",
+    "disabled": "無効",
+    "autoSync": "自動同期",
+    "on": "オン",
+    "off": "オフ",
+    "description": "クラウド同期は空間軸（デバイス間の一貫性）を解決します。プロジェクト環境スナップショット（時間軸・バージョンロールバック）と相互補完、必要に応じて使用。"
   }
 }

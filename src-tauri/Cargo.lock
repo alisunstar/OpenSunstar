@@ -24,6 +24,7 @@ dependencies = [
  "env_logger",
  "flate2",
  "futures",
+ "globset",
  "hkdf",
  "hmac",
  "hostname",

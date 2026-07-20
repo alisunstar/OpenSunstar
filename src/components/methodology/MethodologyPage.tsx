@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChefHat,
   ExternalLink,
+  FileStack,
   FolderOpen,
   HelpCircle,
   Loader2,
@@ -30,6 +31,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectFlowOrchestratorPanel } from "@/components/projects/ProjectFlowOrchestratorPanel";
 import { ProjectRecipeComposer } from "@/components/projects/ProjectRecipeComposer";
 import ProjectDesignContractPanel from "@/components/projects/ProjectDesignContractPanel";
+import { ProjectRulesContextPanel } from "@/components/projects/ProjectRulesContextPanel";
 import {
   sddApi,
   type SddDescriptorSummary,
@@ -429,7 +431,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
   const [loading, setLoading] = useState(true);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState("orchestration");
+  const [activeTab, setActiveTab] = useState("rulesContext");
 
   // Tab 2 orchestration: selected project for flow config
   const [orchestrationProjectId, setOrchestrationProjectId] = useState("");
@@ -702,6 +704,10 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           className="h-full flex flex-col"
         >
           <TabsList className="shrink-0 mb-4">
+            <TabsTrigger value="rulesContext">
+              <FileStack className="w-3.5 h-3.5 mr-1.5" />
+              {t("methodology.tabRulesContext", { defaultValue: "规则与上下文" })}
+            </TabsTrigger>
             <TabsTrigger value="orchestration">
               <Workflow className="w-3.5 h-3.5 mr-1.5" />
               {t("methodology.tabOrchestration", { defaultValue: "工作流配置" })}
@@ -1152,6 +1158,33 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                       {t("methodology.designContractPickProjectHint", {
                         defaultValue:
                           "请在上方下拉框选择一个项目，开始配置设计合约。",
+                      })}
+                    </p>
+                  </div>
+                )
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Tab 5: 规则与上下文 (Rules & Context) */}
+          <TabsContent
+            value="rulesContext"
+            className="flex-1 min-h-0 overflow-y-auto"
+          >
+            <div className="space-y-4">
+              {projects.length > 0 && orchestrationProjectId ? (
+                <ProjectRulesContextPanel
+                  key={`rules-${orchestrationProjectId}`}
+                  projectId={orchestrationProjectId}
+                />
+              ) : (
+                projects.length > 0 && (
+                  <div className="rounded-lg border border-dashed border-border/60 p-8 flex flex-col items-center justify-center text-center">
+                    <FileStack className="w-10 h-10 text-muted-foreground/40 mb-3" />
+                    <p className="text-sm text-muted-foreground">
+                      {t("methodology.rulesContextPickProjectHint", {
+                        defaultValue:
+                          "请在上方下拉框选择一个项目，查看关联的规则片段与上下文文件。",
                       })}
                     </p>
                   </div>

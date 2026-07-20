@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use crate::app_config::AppType;
 use crate::config::write_text_file;
 use crate::error::AppError;
-use crate::prompt::{compose_prompt_fragments, Prompt, MAX_FRAGMENTS_PER_PARENT};
+use crate::prompt::{compose_prompt_fragments, compose_prompt_fragments_for_project, Prompt, MAX_FRAGMENTS_PER_PARENT};
 use crate::prompt_files::prompt_file_path;
 use crate::services::bridge;
 use crate::services::marker_merge::{inject_markdown_section, PROMPT_SECTION_ID};
@@ -136,6 +136,37 @@ impl PromptService {
         }
 
         let composed = compose_prompt_fragments(&fragments, app_str);
+        if prompt.content.trim().is_empty() {
+            Ok(composed)
+        } else if composed.trim().is_empty() {
+            Ok(prompt.content.clone())
+        } else {
+            Ok(format!("{}\n\n{}", prompt.content.trim(), composed))
+        }
+    }
+
+    /// Project-level variant: composes child fragments using glob-aware matching
+    /// against the project file tree. Fragments whose globs don't match any
+    /// project file are excluded.
+    pub fn resolve_effective_content_for_project(
+        state: &AppState,
+        app: &AppType,
+        prompt: &Prompt,
+        project_root: &std::path::Path,
+    ) -> Result<String, AppError> {
+        let app_str = app.as_str();
+        let prompts = state.db.get_prompts(app_str)?;
+        let fragments: Vec<Prompt> = prompts
+            .values()
+            .filter(|p| p.is_fragment && p.parent_prompt_id.as_deref() == Some(prompt.id.as_str()))
+            .cloned()
+            .collect();
+
+        if fragments.is_empty() {
+            return Ok(prompt.content.clone());
+        }
+
+        let composed = compose_prompt_fragments_for_project(&fragments, app_str, project_root);
         if prompt.content.trim().is_empty() {
             Ok(composed)
         } else if composed.trim().is_empty() {

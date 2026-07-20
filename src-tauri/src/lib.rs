@@ -1718,6 +1718,7 @@ pub fn run() {
             commands::link_project_prompt,
             commands::unlink_project_prompt,
             commands::set_project_prompts,
+            commands::get_project_context_files,
             commands::set_project_target_app,
             commands::list_project_blueprints,
             commands::get_project_blueprint,

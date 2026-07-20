@@ -1852,8 +1852,8 @@
     }
   },
   "prompts": {
-    "manage": "提示词",
-    "title": "Prompts&rules",
+    "manage": "提示词与指令",
+    "title": "提示词与指令",
     "claudeTitle": "Claude 提示词管理",
     "codexTitle": "Codex 提示词管理",
     "add": "添加提示词",
@@ -2067,10 +2067,10 @@
     }
   },
   "workspace": {
-    "title": "工作区",
+    "title": "跨项目工作区",
     "subtitle": "监控汇总项目风险、进度与 AI 配置状态，帮助你先处理关键问题",
     "sidebar": {
-      "section": "工作区",
+      "section": "跨项目工作区",
       "currentProjectAssets": "{{name}} · AI 配置"
     },
     "tabs": {
@@ -3460,8 +3460,12 @@
     "section": {
       "projects": "项目",
       "monitor": "运行监控",
-      "aiModels": "AI模型"
-    }
+      "aiModels": "AI模型",
+      "cloudSync": "跨设备云同步",
+      "teamCollab": "团队协作配置"
+    },
+    "agentConfig": "跨Agent配置",
+    "planning": "规划中"
   },
   "kanban": {
     "subtitle": "以 AI 驱动的全局多视角，多项目组合矩阵：全生命周期管理、项目健康评估、动态成本监控",
@@ -3661,10 +3665,10 @@
     "refresh": "刷新"
   },
   "methodology": {
-    "sidebarSection": "项目配置",
-    "sidebar": "工作流与治理",
-    "title": "工作流与治理",
-    "subtitle": "为项目建立可执行流程、变更执行方案与治理检查；方法论识别作为可选诊断。",
+    "sidebarSection": "跨项目治理",
+    "sidebar": "项目治理",
+    "title": "项目治理",
+    "subtitle": "为项目建立可执行流程与治理检查；方法论识别作为可选诊断。",
     "scanAll": "扫描所有项目",
     "scanAllNoProjects": "请先添加项目再扫描",
     "scanComplete": "框架探测完成",
@@ -3717,7 +3721,24 @@
     "designContractNoProjects": "暂无项目。请先在工作区添加项目。",
     "designContractSelectProject": "选择项目",
     "designContractPickPlaceholder": "— 选择项目 —",
-    "designContractPickProjectHint": "请在上方下拉框选择一个项目，开始配置设计合约。"
+    "designContractPickProjectHint": "请在上方下拉框选择一个项目，开始配置设计合约。",
+    "tabRulesContext": "规则与上下文",
+    "rulesContextPickProjectHint": "请在上方下拉框选择一个项目，查看关联的规则片段与上下文文件。"
+  },
+  "rulesContext": {
+    "title": "项目规则",
+    "hint": "已关联到当前项目的规则片段。带 Glob 的规则仅在匹配文件存在时生效。",
+    "empty": "暂无已关联的规则。在 Agent 配置 > Prompts 中创建规则片段，然后在项目详情中关联。",
+    "fragment": "片段",
+    "allTargets": "所有工具",
+    "universal": "全局",
+    "contextFiles": "上下文文件",
+    "contextFilesHint": "项目同步时为各 AI 工具生成的上下文文件。仅关联了 Prompt 的工具会生成文件。",
+    "willSync": "将同步",
+    "managed": "已托管",
+    "userCreated": "用户自建",
+    "pendingSync": "待同步",
+    "notLinked": "未关联"
   },
   "recipeComposer": {
     "title": "变更执行方案",
@@ -3908,5 +3929,35 @@
     "filePath": "配置文件路径",
     "viewProject": "查看项目资产",
     "goRepair": "去修复"
+  },
+  "scope": {
+    "globalEnabled": "全局已启用",
+    "globalNotEnabled": "全局未启用",
+    "activeProject": "项目：{{name}}",
+    "backToProject": "返回项目：{{name}}",
+    "globalScope": "全局",
+    "projectScope": "项目级",
+    "globalToast": "已为 {{app}} 全局启用",
+    "globalDisableToast": "已为 {{app}} 全局停用"
+  },
+  "cloudSyncDashboard": {
+    "title": "跨设备云同步",
+    "subtitle": "配置数据在多台设备间实时同步，随时随地保持一致的开发环境",
+    "status": "同步状态",
+    "backend": "同步后端",
+    "notConfigured": "未配置",
+    "notConfiguredHint": "请先在设置中配置云同步后端（WebDAV / S3 / GitHub Gist）",
+    "goSettings": "前往同步设置",
+    "lastSync": "上次同步",
+    "never": "从未同步",
+    "webdav": "WebDAV",
+    "s3": "S3 对象存储",
+    "gist": "GitHub Gist",
+    "enabled": "已启用",
+    "disabled": "未启用",
+    "autoSync": "自动同步",
+    "on": "开",
+    "off": "关",
+    "description": "云同步解决的是「空间轴」问题——配置在多台设备间保持一致。与项目环境快照（时间轴·版本回溯）互为补充，按需选用。"
   }
 }
