@@ -68,6 +68,8 @@ impl Database {
 
     /// 保存 MCP 服务器
     pub fn save_mcp_server(&self, server: &McpServer) -> Result<(), AppError> {
+        let previous = self.get_all_mcp_servers()?.get(&server.id).cloned();
+        let protected = crate::mcp_secret::protect_server_for_storage(server, previous.as_ref())?;
         let conn = lock_conn!(self.conn);
         conn.execute(
             "INSERT OR REPLACE INTO mcp_servers (
@@ -75,32 +77,41 @@ impl Database {
                 enabled_claude, enabled_codex, enabled_gemini, enabled_opencode, enabled_hermes
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             params![
-                server.id,
-                server.name,
-                serde_json::to_string(&server.server).map_err(|e| AppError::Database(format!(
-                    "Failed to serialize server config: {e}"
-                )))?,
-                server.description,
-                server.homepage,
-                server.docs,
-                serde_json::to_string(&server.tags)
+                protected.id,
+                protected.name,
+                serde_json::to_string(&protected.server).map_err(|e| AppError::Database(
+                    format!("Failed to serialize server config: {e}")
+                ))?,
+                protected.description,
+                protected.homepage,
+                protected.docs,
+                serde_json::to_string(&protected.tags)
                     .map_err(|e| AppError::Database(format!("Failed to serialize tags: {e}")))?,
-                server.apps.claude,
-                server.apps.codex,
-                server.apps.gemini,
-                server.apps.opencode,
-                server.apps.hermes,
+                protected.apps.claude,
+                protected.apps.codex,
+                protected.apps.gemini,
+                protected.apps.opencode,
+                protected.apps.hermes,
             ],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
+        drop(conn);
+        if let Some(previous) = previous.as_ref() {
+            crate::mcp_secret::delete_stale_server_secret_refs(previous, &protected)?;
+        }
         Ok(())
     }
 
     /// 删除 MCP 服务器
     pub fn delete_mcp_server(&self, id: &str) -> Result<(), AppError> {
+        let previous = self.get_all_mcp_servers()?.get(id).cloned();
         let conn = lock_conn!(self.conn);
         conn.execute("DELETE FROM mcp_servers WHERE id = ?1", params![id])
             .map_err(|e| AppError::Database(e.to_string()))?;
+        drop(conn);
+        if let Some(previous) = previous.as_ref() {
+            crate::mcp_secret::delete_server_secret_refs(previous)?;
+        }
         Ok(())
     }
 }

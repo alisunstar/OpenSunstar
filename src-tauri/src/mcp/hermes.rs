@@ -48,6 +48,10 @@ fn should_sync_hermes_mcp() -> bool {
     hermes_config::get_hermes_dir().exists()
 }
 
+fn prepare_server_spec(server_spec: &Value) -> Result<Value, AppError> {
+    crate::mcp_secret::resolve_spec_for_use(server_spec)
+}
+
 // ============================================================================
 // Format Conversion: OpenSunstar -> Hermes
 // ============================================================================
@@ -182,7 +186,8 @@ pub fn sync_single_server_to_hermes(
         return Ok(());
     }
 
-    let hermes_spec = convert_to_hermes_format(server_spec)?;
+    let resolved_spec = prepare_server_spec(server_spec)?;
+    let hermes_spec = convert_to_hermes_format(&resolved_spec)?;
     let id_owned = id.to_string();
 
     hermes_config::update_mcp_servers_yaml(|servers| {
@@ -343,6 +348,16 @@ pub fn import_from_hermes(config: &mut MultiAppConfig) -> Result<usize, AppError
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_hermes_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("hermes");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Hermes spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Hermes fixture secret");
+    }
 
     // ========================================================================
     // convert_to_hermes_format tests

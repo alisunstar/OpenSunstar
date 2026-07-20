@@ -27,6 +27,8 @@ mod linux_fix;
 mod mcp;
 mod mcp_connection_test;
 mod mcp_registry;
+mod mcp_secret;
+pub mod team_config;
 mod mcp_smithery;
 mod openclaw_config;
 mod opencode_config;
@@ -752,6 +754,27 @@ pub fn run() {
                         }
                         Err(e) => {
                             log::warn!("✗ Provider keychain migration failed: {e}");
+                        }
+                    }
+                });
+            }
+
+            // Idempotent migration for legacy MCP rows: move secret-bearing
+            // env/header/query/arg/extension values to the OS keychain.
+            {
+                let db_for_mcp_secret_migration = app_state.db.clone();
+                tauri::async_runtime::spawn_blocking(move || {
+                    match crate::mcp_secret::migrate_all_mcp_servers_if_needed(
+                        &db_for_mcp_secret_migration,
+                    ) {
+                        Ok(count) if count > 0 => {
+                            log::info!("✓ Migrated {count} MCP server secret(s) to OS keychain");
+                        }
+                        Ok(_) => {
+                            log::debug!("○ No plaintext MCP secrets needed keychain migration");
+                        }
+                        Err(e) => {
+                            log::warn!("✗ MCP SecretRef migration failed: {e}");
                         }
                     }
                 });

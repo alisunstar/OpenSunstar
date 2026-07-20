@@ -637,6 +637,13 @@ impl Database {
                         Self::migrate_v36_to_v37(conn)?;
                         Self::set_user_version(conn, 37)?;
                     }
+                    37 => {
+                        log::info!(
+                            "Migrating database from v37 to v38 (team requirement sources)"
+                        );
+                        Self::migrate_v37_to_v38(conn)?;
+                        Self::set_user_version(conn, 38)?;
+                    }
                     _ => {
                         return Err(AppError::Database(format!(
                             "未知的数据库版本 {version}，无法迁移到 {SCHEMA_VERSION}"
@@ -4113,5 +4120,38 @@ impl Database {
             .map_err(|e| AppError::Database(format!("为表 {table} 添加列 {column} 失败: {e}")))?;
         log::info!("已为表 {table} 添加缺失列 {column}");
         Ok(true)
+    }
+}
+
+impl Database {
+    /// v37 -> v38: team policy inputs are stored separately from the compiled
+    /// project expectation. This prevents team/project/manual inputs from
+    /// overwriting one another in `project_asset_expectations`.
+    fn migrate_v37_to_v38(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS project_asset_requirement_sources (
+                source_id TEXT PRIMARY KEY,
+                project_id TEXT NOT NULL,
+                asset_type TEXT NOT NULL,
+                asset_id TEXT NOT NULL,
+                target_app TEXT NOT NULL,
+                scope_kind TEXT NOT NULL,
+                scope_id TEXT NOT NULL,
+                source_revision TEXT,
+                policy_action TEXT NOT NULL,
+                required_revision_id TEXT,
+                constraint_json TEXT NOT NULL DEFAULT '{}',
+                priority_class INTEGER NOT NULL DEFAULT 0,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_requirement_sources_identity
+                ON project_asset_requirement_sources(
+                    project_id, asset_type, asset_id, target_app, scope_kind, scope_id
+                );
+            CREATE INDEX IF NOT EXISTS idx_requirement_sources_project
+                ON project_asset_requirement_sources(project_id, asset_type, asset_id, target_app);",
+        )
+        .map_err(|e| AppError::Database(format!("创建团队要求来源表失败: {e}")))
     }
 }

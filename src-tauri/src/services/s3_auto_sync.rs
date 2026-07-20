@@ -46,7 +46,6 @@ pub fn should_trigger_for_table(table: &str) -> bool {
         normalized.as_str(),
         "providers"
             | "provider_endpoints"
-            | "mcp_servers"
             | "prompts"
             | "skills"
             | "skill_repos"
@@ -208,6 +207,7 @@ mod tests {
         assert!(should_trigger_for_table("settings"));
         assert!(!should_trigger_for_table("proxy_request_logs"));
         assert!(!should_trigger_for_table("provider_health"));
+        assert!(!should_trigger_for_table("mcp_servers"));
     }
 
     #[test]

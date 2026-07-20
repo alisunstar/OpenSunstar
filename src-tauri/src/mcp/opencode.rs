@@ -31,6 +31,10 @@ fn should_sync_opencode_mcp() -> bool {
     opencode_config::get_opencode_dir().exists()
 }
 
+fn prepare_server_spec(server_spec: &Value) -> Result<Value, AppError> {
+    crate::mcp_secret::resolve_spec_for_use(server_spec)
+}
+
 // ============================================================================
 // Format Conversion: OpenSunstar → OpenCode
 // ============================================================================
@@ -189,9 +193,10 @@ pub fn sync_single_server_to_opencode(
     if !should_sync_opencode_mcp() {
         return Ok(());
     }
+    let resolved_spec = prepare_server_spec(server_spec)?;
 
     // Convert to OpenCode format
-    let opencode_spec = convert_to_opencode_format(server_spec)?;
+    let opencode_spec = convert_to_opencode_format(&resolved_spec)?;
 
     // Set in OpenCode config
     opencode_config::set_mcp_server(id, opencode_spec)
@@ -286,6 +291,17 @@ pub fn import_from_opencode(config: &mut MultiAppConfig) -> Result<usize, AppErr
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_opencode_adapter_boundary() {
+        let (protected, expected, entry_key) =
+            crate::mcp_secret::adapter_secret_fixture("opencode");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve OpenCode spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete OpenCode fixture secret");
+    }
 
     #[test]
     fn test_convert_stdio_to_local() {

@@ -272,7 +272,7 @@ use crate::app_config::McpServer;
 pub async fn get_mcp_servers(
     state: State<'_, AppState>,
 ) -> Result<IndexMap<String, McpServer>, String> {
-    McpService::get_all_servers(&state).map_err(|e| e.to_string())
+    McpService::get_all_servers_for_frontend(&state).map_err(|e| e.to_string())
 }
 
 /// 添加或更新 MCP 服务器
@@ -427,8 +427,24 @@ use crate::mcp_connection_test::{
 /// - stdio：启动子进程并通信
 #[tauri::command]
 pub async fn test_mcp_connection(
-    server_spec: serde_json::Value,
+    state: State<'_, AppState>,
+    mut server_spec: serde_json::Value,
+    server_id: Option<String>,
 ) -> Result<McpConnectionTestResult, String> {
+    if let Some(server_id) = server_id.as_deref() {
+        let existing = state
+            .db
+            .get_all_mcp_servers()
+            .map_err(|e| e.to_string())?
+            .get(server_id)
+            .cloned()
+            .ok_or_else(|| format!("MCP server '{server_id}' not found"))?;
+        server_spec = crate::mcp_secret::hydrate_masked_spec(&server_spec, Some(&existing.server))
+            .map_err(|e| e.to_string())?;
+    }
+    server_spec =
+        crate::mcp_secret::resolve_spec_for_use(&server_spec).map_err(|e| e.to_string())?;
+
     let typ = server_spec
         .get("type")
         .and_then(|t| t.as_str())

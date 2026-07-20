@@ -22,6 +22,7 @@ const SYNC_SKIP_TABLES: &[&str] = &[
     "provider_health",
     "proxy_live_backup",
     "usage_daily_rollups",
+    "mcp_servers",
 ];
 
 /// Tables whose local data is preserved (restored from local snapshot) during WebDAV import.
@@ -31,6 +32,7 @@ const SYNC_PRESERVE_TABLES: &[&str] = &[
     "stream_check_logs",
     "proxy_live_backup",
     "usage_daily_rollups",
+    "mcp_servers",
 ];
 
 /// A database backup entry for the UI
@@ -124,10 +126,13 @@ impl Database {
         // 补齐缺失表/索引并进行基础校验
         Self::create_tables_on_conn(&temp_conn)?;
         Self::apply_schema_migrations_on_conn(&temp_conn)?;
-        Self::validate_basic_state(&temp_conn)?;
         if let Some(local_snapshot) = local_snapshot.as_ref() {
             Self::restore_tables(local_snapshot, &temp_conn, preserve_tables)?;
         }
+        // Sync snapshots intentionally omit device-local secret-bearing tables
+        // such as `mcp_servers`. Validate after restoring those tables so a
+        // valid local-only installation is not rejected as an empty snapshot.
+        Self::validate_basic_state(&temp_conn)?;
 
         // 使用 Backup 将临时库原子写回主库
         {

@@ -15,6 +15,18 @@ impl McpService {
         state.db.get_all_mcp_servers()
     }
 
+    /// 获取可安全返回给前端的 MCP 服务器（SecretRef 统一替换为掩码）。
+    pub fn get_all_servers_for_frontend(
+        state: &AppState,
+    ) -> Result<IndexMap<String, McpServer>, AppError> {
+        Self::get_all_servers(state).map(|servers| {
+            servers
+                .into_iter()
+                .map(|(id, server)| (id, crate::mcp_secret::mask_server_for_frontend(&server)))
+                .collect()
+        })
+    }
+
     /// 添加或更新 MCP 服务器
     pub fn upsert_server(state: &AppState, server: McpServer) -> Result<(), AppError> {
         // 读取旧状态：用于处理“编辑时取消勾选某个应用”的场景（需要从对应 live 配置中移除）
@@ -26,6 +38,17 @@ impl McpService {
             .unwrap_or_default();
 
         state.db.save_mcp_server(&server)?;
+
+        // DAO may have hydrated masks and replaced plaintext with SecretRefs.
+        // Always sync the persisted copy; adapters resolve it only at use time.
+        let persisted = state
+            .db
+            .get_all_mcp_servers()?
+            .get(&server.id)
+            .cloned()
+            .ok_or_else(|| {
+                AppError::Database(format!("MCP server '{}' was not persisted", server.id))
+            })?;
 
         // 处理禁用：若旧版本启用但新版本取消，则需要从该应用的 live 配置移除
         if prev_apps.claude && !server.apps.claude {
@@ -45,7 +68,7 @@ impl McpService {
         }
 
         // 同步到各个启用的应用
-        Self::sync_server_to_apps(state, &server)?;
+        Self::sync_server_to_apps(state, &persisted)?;
 
         Ok(())
     }
@@ -207,7 +230,7 @@ impl McpService {
         state: &AppState,
         app: AppType,
     ) -> Result<HashMap<String, serde_json::Value>, AppError> {
-        let all_servers = Self::get_all_servers(state)?;
+        let all_servers = Self::get_all_servers_for_frontend(state)?;
         let mut result = HashMap::new();
 
         for (id, server) in all_servers {

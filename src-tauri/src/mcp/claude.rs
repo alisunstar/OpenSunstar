@@ -14,6 +14,10 @@ fn should_sync_claude_mcp() -> bool {
     crate::config::get_claude_config_dir().exists() || crate::config::get_claude_mcp_path().exists()
 }
 
+fn prepare_server_spec(server_spec: &Value) -> Result<Value, AppError> {
+    crate::mcp_secret::resolve_spec_for_use(server_spec)
+}
+
 /// 返回已启用的 MCP 服务器（过滤 enabled==true）
 fn collect_enabled_servers(cfg: &McpConfig) -> HashMap<String, Value> {
     let mut out = HashMap::new();
@@ -121,15 +125,31 @@ pub fn sync_single_server_to_claude(
     if !should_sync_claude_mcp() {
         return Ok(());
     }
+    let resolved_spec = prepare_server_spec(server_spec)?;
     // 读取现有的 MCP 配置
     let current = crate::claude_mcp::read_mcp_servers_map()?;
 
     // 创建新的 HashMap，包含现有的所有服务器 + 当前要同步的服务器
     let mut updated = current;
-    updated.insert(id.to_string(), server_spec.clone());
+    updated.insert(id.to_string(), resolved_spec);
 
     // 写回
     crate::claude_mcp::set_mcp_servers_map(&updated)
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_claude_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("claude");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Claude spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Claude fixture secret");
+    }
 }
 
 /// 从 Claude live 配置中移除单个 MCP 服务器

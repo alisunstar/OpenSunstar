@@ -80,8 +80,9 @@ export const mcpRegistryApi = {
   /** 测试 MCP 服务器连接 */
   async testConnection(
     serverSpec: Record<string, unknown>,
+    serverId?: string,
   ): Promise<McpConnectionTestResult> {
-    return await invoke("test_mcp_connection", { serverSpec });
+    return await invoke("test_mcp_connection", { serverSpec, serverId });
   },
 };
 

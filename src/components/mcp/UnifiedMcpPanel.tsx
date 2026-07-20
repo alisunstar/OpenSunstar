@@ -134,6 +134,7 @@ const UnifiedMcpPanel = React.forwardRef<
       try {
         const result = await mcpRegistryApi.testConnection(
           server.server as Record<string, unknown>,
+          id,
         );
         results.set(id, result);
       } catch (e: any) {

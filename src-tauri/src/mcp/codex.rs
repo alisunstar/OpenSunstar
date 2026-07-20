@@ -19,6 +19,10 @@ fn should_sync_codex_mcp() -> bool {
     crate::codex_config::get_codex_config_dir().exists()
 }
 
+fn prepare_server_spec(server_spec: &Value) -> Result<Value, AppError> {
+    crate::mcp_secret::resolve_spec_for_use(server_spec)
+}
+
 /// 返回已启用的 MCP 服务器（过滤 enabled==true）
 fn collect_enabled_servers(cfg: &McpConfig) -> HashMap<String, Value> {
     let mut out = HashMap::new();
@@ -353,6 +357,7 @@ pub fn sync_single_server_to_codex(
     if !should_sync_codex_mcp() {
         return Ok(());
     }
+    let resolved_spec = prepare_server_spec(server_spec)?;
     use toml_edit::Item;
 
     // 读取现有的 config.toml
@@ -389,7 +394,7 @@ pub fn sync_single_server_to_codex(
     }
 
     // 将 JSON 服务器规范转换为 TOML 表
-    let toml_table = json_server_to_toml_table(server_spec)?;
+    let toml_table = json_server_to_toml_table(&resolved_spec)?;
 
     // 使用唯一正确的格式：[mcp_servers]
     doc["mcp_servers"][id] = Item::Table(toml_table);
@@ -399,6 +404,21 @@ pub fn sync_single_server_to_codex(
     crate::config::write_text_file(&config_path, &new_text)?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_codex_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("codex");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Codex spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Codex fixture secret");
+    }
 }
 
 /// 从 Codex live 配置中移除单个 MCP 服务器

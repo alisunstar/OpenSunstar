@@ -316,7 +316,10 @@ pub fn sync_project_mcp_json_with_report(
     for link in links.into_iter().filter(|l| l.enabled) {
         if let Some(server) = all_servers.get(&link.config_id) {
             if server.apps.claude {
-                enabled.insert(link.config_id.clone(), server.server.clone());
+                enabled.insert(
+                    link.config_id.clone(),
+                    crate::mcp_secret::resolve_spec_for_use(&server.server)?,
+                );
             }
         }
     }

@@ -14,6 +14,10 @@ fn should_sync_gemini_mcp() -> bool {
     crate::gemini_config::get_gemini_dir().exists()
 }
 
+fn prepare_server_spec(server_spec: &Value) -> Result<Value, AppError> {
+    crate::mcp_secret::resolve_spec_for_use(server_spec)
+}
+
 /// 返回已启用的 MCP 服务器（过滤 enabled==true）
 fn collect_enabled_servers(cfg: &McpConfig) -> HashMap<String, Value> {
     let mut out = HashMap::new();
@@ -117,14 +121,30 @@ pub fn sync_single_server_to_gemini(
     if !should_sync_gemini_mcp() {
         return Ok(());
     }
+    let resolved_spec = prepare_server_spec(server_spec)?;
     // 读取现有的 MCP 配置
     let mut current = crate::gemini_mcp::read_mcp_servers_map()?;
 
     // 添加/更新当前服务器
-    current.insert(id.to_string(), server_spec.clone());
+    current.insert(id.to_string(), resolved_spec);
 
     // 写回
     crate::gemini_mcp::set_mcp_servers_map(&current)
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_gemini_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("gemini");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Gemini spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Gemini fixture secret");
+    }
 }
 
 /// 从 Gemini live 配置中移除单个 MCP 服务器
