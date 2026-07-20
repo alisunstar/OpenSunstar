@@ -103,7 +103,7 @@ pub async fn search_servers(
     // 如果有 cursor，添加到 URL
     if let Some(c) = cursor {
         if !c.is_empty() {
-            url.push_str(&format!("&cursor={}", urlencoding(&c)));
+            url.push_str(&format!("&cursor={}", urlencoding(c)));
         }
     }
 

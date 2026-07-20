@@ -95,46 +95,46 @@ pub fn merge_markdown_section(
     let cleaned = strip_orphan_markers(existing, &open, &close);
     let orphan_markers_removed = cleaned != existing;
 
-    let (merged, action) = if let Some((open_idx, close_idx)) = find_marker_pair(&cleaned, &open, &close) {
-        if content.is_empty() {
-            (
-                join_without_section(&cleaned, open_idx, close_idx, &close),
-                ManagedSectionAction::Removed,
-            )
+    let (merged, action) =
+        if let Some((open_idx, close_idx)) = find_marker_pair(&cleaned, &open, &close) {
+            if content.is_empty() {
+                (
+                    join_without_section(&cleaned, open_idx, close_idx, &close),
+                    ManagedSectionAction::Removed,
+                )
+            } else {
+                let before = &cleaned[..open_idx];
+                let after = &cleaned[close_idx + close.len()..];
+                (
+                    format!(
+                        "{}{}{}\n{}\n{}{close}{after}",
+                        before,
+                        open,
+                        "\n",
+                        content.trim_end_matches('\n'),
+                        if content.ends_with('\n') { "" } else { "\n" },
+                    ),
+                    ManagedSectionAction::Replaced,
+                )
+            }
+        } else if content.is_empty() {
+            (cleaned, ManagedSectionAction::Noop)
         } else {
-            let before = &cleaned[..open_idx];
-            let after = &cleaned[close_idx + close.len()..];
-            (
-                format!(
-                    "{}{}{}\n{}\n{}{}",
-                    before,
-                    open,
-                    "\n",
-                    content.trim_end_matches('\n'),
-                    if content.ends_with('\n') { "" } else { "\n" },
-                    format!("{close}{after}")
-                ),
-                ManagedSectionAction::Replaced,
-            )
-        }
-    } else if content.is_empty() {
-        (cleaned, ManagedSectionAction::Noop)
-    } else {
-        let mut result = cleaned;
-        if !result.is_empty() && !result.ends_with('\n') {
+            let mut result = cleaned;
+            if !result.is_empty() && !result.ends_with('\n') {
+                result.push('\n');
+            }
+            if !result.is_empty() {
+                result.push('\n');
+            }
+            result.push_str(&open);
             result.push('\n');
-        }
-        if !result.is_empty() {
+            result.push_str(content.trim_end_matches('\n'));
             result.push('\n');
-        }
-        result.push_str(&open);
-        result.push('\n');
-        result.push_str(content.trim_end_matches('\n'));
-        result.push('\n');
-        result.push_str(&close);
-        result.push('\n');
-        (result, ManagedSectionAction::Appended)
-    };
+            result.push_str(&close);
+            result.push('\n');
+            (result, ManagedSectionAction::Appended)
+        };
 
     let after_checksum = checksum_text(&merged);
     let action = if before_checksum == after_checksum && !orphan_markers_removed {
@@ -153,7 +153,7 @@ pub fn merge_markdown_section(
     }
 }
 
-fn find_marker_pair<'a>(content: &'a str, open: &str, close: &str) -> Option<(usize, usize)> {
+fn find_marker_pair(content: &str, open: &str, close: &str) -> Option<(usize, usize)> {
     let open_idx = content.find(open)?;
     let close_idx = content.find(close)?;
     if close_idx > open_idx {
@@ -333,6 +333,7 @@ pub fn has_companion_marker(path: &std::path::Path) -> bool {
 }
 
 /// 删除目标文件的 `.opensunstar` 伴生标记文件。
+#[allow(dead_code)] // 保留：伴生标记清理接口，暂未接线
 pub fn remove_companion_marker(path: &std::path::Path) {
     let marker = path.with_extension(format!(
         "{}.opensunstar",

@@ -49,6 +49,7 @@ impl HookService {
     }
 
     /// Backward-compatible alias for Claude-only callers.
+    #[allow(dead_code)] // 保留：Claude 专用同步的向后兼容别名
     pub fn sync_hooks_to_claude(state: &AppState) -> Result<(), AppError> {
         hook_sync::sync_app(state, &AppType::Claude)
     }

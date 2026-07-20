@@ -20,6 +20,7 @@ impl ClaudeSettingsMerger {
     }
 
     /// Atomically update a top-level field in Claude settings.json.
+    #[allow(dead_code)] // 保留：单字段原子写入接口，暂未接线
     pub fn update_field(field: &str, value: Value) -> Result<(), AppError> {
         Self::update_field_at_path(&get_claude_settings_path(), field, value)
     }

@@ -32,7 +32,7 @@ pub fn apply_claude_code(
     })
 }
 
-pub fn is_managed_settings(path: &std::path::PathBuf) -> bool {
+pub fn is_managed_settings(path: &std::path::Path) -> bool {
     if !path.exists() {
         return false;
     }

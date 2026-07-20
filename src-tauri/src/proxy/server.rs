@@ -18,6 +18,7 @@ use super::{
     ProxyError,
 };
 use crate::database::Database;
+use crate::proxy::usage::AsyncUsageWriter;
 use axum::{
     extract::{DefaultBodyLimit, State},
     routing::{any, get, post},
@@ -50,8 +51,15 @@ pub struct ProxyState {
     pub failover_manager: Arc<FailoverSwitchManager>,
     /// 代理认证令牌 — 每次启动随机生成，所有请求须携带此令牌
     pub auth_token: String,
+    /// 接管态回环认证令牌 — 每安装一次性随机派生并持久化（`PROXY_MANAGED-<随机>`）。
+    ///
+    /// 接管态下写入各 CLI 配置的 Bearer 占位符即为此值；回环请求必须**完整匹配**它才放行。
+    /// 历史固定裸常量 `PROXY_MANAGED` 因随开源代码公开、任意本地进程可冒用，已不再被接受。
+    pub takeover_auth_token: String,
     /// 速率限制器 — 防止本地进程滥用 API 配额
     pub rate_limiter: Arc<super::rate_limiter::RateLimiter>,
+    /// 用量日志异步批量写（文件库第二连接；内存库同步回退）
+    pub usage_writer: AsyncUsageWriter,
 }
 
 /// 代理HTTP服务器
@@ -74,8 +82,16 @@ impl ProxyServer {
         // 创建故障转移切换管理器
         let failover_manager = Arc::new(FailoverSwitchManager::new(db.clone()));
 
+        // 接管态回环令牌：读取（或首次派生）持久化的每安装随机令牌。
+        // DB 不可用时退回一个**随机**的不可用值，绝不退回可猜测的裸常量——
+        // 宁可让接管态回环认证失败（安全关闭），也不重新暴露旧漏洞。
+        let takeover_auth_token = db.get_or_create_proxy_takeover_token().unwrap_or_else(|e| {
+            log::error!("读取代理接管令牌失败，接管态回环认证将不可用: {e}");
+            format!("PROXY_MANAGED-unavailable-{}", uuid::Uuid::new_v4())
+        });
+
         let state = ProxyState {
-            db,
+            db: db.clone(),
             config: Arc::new(RwLock::new(config.clone())),
             status: Arc::new(RwLock::new(ProxyStatus::default())),
             start_time: Arc::new(RwLock::new(None)),
@@ -86,7 +102,9 @@ impl ProxyServer {
             app_handle,
             failover_manager,
             auth_token: format!("proxy-{}", uuid::Uuid::new_v4()),
+            takeover_auth_token,
             rate_limiter: Arc::new(super::rate_limiter::RateLimiter::new(100)),
+            usage_writer: AsyncUsageWriter::new(db),
         };
 
         Self {
@@ -250,7 +268,7 @@ impl ProxyServer {
         }
 
         // 2. 等待服务器任务结束（带 5 秒超时保护）
-        if let Some(handle) = self.server_handle.write().await.take() {
+        let stop_result = if let Some(handle) = self.server_handle.write().await.take() {
             match tokio::time::timeout(std::time::Duration::from_secs(5), handle).await {
                 Ok(Ok(())) => {
                     log::info!("[{}] 代理服务器已完全停止", log_srv::STOPPED);
@@ -270,7 +288,12 @@ impl ProxyServer {
             }
         } else {
             Ok(())
-        }
+        };
+
+        // 3. 刷完用量写队列（崩溃仍可能丢最后一批；正常 stop 应尽量落盘）
+        self.state.usage_writer.flush_shutdown();
+
+        stop_result
     }
 
     pub async fn get_status(&self) -> ProxyStatus {
@@ -494,12 +517,17 @@ async fn proxy_auth_middleware(
         .extensions()
         .get::<SocketAddr>()
         .is_some_and(|address| address.ip().is_loopback());
-    let standard_proxy_auth = token.is_some_and(|value| value == state.auth_token);
-    let managed_takeover_auth = is_loopback && token == Some("PROXY_MANAGED");
+    // 标准令牌 + 接管态回环令牌的静态判定（不含 official Codex OAuth 透传的 async 分支）。
+    let static_auth = static_proxy_auth_is_authorized(
+        token,
+        is_loopback,
+        &state.auth_token,
+        &state.takeover_auth_token,
+    );
     let official_codex_auth = if is_loopback
         && auth_header
             .as_deref()
-            .is_some_and(|value| !value.is_empty() && value != "PROXY_MANAGED")
+            .is_some_and(|value| !value.is_empty() && !value.starts_with("PROXY_MANAGED"))
         && is_codex_api_path(req.uri().path())
     {
         current_codex_provider_is_official(&state).await
@@ -507,7 +535,7 @@ async fn proxy_auth_middleware(
         false
     };
 
-    if standard_proxy_auth || managed_takeover_auth || official_codex_auth {
+    if static_auth || official_codex_auth {
         next.run(req).await
     } else {
         log::warn!(
@@ -522,6 +550,30 @@ async fn proxy_auth_middleware(
                 ))
                 .unwrap()
     }
+}
+
+/// 标准代理认证 + 接管态回环认证的纯判定（无 IO，便于单测）。
+///
+/// - 任意来源携带的令牌完整等于 per-boot 随机 `auth_token` → 放行（标准代理认证）。
+/// - **仅回环**来源且令牌完整等于本安装持久化的随机接管令牌
+///   （`PROXY_MANAGED-<随机>`）→ 放行（接管态回环认证）。
+///
+/// 关键安全属性：历史固定裸常量 `PROXY_MANAGED`（随开源代码公开）不再被接受，
+/// 任何“以 `PROXY_MANAGED` 为前缀但不完整匹配随机令牌”的猜测值也一律拒绝
+/// （阶段 1 报告 §4.3 ①）。
+fn static_proxy_auth_is_authorized(
+    token: Option<&str>,
+    is_loopback: bool,
+    auth_token: &str,
+    takeover_auth_token: &str,
+) -> bool {
+    let Some(token) = token else {
+        return false;
+    };
+    if token == auth_token {
+        return true;
+    }
+    is_loopback && token == takeover_auth_token
 }
 
 fn is_codex_api_path(path: &str) -> bool {
@@ -571,7 +623,10 @@ async fn current_codex_provider_is_official(state: &ProxyState) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::is_codex_api_path;
+    use super::{is_codex_api_path, static_proxy_auth_is_authorized};
+
+    const AUTH_TOKEN: &str = "proxy-11111111-2222-3333-4444-555555555555";
+    const TAKEOVER_TOKEN: &str = "PROXY_MANAGED-aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
 
     #[test]
     fn official_oauth_passthrough_is_scoped_to_codex_routes() {
@@ -591,5 +646,81 @@ mod tests {
                 "must reject non-Codex route: {path}"
             );
         }
+    }
+
+    #[test]
+    fn bare_proxy_managed_constant_is_rejected_on_loopback() {
+        // 核心回归（阶段 1 报告 §4.3 ①）：历史固定裸常量必须被拒绝，
+        // 否则任意本地进程都能冒用它借用接管态下的真实密钥配额。
+        assert!(!static_proxy_auth_is_authorized(
+            Some("PROXY_MANAGED"),
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+    }
+
+    #[test]
+    fn proxy_managed_prefix_guess_is_rejected() {
+        // 仅前缀匹配、后缀不符的猜测值也必须拒绝（只接受完整随机令牌）。
+        assert!(!static_proxy_auth_is_authorized(
+            Some("PROXY_MANAGED-not-the-real-token"),
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+    }
+
+    #[test]
+    fn correct_takeover_token_is_accepted_on_loopback() {
+        assert!(static_proxy_auth_is_authorized(
+            Some(TAKEOVER_TOKEN),
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+    }
+
+    #[test]
+    fn takeover_token_is_rejected_from_non_loopback() {
+        // 接管令牌只在回环放行；非回环来源即便持有正确接管令牌也必须拒绝。
+        assert!(!static_proxy_auth_is_authorized(
+            Some(TAKEOVER_TOKEN),
+            false,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+    }
+
+    #[test]
+    fn standard_auth_token_is_accepted_regardless_of_loopback() {
+        assert!(static_proxy_auth_is_authorized(
+            Some(AUTH_TOKEN),
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+        assert!(static_proxy_auth_is_authorized(
+            Some(AUTH_TOKEN),
+            false,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+    }
+
+    #[test]
+    fn missing_or_empty_token_is_rejected() {
+        assert!(!static_proxy_auth_is_authorized(
+            None,
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
+        assert!(!static_proxy_auth_is_authorized(
+            Some(""),
+            true,
+            AUTH_TOKEN,
+            TAKEOVER_TOKEN,
+        ));
     }
 }

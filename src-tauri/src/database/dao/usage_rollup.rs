@@ -493,10 +493,14 @@ mod tests {
 
         {
             let conn = crate::database::lock_conn!(db.conn);
-            let date_str = chrono::DateTime::from_timestamp(old_ts, 0)
-                .unwrap()
-                .format("%Y-%m-%d")
-                .to_string();
+            // 汇总按 date(created_at,'unixepoch','localtime') 归组；existing 行的 date
+            // 必须用同一本地时区表达式派生，否则跨时区（如 UTC+8）会落到不同日期键、
+            // 无法与新明细合并。用 SQLite 自身计算以保证与归组键完全一致。
+            let date_str: String = conn.query_row(
+                "SELECT date(?1, 'unixepoch', 'localtime')",
+                [old_ts],
+                |row| row.get(0),
+            )?;
             conn.execute(
                 "INSERT INTO usage_daily_rollups
                     (date, app_type, provider_id, model, request_count, success_count,

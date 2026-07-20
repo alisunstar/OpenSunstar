@@ -44,7 +44,10 @@ async fn collect_subscription_accounts(
 ) -> Vec<SubscriptionAccountView> {
     let (codex_accounts, default_account_id) = {
         let manager = codex_state.0.read().await;
-        (manager.list_accounts().await, manager.default_account_id().await)
+        (
+            manager.list_accounts().await,
+            manager.default_account_id().await,
+        )
     };
 
     // Claude/Gemini use their existing CLI credentials as an observable current

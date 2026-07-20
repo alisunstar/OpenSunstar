@@ -47,6 +47,7 @@ pub async fn rollback_project_asset_health_receipt_cmd(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri 命令入参需与前端签名对齐，不宜合并
 pub async fn register_asset_revision_cmd(
     state: State<'_, AppState>,
     asset_type: String,

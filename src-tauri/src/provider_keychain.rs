@@ -39,7 +39,7 @@ const KNOWN_KEY_FIELDS: &[&str] = &[
 ];
 
 pub(crate) fn is_known_key_field(field: &str) -> bool {
-    KNOWN_KEY_FIELDS.iter().any(|f| *f == field)
+    KNOWN_KEY_FIELDS.contains(&field)
 }
 
 // ─── 写入路径：明文 → keychain 占位符 ─────────────────────────

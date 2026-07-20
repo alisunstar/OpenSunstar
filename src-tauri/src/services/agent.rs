@@ -32,7 +32,7 @@ impl AgentService {
 
         let next_apps = agent.enabled_apps();
         for app in prev_apps.difference(&next_apps) {
-            Self::remove_agent_from_app(&agent.name, &app)?;
+            Self::remove_agent_from_app(&agent.name, app)?;
         }
         for app in next_apps {
             Self::sync_agent_to_app(&agent, &app)?;

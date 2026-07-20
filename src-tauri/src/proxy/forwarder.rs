@@ -2452,7 +2452,7 @@ fn official_codex_passthrough_auth_headers(
         .filter(|value| {
             value.strip_prefix("Bearer ").is_some_and(|token| {
                 let token = token.trim();
-                !token.is_empty() && token != PROXY_AUTH_PLACEHOLDER
+                !token.is_empty() && !token.starts_with(PROXY_AUTH_PLACEHOLDER)
             })
         })
         .ok_or_else(|| {

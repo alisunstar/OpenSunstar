@@ -154,6 +154,10 @@ impl KeyPool {
         self.keys.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.keys.is_empty()
+    }
+
     pub fn cooling_remaining_secs(&self, key_id: &str, now: Instant) -> Option<u64> {
         self.keys.iter().find_map(|rt| {
             if rt.key.id != key_id {
@@ -264,8 +268,8 @@ pub fn build_runtime_pool(supplier_id: &str) -> Result<KeyPool, AppError> {
             });
         }
     }
-    if keys.is_empty() {
-        if get_primary_key(supplier_id)?.is_some() {
+    if keys.is_empty()
+        && get_primary_key(supplier_id)?.is_some() {
             keys.push(PoolKey {
                 id: "primary".into(),
                 label: "主 Key".into(),
@@ -273,7 +277,6 @@ pub fn build_runtime_pool(supplier_id: &str) -> Result<KeyPool, AppError> {
                 enabled: true,
             });
         }
-    }
     if keys.is_empty() {
         return Err(AppError::Message("Keychain 中无可用 API Key".into()));
     }

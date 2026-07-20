@@ -1048,6 +1048,7 @@ mod tests {
             success,
             data: if data.is_empty() { None } else { Some(data) },
             error: None,
+            needs_confirmation: None,
         }
     }
 

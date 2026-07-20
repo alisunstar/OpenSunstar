@@ -4,7 +4,8 @@ use super::calculator::{CostBreakdown, CostCalculator, ModelPricing};
 use super::parser::TokenUsage;
 use crate::database::{Database, PRICING_SOURCE_REQUEST, PRICING_SOURCE_RESPONSE};
 use crate::error::AppError;
-use crate::services::usage_stats::{find_model_pricing, is_placeholder_pricing_model};
+use crate::services::usage_stats::is_placeholder_pricing_model;
+use rusqlite::Connection;
 use rust_decimal::Decimal;
 use std::str::FromStr;
 
@@ -36,6 +37,69 @@ pub struct RequestLog {
     pub cost_multiplier: String,
 }
 
+/// 将一条请求日志写入已持有的连接（同步路径与异步批量写共享）。
+pub(crate) fn insert_request_log(conn: &Connection, log: &RequestLog) -> Result<(), AppError> {
+    let (input_cost, output_cost, cache_read_cost, cache_creation_cost, total_cost) =
+        if let Some(cost) = &log.cost {
+            (
+                cost.input_cost.to_string(),
+                cost.output_cost.to_string(),
+                cost.cache_read_cost.to_string(),
+                cost.cache_creation_cost.to_string(),
+                cost.total_cost.to_string(),
+            )
+        } else {
+            (
+                "0".to_string(),
+                "0".to_string(),
+                "0".to_string(),
+                "0".to_string(),
+                "0".to_string(),
+            )
+        };
+
+    let created_at = chrono::Utc::now().timestamp();
+
+    conn.execute(
+        "INSERT OR REPLACE INTO proxy_request_logs (
+            request_id, provider_id, app_type, model, request_model, pricing_model,
+            input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+            input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd, total_cost_usd,
+            latency_ms, first_token_ms, status_code, error_message, session_id,
+            provider_type, is_streaming, cost_multiplier, created_at
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)",
+        rusqlite::params![
+            log.request_id,
+            log.provider_id,
+            log.app_type,
+            log.model,
+            log.request_model,
+            log.pricing_model,
+            log.usage.input_tokens,
+            log.usage.output_tokens,
+            log.usage.cache_read_tokens,
+            log.usage.cache_creation_tokens,
+            input_cost,
+            output_cost,
+            cache_read_cost,
+            cache_creation_cost,
+            total_cost,
+            log.latency_ms as i64,
+            log.first_token_ms.map(|v| v as i64),
+            log.status_code as i64,
+            log.error_message,
+            log.session_id,
+            log.provider_type,
+            log.is_streaming as i64,
+            log.cost_multiplier,
+            created_at,
+        ],
+    )
+    .map_err(|e| AppError::Database(format!("记录请求日志失败: {e}")))?;
+
+    Ok(())
+}
+
 /// 使用量记录器
 pub struct UsageLogger<'a> {
     db: &'a Database,
@@ -49,64 +113,7 @@ impl<'a> UsageLogger<'a> {
     /// 记录成功的请求
     pub fn log_request(&self, log: &RequestLog) -> Result<(), AppError> {
         let conn = crate::database::lock_conn!(self.db.conn);
-
-        let (input_cost, output_cost, cache_read_cost, cache_creation_cost, total_cost) =
-            if let Some(cost) = &log.cost {
-                (
-                    cost.input_cost.to_string(),
-                    cost.output_cost.to_string(),
-                    cost.cache_read_cost.to_string(),
-                    cost.cache_creation_cost.to_string(),
-                    cost.total_cost.to_string(),
-                )
-            } else {
-                (
-                    "0".to_string(),
-                    "0".to_string(),
-                    "0".to_string(),
-                    "0".to_string(),
-                    "0".to_string(),
-                )
-            };
-
-        let created_at = chrono::Utc::now().timestamp();
-
-        conn.execute(
-            "INSERT OR REPLACE INTO proxy_request_logs (
-                request_id, provider_id, app_type, model, request_model, pricing_model,
-                input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
-                input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd, total_cost_usd,
-                latency_ms, first_token_ms, status_code, error_message, session_id,
-                provider_type, is_streaming, cost_multiplier, created_at
-            ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24)",
-            rusqlite::params![
-                log.request_id,
-                log.provider_id,
-                log.app_type,
-                log.model,
-                log.request_model,
-                log.pricing_model,
-                log.usage.input_tokens,
-                log.usage.output_tokens,
-                log.usage.cache_read_tokens,
-                log.usage.cache_creation_tokens,
-                input_cost,
-                output_cost,
-                cache_read_cost,
-                cache_creation_cost,
-                total_cost,
-                log.latency_ms as i64,
-                log.first_token_ms.map(|v| v as i64),
-                log.status_code as i64,
-                log.error_message,
-                log.session_id,
-                log.provider_type,
-                log.is_streaming as i64,
-                log.cost_multiplier,
-                created_at,
-            ],
-        )
-        .map_err(|e| AppError::Database(format!("记录请求日志失败: {e}")))?;
+        insert_request_log(&conn, log)?;
 
         // 通知前端使用统计有更新（200ms 防抖合并，不阻塞写入路径）
         crate::usage_events::notify_log_recorded();
@@ -156,7 +163,7 @@ impl<'a> UsageLogger<'a> {
     /// 记录失败的请求（带更多上下文信息）
     ///
     /// 相比 log_error，这个方法接受更多参数以提供完整的请求上下文
-    #[allow(clippy::too_many_arguments)]
+    #[allow(dead_code, clippy::too_many_arguments)]
     pub fn log_error_with_context(
         &self,
         request_id: String,
@@ -170,8 +177,36 @@ impl<'a> UsageLogger<'a> {
         session_id: Option<String>,
         provider_type: Option<String>,
     ) -> Result<(), AppError> {
+        let log = Self::build_error_log(
+            request_id,
+            provider_id,
+            app_type,
+            model,
+            status_code,
+            error_message,
+            latency_ms,
+            is_streaming,
+            session_id,
+            provider_type,
+        );
+        self.log_request(&log)
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn build_error_log(
+        request_id: String,
+        provider_id: String,
+        app_type: String,
+        model: String,
+        status_code: u16,
+        error_message: String,
+        latency_ms: u64,
+        is_streaming: bool,
+        session_id: Option<String>,
+        provider_type: Option<String>,
+    ) -> RequestLog {
         let request_model = model.clone();
-        let log = RequestLog {
+        RequestLog {
             request_id,
             provider_id,
             app_type,
@@ -189,15 +224,12 @@ impl<'a> UsageLogger<'a> {
             provider_type,
             is_streaming,
             cost_multiplier: "1.0".to_string(),
-        };
-
-        self.log_request(&log)
+        }
     }
 
-    /// 获取模型定价
+    /// 获取模型定价（TTL 缓存）
     pub fn get_model_pricing(&self, model_id: &str) -> Result<Option<ModelPricing>, AppError> {
-        let conn = crate::database::lock_conn!(self.db.conn);
-        Ok(find_model_pricing(&conn, model_id))
+        self.db.lookup_model_pricing_cached(model_id)
     }
 
     /// 获取有效的倍率与计费模式来源（供应商优先，未配置则回退全局默认）
@@ -214,12 +246,12 @@ impl<'a> UsageLogger<'a> {
         } else {
             app_type
         };
-        let default_multiplier_raw =
-            match self.db.get_default_cost_multiplier(default_app_type).await {
-                Ok(value) => value,
+        let (default_multiplier_raw, default_pricing_source_raw) =
+            match self.db.get_proxy_pricing_defaults_cached(default_app_type) {
+                Ok(pair) => pair,
                 Err(e) => {
-                    log::warn!("[USG-003] 获取默认倍率失败 (app_type={app_type}): {e}");
-                    "1".to_string()
+                    log::warn!("[USG-003] 获取默认计价配置失败 (app_type={app_type}): {e}");
+                    ("1".to_string(), PRICING_SOURCE_RESPONSE.to_string())
                 }
             };
         let default_multiplier = match Decimal::from_str(&default_multiplier_raw) {
@@ -232,14 +264,6 @@ impl<'a> UsageLogger<'a> {
             }
         };
 
-        let default_pricing_source_raw =
-            match self.db.get_pricing_model_source(default_app_type).await {
-                Ok(value) => value,
-                Err(e) => {
-                    log::warn!("[USG-003] 获取默认计费模式失败 (app_type={app_type}): {e}");
-                    PRICING_SOURCE_RESPONSE.to_string()
-                }
-            };
         let default_pricing_source = if default_pricing_source_raw == PRICING_SOURCE_RESPONSE
             || default_pricing_source_raw == PRICING_SOURCE_REQUEST
         {
@@ -295,9 +319,9 @@ impl<'a> UsageLogger<'a> {
         (cost_multiplier, pricing_model_source)
     }
 
-    /// 计算并记录请求
+    /// 计算成本并构造日志（不写库）；供异步入队与同步写共享。
     #[allow(clippy::too_many_arguments)]
-    pub fn log_with_calculation(
+    pub fn prepare_log_with_calculation(
         &self,
         request_id: String,
         provider_id: String,
@@ -313,7 +337,7 @@ impl<'a> UsageLogger<'a> {
         session_id: Option<String>,
         provider_type: Option<String>,
         is_streaming: bool,
-    ) -> Result<(), AppError> {
+    ) -> Result<RequestLog, AppError> {
         let pricing = self.get_model_pricing(&pricing_model)?;
 
         let has_usage = usage.input_tokens > 0
@@ -332,7 +356,7 @@ impl<'a> UsageLogger<'a> {
             cost_multiplier,
         );
 
-        let log = RequestLog {
+        Ok(RequestLog {
             request_id,
             provider_id,
             app_type,
@@ -349,8 +373,44 @@ impl<'a> UsageLogger<'a> {
             provider_type,
             is_streaming,
             cost_multiplier: cost_multiplier.to_string(),
-        };
+        })
+    }
 
+    /// 计算并记录请求（同步写库；测试与非热路径保留）
+    #[allow(dead_code, clippy::too_many_arguments)]
+    pub fn log_with_calculation(
+        &self,
+        request_id: String,
+        provider_id: String,
+        app_type: String,
+        model: String,
+        request_model: String,
+        pricing_model: String,
+        usage: TokenUsage,
+        cost_multiplier: Decimal,
+        latency_ms: u64,
+        first_token_ms: Option<u64>,
+        status_code: u16,
+        session_id: Option<String>,
+        provider_type: Option<String>,
+        is_streaming: bool,
+    ) -> Result<(), AppError> {
+        let log = self.prepare_log_with_calculation(
+            request_id,
+            provider_id,
+            app_type,
+            model,
+            request_model,
+            pricing_model,
+            usage,
+            cost_multiplier,
+            latency_ms,
+            first_token_ms,
+            status_code,
+            session_id,
+            provider_type,
+            is_streaming,
+        )?;
         self.log_request(&log)
     }
 }

@@ -40,6 +40,7 @@ pub struct ReadinessCheckInput {
     pub target_app: Option<String>,
 }
 
+#[allow(clippy::too_many_arguments)] // 就绪度条目字段较多，均为必需入参
 fn push_item(
     details: &mut Vec<AgentReadinessItem>,
     total: &mut u32,

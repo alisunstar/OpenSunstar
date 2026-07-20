@@ -59,6 +59,7 @@ fn check_cache(
 }
 
 /// 保存 AI 洞察结果到缓存 + 成本日志
+#[allow(clippy::too_many_arguments)] // 参数为一次性写入的洞察/成本字段，拆结构体收益低
 fn save_insight_and_cost(
     db: &Database,
     project_id: &str,
@@ -236,7 +237,9 @@ pub async fn get_ai_insight(
     // 2. 构建 Prompt
     let messages: Vec<ChatMessage> = match itype.as_str() {
         "summary" => prompts::build_summary_prompt(&project_context),
-        "portfolio_summary" => prompts::build_portfolio_prompt(&[project_context.clone()]),
+        "portfolio_summary" => {
+            prompts::build_portfolio_prompt(std::slice::from_ref(&project_context))
+        }
         "stage_suggestion" => prompts::build_summary_prompt(&project_context), // 复用摘要 prompt
         "trend_analysis" => prompts::build_trend_prompt(
             &project_context.project_name,

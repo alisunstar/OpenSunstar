@@ -167,7 +167,7 @@ fn run_list(json: bool) -> Result<(), String> {
         output::print_result(&templates, true);
     } else {
         println!("Design Contract Templates ({}):\n", templates.len());
-        println!("{:<12} {}", "ID", "Name");
+        println!("{:<12} Name", "ID");
         println!("{}", "-".repeat(36));
         for (id, name) in &templates {
             println!("  {:<10} {name}", id);

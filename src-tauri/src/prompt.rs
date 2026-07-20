@@ -155,10 +155,10 @@ fn walk_for_glob_match(
                     return true;
                 }
             }
-        } else if ft.is_dir() {
-            if walk_for_glob_match(root, &entry.path(), matchers, depth + 1, count) {
-                return true;
-            }
+        } else if ft.is_dir()
+            && walk_for_glob_match(root, &entry.path(), matchers, depth + 1, count)
+        {
+            return true;
         }
     }
 
@@ -172,7 +172,7 @@ pub fn compose_prompt_fragments(fragments: &[Prompt], target_app: &str) -> Strin
         .iter()
         .filter(|f| fragment_matches_target(f, target_app))
         .collect();
-    matching.sort_by(|a, b| b.priority.cmp(&a.priority));
+    matching.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching
         .iter()
         .map(|f| f.content.as_str())
@@ -185,6 +185,7 @@ pub fn compose_prompt_fragments(fragments: &[Prompt], target_app: &str) -> Strin
 /// When `file_path` is `Some`, fragments with non-empty globs are additionally
 /// filtered to those whose globs match the given relative path.
 /// Fragments with empty globs always pass (universal scope).
+#[allow(dead_code)] // 保留：重构中待接线的“按文件作用域”片段组合入口
 pub fn compose_prompt_fragments_with_context(
     fragments: &[Prompt],
     target_app: &str,
@@ -194,10 +195,10 @@ pub fn compose_prompt_fragments_with_context(
         .iter()
         .filter(|f| {
             fragment_matches_target(f, target_app)
-                && file_path.map_or(true, |p| fragment_matches_file(f, p))
+                && file_path.is_none_or(|p| fragment_matches_file(f, p))
         })
         .collect();
-    matching.sort_by(|a, b| b.priority.cmp(&a.priority));
+    matching.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching
         .iter()
         .map(|f| f.content.as_str())
@@ -218,11 +219,10 @@ pub fn compose_prompt_fragments_for_project(
     let mut matching: Vec<&Prompt> = fragments
         .iter()
         .filter(|f| {
-            fragment_matches_target(f, target_app)
-                && fragment_globs_match_project(f, project_root)
+            fragment_matches_target(f, target_app) && fragment_globs_match_project(f, project_root)
         })
         .collect();
-    matching.sort_by(|a, b| b.priority.cmp(&a.priority));
+    matching.sort_by_key(|b| std::cmp::Reverse(b.priority));
     matching
         .iter()
         .map(|f| f.content.as_str())
@@ -321,13 +321,7 @@ mod tests {
 
     #[test]
     fn fragment_matches_file_multiple_globs() {
-        let f = frag_with_globs(
-            "a",
-            "A",
-            r#"["*"]"#,
-            r#"["src/**/*.ts","lib/**/*.tsx"]"#,
-            1,
-        );
+        let f = frag_with_globs("a", "A", r#"["*"]"#, r#"["src/**/*.ts","lib/**/*.tsx"]"#, 1);
         assert!(fragment_matches_file(&f, "src/index.ts"));
         assert!(fragment_matches_file(&f, "lib/component.tsx"));
         assert!(!fragment_matches_file(&f, "src/style.css"));
@@ -342,19 +336,13 @@ mod tests {
         ];
 
         // With TS file context: ts + universal, no rs
-        let result = compose_prompt_fragments_with_context(
-            &fragments,
-            "claude",
-            Some("src/index.ts"),
-        );
+        let result =
+            compose_prompt_fragments_with_context(&fragments, "claude", Some("src/index.ts"));
         assert_eq!(result, "TS rules\n\nUniversal");
 
         // With RS file context: rs + universal, no ts
-        let result = compose_prompt_fragments_with_context(
-            &fragments,
-            "claude",
-            Some("src/lib.rs"),
-        );
+        let result =
+            compose_prompt_fragments_with_context(&fragments, "claude", Some("src/lib.rs"));
         assert_eq!(result, "RS rules\n\nUniversal");
 
         // Without file context: all match (backward-compatible)
@@ -373,8 +361,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::write(tmp.path().join("index.ts"), "").unwrap();
 
-        let result =
-            compose_prompt_fragments_for_project(&fragments, "claude", tmp.path());
+        let result = compose_prompt_fragments_for_project(&fragments, "claude", tmp.path());
         assert_eq!(result, "TS rules\n\nUniversal");
     }
 
@@ -389,8 +376,7 @@ mod tests {
         let tmp = tempfile::tempdir().unwrap();
         std::fs::write(tmp.path().join("index.ts"), "").unwrap();
 
-        let result =
-            compose_prompt_fragments_for_project(&fragments, "claude", tmp.path());
+        let result = compose_prompt_fragments_for_project(&fragments, "claude", tmp.path());
         assert_eq!(result, "Universal");
     }
 }

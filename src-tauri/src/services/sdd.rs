@@ -254,7 +254,7 @@ fn check_package_json_dep(project_path: &Path, dep_name: &str) -> Option<SignalM
     let found_in = dep_sections.iter().find(|section| {
         json.get(section)
             .and_then(|v| v.as_object())
-            .map_or(false, |obj| obj.contains_key(dep_name))
+            .is_some_and(|obj| obj.contains_key(dep_name))
     });
 
     found_in.map(|section| SignalMatch {
@@ -364,9 +364,11 @@ pub fn recommend_preset_from_detections(results: &[SddDetectionResult]) -> Optio
 
     if detected_ids.contains(&"flow-kit") {
         Some("full".into())
-    } else if detected_ids.contains(&"spec-kit") || detected_ids.contains(&"openspec") {
-        Some("standard".into())
-    } else if detected_ids.contains(&"bmad-method") || detected_ids.contains(&"gstack") {
+    } else if detected_ids.contains(&"spec-kit")
+        || detected_ids.contains(&"openspec")
+        || detected_ids.contains(&"bmad-method")
+        || detected_ids.contains(&"gstack")
+    {
         Some("standard".into())
     } else if detected_ids.contains(&"superpowers") || detected_ids.contains(&"task-master") {
         Some("mvp".into())

@@ -1445,6 +1445,14 @@
     "queryFailed": "查詢失敗",
     "refreshUsage": "重新整理用量",
     "planUsage": "方案用量",
+    "hostConfirm": {
+      "title": "確認外送網域",
+      "message": "此供應商的自訂用量指令碼要向以下網域發出請求（其中會包含你的 API 金鑰）：\n\n{{host}}\n\n僅在你信任該網域時才繼續。確認後會記住此選擇，直到目標網域變更為止。",
+      "pending": "需先確認才能存取 {{host}}",
+      "reviewButton": "檢視",
+      "confirm": "信任並繼續",
+      "cancel": "取消"
+    },
     "invalid": "已失效",
     "total": "總：",
     "used": "已使用：",

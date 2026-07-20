@@ -182,8 +182,8 @@ fn run_list(json: bool) -> Result<(), String> {
         output::header(&format!("Available Blueprints ({}):", blueprints.len()));
         eprintln!();
         println!(
-            "{:<20} {:<14} {:<12} {}",
-            "ID", "Project Type", "Target App", "Description"
+            "{:<20} {:<14} {:<12} Description",
+            "ID", "Project Type", "Target App"
         );
         println!("{}", "-".repeat(72));
         for bp in &blueprints {

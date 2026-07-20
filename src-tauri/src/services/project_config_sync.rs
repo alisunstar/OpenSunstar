@@ -21,9 +21,8 @@ use crate::prompt_files::{
 use crate::services::agent_codex::markdown_agent_to_codex_toml;
 use crate::services::marker_merge::{
     inject_markdown_section, is_managed_command_file, is_managed_subagent_file,
-    merge_markdown_section_file,
-    wrap_managed_command, wrap_managed_subagent, wrap_managed_subagent_codex, AGENTS_BRIDGE_LINE,
-    AGENTS_BRIDGE_SECTION_ID, PROMPT_SECTION_ID,
+    merge_markdown_section_file, wrap_managed_command, wrap_managed_subagent,
+    wrap_managed_subagent_codex, AGENTS_BRIDGE_LINE, AGENTS_BRIDGE_SECTION_ID, PROMPT_SECTION_ID,
 };
 use crate::services::orchestration_plan::{
     execute_text_write_plan_without_receipt, verification, PlannedTextWrite,
@@ -245,7 +244,11 @@ pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppErr
     log::debug!(
         "OpenSunstar Agent 上下文同步完成: steps={}, snapshots={}",
         receipt.steps.len(),
-        receipt.steps.iter().filter(|s| s.snapshot_path.is_some()).count()
+        receipt
+            .steps
+            .iter()
+            .filter(|s| s.snapshot_path.is_some())
+            .count()
     );
     Ok(())
 }
@@ -452,15 +455,10 @@ fn sync_project_prompts_for_app(
 
     // Compose standalone fragments with project tree context (globs checked against files)
     if !standalone_fragments.is_empty() {
-        let owned: Vec<crate::prompt::Prompt> = standalone_fragments
-            .iter()
-            .map(|f| (*f).clone())
-            .collect();
-        let composed = crate::prompt::compose_prompt_fragments_for_project(
-            &owned,
-            app.as_str(),
-            project_root,
-        );
+        let owned: Vec<crate::prompt::Prompt> =
+            standalone_fragments.iter().map(|f| (*f).clone()).collect();
+        let composed =
+            crate::prompt::compose_prompt_fragments_for_project(&owned, app.as_str(), project_root);
         if !composed.trim().is_empty() {
             parts.push(composed);
         }
@@ -1162,6 +1160,7 @@ pub fn project_has_skills(db: &crate::database::Database, project_id: &str) -> b
 }
 
 /// 供生效态：项目级 Claude hooks JSON
+#[allow(dead_code)] // 保留：生效态项目级 hooks JSON，暂未接线
 pub fn expected_project_hooks_json(
     db: &crate::database::Database,
     project_id: &str,
@@ -1198,6 +1197,7 @@ pub fn expected_project_hooks(
 }
 
 /// 供生效态：项目级 Claude permissions JSON
+#[allow(dead_code)] // 保留：生效态项目级 permissions JSON，暂未接线
 pub fn expected_project_permissions_json(
     db: &crate::database::Database,
     project_id: &str,

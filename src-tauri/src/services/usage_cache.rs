@@ -107,6 +107,7 @@ mod tests {
             success: true,
             data: None,
             error: None,
+            needs_confirmation: None,
         }
     }
 

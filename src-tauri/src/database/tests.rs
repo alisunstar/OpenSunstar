@@ -514,6 +514,48 @@ fn schema_migration_v4_adds_pricing_model_columns() {
 }
 
 #[test]
+fn schema_migration_v39_adds_provider_app_created_index() {
+    let conn = Connection::open_in_memory().expect("open memory db");
+    conn.execute_batch(
+        r#"
+        CREATE TABLE proxy_request_logs (
+            request_id TEXT PRIMARY KEY,
+            provider_id TEXT NOT NULL,
+            app_type TEXT NOT NULL,
+            model TEXT NOT NULL,
+            created_at INTEGER NOT NULL,
+            data_source TEXT NOT NULL DEFAULT 'proxy',
+            input_tokens INTEGER NOT NULL DEFAULT 0,
+            output_tokens INTEGER NOT NULL DEFAULT 0,
+            cache_read_tokens INTEGER NOT NULL DEFAULT 0,
+            cache_creation_tokens INTEGER NOT NULL DEFAULT 0
+        );
+        "#,
+    )
+    .expect("seed v38-shaped logs table");
+    // v37→v38 已分配给 team requirement sources；本测试从 v38 升到 v39 只验索引。
+    Database::set_user_version(&conn, 38).expect("pin v38");
+
+    let db = Database::from_connection(conn, None);
+    db.apply_schema_migrations().expect("migrate to v39");
+
+    let conn = db.conn.lock().expect("lock");
+    assert_eq!(
+        Database::get_user_version(&conn).expect("version"),
+        SCHEMA_VERSION
+    );
+    let index_count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='index' AND name='idx_request_logs_provider_app_created'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("index query");
+    assert_eq!(index_count, 1);
+}
+
+#[test]
 fn migration_v10_to_v11_rebuilds_rollups_with_request_model_dimension() {
     let conn = Connection::open_in_memory().expect("open memory db");
 
@@ -1303,9 +1345,7 @@ fn schema_v25_file_db_upgrade_roundtrip() {
     let db = {
         let conn = Connection::open(&path).expect("reopen file db");
         conn.execute("PRAGMA foreign_keys = ON;", []).ok();
-        Database {
-            conn: std::sync::Mutex::new(conn),
-        }
+        Database::from_connection(conn, Some(path.clone()))
     };
     db.apply_schema_migrations()
         .expect("migrate file db to v25");
@@ -1431,9 +1471,7 @@ fn upgrade_local_open_sunstar_db_copy_on_disk() {
     let db = {
         let conn = Connection::open(&dest).expect("open copy for migration");
         conn.execute("PRAGMA foreign_keys = ON;", []).ok();
-        Database {
-            conn: std::sync::Mutex::new(conn),
-        }
+        Database::from_connection(conn, Some(dest.clone()))
     };
     db.apply_schema_migrations()
         .expect("migrate copied local db");

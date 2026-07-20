@@ -21,6 +21,8 @@ pub struct AssetCapabilityDescriptor {
 }
 
 /// 优先支持的 CLI（Claude / Codex / Gemini / OpenCode）
+// 重构中待接线的资产优先级常量，保留以备后续 UI/评分使用
+#[allow(dead_code)]
 pub const PRIORITY_APPS: &[&str] = &["claude", "codex", "gemini", "opencode"];
 
 /// 就绪度检查项 → 资产类型
@@ -47,7 +49,7 @@ pub fn normalize_target_app(app: Option<&str>) -> &'static str {
         Some("opencode") => "opencode",
         Some("openclaw") => "openclaw",
         Some("hermes") => "hermes",
-        Some(other) if other == "claude" => "claude",
+        Some("claude") => "claude",
         _ => "claude",
     }
 }

@@ -1443,6 +1443,14 @@
     "queryFailed": "Query failed",
     "refreshUsage": "Refresh usage",
     "planUsage": "Plan usage",
+    "hostConfirm": {
+      "title": "Confirm outbound domain",
+      "message": "This provider's custom usage script wants to send a request (which includes your API key) to:\n\n{{host}}\n\nOnly continue if you trust this domain. Your choice is remembered for this provider until the target domain changes.",
+      "pending": "Confirmation required before contacting {{host}}",
+      "reviewButton": "Review",
+      "confirm": "Trust & continue",
+      "cancel": "Cancel"
+    },
     "invalid": "Expired",
     "total": "Total:",
     "used": "Used:",

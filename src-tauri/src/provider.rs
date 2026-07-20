@@ -298,14 +298,39 @@ pub struct UsageData {
     pub unit: Option<String>,
 }
 
-/// 用量查询结果（支持多套餐）
+/// 用量脚本首次外发的“域名确认闸门”载荷（P0-2）。
+///
+/// 当某 provider 的 **custom** 用量脚本首次要向某个非回环目标主机发起请求时，
+/// 后端拒绝直接注入真实密钥，转而通过 `UsageResult::needs_confirmation` 回传本结构，
+/// 由前端弹窗展示 `host` 让用户确认信任。确认后前端调用 `confirm_usage_script_host`
+/// 命令，把 `(app_type, provider_id) -> host` 持久化到 settings 表；目标 host 变更时
+/// 后端算出的 host 与已确认值不符，会重新触发确认。
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageHostConfirmation {
+    /// 待确认的目标主机标签（默认端口省略，非默认端口以 `host:port` 保留）。
+    pub host: String,
+    /// 触发确认的 app 类型（前端回传给 `confirm_usage_script_host` 以拼出持久化 key）。
+    #[serde(rename = "appType")]
+    pub app_type: String,
+    /// 触发确认的 provider id（同上）。
+    #[serde(rename = "providerId")]
+    pub provider_id: String,
+}
+
+/// 用量查询结果（支持多套餐）
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UsageResult {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub data: Option<Vec<UsageData>>, // 支持返回多个套餐
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// 需要用户确认目标域名时回传（P0-2 域名确认闸门）。
+    ///
+    /// 仅 custom 用量脚本首次外发到非回环主机的路径会置为 `Some(..)`；
+    /// 其余所有构造点一律填 `None`。
+    #[serde(rename = "needsConfirmation", skip_serializing_if = "Option::is_none")]
+    pub needs_confirmation: Option<UsageHostConfirmation>,
 }
 
 /// 供应商单独的模型测试配置

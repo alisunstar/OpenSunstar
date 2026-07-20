@@ -61,6 +61,7 @@ impl RateLimiter {
     }
 
     /// 当前窗口内已用请求数（用于状态查询）
+    #[allow(dead_code)] // 保留：限流器状态查询接口，暂未接线
     pub fn current_count(&self) -> u32 {
         self.inner.lock().map(|g| g.count).unwrap_or(0)
     }

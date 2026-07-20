@@ -240,6 +240,8 @@ pub fn update_model_pricing(
         .map_err(|e| AppError::Database(format!("记录模型定价来源失败: {e}")))?;
     }
 
+    db.invalidate_pricing_cache();
+
     if let Err(e) = db.backfill_missing_usage_costs_for_model(&model_id) {
         log::warn!("模型定价更新后回填历史用量成本失败 (model_id={model_id}): {e}");
     }

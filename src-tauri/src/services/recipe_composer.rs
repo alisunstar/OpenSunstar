@@ -814,7 +814,7 @@ pub fn parse_recipe_frontmatter(content: &str) -> Result<CompositionRecipe, AppE
 }
 
 fn sanitize_mermaid_id(id: &str) -> String {
-    id.replace('-', "_").replace(' ', "_")
+    id.replace(['-', ' '], "_")
 }
 
 fn slugify(name: &str) -> String {

@@ -508,7 +508,7 @@ pub fn validate_effective_stage_semantic(
                     .iter()
                     .find(|s| s.id == *stage_id)
                     .and_then(|s| s.skip_when.as_ref())
-                    .map_or(false, |sw| {
+                    .is_some_and(|sw| {
                         sw.project_type.iter().any(|t| t == project_type)
                     });
                 if !has_skip {
@@ -818,7 +818,9 @@ pub fn scan_project_specs_workflow(
 ) -> Result<SpecsWorkflowIndex, AppError> {
     let workspace_exists = project_workspace_exists(project_path);
     let has_flow_kit = workspace_exists && PathBuf::from(project_path).join(FLOW_KIT_GO).is_file();
-    let has_flow_config = opensunstar_dir(project_path).join(FLOW_CONFIG_FILENAME).is_file();
+    let has_flow_config = opensunstar_dir(project_path)
+        .join(FLOW_CONFIG_FILENAME)
+        .is_file();
     let specs_dir = specs_root(project_path);
     let has_specs_dir = specs_dir.is_dir();
 
@@ -1187,7 +1189,10 @@ fn build_flow_config(
 }
 
 fn default_review_policy() -> FlowConfigReviewPolicy {
-    let lenses_4r = REVIEW_LENSES_4R.iter().map(|s| (*s).to_string()).collect::<Vec<_>>();
+    let lenses_4r = REVIEW_LENSES_4R
+        .iter()
+        .map(|s| (*s).to_string())
+        .collect::<Vec<_>>();
     FlowConfigReviewPolicy {
         mode: "risk-aware".to_string(),
         trivial: FlowConfigReviewTier {
@@ -1269,7 +1274,11 @@ fn flow_create_file_entry(path: PathBuf, rel_path: &str, new_content: String) ->
         } else {
             "create".into()
         },
-        new_content: if existing_content.is_some() { None } else { Some(new_content) },
+        new_content: if existing_content.is_some() {
+            None
+        } else {
+            Some(new_content)
+        },
         existing_content,
     }
 }
@@ -1548,12 +1557,7 @@ fn export_flow_config_with_semantic_enforcement(
         project_path,
         "flow-config-export",
         vec![
-            PlannedTextWrite::replace(
-                "flow-config",
-                "导出门禁配置",
-                out_path.clone(),
-                yaml,
-            ),
+            PlannedTextWrite::replace("flow-config", "导出门禁配置", out_path.clone(), yaml),
             PlannedTextWrite::create_if_missing(
                 "ci-workflow",
                 "接入 CI 门禁模板",
@@ -1658,7 +1662,9 @@ pub fn append_orchestration_log(
         .open(&log_path)
         .map_err(|e| AppError::io(&log_path, e))?;
     writeln!(file, "{line}").map_err(|e| AppError::io(&log_path, e))?;
-    if let Err(e) = crate::services::project_config_sync::sync_orchestration_agent_context(project_path) {
+    if let Err(e) =
+        crate::services::project_config_sync::sync_orchestration_agent_context(project_path)
+    {
         log::warn!("刷新 OpenSunstar Agent 上下文失败: {e}");
     }
     Ok(())
@@ -1729,7 +1735,11 @@ fn orchestration_event_summary(value: &Value, event: &str) -> String {
             "检查是否能进入下一步：{} → {}，{}",
             str_field("changeId"),
             str_field("targetStage"),
-            if value.get("allowed").and_then(Value::as_bool).unwrap_or(false) {
+            if value
+                .get("allowed")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
                 "通过"
             } else {
                 "未通过"

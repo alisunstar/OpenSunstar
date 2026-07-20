@@ -35,6 +35,7 @@ pub struct QuickStartApplyRequest {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(clippy::enum_variant_names)] // After* 前缀表达"故障注入点在某步骤之后"的刻意语义
 pub enum QuickStartFaultPoint {
     AfterProviderCreatedBeforeReceipt,
     AfterProviderCreated,
@@ -515,15 +516,14 @@ async fn compensate_failed_apply(
                 .await
                 .map_err(AppError::Message)?;
         }
-        if proxy_start_may_have_completed && !operation.proxy_was_running {
-            if state.proxy_service.is_running().await {
+        if proxy_start_may_have_completed && !operation.proxy_was_running
+            && state.proxy_service.is_running().await {
                 state
                     .proxy_service
                     .stop()
                     .await
                     .map_err(AppError::Message)?;
             }
-        }
         if provider_switch_may_have_completed {
             if let Some(previous_provider_id) = operation.previous_provider_id.as_deref() {
                 ProviderService::switch(state, app_type.clone(), previous_provider_id)?;
@@ -937,8 +937,7 @@ mod tests {
         );
 
         let mut rotated_key = first.clone();
-        rotated_key.provider.settings_config["auth"]["OPENAI_API_KEY"] =
-            json!("sk-rotated-secret");
+        rotated_key.provider.settings_config["auth"]["OPENAI_API_KEY"] = json!("sk-rotated-secret");
         assert_eq!(
             request_fingerprint(&first).expect("first fingerprint"),
             request_fingerprint(&rotated_key).expect("rotated-key fingerprint"),
@@ -1115,13 +1114,10 @@ mod tests {
         drop(state);
 
         let restarted_state = AppState::new(database);
-        let recovered = QuickStartService::rollback(
-            &restarted_state,
-            &operation.id,
-            operation.revision,
-        )
-        .await
-        .expect("restart recovery");
+        let recovered =
+            QuickStartService::rollback(&restarted_state, &operation.id, operation.revision)
+                .await
+                .expect("restart recovery");
 
         assert_eq!(recovered.status, QuickStartOperationStatus::RolledBack);
         assert!(restarted_state

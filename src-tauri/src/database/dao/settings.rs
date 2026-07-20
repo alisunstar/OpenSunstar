@@ -56,6 +56,69 @@ impl Database {
         Ok(())
     }
 
+    /// 获取（或首次生成）代理接管占位令牌。
+    ///
+    /// 历史上接管态会向各 CLI 写入固定常量 `PROXY_MANAGED` 作为 Bearer 占位符，
+    /// 而该常量随开源代码公开——任意本地进程都能凭它经回环向代理借用用户存储的
+    /// 真实密钥配额（阶段 1 报告 §4.3 ①）。此处改为“每安装一次性随机派生 +
+    /// 持久化”：真实写入 CLI 配置并由代理回环认证校验的是 `PROXY_MANAGED-<随机>`，
+    /// 固定裸常量不再被接受为有效凭据。前缀保留是为了让既有的“是否为接管占位符”
+    /// 判定继续以前缀匹配兼容历史裸值。
+    pub fn get_or_create_proxy_takeover_token(&self) -> Result<String, AppError> {
+        // 注意：键名**不能**落入 `proxy_takeover_%` 命名空间——该前缀被
+        // `clear_all_proxy_takeover` 与三行 proxy_config 迁移用 LIKE 批量清理，
+        // 会误删/改写本令牌。故使用独立的 `proxy_managed_auth_token`。
+        const KEY: &str = "proxy_managed_auth_token";
+        const PREFIX: &str = "PROXY_MANAGED-";
+
+        if let Some(existing) = self.get_setting(KEY)? {
+            let trimmed = existing.trim();
+            if trimmed.starts_with(PREFIX) && trimmed.len() > PREFIX.len() {
+                return Ok(trimmed.to_string());
+            }
+        }
+
+        let token = format!("{PREFIX}{}", uuid::Uuid::new_v4());
+        self.set_setting(KEY, &token)?;
+        Ok(token)
+    }
+
+    // --- 用量脚本域名确认闸门（P0-2） ---
+
+    /// custom 用量脚本已确认外发目标 host 的存储键。
+    fn usage_script_confirmed_host_key(app_type: &str, provider_id: &str) -> String {
+        format!("usage_script_confirmed_host_{app_type}_{provider_id}")
+    }
+
+    /// 读取某 provider 的 custom 用量脚本已确认的外发目标 host 标签。
+    ///
+    /// 返回 `None` 表示尚未确认；后端算出的目标 host 标签与此值不符（含 host 变更）时会
+    /// 重新触发确认。custom 用量脚本首次外发到非回环主机前，`query_usage` /
+    /// `test_usage_script` 会读取本值并传入执行函数做 fail-closed 闸门。
+    pub fn get_usage_script_confirmed_host(
+        &self,
+        app_type: &str,
+        provider_id: &str,
+    ) -> Result<Option<String>, AppError> {
+        self.get_setting(&Self::usage_script_confirmed_host_key(
+            app_type,
+            provider_id,
+        ))
+    }
+
+    /// 持久化某 provider 的 custom 用量脚本已确认的外发目标 host 标签。
+    pub fn set_usage_script_confirmed_host(
+        &self,
+        app_type: &str,
+        provider_id: &str,
+        host: &str,
+    ) -> Result<(), AppError> {
+        self.set_setting(
+            &Self::usage_script_confirmed_host_key(app_type, provider_id),
+            host,
+        )
+    }
+
     // --- 通用配置片段 (Common Config Snippet) ---
 
     /// 获取通用配置片段
@@ -323,5 +386,111 @@ impl Database {
         let json = serde_json::to_string(config)
             .map_err(|e| AppError::Database(format!("序列化日志配置失败: {e}")))?;
         self.set_setting("log_config", &json)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::database::Database;
+
+    #[test]
+    fn proxy_takeover_token_is_random_prefixed_and_stable() {
+        let db = Database::memory().expect("memory db");
+
+        let first = db
+            .get_or_create_proxy_takeover_token()
+            .expect("first token");
+        assert!(
+            first.starts_with("PROXY_MANAGED-"),
+            "token must keep the PROXY_MANAGED- prefix for placeholder detection: {first}"
+        );
+        assert!(
+            first.len() > "PROXY_MANAGED-".len(),
+            "token must carry a random suffix, not the bare constant"
+        );
+        assert_ne!(
+            first, "PROXY_MANAGED",
+            "must never be the guessable bare constant"
+        );
+
+        // 稳定性：同一安装重复读取返回同一令牌（否则接管配置与代理认证会失配）。
+        let second = db
+            .get_or_create_proxy_takeover_token()
+            .expect("second token");
+        assert_eq!(first, second, "token must persist across reads");
+    }
+
+    #[test]
+    fn proxy_takeover_token_heals_from_legacy_bare_constant() {
+        let db = Database::memory().expect("memory db");
+
+        // 模拟历史/被篡改的裸常量落库：必须被重新派生为带随机后缀的安全令牌。
+        db.set_setting("proxy_managed_auth_token", "PROXY_MANAGED")
+            .expect("seed legacy value");
+
+        let token = db
+            .get_or_create_proxy_takeover_token()
+            .expect("token after heal");
+        assert_ne!(token, "PROXY_MANAGED");
+        assert!(token.starts_with("PROXY_MANAGED-") && token.len() > "PROXY_MANAGED-".len());
+    }
+
+    #[test]
+    fn usage_script_confirmed_host_round_trip_and_isolation() {
+        let db = Database::memory().expect("memory db");
+
+        // 未确认时返回 None
+        assert_eq!(
+            db.get_usage_script_confirmed_host("claude", "p1")
+                .expect("read"),
+            None
+        );
+
+        db.set_usage_script_confirmed_host("claude", "p1", "quota.example.net")
+            .expect("persist confirmed host");
+        assert_eq!(
+            db.get_usage_script_confirmed_host("claude", "p1")
+                .expect("read"),
+            Some("quota.example.net".to_string())
+        );
+
+        // 不同 provider / 不同 app 互不影响（key 按 app_type + provider_id 隔离）
+        assert_eq!(
+            db.get_usage_script_confirmed_host("claude", "p2")
+                .expect("read"),
+            None
+        );
+        assert_eq!(
+            db.get_usage_script_confirmed_host("codex", "p1")
+                .expect("read"),
+            None
+        );
+
+        // host 变更（覆盖写入）后返回新值
+        db.set_usage_script_confirmed_host("claude", "p1", "other.example.com")
+            .expect("update confirmed host");
+        assert_eq!(
+            db.get_usage_script_confirmed_host("claude", "p1")
+                .expect("read"),
+            Some("other.example.com".to_string())
+        );
+    }
+
+    #[test]
+    fn proxy_takeover_token_key_is_outside_takeover_namespace() {
+        // 回归：令牌键不能落入 `proxy_takeover_%`，否则会被 clear_all_proxy_takeover 与
+        // 三行 proxy_config 迁移的 `LIKE 'proxy_takeover_%'` 批量清理误伤。
+        assert!(
+            !"proxy_managed_auth_token".starts_with("proxy_takeover_"),
+            "key must stay outside the proxy_takeover_ LIKE namespace"
+        );
+
+        let db = Database::memory().expect("memory db");
+        let token = db.get_or_create_proxy_takeover_token().expect("token");
+        assert_eq!(
+            db.get_setting("proxy_managed_auth_token").expect("read"),
+            Some(token),
+            "token must be stored under the dedicated non-takeover key"
+        );
     }
 }

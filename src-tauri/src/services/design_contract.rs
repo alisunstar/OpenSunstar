@@ -911,7 +911,7 @@ pub fn generate_design_md(contract: &DesignContract) -> Result<String, AppError>
     // Shapes
     out.push_str("## Shapes\n\n");
     let mut radii: Vec<_> = contract.shapes.border_radius.iter().collect();
-    radii.sort_by(|(a, _), (b, _)| a.cmp(b));
+    radii.sort_by_key(|(a, _)| *a);
     for (name, value) in &radii {
         out.push_str(&format!("- **{}**: {}\n", name, value));
     }
@@ -1272,9 +1272,9 @@ pub fn parse_design_md(content: &str) -> Result<(DesignContract, Vec<String>), A
     let mut warnings: Vec<String> = Vec::new();
 
     // Extract YAML frontmatter
-    let (yaml_str, body) = if content.starts_with("---\n") {
-        if let Some(end) = content[4..].find("\n---") {
-            (&content[4..4 + end], &content[4 + end + 4..])
+    let (yaml_str, body) = if let Some(stripped) = content.strip_prefix("---\n") {
+        if let Some(end) = stripped.find("\n---") {
+            (&stripped[..end], &stripped[end + 4..])
         } else {
             warnings.push("No closing YAML delimiter found".into());
             ("", content)
@@ -1527,7 +1527,6 @@ fn extract_typography_from_md(body: &str) -> Option<DesignTypography> {
                     if let Some((size_part, lh_part)) = rest.split_once('/') {
                         let size = size_part.trim().to_string();
                         let line_height = lh_part
-                            .trim()
                             .split_whitespace()
                             .next()
                             .unwrap_or("")
@@ -1560,24 +1559,21 @@ fn extract_typography_from_md(body: &str) -> Option<DesignTypography> {
                     continue;
                 }
                 match token.as_str() {
-                    "font-family-base" | "fontfamilybase" | "base-font" | "font-base" => {
-                        if font_family_base.is_none() {
+                    "font-family-base" | "fontfamilybase" | "base-font" | "font-base"
+                        if font_family_base.is_none() => {
                             font_family_base = Some(value.to_string());
                         }
-                    }
                     "font-family-heading"
                     | "fontfamilyheading"
                     | "heading-font"
-                    | "font-heading" => {
-                        if font_family_heading.is_none() {
+                    | "font-heading"
+                        if font_family_heading.is_none() => {
                             font_family_heading = Some(value.to_string());
                         }
-                    }
-                    "font-family-mono" | "fontfamilymono" | "mono-font" | "font-mono" => {
-                        if font_family_mono.is_none() {
+                    "font-family-mono" | "fontfamilymono" | "mono-font" | "font-mono"
+                        if font_family_mono.is_none() => {
                             font_family_mono = Some(value.to_string());
                         }
-                    }
                     _ => {}
                 }
             }
@@ -1670,7 +1666,7 @@ fn extract_spacing_from_md(body: &str) -> Option<DesignSpacing> {
         };
         let multipliers: Vec<u32> = table_px_values
             .iter()
-            .map(|&px| if bu > 0 { px / bu } else { px })
+            .map(|&px| px.checked_div(bu).unwrap_or(px))
             .collect();
         base_unit = Some(bu);
         scale = Some(multipliers);

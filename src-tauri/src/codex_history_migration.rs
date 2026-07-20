@@ -1694,7 +1694,7 @@ model_provider = "aihubmix"
     }
 
     #[test]
-    fn skips_custom_category_unknown_provider_when_created_by_OpenSunstar() {
+    fn skips_custom_category_unknown_provider_when_created_by_opensunstar() {
         let db = Database::memory().expect("memory db");
         let mut provider = Provider::with_id(
             "generated-uuid".to_string(),

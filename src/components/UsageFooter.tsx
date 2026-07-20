@@ -1,9 +1,11 @@
 import React from "react";
-import { RefreshCw, AlertCircle, Clock } from "lucide-react";
+import { RefreshCw, AlertCircle, Clock, ShieldAlert } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { type AppId } from "@/lib/api";
+import { usageApi } from "@/lib/api/usage";
 import { useUsageQuery } from "@/lib/query/queries";
 import { UsageData, Provider } from "@/types";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TierBadge } from "@/components/SubscriptionQuotaFooter";
 import type { QuotaTier } from "@/types/subscription";
 
@@ -86,8 +88,70 @@ const UsageFooter: React.FC<UsageFooterProps> = ({
     return () => clearInterval(interval);
   }, [lastQueriedAt]);
 
+  // P0-2 域名确认闸门：确认弹窗开关 + 确认处理（确认后持久化到后端并重新查询）
+  const [hostConfirmOpen, setHostConfirmOpen] = React.useState(false);
+  const pendingConfirmation = usage?.needsConfirmation;
+  const handleConfirmHost = React.useCallback(async () => {
+    if (!pendingConfirmation) return;
+    try {
+      await usageApi.confirmUsageScriptHost(
+        providerId,
+        appId,
+        pendingConfirmation.host,
+      );
+    } finally {
+      setHostConfirmOpen(false);
+      await refetch();
+    }
+  }, [pendingConfirmation, providerId, appId, refetch]);
+
   // 只在启用用量查询且有数据时显示
   if (!usageEnabled || !usage) return null;
+
+  // ── P0-2 域名确认闸门：后端 fail-closed，要求用户确认目标域名后才外发真实密钥 ──
+  if (pendingConfirmation) {
+    const host = pendingConfirmation.host;
+    return (
+      <>
+        <div className="mt-3 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 shadow-sm">
+          <div className="flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400 min-w-0">
+              <ShieldAlert size={14} className="flex-shrink-0" />
+              <span className="truncate" title={host}>
+                {t("usage.hostConfirm.pending", { host })}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => setHostConfirmOpen(true)}
+                className="px-2 py-1 rounded-md bg-amber-600 text-white hover:bg-amber-700 transition-colors text-[11px] font-medium"
+              >
+                {t("usage.hostConfirm.reviewButton")}
+              </button>
+              <button
+                onClick={() => refetch()}
+                disabled={loading}
+                className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors disabled:opacity-50"
+                title={t("usage.refreshUsage")}
+              >
+                <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+              </button>
+            </div>
+          </div>
+        </div>
+        <ConfirmDialog
+          isOpen={hostConfirmOpen}
+          variant="destructive"
+          title={t("usage.hostConfirm.title")}
+          message={t("usage.hostConfirm.message", { host })}
+          confirmText={t("usage.hostConfirm.confirm")}
+          cancelText={t("usage.hostConfirm.cancel")}
+          onConfirm={handleConfirmHost}
+          onCancel={() => setHostConfirmOpen(false)}
+        />
+      </>
+    );
+  }
 
   // 错误状态
   if (!usage.success) {

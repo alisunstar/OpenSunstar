@@ -163,6 +163,7 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+        self.invalidate_pricing_cache();
         Ok(())
     }
 
@@ -208,6 +209,7 @@ impl Database {
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
 
+        self.invalidate_pricing_cache();
         Ok(())
     }
 

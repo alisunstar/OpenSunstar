@@ -6,18 +6,15 @@ use serde::{Deserialize, Serialize};
 /// 决定代理转发时的认证头格式和 URL 构造方式。
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
+#[derive(Default)]
 pub enum ApiProtocol {
     /// OpenAI 兼容协议：Authorization: Bearer + /v1/chat/completions 路径风格
+    #[default]
     OpenAi,
     /// Anthropic 原生协议：x-api-key 头 + anthropic-version + /v1/messages 路径风格
     Anthropic,
 }
 
-impl Default for ApiProtocol {
-    fn default() -> Self {
-        ApiProtocol::OpenAi
-    }
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SupplierProfile {

@@ -66,13 +66,10 @@ fn read_meta_from_db(
     default_url: &str,
     default_model: &str,
 ) -> (String, String) {
-    match db.get_setting(key) {
-        Ok(Some(raw)) => {
-            if let Ok(meta) = serde_json::from_str::<ProviderMeta>(&raw) {
-                return (meta.api_url, meta.model);
-            }
+    if let Ok(Some(raw)) = db.get_setting(key) {
+        if let Ok(meta) = serde_json::from_str::<ProviderMeta>(&raw) {
+            return (meta.api_url, meta.model);
         }
-        _ => {}
     }
     (default_url.to_string(), default_model.to_string())
 }

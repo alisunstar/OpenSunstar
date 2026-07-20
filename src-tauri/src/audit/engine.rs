@@ -57,8 +57,10 @@ impl std::str::FromStr for Severity {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
+#[derive(Default)]
 pub enum BlockThreshold {
     /// 仅阻断 CRITICAL（默认）
+    #[default]
     Critical,
     /// 阻断 HIGH 及以上
     High,
@@ -68,11 +70,6 @@ pub enum BlockThreshold {
     Never,
 }
 
-impl Default for BlockThreshold {
-    fn default() -> Self {
-        Self::Critical
-    }
-}
 
 impl BlockThreshold {
     pub fn should_block(&self, severity: Severity) -> bool {
@@ -107,6 +104,8 @@ pub struct Finding {
 
 // ── 审计来源上下文 ──────────────────────────────────────
 
+// 审计来源字段目前主要供 Debug/未来审计日志使用，重构中暂未全部读取，保留以备接线
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum AuditSource {
     Install {
@@ -129,6 +128,8 @@ pub enum AuditSource {
 
 // ── 审计上下文 ──────────────────────────────────────────
 
+// source 字段供审计上下文构造/Debug 使用，重构中暂未被读取，保留以备接线
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct AuditContext {
     pub source: AuditSource,
@@ -236,6 +237,7 @@ fn should_skip_file(path: &Path) -> bool {
     false
 }
 
+#[allow(clippy::only_used_in_recursion)] // ctx 仅透传给递归调用，属预期
 fn scan_dir_recursive(
     base_dir: &Path,
     current_dir: &Path,

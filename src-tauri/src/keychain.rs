@@ -34,8 +34,7 @@ static FALLBACK_STORE: std::sync::OnceLock<Mutex<FallbackStore>> = std::sync::On
 /// Also avoids redundant OS calls for frequently-read keys within the same session.
 static KEYCHAIN_CACHE: std::sync::OnceLock<Mutex<HashMap<String, String>>> =
     std::sync::OnceLock::new();
-static LOCAL_SECRET_ENVELOPE_KEY_LOCK: std::sync::OnceLock<Mutex<()>> =
-    std::sync::OnceLock::new();
+static LOCAL_SECRET_ENVELOPE_KEY_LOCK: std::sync::OnceLock<Mutex<()>> = std::sync::OnceLock::new();
 
 #[cfg(test)]
 static TEST_SECRET_STORE: std::sync::OnceLock<Mutex<HashMap<String, String>>> =
@@ -93,7 +92,7 @@ pub fn store_secret(entry_key: &str, secret: &str) -> Result<(), AppError> {
                 store.insert(entry_key.to_string(), secret.to_string());
             }
         }
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(test))]
@@ -133,10 +132,10 @@ pub fn store_secret(entry_key: &str, secret: &str) -> Result<(), AppError> {
 pub fn get_secret(entry_key: &str) -> Result<Option<String>, AppError> {
     #[cfg(test)]
     {
-        return Ok(test_secret_store()
+        Ok(test_secret_store()
             .lock()
             .ok()
-            .and_then(|store| store.get(entry_key).cloned()));
+            .and_then(|store| store.get(entry_key).cloned()))
     }
 
     #[cfg(not(test))]
@@ -183,7 +182,7 @@ pub fn delete_secret(entry_key: &str) -> Result<(), AppError> {
         if let Ok(mut store) = test_secret_store().lock() {
             store.remove(entry_key);
         }
-        return Ok(());
+        Ok(())
     }
 
     #[cfg(not(test))]
@@ -342,9 +341,9 @@ fn ensure_local_secret_envelope_key() -> Result<[u8; 32], AppError> {
         let bytes = STANDARD.decode(encoded).map_err(|e| {
             AppError::Config(format!("Invalid local secret envelope key encoding: {e}"))
         })?;
-        return bytes.try_into().map_err(|_| {
-            AppError::Config("Invalid local secret envelope key length".to_string())
-        });
+        return bytes
+            .try_into()
+            .map_err(|_| AppError::Config("Invalid local secret envelope key length".to_string()));
     }
 
     let mut key = [0u8; 32];

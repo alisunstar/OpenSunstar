@@ -209,7 +209,7 @@ fn run_list_modules(project_path: Option<&str>, json: bool) -> Result<(), String
         output::print_result(&modules, true);
     } else {
         println!("Workflow Modules ({}):\n", modules.len());
-        println!("{:<24} {:<12} {}", "ID", "Source", "Description");
+        println!("{:<24} {:<12} Description", "ID", "Source");
         println!("{}", "-".repeat(64));
         for m in &modules {
             println!("  {:<22} {:<12} {}", m.id, m.source, m.description);
@@ -227,8 +227,8 @@ fn run_list_presets(project_path: Option<&str>, json: bool) -> Result<(), String
     } else {
         println!("Workflow Presets ({}):\n", presets.len());
         println!(
-            "{:<16} {:<20} {:>7} {:>7}  {}",
-            "ID", "Name", "Modules", "Stages", "Description"
+            "{:<16} {:<20} {:>7} {:>7}  Description",
+            "ID", "Name", "Modules", "Stages"
         );
         println!("{}", "-".repeat(72));
         for p in &presets {

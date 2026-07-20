@@ -127,10 +127,7 @@ fn run_list(
     // Interactive select for asset_type when not specified and not json
     let asset_type = if asset_type.is_none() && !json {
         let items: Vec<String> = ASSET_TYPES.iter().map(|s| s.to_string()).collect();
-        match output::select("Select asset type", &items, false) {
-            Some(idx) => Some(ASSET_TYPES[idx].to_string()),
-            None => None,
-        }
+        output::select("Select asset type", &items, false).map(|idx| ASSET_TYPES[idx].to_string())
     } else {
         asset_type
     };
@@ -259,8 +256,8 @@ fn list_project_assets(
         ));
         eprintln!();
         println!(
-            "  {:<12} {:<24} {:<8} {}",
-            "TYPE", "ASSET_ID", "ENABLED", "SOURCE"
+            "  {:<12} {:<24} {:<8} SOURCE",
+            "TYPE", "ASSET_ID", "ENABLED"
         );
         println!("  {}", "-".repeat(60));
         for link in &links {

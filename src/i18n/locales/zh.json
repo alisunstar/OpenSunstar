@@ -1509,6 +1509,14 @@
     "queryFailed": "查询失败",
     "refreshUsage": "刷新用量",
     "planUsage": "套餐用量",
+    "hostConfirm": {
+      "title": "确认外发域名",
+      "message": "该供应商的自定义用量脚本要向以下域名发起请求（其中会包含你的 API 密钥）：\n\n{{host}}\n\n仅在你信任该域名时才继续。确认后将记住此选择，直到目标域名发生变化。",
+      "pending": "需先确认才能访问 {{host}}",
+      "reviewButton": "查看",
+      "confirm": "信任并继续",
+      "cancel": "取消"
+    },
     "invalid": "已失效",
     "total": "总：",
     "used": "已使用：",

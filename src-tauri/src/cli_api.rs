@@ -699,7 +699,7 @@ pub fn cli_design_plan(
 pub fn cli_sdd_list(
     state: &AppState,
 ) -> Result<Vec<crate::services::sdd::SddDescriptorSummary>, String> {
-    let db_arc: std::sync::Arc<Database> = state.db.clone().into();
+    let db_arc: std::sync::Arc<Database> = state.db.clone();
     crate::services::sdd::list_descriptors(&db_arc).map_err(|e| e.to_string())
 }
 
@@ -713,7 +713,7 @@ pub fn cli_sdd_detect_all(
     state: &AppState,
 ) -> Result<std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>, String>
 {
-    let db_arc: std::sync::Arc<Database> = state.db.clone().into();
+    let db_arc: std::sync::Arc<Database> = state.db.clone();
     crate::services::sdd::detect_all_projects(&db_arc).map_err(|e| e.to_string())
 }
 
@@ -722,7 +722,7 @@ pub fn cli_sdd_saved(
     state: &AppState,
 ) -> Result<std::collections::HashMap<String, Vec<crate::services::sdd::SddDetectionResult>>, String>
 {
-    let db_arc: std::sync::Arc<Database> = state.db.clone().into();
+    let db_arc: std::sync::Arc<Database> = state.db.clone();
     crate::services::sdd::get_all_saved_detections(&db_arc).map_err(|e| e.to_string())
 }
 

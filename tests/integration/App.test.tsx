@@ -22,6 +22,11 @@ vi.mock("@/components/kanban/KanbanPage", () => ({
 }));
 
 describe("App integration with MSW", () => {
+  // Full-app integration renders (real Sidebar w/ framer-motion, dialogs, the
+  // whole provider stack + MSW round-trips) are heavy in jsdom and sit near the
+  // 5s default; give this file headroom so it stays stable under full-suite load.
+  vi.setConfig({ testTimeout: 20000 });
+
   beforeEach(() => {
     localStorage.clear();
     toastSuccessMock.mockReset();
@@ -35,7 +40,8 @@ describe("App integration with MSW", () => {
     await waitFor(() => {
       expect(screen.getByTestId("workspace-page")).toBeInTheDocument();
     });
-    expect(screen.getAllByText("工作区").length).toBeGreaterThan(0);
+    // Sidebar workspace section/menu label (post-refactor: "跨项目工作区").
+    expect(screen.getAllByText("跨项目工作区").length).toBeGreaterThan(0);
   });
 
   it("does not throw when background sync status events fire", async () => {
@@ -63,20 +69,30 @@ describe("App integration with MSW", () => {
     expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
-  it("keeps legacy API-key import links reachable after the old page is removed", async () => {
+  it("opens the deep-link import confirmation dialog for a provider import", async () => {
     const { default: App } = await import("@/App");
     renderAppWithProviders(App);
 
     await waitFor(() =>
       expect(screen.getByTestId("workspace-page")).toBeInTheDocument(),
     );
+
+    // The legacy SimpleConnect page/event was removed; provider imports now flow
+    // through the `deeplink-import` event handled by DeepLinkImportDialog.
+    // No `config`/`configUrl` → the dialog opens directly without a merge call.
     await act(async () => {
-      emitTauriEvent("simple-connect-import", {
-        keys: ["sk-test-key-1234"],
-        supplierId: "deepseek",
+      emitTauriEvent("deeplink-import", {
+        version: "1",
+        resource: "provider",
+        app: "claude",
+        name: "DeepSeek",
+        homepage: "https://deepseek.com",
+        endpoint: "https://api.deepseek.com/anthropic",
+        apiKey: "sk-test-key-1234",
       });
     });
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("DeepSeek")).toBeInTheDocument();
   });
 });

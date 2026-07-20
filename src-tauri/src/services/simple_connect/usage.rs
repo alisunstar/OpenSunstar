@@ -70,7 +70,7 @@ pub fn scan_local_sessions() -> Result<(usize, Vec<UsageRecord>), AppError> {
         }
     }
 
-    records.sort_by(|a, b| b.ts.cmp(&a.ts));
+    records.sort_by_key(|b| std::cmp::Reverse(b.ts));
     Ok((files_scanned, records))
 }
 
@@ -99,7 +99,7 @@ pub fn build_usage_summary() -> Result<SimpleConnectUsageSummary, AppError> {
     }
 
     let mut breakdown: Vec<_> = by_tool.into_values().collect();
-    breakdown.sort_by(|a, b| b.input_tokens.cmp(&a.input_tokens));
+    breakdown.sort_by_key(|b| std::cmp::Reverse(b.input_tokens));
 
     let proxy = token_usage::snapshot();
 

@@ -75,7 +75,7 @@ fn run_list(state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String
     } else {
         output::header(&format!("Projects ({}):", projects.len()));
         eprintln!();
-        println!("{:<20} {:<12} {:<10} {}", "Name", "Stage", "Target", "Path");
+        println!("{:<20} {:<12} {:<10} Path", "Name", "Stage", "Target");
         println!("{}", "-".repeat(72));
         for p in &projects {
             let target = p.target_app.as_deref().unwrap_or("-");
@@ -115,8 +115,8 @@ fn run_scan(
         output::header(&format!("Framework Detection: {project_path}"));
         eprintln!();
         println!(
-            "{:<18} {:<10} {:<10} {}",
-            "Framework", "Detected", "Confidence", "Signals"
+            "{:<18} {:<10} {:<10} Signals",
+            "Framework", "Detected", "Confidence"
         );
         println!("{}", "-".repeat(64));
 
@@ -157,9 +157,11 @@ fn run_scan(
                 .collect();
             let recommended = if detected_ids.contains(&"flow-kit") {
                 "full"
-            } else if detected_ids.contains(&"spec-kit") || detected_ids.contains(&"openspec") {
-                "standard"
-            } else if detected_ids.contains(&"bmad-method") || detected_ids.contains(&"gstack") {
+            } else if detected_ids.contains(&"spec-kit")
+                || detected_ids.contains(&"openspec")
+                || detected_ids.contains(&"bmad-method")
+                || detected_ids.contains(&"gstack")
+            {
                 "standard"
             } else {
                 "mvp"
@@ -254,13 +256,7 @@ fn run_status(
             output::info(&format!("    Active Change: {cid}"));
         }
         if let Some(score) = ctx.total_artifact_completeness {
-            let label = if score >= 80 {
-                format!("{score}%")
-            } else if score >= 50 {
-                format!("{score}%")
-            } else {
-                format!("{score}%")
-            };
+            let label = format!("{score}%");
             output::info(&format!("    Artifact Completeness: {label}"));
         }
 

@@ -75,11 +75,11 @@ pub async fn get_current_prompt_file_content(app: String) -> Result<Option<Strin
 
 #[tauri::command]
 pub async fn get_dry_run_mode(state: State<'_, AppState>) -> Result<bool, String> {
-    Ok(state
+    state
         .db
         .get_setting("dry_run_mode")
         .map(|v| v.map(|s| s == "true").unwrap_or(false))
-        .map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

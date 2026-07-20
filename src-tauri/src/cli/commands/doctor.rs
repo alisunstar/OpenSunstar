@@ -1,7 +1,5 @@
 //! `os doctor` — 环境诊断：数据库、工具安装、配置目录
 
-use std::path::PathBuf;
-
 use crate::output;
 
 #[derive(clap::Args)]
@@ -69,7 +67,7 @@ pub fn run(args: DoctorArgs, json: bool) -> Result<(), String> {
     Ok(())
 }
 
-fn check_database(db_path: &PathBuf) -> DatabaseStatus {
+fn check_database(db_path: &std::path::Path) -> DatabaseStatus {
     let exists = db_path.exists();
     let readable = if exists {
         // 尝试初始化数据库（含 schema 迁移）

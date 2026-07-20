@@ -217,11 +217,10 @@ pub fn resync_all_skills(app_state: State<'_, AppState>) -> Result<usize, String
                 "hermes" => skill.apps.hermes,
                 _ => false,
             };
-            if enabled {
-                if SkillService::sync_to_app_dir(&skill.directory, app).is_ok() {
+            if enabled
+                && SkillService::sync_to_app_dir(&skill.directory, app).is_ok() {
                     count += 1;
                 }
-            }
         }
     }
 

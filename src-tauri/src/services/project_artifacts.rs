@@ -341,7 +341,7 @@ fn render_skill_registry(rows: &[RegistryRow]) -> String {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct BaselineAssetEntry {
+pub(crate) struct BaselineAssetEntry {
     id: String,
     enabled: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -350,7 +350,7 @@ struct BaselineAssetEntry {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct BaselineReadinessSummary {
+pub(crate) struct BaselineReadinessSummary {
     score: Option<u32>,
     max_score: u32,
     #[serde(skip_serializing_if = "Option::is_none")]

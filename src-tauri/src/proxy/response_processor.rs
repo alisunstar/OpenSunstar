@@ -704,7 +704,7 @@ async fn log_usage_internal(
         usage.cache_creation_tokens
     );
 
-    if let Err(e) = logger.log_with_calculation(
+    match logger.prepare_log_with_calculation(
         request_id,
         provider_id.to_string(),
         app_type.to_string(),
@@ -720,7 +720,8 @@ async fn log_usage_internal(
         None, // provider_type
         is_streaming,
     ) {
-        log::warn!("[USG-001] 记录使用量失败: {e}");
+        Ok(log) => state.usage_writer.enqueue(log),
+        Err(e) => log::warn!("[USG-001] 构造使用量日志失败: {e}"),
     }
 }
 
@@ -1028,9 +1029,11 @@ mod tests {
             gemini_shadow: Arc::new(GeminiShadowStore::default()),
             codex_chat_history: Arc::new(CodexChatHistoryStore::default()),
             app_handle: None,
-            failover_manager: Arc::new(FailoverSwitchManager::new(db)),
+            failover_manager: Arc::new(FailoverSwitchManager::new(db.clone())),
             auth_token: "test-proxy-token".to_string(),
+            takeover_auth_token: "PROXY_MANAGED-test".to_string(),
             rate_limiter: Arc::new(super::super::rate_limiter::RateLimiter::new(1000)),
+            usage_writer: crate::proxy::usage::AsyncUsageWriter::new(db),
         }
     }
 
@@ -1048,6 +1051,7 @@ mod tests {
             rusqlite::params!["req-model", "Req Model", "2.0", "0"],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
+        db.invalidate_pricing_cache();
         Ok(())
     }
 

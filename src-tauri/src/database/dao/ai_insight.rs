@@ -316,15 +316,14 @@ impl Database {
             .query_map([since_timestamp], |row| row.get::<_, String>(0))
             .map_err(|e| AppError::Database(e.to_string()))?;
         let mut total = 0u32;
-        for row in rows {
-            if let Ok(content) = row {
-                total += parse_risk_count(&content);
-            }
+        for content in rows.flatten() {
+            total += parse_risk_count(&content);
         }
         Ok(total)
     }
 
     /// 按项目聚合成本
+    #[allow(clippy::type_complexity)] // 聚合行元组，内部只读一处使用，拆类型收益低
     pub fn get_cost_by_project(
         &self,
         since_timestamp: i64,
@@ -450,19 +449,17 @@ impl Database {
                 Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)? as u32))
             })
             .map_err(|e| AppError::Database(e.to_string()))?;
-        for row in nl_rows {
-            if let Ok((day_start, nl_count)) = row {
-                if let Some(bucket) = buckets.iter_mut().find(|b| b.bucket_start == day_start) {
-                    bucket.nl_answers = nl_count;
-                } else {
-                    buckets.push(RoiTrendBucket {
-                        bucket_start: day_start,
-                        cost: 0.0,
-                        tokens: 0,
-                        api_calls: 0,
-                        nl_answers: nl_count,
-                    });
-                }
+        for (day_start, nl_count) in nl_rows.flatten() {
+            if let Some(bucket) = buckets.iter_mut().find(|b| b.bucket_start == day_start) {
+                bucket.nl_answers = nl_count;
+            } else {
+                buckets.push(RoiTrendBucket {
+                    bucket_start: day_start,
+                    cost: 0.0,
+                    tokens: 0,
+                    api_calls: 0,
+                    nl_answers: nl_count,
+                });
             }
         }
         buckets.sort_by_key(|b| b.bucket_start);

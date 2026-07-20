@@ -18,8 +18,23 @@ use std::sync::Arc;
 use tauri::Emitter;
 use tokio::sync::RwLock;
 
-/// 用于接管 Live 配置时的占位符（避免客户端提示缺少 key，同时不泄露真实 Token）
+/// 接管 Live 配置时写入的占位符**前缀**（避免客户端提示缺少 key，同时不泄露真实 Token）。
+///
+/// 真实写入 CLI 配置的值是 `PROXY_MANAGED-<每安装随机>`（见
+/// `Database::get_or_create_proxy_takeover_token`）。此常量仅用于“是否为接管占位符”
+/// 的前缀判定，同时兼容历史上写入的裸 `PROXY_MANAGED`。**它不再是有效的回环认证凭据**：
+/// 代理回环认证只接受完整的随机令牌（见 `proxy/server.rs` 中间件）。
 const PROXY_TOKEN_PLACEHOLDER: &str = "PROXY_MANAGED";
+
+/// 判断某个 Bearer/Key 值是否为“代理接管占位符”（前缀匹配，兼容历史裸值与新随机令牌）。
+fn is_proxy_managed_placeholder(value: &str) -> bool {
+    value.starts_with(PROXY_TOKEN_PLACEHOLDER)
+}
+
+/// `Option<&str>` 版本的接管占位符判定。
+fn is_proxy_managed_placeholder_opt(value: Option<&str>) -> bool {
+    value.is_some_and(is_proxy_managed_placeholder)
+}
 
 /// 代理接管模式下需要从 Claude Live 配置中移除的"模型覆盖"字段。
 ///
@@ -77,12 +92,22 @@ impl ProxyService {
         }
     }
 
+    /// 获取（或首次派生）本安装的代理接管占位令牌。
+    ///
+    /// 该值写入各 CLI 接管配置作为 Bearer 占位符，并由代理回环认证校验。
+    fn managed_takeover_token(&self) -> Result<String, String> {
+        self.db
+            .get_or_create_proxy_takeover_token()
+            .map_err(|e| format!("获取代理接管令牌失败: {e}"))
+    }
+
     #[cfg(test)]
-    fn apply_claude_takeover_fields(config: &mut Value, proxy_url: &str) {
+    fn apply_claude_takeover_fields(config: &mut Value, proxy_url: &str, managed_token: &str) {
         Self::apply_claude_takeover_fields_with_policy(
             config,
             proxy_url,
             ClaudeTakeoverAuthPolicy::PreserveExistingOrAuthToken,
+            managed_token,
         );
     }
 
@@ -90,6 +115,7 @@ impl ProxyService {
         config: &mut Value,
         proxy_url: &str,
         provider: &Provider,
+        managed_token: &str,
     ) {
         let auth_policy = if provider.uses_managed_account_auth() {
             // Codex 系（含仅凭 base_url 识别、无 provider_type meta 的）必须保留
@@ -114,6 +140,7 @@ impl ProxyService {
             auth_policy,
             takeover_model_fields,
             provider.uses_managed_account_auth() && !provider.is_github_copilot(),
+            managed_token,
         );
     }
 
@@ -121,6 +148,7 @@ impl ProxyService {
         config: &mut Value,
         proxy_url: &str,
         auth_policy: ClaudeTakeoverAuthPolicy,
+        managed_token: &str,
     ) {
         // 必须在 remove/insert 前 snapshot：避免读到自己刚写入的接管别名。
         let takeover_model_fields = Self::build_claude_takeover_model_fields(config);
@@ -131,6 +159,7 @@ impl ProxyService {
             auth_policy,
             takeover_model_fields,
             false,
+            managed_token,
         );
     }
 
@@ -140,6 +169,7 @@ impl ProxyService {
         auth_policy: ClaudeTakeoverAuthPolicy,
         takeover_model_fields: Vec<(&'static str, String)>,
         inject_codex_context_window: bool,
+        managed_token: &str,
     ) {
         if !config.is_object() {
             *config = json!({});
@@ -185,33 +215,24 @@ impl ProxyService {
                 let mut replaced_any = false;
                 for key in token_keys {
                     if env.contains_key(key) {
-                        env.insert(key.to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
+                        env.insert(key.to_string(), json!(managed_token));
                         replaced_any = true;
                     }
                 }
 
                 if !replaced_any {
-                    env.insert(
-                        "ANTHROPIC_AUTH_TOKEN".to_string(),
-                        json!(PROXY_TOKEN_PLACEHOLDER),
-                    );
+                    env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), json!(managed_token));
                 }
             }
             ClaudeTakeoverAuthPolicy::ManagedAccount { keep_auth_token } => {
                 for key in token_keys {
                     env.remove(key);
                 }
-                env.insert(
-                    "ANTHROPIC_API_KEY".to_string(),
-                    json!(PROXY_TOKEN_PLACEHOLDER),
-                );
+                env.insert("ANTHROPIC_API_KEY".to_string(), json!(managed_token));
                 if keep_auth_token {
                     // 无条件注入而非"已存在才保留"：热切换路径传入的是 provider
                     // settings（预设不含该键），且旧版接管已把存量用户 live 中的键删光。
-                    env.insert(
-                        "ANTHROPIC_AUTH_TOKEN".to_string(),
-                        json!(PROXY_TOKEN_PLACEHOLDER),
-                    );
+                    env.insert("ANTHROPIC_AUTH_TOKEN".to_string(), json!(managed_token));
                 }
             }
         }
@@ -333,11 +354,13 @@ impl ProxyService {
         let effective_provider = self.claude_provider_with_effective_settings(provider)?;
         let mut effective_settings = effective_provider.settings_config.clone();
         let (proxy_url, _) = self.build_proxy_urls().await?;
+        let managed_token = self.managed_takeover_token()?;
 
         Self::apply_claude_takeover_fields_for_provider(
             &mut effective_settings,
             &proxy_url,
             &effective_provider,
+            &managed_token,
         );
         self.write_claude_live(&effective_settings)?;
         Ok(())
@@ -361,11 +384,13 @@ impl ProxyService {
             )?;
         }
         let (_, proxy_codex_base_url) = self.build_proxy_urls().await?;
+        let managed_token = self.managed_takeover_token()?;
 
         Self::apply_codex_takeover_fields(
             &mut effective_settings,
             &proxy_codex_base_url,
             Some(provider),
+            &managed_token,
         );
 
         self.write_codex_takeover_live_for_provider(&effective_settings, Some(provider))?;
@@ -916,7 +941,7 @@ impl ProxyService {
                                     .map(|s| (key, s.trim()))
                             })
                             .filter(|(_, token)| {
-                                !token.is_empty() && *token != PROXY_TOKEN_PLACEHOLDER
+                                !token.is_empty() && !is_proxy_managed_placeholder(token)
                             });
 
                             if let Some((token_key, token)) = token_pair {
@@ -1007,7 +1032,7 @@ impl ProxyService {
                             .and_then(|v| v.get("OPENAI_API_KEY"))
                             .and_then(|v| v.as_str())
                             .map(|s| s.trim())
-                            .filter(|s| !s.is_empty() && *s != PROXY_TOKEN_PLACEHOLDER)
+                            .filter(|s| !s.is_empty() && !is_proxy_managed_placeholder(s))
                         {
                             if let Some(auth_obj) = provider
                                 .settings_config
@@ -1055,7 +1080,7 @@ impl ProxyService {
                             .and_then(|v| v.get("GEMINI_API_KEY"))
                             .and_then(|v| v.as_str())
                             .map(|s| s.trim())
-                            .filter(|s| !s.is_empty() && *s != PROXY_TOKEN_PLACEHOLDER)
+                            .filter(|s| !s.is_empty() && !is_proxy_managed_placeholder(s))
                         {
                             if let Some(env_obj) = provider
                                 .settings_config
@@ -1377,6 +1402,7 @@ impl ProxyService {
     /// 因此不需要在 URL 中添加应用前缀。
     async fn takeover_live_configs(&self) -> Result<(), String> {
         let (proxy_url, proxy_codex_base_url) = self.build_proxy_urls().await?;
+        let managed_token = self.managed_takeover_token()?;
 
         // Claude: 修改 ANTHROPIC_BASE_URL，使用占位符替代真实 Token（代理会注入真实 Token）
         if let Ok(mut live_config) = self.read_claude_live() {
@@ -1386,6 +1412,7 @@ impl ProxyService {
                 &mut live_config,
                 &proxy_url,
                 &claude_provider,
+                &managed_token,
             );
             self.write_claude_live(&live_config)?;
             log::info!("Claude Live 配置已接管，代理地址: {proxy_url}");
@@ -1401,6 +1428,7 @@ impl ProxyService {
                 &mut live_config,
                 &proxy_codex_base_url,
                 codex_provider.as_ref(),
+                &managed_token,
             );
 
             self.write_codex_takeover_live_for_provider(&live_config, codex_provider.as_ref())?;
@@ -1412,11 +1440,11 @@ impl ProxyService {
             if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
                 env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
                 // 使用占位符，避免显示缺少 key 的警告
-                env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
+                env.insert("GEMINI_API_KEY".to_string(), json!(&managed_token));
             } else {
                 live_config["env"] = json!({
                     "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                    "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
+                    "GEMINI_API_KEY": &managed_token
                 });
             }
             self.write_gemini_live(&live_config)?;
@@ -1429,6 +1457,7 @@ impl ProxyService {
     /// 接管指定应用的 Live 配置（严格模式：目标配置不存在则返回错误）
     async fn takeover_live_config_strict(&self, app_type: &AppType) -> Result<(), String> {
         let (proxy_url, proxy_codex_base_url) = self.build_proxy_urls().await?;
+        let managed_token = self.managed_takeover_token()?;
 
         match app_type {
             AppType::Claude => {
@@ -1440,6 +1469,7 @@ impl ProxyService {
                     &mut live_config,
                     &proxy_url,
                     &claude_provider,
+                    &managed_token,
                 );
                 self.write_claude_live(&live_config)?;
                 log::info!("Claude Live 配置已接管，代理地址: {proxy_url}");
@@ -1451,6 +1481,7 @@ impl ProxyService {
                     &mut live_config,
                     &proxy_codex_base_url,
                     Some(&codex_provider),
+                    &managed_token,
                 );
 
                 self.write_codex_takeover_live_for_provider(&live_config, Some(&codex_provider))?;
@@ -1461,11 +1492,11 @@ impl ProxyService {
 
                 if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
                     env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
-                    env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
+                    env.insert("GEMINI_API_KEY".to_string(), json!(&managed_token));
                 } else {
                     live_config["env"] = json!({
                         "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                        "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
+                        "GEMINI_API_KEY": &managed_token
                     });
                 }
 
@@ -1481,6 +1512,7 @@ impl ProxyService {
     /// 接管指定应用的 Live 配置（尽力而为：配置不存在/读取失败则跳过）
     async fn takeover_live_config_best_effort(&self, app_type: &AppType) -> Result<(), String> {
         let (proxy_url, proxy_codex_base_url) = self.build_proxy_urls().await?;
+        let managed_token = self.managed_takeover_token()?;
 
         match app_type {
             AppType::Claude => {
@@ -1495,12 +1527,14 @@ impl ProxyService {
                             &mut live_config,
                             &proxy_url,
                             &provider,
+                            &managed_token,
                         );
                     } else {
                         Self::apply_claude_takeover_fields_with_policy(
                             &mut live_config,
                             &proxy_url,
                             ClaudeTakeoverAuthPolicy::PreserveExistingOrAuthToken,
+                            &managed_token,
                         );
                     }
                     let _ = self.write_claude_live(&live_config);
@@ -1516,6 +1550,7 @@ impl ProxyService {
                         &mut live_config,
                         &proxy_codex_base_url,
                         codex_provider.as_ref(),
+                        &managed_token,
                     );
 
                     let _ = self.write_codex_takeover_live_for_provider(
@@ -1528,11 +1563,11 @@ impl ProxyService {
                 if let Ok(mut live_config) = self.read_gemini_live() {
                     if let Some(env) = live_config.get_mut("env").and_then(|v| v.as_object_mut()) {
                         env.insert("GOOGLE_GEMINI_BASE_URL".to_string(), json!(&proxy_url));
-                        env.insert("GEMINI_API_KEY".to_string(), json!(PROXY_TOKEN_PLACEHOLDER));
+                        env.insert("GEMINI_API_KEY".to_string(), json!(&managed_token));
                     } else {
                         live_config["env"] = json!({
                             "GOOGLE_GEMINI_BASE_URL": &proxy_url,
-                            "GEMINI_API_KEY": PROXY_TOKEN_PLACEHOLDER
+                            "GEMINI_API_KEY": &managed_token
                         });
                     }
 
@@ -1798,6 +1833,10 @@ impl ProxyService {
         app_type: &AppType,
     ) -> Result<bool, String> {
         let (proxy_url, proxy_codex_base_url) = self.build_proxy_urls().await?;
+        // 当前安装的随机接管令牌。Live 若残留升级前写入的历史裸常量
+        // `PROXY_MANAGED`，必须视为“未指向当前代理”，触发重建以重写为随机令牌，
+        // 否则接管用户的 CLI 会因中间件只认随机令牌而 401（阶段 1 报告 §4.3 ①）。
+        let managed_token = self.managed_takeover_token()?;
 
         match app_type {
             AppType::Claude => {
@@ -1807,7 +1846,13 @@ impl ProxyService {
                     .and_then(|value| value.get("ANTHROPIC_BASE_URL"))
                     .and_then(|value| value.as_str())
                     .is_some_and(|url| Self::proxy_urls_match(url, &proxy_url));
-                Ok(Self::is_claude_live_taken_over(&config) && base_url_matches)
+                Ok(Self::is_claude_live_taken_over(&config)
+                    && base_url_matches
+                    && !Self::live_takeover_has_stale_managed_token(
+                        app_type,
+                        &config,
+                        &managed_token,
+                    ))
             }
             AppType::Codex => {
                 let config = self.read_codex_live()?;
@@ -1820,7 +1865,13 @@ impl ProxyService {
                                 || Self::proxy_urls_match(url, &proxy_url)
                         })
                     });
-                Ok(Self::is_codex_live_taken_over(&config) && base_url_matches)
+                Ok(Self::is_codex_live_taken_over(&config)
+                    && base_url_matches
+                    && !Self::live_takeover_has_stale_managed_token(
+                        app_type,
+                        &config,
+                        &managed_token,
+                    ))
             }
             AppType::Gemini => {
                 let config = self.read_gemini_live()?;
@@ -1829,9 +1880,70 @@ impl ProxyService {
                     .and_then(|value| value.get("GOOGLE_GEMINI_BASE_URL"))
                     .and_then(|value| value.as_str())
                     .is_some_and(|url| Self::proxy_urls_match(url, &proxy_url));
-                Ok(Self::is_gemini_live_taken_over(&config) && base_url_matches)
+                Ok(Self::is_gemini_live_taken_over(&config)
+                    && base_url_matches
+                    && !Self::live_takeover_has_stale_managed_token(
+                        app_type,
+                        &config,
+                        &managed_token,
+                    ))
             }
             _ => Ok(false),
+        }
+    }
+
+    /// 检测 Live 配置中是否残留“过期的接管占位令牌”。
+    ///
+    /// 过期 = 该值是接管占位符（`PROXY_MANAGED` 前缀）但**不等于**本安装当前的
+    /// 随机令牌。典型来源：安全修复前写入的历史裸常量 `PROXY_MANAGED`。代理中间件
+    /// 现在只接受完整随机令牌，若不重写这些残留会让接管用户的 CLI 直接 401
+    /// （阶段 1 报告 §4.3 ①）。返回 true 会让 `set_takeover_for_app` 判定为“接管
+    /// 未就位”，从而恢复真实备份后用当前随机令牌重新接管。
+    ///
+    /// 注意：Codex 官方（OAuth）接管不写 bearer 占位符（仅改 base_url，auth.json 由
+    /// Codex 客户端独占），故此处不会因缺占位符而误判过期。
+    fn live_takeover_has_stale_managed_token(
+        app_type: &AppType,
+        config: &Value,
+        managed_token: &str,
+    ) -> bool {
+        let is_stale = |value: Option<&str>| -> bool {
+            value.is_some_and(|v| is_proxy_managed_placeholder(v) && v != managed_token)
+        };
+
+        match app_type {
+            AppType::Claude => {
+                let Some(env) = config.get("env").and_then(|v| v.as_object()) else {
+                    return false;
+                };
+                [
+                    "ANTHROPIC_AUTH_TOKEN",
+                    "ANTHROPIC_API_KEY",
+                    "OPENROUTER_API_KEY",
+                    "OPENAI_API_KEY",
+                ]
+                .into_iter()
+                .any(|key| is_stale(env.get(key).and_then(|v| v.as_str())))
+            }
+            AppType::Codex => {
+                let auth_token = config
+                    .get("auth")
+                    .and_then(|v| v.as_object())
+                    .and_then(|auth| auth.get("OPENAI_API_KEY"))
+                    .and_then(|v| v.as_str());
+                let config_token = config
+                    .get("config")
+                    .and_then(|v| v.as_str())
+                    .and_then(crate::codex_config::extract_codex_experimental_bearer_token);
+                is_stale(auth_token) || is_stale(config_token.as_deref())
+            }
+            AppType::Gemini => {
+                let Some(env) = config.get("env").and_then(|v| v.as_object()) else {
+                    return false;
+                };
+                is_stale(env.get("GEMINI_API_KEY").and_then(|v| v.as_str()))
+            }
+            _ => false,
         }
     }
 
@@ -1848,7 +1960,7 @@ impl ProxyService {
             "OPENROUTER_API_KEY",
             "OPENAI_API_KEY",
         ] {
-            if env.get(key).and_then(|v| v.as_str()) == Some(PROXY_TOKEN_PLACEHOLDER) {
+            if is_proxy_managed_placeholder_opt(env.get(key).and_then(|v| v.as_str())) {
                 env.remove(key);
             }
         }
@@ -1873,7 +1985,7 @@ impl ProxyService {
             let updated = Self::remove_local_codex_routing_overrides(cfg_str);
             let updated =
                 crate::codex_config::remove_codex_experimental_bearer_token_if(&updated, |token| {
-                    token == PROXY_TOKEN_PLACEHOLDER
+                    is_proxy_managed_placeholder(token)
                 })
                 .map_err(|e| format!("清理 Codex 接管占位符失败: {e}"))?;
             config["config"] = json!(updated);
@@ -1914,7 +2026,7 @@ impl ProxyService {
             return Ok(());
         };
 
-        if env.get("GEMINI_API_KEY").and_then(|v| v.as_str()) == Some(PROXY_TOKEN_PLACEHOLDER) {
+        if is_proxy_managed_placeholder_opt(env.get("GEMINI_API_KEY").and_then(|v| v.as_str())) {
             env.remove("GEMINI_API_KEY");
         }
 
@@ -1999,7 +2111,7 @@ impl ProxyService {
             "OPENROUTER_API_KEY",
             "OPENAI_API_KEY",
         ] {
-            if env.get(key).and_then(|v| v.as_str()) == Some(PROXY_TOKEN_PLACEHOLDER) {
+            if is_proxy_managed_placeholder_opt(env.get(key).and_then(|v| v.as_str())) {
                 return true;
             }
         }
@@ -2008,22 +2120,23 @@ impl ProxyService {
     }
 
     fn codex_live_has_proxy_placeholder(config: &Value) -> bool {
-        if config
-            .get("auth")
-            .and_then(|v| v.as_object())
-            .and_then(|auth| auth.get("OPENAI_API_KEY"))
-            .and_then(|v| v.as_str())
-            == Some(PROXY_TOKEN_PLACEHOLDER)
-        {
+        if is_proxy_managed_placeholder_opt(
+            config
+                .get("auth")
+                .and_then(|v| v.as_object())
+                .and_then(|auth| auth.get("OPENAI_API_KEY"))
+                .and_then(|v| v.as_str()),
+        ) {
             return true;
         }
 
-        config
-            .get("config")
-            .and_then(|v| v.as_str())
-            .and_then(crate::codex_config::extract_codex_experimental_bearer_token)
-            .as_deref()
-            == Some(PROXY_TOKEN_PLACEHOLDER)
+        is_proxy_managed_placeholder_opt(
+            config
+                .get("config")
+                .and_then(|v| v.as_str())
+                .and_then(crate::codex_config::extract_codex_experimental_bearer_token)
+                .as_deref(),
+        )
     }
 
     fn is_codex_live_taken_over(config: &Value) -> bool {
@@ -2041,7 +2154,7 @@ impl ProxyService {
             Some(env) => env,
             None => return false,
         };
-        env.get("GEMINI_API_KEY").and_then(|v| v.as_str()) == Some(PROXY_TOKEN_PLACEHOLDER)
+        is_proxy_managed_placeholder_opt(env.get("GEMINI_API_KEY").and_then(|v| v.as_str()))
     }
 
     /// 判断给定的 Live/备份配置是否已被代理接管（包含占位符）
@@ -2386,6 +2499,7 @@ impl ProxyService {
         settings: &mut Value,
         proxy_url: &str,
         provider: Option<&Provider>,
+        managed_token: &str,
     ) {
         let is_official =
             provider.and_then(|provider| provider.category.as_deref()) == Some("official");
@@ -2394,11 +2508,9 @@ impl ProxyService {
         let mut updated =
             Self::apply_codex_proxy_toml_config_for_provider(config_str, proxy_url, provider);
         if !is_official {
-            updated = crate::codex_config::set_codex_experimental_bearer_token(
-                &updated,
-                PROXY_TOKEN_PLACEHOLDER,
-            )
-            .unwrap_or(updated);
+            updated =
+                crate::codex_config::set_codex_experimental_bearer_token(&updated, managed_token)
+                    .unwrap_or(updated);
         }
 
         // This value is an in-memory write plan, not an auth snapshot. Keeping
@@ -2479,6 +2591,8 @@ impl ProxyService {
         self.write_codex_live_verbatim(config)
     }
 
+    #[allow(dead_code)] // 保留：按 provider 写 Codex live 的变体，暂未接线
+    #[allow(dead_code)] // 保留：按 provider 写 Codex live 配置，重构过渡期暂未接线
     fn write_codex_live_for_provider(
         &self,
         config: &Value,
@@ -2847,6 +2961,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -2866,6 +2981,77 @@ mod tests {
             env.get(CLAUDE_CODE_MAX_CONTEXT_TOKENS).is_none(),
             "Copilot takeover must not receive the Codex context override"
         );
+    }
+
+    #[test]
+    fn stale_bare_managed_token_is_detected_across_apps() {
+        // 升级前写入的历史裸常量 `PROXY_MANAGED` 必须被判为“过期占位令牌”，
+        // 从而在重新接管时被重写为当前随机令牌，避免接管用户的 CLI 401
+        //（阶段 1 报告 §4.3 ①）。
+        let current = "PROXY_MANAGED-current-random-token";
+
+        let claude_live = json!({
+            "env": {
+                "ANTHROPIC_BASE_URL": "http://127.0.0.1:15721",
+                "ANTHROPIC_AUTH_TOKEN": "PROXY_MANAGED"
+            }
+        });
+        assert!(ProxyService::live_takeover_has_stale_managed_token(
+            &AppType::Claude,
+            &claude_live,
+            current,
+        ));
+
+        let gemini_live = json!({
+            "env": {
+                "GOOGLE_GEMINI_BASE_URL": "http://127.0.0.1:15721",
+                "GEMINI_API_KEY": "PROXY_MANAGED"
+            }
+        });
+        assert!(ProxyService::live_takeover_has_stale_managed_token(
+            &AppType::Gemini,
+            &gemini_live,
+            current,
+        ));
+
+        let codex_live = json!({
+            "auth": {},
+            "config": "model_provider = \"deepseek\"\n\n[model_providers.deepseek]\nbase_url = \"http://127.0.0.1:15721/v1\"\nexperimental_bearer_token = \"PROXY_MANAGED\"\n"
+        });
+        assert!(ProxyService::live_takeover_has_stale_managed_token(
+            &AppType::Codex,
+            &codex_live,
+            current,
+        ));
+    }
+
+    #[test]
+    fn current_random_managed_token_is_not_stale() {
+        // 已写入当前随机令牌的接管配置不应被判为过期（否则会无谓地反复重建）。
+        let current = "PROXY_MANAGED-current-random-token";
+
+        let claude_live = json!({
+            "env": {
+                "ANTHROPIC_BASE_URL": "http://127.0.0.1:15721",
+                "ANTHROPIC_AUTH_TOKEN": current
+            }
+        });
+        assert!(!ProxyService::live_takeover_has_stale_managed_token(
+            &AppType::Claude,
+            &claude_live,
+            current,
+        ));
+
+        // 无占位符（如 Codex 官方 OAuth 接管只改 base_url、不写 bearer）也不算过期。
+        let codex_official_live = json!({
+            "auth": { "auth_mode": "chatgpt" },
+            "config": "model_provider = \"openai\"\nchatgpt_base_url = \"http://127.0.0.1:15721/v1\"\n"
+        });
+        assert!(!ProxyService::live_takeover_has_stale_managed_token(
+            &AppType::Codex,
+            &codex_official_live,
+            current,
+        ));
     }
 
     #[test]
@@ -2906,6 +3092,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -2981,6 +3168,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -3038,6 +3226,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -3075,6 +3264,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -3117,6 +3307,7 @@ mod tests {
             &mut live_config,
             "http://127.0.0.1:15721",
             &provider,
+            PROXY_TOKEN_PLACEHOLDER,
         );
 
         let env = live_config
@@ -3136,7 +3327,11 @@ mod tests {
             }
         });
 
-        ProxyService::apply_claude_takeover_fields(&mut live_config, "http://127.0.0.1:15721");
+        ProxyService::apply_claude_takeover_fields(
+            &mut live_config,
+            "http://127.0.0.1:15721",
+            PROXY_TOKEN_PLACEHOLDER,
+        );
 
         assert_eq!(
             live_config
@@ -4750,12 +4945,15 @@ model = "gpt-5.1-codex"
             provider_b.settings_config.get("permissions"),
             "provider-derived live settings should be refreshed"
         );
+        let expected_takeover_token = db
+            .get_or_create_proxy_takeover_token()
+            .expect("resolve per-install takeover token");
         assert_eq!(
             live.get("env")
                 .and_then(|env| env.get("ANTHROPIC_API_KEY"))
                 .and_then(|v| v.as_str()),
-            Some(PROXY_TOKEN_PLACEHOLDER),
-            "takeover token placeholder should be preserved"
+            Some(expected_takeover_token.as_str()),
+            "takeover token 应为本安装随机令牌（裸 PROXY_MANAGED 视为过期并改写）"
         );
         assert_eq!(
             live.get("env")
@@ -5489,9 +5687,12 @@ requires_openai_auth = true
             parsed_live.get("model").and_then(|v| v.as_str()),
             Some("deepseek-v4-flash")
         );
+        let expected_takeover_token = db
+            .get_or_create_proxy_takeover_token()
+            .expect("resolve per-install takeover token");
         assert_eq!(
             crate::codex_config::extract_codex_experimental_bearer_token(live_config).as_deref(),
-            Some(PROXY_TOKEN_PLACEHOLDER)
+            Some(expected_takeover_token.as_str())
         );
         assert!(live
             .get("auth")
@@ -5611,8 +5812,10 @@ command = "shared-command"
         )
         .expect("set common config snippet");
 
-        let mut proxy_config = ProxyConfig::default();
-        proxy_config.listen_port = 0;
+        let proxy_config = ProxyConfig {
+            listen_port: 0,
+            ..Default::default()
+        };
         db.update_proxy_config(proxy_config)
             .await
             .expect("set test proxy config");
@@ -5749,8 +5952,10 @@ requires_openai_auth = true
         let db = Arc::new(Database::memory().expect("init db"));
         let state = crate::store::AppState::new(db.clone());
 
-        let mut proxy_config = ProxyConfig::default();
-        proxy_config.listen_port = 0;
+        let proxy_config = ProxyConfig {
+            listen_port: 0,
+            ..Default::default()
+        };
         db.update_proxy_config(proxy_config)
             .await
             .expect("set test proxy config");

@@ -394,6 +394,7 @@ pub async fn queryProviderUsage(
             success: false,
             data: None,
             error: Some(err_msg.clone()),
+            needs_confirmation: None,
         },
     };
     let payload = serde_json::json!({
@@ -506,6 +507,7 @@ async fn query_provider_usage_inner(
                 extra: Some(format!("Reset: {}", usage.quota_reset_date)),
             }]),
             error: None,
+            needs_confirmation: None,
         });
     }
 
@@ -524,6 +526,7 @@ async fn query_provider_usage_inner(
                 success: false,
                 data: None,
                 error: quota.error,
+                needs_confirmation: None,
             });
         }
 
@@ -584,6 +587,7 @@ async fn query_provider_usage_inner(
             success: true,
             data: if data.is_empty() { None } else { Some(data) },
             error: None,
+            needs_confirmation: None,
         });
     }
 
@@ -604,6 +608,7 @@ async fn query_provider_usage_inner(
                 success: false,
                 data: None,
                 error: Some("Usage query is disabled".to_string()),
+                needs_confirmation: None,
             });
         }
 
@@ -616,6 +621,7 @@ async fn query_provider_usage_inner(
                 success: false,
                 data: None,
                 error: quota.error.or(quota.credential_message),
+                needs_confirmation: None,
             });
         }
 
@@ -638,6 +644,7 @@ async fn query_provider_usage_inner(
             success: true,
             data: if data.is_empty() { None } else { Some(data) },
             error: None,
+            needs_confirmation: None,
         });
     }
 
@@ -677,6 +684,30 @@ pub async fn testUsageScript(
     )
     .await
     .map_err(|e| e.to_string())
+}
+
+/// 确认某 provider 的 custom 用量脚本外发目标 host（P0-2 域名确认闸门）。
+///
+/// 前端在弹窗中展示后端回传的 `needsConfirmation.host` 供用户确认信任后调用本命令，
+/// 后端把 `(app_type, provider_id) -> host` 持久化到 settings 表；此后该 host 的外发不再触发
+/// 确认，host 变更（后端算出的目标 host 与已确认值不符）则重新触发确认。
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn confirm_usage_script_host(
+    state: State<'_, AppState>,
+    #[allow(non_snake_case)] providerId: String,
+    app: String,
+    host: String,
+) -> Result<(), String> {
+    let app_type = AppType::from_str(&app).map_err(|e| e.to_string())?;
+    let host = host.trim();
+    if host.is_empty() {
+        return Err("host 不能为空 (host cannot be empty)".to_string());
+    }
+    state
+        .db
+        .set_usage_script_confirmed_host(app_type.as_str(), &providerId, host)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]

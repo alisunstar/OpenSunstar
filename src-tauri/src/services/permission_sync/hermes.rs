@@ -23,7 +23,7 @@ pub fn sync_permissions_at_path(
     if !allow.is_empty() {
         section.insert(
             YamlValue::String("allow".into()),
-            YamlValue::Sequence(allow.into_iter().map(|s| YamlValue::String(s)).collect()),
+            YamlValue::Sequence(allow.into_iter().map(YamlValue::String).collect()),
         );
     }
     if !lists.deny.is_empty() {

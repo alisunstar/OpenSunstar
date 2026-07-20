@@ -223,6 +223,12 @@ impl Database {
             [],
         )
         .map_err(|e| AppError::Database(e.to_string()))?;
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_request_logs_provider_app_created
+             ON proxy_request_logs(provider_id, app_type, created_at DESC)",
+            [],
+        )
+        .map_err(|e| AppError::Database(e.to_string()))?;
         Self::create_request_logs_usage_indexes_if_supported(conn)?;
 
         // 11. Model Pricing 表
@@ -643,6 +649,13 @@ impl Database {
                         );
                         Self::migrate_v37_to_v38(conn)?;
                         Self::set_user_version(conn, 38)?;
+                    }
+                    38 => {
+                        log::info!(
+                            "Migrating database from v38 to v39 (proxy_request_logs composite indexes)"
+                        );
+                        Self::migrate_v38_to_v39(conn)?;
+                        Self::set_user_version(conn, 39)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -2288,6 +2301,10 @@ impl Database {
 
     fn migrate_v36_to_v37(conn: &Connection) -> Result<(), AppError> {
         if Self::table_exists(conn, "providers")? {
+            // 防御：category 列在 v0→v1 补齐，但从 v1 之后版本直接起步的库
+            // （或最小化测试夹具）可能缺列。迁移不应假设历史列一定存在
+            // （与 v35→v36 防御性建表同理），否则下方 SELECT 会因缺列而失败。
+            Self::add_column_if_missing(conn, "providers", "category", "TEXT")?;
             let mut stmt = conn
                 .prepare(
                     "SELECT id, settings_config, category FROM providers WHERE app_type = 'codex'",
@@ -2394,6 +2411,34 @@ impl Database {
             }
         }
 
+        Ok(())
+    }
+
+    /// v38 → v39：补齐 proxy_request_logs 复合索引（幂等 IF NOT EXISTS）。
+    ///
+    /// 既有按 provider/app、created_at 的单维索引；用量面板常见过滤是
+    ///「某供应商 + 应用 + 时间倒序」，复合索引避免回表排序。
+    ///
+    /// 注：v37→v38 已用于 team requirement sources（`feat/phase-2`），故索引迁到 v39。
+    fn migrate_v38_to_v39(conn: &Connection) -> Result<(), AppError> {
+        if !Self::table_exists(conn, "proxy_request_logs")? {
+            return Ok(());
+        }
+        let has_provider = Self::has_column(conn, "proxy_request_logs", "provider_id")?;
+        let has_app = Self::has_column(conn, "proxy_request_logs", "app_type")?;
+        let has_created = Self::has_column(conn, "proxy_request_logs", "created_at")?;
+        if has_provider && has_app && has_created {
+            conn.execute(
+                "CREATE INDEX IF NOT EXISTS idx_request_logs_provider_app_created
+                 ON proxy_request_logs(provider_id, app_type, created_at DESC)",
+                [],
+            )
+            .map_err(|e| {
+                AppError::Database(format!("创建 proxy_request_logs 复合索引失败: {e}"))
+            })?;
+        }
+        // 幂等确保用量查询相关索引存在（旧库可能缺）。
+        Self::create_request_logs_usage_indexes_if_supported(conn)?;
         Ok(())
     }
 

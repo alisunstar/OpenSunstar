@@ -41,6 +41,7 @@ fn make_error(msg: String) -> UsageResult {
         success: false,
         data: None,
         error: Some(msg),
+        needs_confirmation: None,
     }
 }
 
@@ -58,6 +59,7 @@ fn make_auth_error(status: reqwest::StatusCode) -> UsageResult {
             extra: None,
         }]),
         error: Some(format!("Authentication failed (HTTP {status})")),
+        needs_confirmation: None,
     }
 }
 
@@ -130,6 +132,7 @@ async fn query_deepseek(api_key: &str) -> UsageResult {
         success: true,
         data: if data.is_empty() { None } else { Some(data) },
         error: None,
+        needs_confirmation: None,
     }
 }
 
@@ -182,6 +185,7 @@ async fn query_stepfun(api_key: &str) -> UsageResult {
             extra: None,
         }]),
         error: None,
+        needs_confirmation: None,
     }
 }
 
@@ -253,6 +257,7 @@ async fn query_siliconflow(api_key: &str, is_cn: bool) -> UsageResult {
             extra: None,
         }]),
         error: None,
+        needs_confirmation: None,
     }
 }
 
@@ -312,6 +317,7 @@ async fn query_openrouter(api_key: &str) -> UsageResult {
             extra: None,
         }]),
         error: None,
+        needs_confirmation: None,
     }
 }
 
@@ -370,6 +376,7 @@ async fn query_novita(api_key: &str) -> UsageResult {
             extra: None,
         }]),
         error: None,
+        needs_confirmation: None,
     }
 }
 
@@ -391,6 +398,7 @@ pub async fn get_balance(base_url: &str, api_key: &str) -> Result<UsageResult, S
             success: false,
             data: None,
             error: Some("API key is empty".to_string()),
+            needs_confirmation: None,
         });
     }
 
@@ -401,6 +409,7 @@ pub async fn get_balance(base_url: &str, api_key: &str) -> Result<UsageResult, S
                 success: false,
                 data: None,
                 error: Some("Unknown balance provider".to_string()),
+                needs_confirmation: None,
             })
         }
     };

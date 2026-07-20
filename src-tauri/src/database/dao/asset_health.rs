@@ -201,6 +201,7 @@ impl Database {
     /// Registers an immutable content revision without persisting the asset body.
     /// UTF-8 BOM and line-ending differences are normalized so the same logical
     /// content produces the same digest on Windows, macOS and Linux.
+    #[allow(clippy::too_many_arguments)] // 修订登记字段较多，均为必需入参
     pub fn register_asset_revision(
         &self,
         asset_type: &str,
@@ -304,6 +305,7 @@ impl Database {
         })
     }
 
+    #[allow(clippy::too_many_arguments)] // 期望态字段较多，均为必需入参
     pub fn upsert_project_asset_expectation(
         &self,
         project_id: &str,

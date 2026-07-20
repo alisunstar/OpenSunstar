@@ -100,11 +100,20 @@ export interface UsageData {
   unit?: string; // 单位（可选）
 }
 
+// 用量脚本首次外发的“域名确认闸门”载荷（P0-2）
+export interface UsageHostConfirmation {
+  host: string; // 待确认的目标主机标签（默认端口省略，非默认端口为 host:port）
+  appType: string; // 触发确认的 app 类型（回传给 confirm_usage_script_host）
+  providerId: string; // 触发确认的 provider id
+}
+
 // 用量查询结果（支持多套餐）
 export interface UsageResult {
   success: boolean;
   data?: UsageData[]; // 改为数组，支持返回多个套餐
   error?: string;
+  // 需用户确认目标域名时后端回传（custom 用量脚本首次外发到非回环主机）
+  needsConfirmation?: UsageHostConfirmation;
 }
 
 // 供应商单独的模型测试配置

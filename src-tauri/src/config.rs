@@ -228,7 +228,7 @@ fn copy_dir_recursive(src: &Path, dst: &Path) -> Result<usize, AppError> {
         let entry = entry.map_err(|e| AppError::io(src, e))?;
         let file_type = entry
             .file_type()
-            .map_err(|e| AppError::io(&entry.path(), e))?;
+            .map_err(|e| AppError::io(entry.path(), e))?;
         let src_path = entry.path();
         let file_name = entry.file_name();
 

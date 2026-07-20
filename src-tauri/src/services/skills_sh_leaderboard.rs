@@ -89,7 +89,7 @@ pub struct SkillsShLeaderboardResult {
 }
 
 #[derive(Debug, Clone)]
-struct ParsedLeaderboardMeta {
+pub(crate) struct ParsedLeaderboardMeta {
     total_skills: Option<u64>,
     all_time_total: Option<u64>,
 }

@@ -135,8 +135,8 @@ fn run_list(
 
         println!("Providers for {app} ({} total):\n", providers.len());
         println!(
-            "  {:<6} {:<24} {:<12} {}",
-            "ACTIVE", "NAME", "CATEGORY", "ID"
+            "  {:<6} {:<24} {:<12} ID",
+            "ACTIVE", "NAME", "CATEGORY"
         );
         println!("  {}", "-".repeat(60));
         for p in providers.values() {

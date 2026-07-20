@@ -55,15 +55,22 @@ pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 
 use crate::config::get_app_config_dir;
 use crate::error::AppError;
+use crate::proxy::usage::calculator::ModelPricing;
 use rusqlite::{hooks::Action, Connection};
 use serde::Serialize;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use std::sync::Mutex;
+use std::time::{Duration, Instant};
 
 // DAO 方法通过 impl Database 提供，无需额外导出
 
 /// 当前 Schema 版本号
 /// 每次修改表结构时递增，并在 schema.rs 中添加相应的迁移逻辑
-pub(crate) const SCHEMA_VERSION: i32 = 38;
+pub(crate) const SCHEMA_VERSION: i32 = 39;
+
+/// 代理热路径计价查询的 TTL（全局默认倍率/来源 + model_pricing）。
+const PRICING_CACHE_TTL: Duration = Duration::from_secs(30);
 
 /// 安全地序列化 JSON，避免 unwrap panic
 pub(crate) fn to_json_string<T: Serialize>(value: &T) -> Result<String, AppError> {
@@ -83,12 +90,34 @@ macro_rules! lock_conn {
 // 导出宏供子模块使用
 pub(crate) use lock_conn;
 
+/// 代理热路径计价查询缓存（短 TTL + 写路径显式失效）。
+#[derive(Default)]
+struct PricingLookupCache {
+    /// app_type → (expires_at, default_multiplier, pricing_model_source)
+    defaults: HashMap<String, (Instant, String, String)>,
+    /// model_id → (expires_at, pricing)
+    models: HashMap<String, (Instant, Option<ModelPricing>)>,
+}
+
+impl PricingLookupCache {
+    fn clear(&mut self) {
+        self.defaults.clear();
+        self.models.clear();
+    }
+}
+
 /// 数据库连接封装
 ///
 /// 使用 Mutex 包装 Connection 以支持在多线程环境（如 Tauri State）中共享。
 /// rusqlite::Connection 本身不是 Sync 的，因此需要这层包装。
+///
+/// 文件库启用 WAL：读路径与异步用量写线程的第二连接可并发；备份仍走
+/// rusqlite `Backup` API（WAL 安全），勿直接复制 `.db` 文件。
 pub struct Database {
     pub(crate) conn: Mutex<Connection>,
+    /// 文件库路径；`:memory:` 测试库为 `None`（无法开第二连接共享同一内存库）。
+    db_path: Option<PathBuf>,
+    pricing_cache: Mutex<PricingLookupCache>,
 }
 
 fn register_db_change_hook(conn: &Connection) {
@@ -103,7 +132,119 @@ fn register_db_change_hook(conn: &Connection) {
     ));
 }
 
+/// 文件库运行时 pragma：WAL + busy_timeout + synchronous=NORMAL。
+///
+/// WAL 失败时告警并继续（例如只读介质）；busy_timeout 降低多连接锁等待立刻失败的概率。
+pub(crate) fn apply_file_connection_pragmas(conn: &Connection) -> Result<(), AppError> {
+    conn.busy_timeout(Duration::from_secs(5))
+        .map_err(|e| AppError::Database(format!("设置 busy_timeout 失败: {e}")))?;
+
+    match conn.query_row("PRAGMA journal_mode = WAL;", [], |row| row.get::<_, String>(0)) {
+        Ok(mode) if mode.eq_ignore_ascii_case("wal") => {}
+        Ok(mode) => {
+            log::warn!("启用 WAL 未成功，当前 journal_mode={mode}；继续使用单连接语义");
+        }
+        Err(e) => {
+            log::warn!("启用 WAL 失败: {e}；继续使用默认 journal 模式");
+        }
+    }
+
+    conn.execute_batch("PRAGMA synchronous = NORMAL;")
+        .map_err(|e| AppError::Database(format!("设置 synchronous 失败: {e}")))?;
+    Ok(())
+}
+
 impl Database {
+    fn wrap(conn: Connection, db_path: Option<PathBuf>) -> Self {
+        Self {
+            conn: Mutex::new(conn),
+            db_path,
+            pricing_cache: Mutex::new(PricingLookupCache::default()),
+        }
+    }
+
+    /// 文件库路径（异步用量写线程开第二连接用）。
+    pub fn path(&self) -> Option<&Path> {
+        self.db_path.as_deref()
+    }
+
+    /// 清空计价 TTL 缓存（全局默认倍率/来源或 model_pricing 变更后调用）。
+    pub fn invalidate_pricing_cache(&self) {
+        if let Ok(mut cache) = self.pricing_cache.lock() {
+            cache.clear();
+        }
+    }
+
+    /// 带 TTL 的全局代理计价默认值（一次查询拿齐倍率 + 来源）。
+    pub fn get_proxy_pricing_defaults_cached(
+        &self,
+        app_type: &str,
+    ) -> Result<(String, String), AppError> {
+        let now = Instant::now();
+        if let Ok(cache) = self.pricing_cache.lock() {
+            if let Some((expires, multiplier, source)) = cache.defaults.get(app_type) {
+                if *expires > now {
+                    return Ok((multiplier.clone(), source.clone()));
+                }
+            }
+        }
+
+        let result = {
+            let conn = lock_conn!(self.conn);
+            conn.query_row(
+                "SELECT default_cost_multiplier, pricing_model_source
+                 FROM proxy_config WHERE app_type = ?1",
+                [app_type],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
+            )
+        };
+
+        let (multiplier, source) = match result {
+            Ok(pair) => pair,
+            Err(rusqlite::Error::QueryReturnedNoRows) => {
+                ("1".to_string(), PRICING_SOURCE_RESPONSE.to_string())
+            }
+            Err(e) => return Err(AppError::Database(e.to_string())),
+        };
+
+        if let Ok(mut cache) = self.pricing_cache.lock() {
+            cache.defaults.insert(
+                app_type.to_string(),
+                (now + PRICING_CACHE_TTL, multiplier.clone(), source.clone()),
+            );
+        }
+
+        Ok((multiplier, source))
+    }
+
+    /// 带 TTL 的模型定价查询（代理热路径避免每次锁库扫表）。
+    pub fn lookup_model_pricing_cached(
+        &self,
+        model_id: &str,
+    ) -> Result<Option<ModelPricing>, AppError> {
+        let now = Instant::now();
+        if let Ok(cache) = self.pricing_cache.lock() {
+            if let Some((expires, pricing)) = cache.models.get(model_id) {
+                if *expires > now {
+                    return Ok(pricing.clone());
+                }
+            }
+        }
+
+        let pricing = {
+            let conn = lock_conn!(self.conn);
+            crate::services::usage_stats::find_model_pricing(&conn, model_id)
+        };
+
+        if let Ok(mut cache) = self.pricing_cache.lock() {
+            cache
+                .models
+                .insert(model_id.to_string(), (now + PRICING_CACHE_TTL, pricing.clone()));
+        }
+
+        Ok(pricing)
+    }
+
     /// 初始化数据库连接并创建表
     ///
     /// 数据库文件位于 `~/.OpenSunstar/OpenSunstar.db`
@@ -127,11 +268,11 @@ impl Database {
             conn.execute("PRAGMA auto_vacuum = INCREMENTAL;", [])
                 .map_err(|e| AppError::Database(e.to_string()))?;
         }
+        // WAL / busy_timeout：允许异步用量写线程第二连接与主连接并发读；写仍串行化于 WAL。
+        apply_file_connection_pragmas(&conn)?;
         register_db_change_hook(&conn);
 
-        let db = Self {
-            conn: Mutex::new(conn),
-        };
+        let db = Self::wrap(conn, Some(db_path));
         db.create_tables()?;
 
         // Pre-migration backup: only when upgrading from an existing database
@@ -190,14 +331,40 @@ impl Database {
             .map_err(|e| AppError::Database(e.to_string()))?;
         register_db_change_hook(&conn);
 
-        let db = Self {
-            conn: Mutex::new(conn),
-        };
+        let db = Self::wrap(conn, None);
         db.create_tables()?;
         db.apply_schema_migrations()?;
         db.ensure_model_pricing_seeded()?;
 
         Ok(db)
+    }
+
+    /// 打开指定路径的文件库（测试 / 异步写线程对端）。会跑完整 schema 迁移。
+    #[cfg(test)]
+    pub fn open_file(path: impl AsRef<Path>) -> Result<Self, AppError> {
+        let path = path.as_ref().to_path_buf();
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+        }
+        let conn = Connection::open(&path).map_err(|e| AppError::Database(e.to_string()))?;
+        conn.execute("PRAGMA foreign_keys = ON;", [])
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        conn.execute("PRAGMA auto_vacuum = INCREMENTAL;", [])
+            .map_err(|e| AppError::Database(e.to_string()))?;
+        apply_file_connection_pragmas(&conn)?;
+        register_db_change_hook(&conn);
+
+        let db = Self::wrap(conn, Some(path));
+        db.create_tables()?;
+        db.apply_schema_migrations()?;
+        db.ensure_model_pricing_seeded()?;
+        Ok(db)
+    }
+
+    /// 用已有连接包装（迁移测试夹具：已 pin 旧 version，仅跑 apply_schema_migrations）。
+    #[cfg(test)]
+    pub(crate) fn from_connection(conn: Connection, db_path: Option<PathBuf>) -> Self {
+        Self::wrap(conn, db_path)
     }
 
     pub(crate) fn get_auto_vacuum_mode(conn: &Connection) -> Result<i32, AppError> {

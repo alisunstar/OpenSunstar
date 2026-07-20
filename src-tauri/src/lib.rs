@@ -1,3 +1,6 @@
+// 顶层私有 `agent` 模块与 `pub use commands::*;`（其中含 `pub mod agent`）同名，
+// 刻意保留私有模块遮蔽 glob 再导出，可见性语义不变。
+#[allow(hidden_glob_reexports)]
 mod agent;
 mod app_config;
 mod app_store;
@@ -649,21 +652,19 @@ pub fn run() {
                                     row.get::<_, Option<i64>>(7)?,    // updated_at
                                 ))
                             }) {
-                                for row in rows {
-                                    if let Ok((id, app_type, name, content, description, enabled, created_at, updated_at)) = row {
-                                        let prompt = crate::prompt::Prompt {
-                                            id,
-                                            name,
-                                            content,
-                                            description,
-                                            enabled,
-                                            created_at,
-                                            updated_at,
-                                            ..Default::default()
-                                        };
-                                        if app_state.db.save_prompt(&app_type, &prompt).is_ok() {
-                                            migrated += 1;
-                                        }
+                                for (id, app_type, name, content, description, enabled, created_at, updated_at) in rows.flatten() {
+                                    let prompt = crate::prompt::Prompt {
+                                        id,
+                                        name,
+                                        content,
+                                        description,
+                                        enabled,
+                                        created_at,
+                                        updated_at,
+                                        ..Default::default()
+                                    };
+                                    if app_state.db.save_prompt(&app_type, &prompt).is_ok() {
+                                        migrated += 1;
                                     }
                                 }
                             }
@@ -1388,6 +1389,7 @@ pub fn run() {
             // usage query
             commands::queryProviderUsage,
             commands::testUsageScript,
+            commands::confirm_usage_script_host,
             // subscription quota
             commands::get_subscription_quota,
             commands::get_codex_oauth_quota,

@@ -108,7 +108,14 @@ pub fn execute_text_write_plan(
     dry_run: bool,
     verifications: Vec<OrchestrationVerification>,
 ) -> Result<OrchestrationReceipt, AppError> {
-    execute_text_write_plan_with_receipt(project_path, operation, steps, dry_run, verifications, true)
+    execute_text_write_plan_with_receipt(
+        project_path,
+        operation,
+        steps,
+        dry_run,
+        verifications,
+        true,
+    )
 }
 
 pub fn execute_text_write_plan_without_receipt(
@@ -118,13 +125,23 @@ pub fn execute_text_write_plan_without_receipt(
     dry_run: bool,
     verifications: Vec<OrchestrationVerification>,
 ) -> Result<OrchestrationReceipt, AppError> {
-    execute_text_write_plan_with_receipt(project_path, operation, steps, dry_run, verifications, false)
+    execute_text_write_plan_with_receipt(
+        project_path,
+        operation,
+        steps,
+        dry_run,
+        verifications,
+        false,
+    )
 }
 
-pub fn restore_latest_orchestration_receipt(project_path: &str) -> Result<OrchestrationReceipt, AppError> {
+pub fn restore_latest_orchestration_receipt(
+    project_path: &str,
+) -> Result<OrchestrationReceipt, AppError> {
     let root = PathBuf::from(project_path);
     let receipt_path = root.join(RECEIPT_REL);
-    let receipt_text = fs::read_to_string(&receipt_path).map_err(|e| AppError::io(&receipt_path, e))?;
+    let receipt_text =
+        fs::read_to_string(&receipt_path).map_err(|e| AppError::io(&receipt_path, e))?;
     let receipt: OrchestrationReceipt = serde_json::from_str(&receipt_text)
         .map_err(|e| AppError::Message(format!("解析编排 receipt 失败: {e}")))?;
 
@@ -136,7 +153,8 @@ pub fn restore_latest_orchestration_receipt(project_path: &str) -> Result<Orches
         let target = root.join(&step.target_path);
         if let Some(snapshot_rel) = step.snapshot_path.as_deref() {
             let snapshot_path = root.join(snapshot_rel);
-            let snapshot = fs::read_to_string(&snapshot_path).map_err(|e| AppError::io(&snapshot_path, e))?;
+            let snapshot =
+                fs::read_to_string(&snapshot_path).map_err(|e| AppError::io(&snapshot_path, e))?;
             write_text_file(&target, &snapshot)?;
             rollback_steps.push(OrchestrationStepReceipt {
                 id: format!("rollback-{}", step.id),
@@ -195,7 +213,10 @@ fn execute_text_write_plan_with_receipt(
 ) -> Result<OrchestrationReceipt, AppError> {
     let root = PathBuf::from(project_path);
     let timestamp = Utc::now().format("%Y%m%dT%H%M%S%.3fZ").to_string();
-    let snapshot_root = root.join(SNAPSHOT_DIR_REL).join(safe_segment(operation)).join(&timestamp);
+    let snapshot_root = root
+        .join(SNAPSHOT_DIR_REL)
+        .join(safe_segment(operation))
+        .join(&timestamp);
     let mut receipts = Vec::with_capacity(steps.len());
 
     for step in steps {
@@ -235,7 +256,8 @@ fn execute_text_write_plan_with_receipt(
         }
 
         let snapshot_path = if let Some(existing) = before.as_deref() {
-            let snapshot_path = snapshot_root.join(target_rel.replace('/', "__").replace('\\', "__"));
+            let snapshot_path =
+                snapshot_root.join(target_rel.replace(['/', '\\'], "__"));
             if !dry_run {
                 write_text_file(&snapshot_path, existing)?;
             }
@@ -310,7 +332,12 @@ fn verify_step_after_apply(root: &Path, step: &OrchestrationStepReceipt) -> Resu
     }
 }
 
-pub fn verification(id: &str, label: &str, passed: bool, detail: impl Into<Option<String>>) -> OrchestrationVerification {
+pub fn verification(
+    id: &str,
+    label: &str,
+    passed: bool,
+    detail: impl Into<Option<String>>,
+) -> OrchestrationVerification {
     OrchestrationVerification {
         id: id.to_string(),
         label: label.to_string(),
@@ -343,6 +370,12 @@ fn display_path(root: &Path, path: &Path) -> String {
 fn safe_segment(value: &str) -> String {
     value
         .chars()
-        .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '_' { c } else { '-' })
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
         .collect()
 }

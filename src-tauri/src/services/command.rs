@@ -33,7 +33,7 @@ impl CommandService {
 
         let next_apps = command.enabled_apps();
         for app in prev_apps.difference(&next_apps) {
-            Self::remove_command_from_app(&command.name, &app)?;
+            Self::remove_command_from_app(&command.name, app)?;
         }
         for app in next_apps {
             Self::sync_command_to_app(&command, &app)?;

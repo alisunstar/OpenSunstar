@@ -279,6 +279,8 @@ pub fn smithery_to_mcp_server(
 }
 
 /// 从列表摘要数据直接映射（无需请求详情，适合批量安装场景）
+// 批量安装路径待接线，保留此映射函数
+#[allow(dead_code)]
 pub fn smithery_summary_to_mcp_server(
     server: &SmitheryServer,
     enabled_apps: &crate::app_config::McpApps,

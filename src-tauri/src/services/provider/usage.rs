@@ -4,13 +4,21 @@
 
 use crate::app_config::AppType;
 use crate::error::AppError;
-use crate::provider::{UsageData, UsageResult, UsageScript};
+use crate::provider::{UsageData, UsageHostConfirmation, UsageResult, UsageScript};
 use crate::settings;
 use crate::store::AppState;
 use crate::usage_script;
 
 /// Execute usage script and format result (private helper method)
+///
+/// `confirmed_host` 为该 provider 已确认的 custom 用量脚本外发目标 host（P0-2 域名确认闸门）。
+/// 当 custom 脚本首次要向某个非回环主机外发时，`execute_usage_script` 会返回
+/// `NeedsConfirmation`（此刻真实密钥未出网）；本函数据此填充 `UsageResult.needs_confirmation`
+/// 并置 `success: false`（fail-closed），交前端弹窗让用户确认信任该域名。
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn execute_and_format_usage_result(
+    app_type: &AppType,
+    provider_id: &str,
     script_code: &str,
     api_key: &str,
     base_url: &str,
@@ -18,6 +26,7 @@ pub(crate) async fn execute_and_format_usage_result(
     access_token: Option<&str>,
     user_id: Option<&str>,
     template_type: Option<&str>,
+    confirmed_host: Option<&str>,
 ) -> Result<UsageResult, AppError> {
     match usage_script::execute_usage_script(
         script_code,
@@ -27,10 +36,11 @@ pub(crate) async fn execute_and_format_usage_result(
         access_token,
         user_id,
         template_type,
+        confirmed_host,
     )
     .await
     {
-        Ok(data) => {
+        Ok(usage_script::UsageScriptOutcome::Completed(data)) => {
             let usage_list: Vec<UsageData> = if data.is_array() {
                 serde_json::from_value(data).map_err(|e| {
                     AppError::localized(
@@ -54,6 +64,29 @@ pub(crate) async fn execute_and_format_usage_result(
                 success: true,
                 data: Some(usage_list),
                 error: None,
+                needs_confirmation: None,
+            })
+        }
+        Ok(usage_script::UsageScriptOutcome::NeedsConfirmation { host }) => {
+            let is_en = settings::get_settings()
+                .language
+                .map(|lang| lang == "en")
+                .unwrap_or(false);
+            let msg = if is_en {
+                format!("Confirm the domain this usage script will contact: {host}")
+            } else {
+                format!("请确认用量查询脚本要访问的域名：{host}")
+            };
+
+            Ok(UsageResult {
+                success: false,
+                data: None,
+                error: Some(msg),
+                needs_confirmation: Some(UsageHostConfirmation {
+                    host,
+                    app_type: app_type.as_str().to_string(),
+                    provider_id: provider_id.to_string(),
+                }),
             })
         }
         Err(err) => {
@@ -76,6 +109,7 @@ pub(crate) async fn execute_and_format_usage_result(
                 success: false,
                 data: None,
                 error: Some(msg),
+                needs_confirmation: None,
             })
         }
     }
@@ -164,7 +198,15 @@ pub async fn query_usage(
         )
     };
 
+    // P0-2 域名确认闸门：读取该 provider 已确认的 custom 用量脚本外发目标 host（未确认为
+    // None → 执行函数对非回环目标 fail-closed 返回 needs_confirmation）。
+    let confirmed_host = state
+        .db
+        .get_usage_script_confirmed_host(app_type.as_str(), provider_id)?;
+
     execute_and_format_usage_result(
+        &app_type,
+        provider_id,
         &script_code,
         &api_key,
         &base_url,
@@ -172,6 +214,7 @@ pub async fn query_usage(
         access_token.as_deref(),
         user_id.as_deref(),
         template_type.as_deref(),
+        confirmed_host.as_deref(),
     )
     .await
 }
@@ -203,7 +246,15 @@ pub async fn test_usage_script(
     // explicit values win, empty ones fall back to the provider config.
     let (api_key, base_url) = resolve_script_credentials(&app_type, provider, api_key, base_url);
 
+    // P0-2 域名确认闸门：即便 test 路径目前无 UI 调用者，后端照样强制读取已确认 host 并做
+    // fail-closed 闸门（不因“测试”而放行真实密钥外发到未确认域名）。
+    let confirmed_host = state
+        .db
+        .get_usage_script_confirmed_host(app_type.as_str(), provider_id)?;
+
     execute_and_format_usage_result(
+        &app_type,
+        provider_id,
         script_code,
         &api_key,
         &base_url,
@@ -211,6 +262,7 @@ pub async fn test_usage_script(
         access_token,
         user_id,
         template_type,
+        confirmed_host.as_deref(),
     )
     .await
 }

@@ -955,9 +955,7 @@ mod tests {
         )
         .expect("succeeded");
 
-        let history = db
-            .list_recent_quick_start_operations(10)
-            .expect("history");
+        let history = db.list_recent_quick_start_operations(10).expect("history");
         assert!(history.iter().any(|operation| {
             operation.id == begun.id && operation.status == QuickStartOperationStatus::Succeeded
         }));

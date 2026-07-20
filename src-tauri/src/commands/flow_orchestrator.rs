@@ -6,11 +6,10 @@ use crate::database::Database;
 use crate::services::flow_orchestrator::{
     export_flow_config, export_flow_config_strict, export_project_workflow_profile,
     export_project_workflow_profile_strict, get_workflow_preset, list_workflow_modules,
-    read_orchestration_log,
     list_workflow_presets, preview_flow_config_export, preview_project_workflow_profile_export,
-    scan_project_specs_workflow, validate_workflow_stage_gate, FlowConfig, FlowWritePlan,
-    OrchestrationLogEntry, SpecsWorkflowIndex, StageGateResult, WorkflowModule, WorkflowPreset, WorkflowPresetSummary,
-    WorkflowProfile,
+    read_orchestration_log, scan_project_specs_workflow, validate_workflow_stage_gate, FlowConfig,
+    FlowWritePlan, OrchestrationLogEntry, SpecsWorkflowIndex, StageGateResult, WorkflowModule,
+    WorkflowPreset, WorkflowPresetSummary, WorkflowProfile,
 };
 use crate::services::orchestration_plan::{
     restore_latest_orchestration_receipt, OrchestrationReceipt,
@@ -128,6 +127,7 @@ pub async fn preview_project_workflow_profile_export_cmd(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)] // Tauri 命令入参需与前端签名对齐，不宜合并
 pub async fn export_project_workflow_profile_cmd(
     state: State<'_, AppState>,
     project_id: String,

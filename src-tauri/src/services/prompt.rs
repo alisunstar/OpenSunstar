@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use crate::app_config::AppType;
 use crate::config::write_text_file;
 use crate::error::AppError;
-use crate::prompt::{compose_prompt_fragments, compose_prompt_fragments_for_project, Prompt, MAX_FRAGMENTS_PER_PARENT};
+use crate::prompt::{
+    compose_prompt_fragments, compose_prompt_fragments_for_project, Prompt,
+    MAX_FRAGMENTS_PER_PARENT,
+};
 use crate::prompt_files::prompt_file_path;
 use crate::services::bridge;
 use crate::services::marker_merge::{inject_markdown_section, PROMPT_SECTION_ID};
@@ -55,7 +58,7 @@ impl PromptService {
         _id: &str,
         prompt: Prompt,
     ) -> Result<(), AppError> {
-        Self::validate_fragment(&state, app.as_str(), &prompt)?;
+        Self::validate_fragment(state, app.as_str(), &prompt)?;
 
         let is_enabled = prompt.enabled;
         let prompt_id = prompt.id.clone();
@@ -64,15 +67,15 @@ impl PromptService {
         state.db.save_prompt(&app_str, &prompt)?;
 
         if is_enabled {
-            let content = Self::resolve_effective_content(&state, &app, &prompt)?;
-            let target_path = prompt_file_path(&app)?;
+            let content = Self::resolve_effective_content(state, app, &prompt)?;
+            let target_path = prompt_file_path(app)?;
             Self::write_managed_prompt_file(&target_path, &content)?;
         } else {
             let prompts = state.db.get_prompts(&app_str)?;
             let any_enabled = prompts.values().any(|p| p.enabled);
 
             if !any_enabled {
-                let target_path = prompt_file_path(&app)?;
+                let target_path = prompt_file_path(app)?;
                 if target_path.exists() {
                     Self::write_managed_prompt_file(&target_path, "")?;
                 }
@@ -186,13 +189,13 @@ impl PromptService {
             .get(id)
             .ok_or_else(|| AppError::InvalidInput(format!("提示词 {id} 不存在")))?;
 
-        let target_path = prompt_file_path(&app)?;
+        let target_path = prompt_file_path(app)?;
         let current_content = if target_path.exists() {
             std::fs::read_to_string(&target_path).unwrap_or_default()
         } else {
             String::new()
         };
-        let new_content = Self::resolve_effective_content(state, &app, prompt)?;
+        let new_content = Self::resolve_effective_content(state, app, prompt)?;
         let merged_preview =
             inject_markdown_section(&current_content, PROMPT_SECTION_ID, &new_content);
 
@@ -245,7 +248,7 @@ impl PromptService {
     }
 
     pub fn enable_prompt(state: &AppState, app: &AppType, id: &str) -> Result<(), AppError> {
-        let target_path = prompt_file_path(&app)?;
+        let target_path = prompt_file_path(app)?;
         if target_path.exists() {
             if let Ok(live_content) = std::fs::read_to_string(&target_path) {
                 if !live_content.trim().is_empty() {
@@ -299,7 +302,7 @@ impl PromptService {
                     "不能直接启用规则片段，请启用其父 Prompt".into(),
                 ));
             }
-            let content = Self::resolve_effective_content(state, &app, prompt)?;
+            let content = Self::resolve_effective_content(state, app, prompt)?;
             prompt.enabled = true;
             Self::write_managed_prompt_file(&target_path, &content)?;
             state.db.save_prompt(app.as_str(), prompt)?;
@@ -315,7 +318,7 @@ impl PromptService {
     }
 
     pub fn import_from_file(state: &AppState, app: &AppType) -> Result<String, AppError> {
-        let file_path = prompt_file_path(&app)?;
+        let file_path = prompt_file_path(app)?;
 
         if !file_path.exists() {
             return Err(AppError::Message("提示词文件不存在".to_string()));
@@ -340,7 +343,7 @@ impl PromptService {
             ..Default::default()
         };
 
-        Self::upsert_prompt(state, &app, &id, prompt)?;
+        Self::upsert_prompt(state, app, &id, prompt)?;
         Ok(id)
     }
 
@@ -363,7 +366,7 @@ impl PromptService {
             return Ok(0);
         }
 
-        let file_path = prompt_file_path(&app)?;
+        let file_path = prompt_file_path(app)?;
 
         if !file_path.exists() {
             return Ok(0);

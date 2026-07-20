@@ -137,8 +137,6 @@ pub async fn test_http_connection(
         Ok(Err(e)) => {
             let status = if e.is_timeout() {
                 McpConnectionStatus::Timeout
-            } else if e.is_connect() {
-                McpConnectionStatus::Unreachable
             } else {
                 McpConnectionStatus::Unreachable
             };
@@ -258,12 +256,12 @@ pub async fn test_sse_connection(
             return test_http_connection(url, headers).await;
         }
         Err(_) => {
-            return Ok(McpConnectionTestResult {
+            Ok(McpConnectionTestResult {
                 status: McpConnectionStatus::Timeout,
                 message: status_msg(&McpConnectionStatus::Timeout),
                 server_info: None,
                 error_detail: Some("SSE 检测超时".into()),
-            });
+            })
         }
     }
 }

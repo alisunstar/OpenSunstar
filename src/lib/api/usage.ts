@@ -47,6 +47,20 @@ export const usageApi = {
     });
   },
 
+  // P0-2 域名确认闸门：用户在弹窗确认信任某目标域名后调用，后端持久化
+  // (app_type, provider_id) -> host，此后该 host 的外发不再触发确认。
+  confirmUsageScriptHost: async (
+    providerId: string,
+    appId: AppId,
+    host: string,
+  ): Promise<void> => {
+    return invoke("confirm_usage_script_host", {
+      providerId,
+      app: appId,
+      host,
+    });
+  },
+
   // Proxy usage statistics methods
   getUsageSummary: async (
     startDate?: number,

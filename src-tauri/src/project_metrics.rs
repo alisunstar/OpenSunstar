@@ -101,7 +101,7 @@ pub fn count_code_lines(root: &Path) -> Result<CodeLineResult, String> {
         });
     }
 
-    lang_stats.sort_by(|a, b| b.code_lines.cmp(&a.code_lines));
+    lang_stats.sort_by_key(|b| std::cmp::Reverse(b.code_lines));
 
     Ok(CodeLineResult {
         total_lines: total_code + total_comments + total_blanks,

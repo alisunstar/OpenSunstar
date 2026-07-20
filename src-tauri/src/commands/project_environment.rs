@@ -24,7 +24,7 @@ pub async fn create_project_environment_snapshot(
     included_dimensions: Option<Vec<ProjectEnvironmentDimension>>,
 ) -> Result<ProjectEnvironmentSnapshotDto, String> {
     let included_dimensions =
-        included_dimensions.unwrap_or_else(|| ProjectEnvironmentDimension::all());
+        included_dimensions.unwrap_or_else(ProjectEnvironmentDimension::all);
     ProjectEnvironmentService::create(&state, &project_id, &name, &included_dimensions)
         .map_err(|e| e.to_string())
 }

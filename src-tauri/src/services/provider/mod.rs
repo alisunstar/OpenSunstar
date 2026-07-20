@@ -501,12 +501,15 @@ base_url = "http://localhost:8080"
             updated.settings_config.get("permissions"),
             "provider edits should propagate into Claude live config during takeover"
         );
+        let expected_takeover_token = db
+            .get_or_create_proxy_takeover_token()
+            .expect("resolve per-install takeover token");
         assert_eq!(
             live.get("env")
                 .and_then(|env| env.get("ANTHROPIC_API_KEY"))
                 .and_then(|v| v.as_str()),
-            Some("PROXY_MANAGED"),
-            "takeover placeholder should stay intact"
+            Some(expected_takeover_token.as_str()),
+            "takeover 占位符应改写为本安装随机令牌（历史裸 PROXY_MANAGED 视为过期）"
         );
         assert_eq!(
             live.get("env")
