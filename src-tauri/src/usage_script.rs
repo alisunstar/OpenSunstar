@@ -107,7 +107,13 @@ pub async fn execute_usage_script(
     // 5. 验证请求 URL（HTTPS 强制 + 同源检查）
     validate_request_url(&request.url, base_url, is_custom_template)?;
 
-    // 6. 发送 HTTP 请求
+    // 6. 发送 HTTP 请求（发送前记录目标主机，便于安全审计与后续前端确认接入）
+    if let Ok(parsed_url) = Url::parse(&request.url) {
+        log::info!(
+            "usage_script: sending usage request to host: {}",
+            parsed_url.host_str().unwrap_or("unknown")
+        );
+    }
     let response_data = send_http_request(&request, timeout_secs).await?;
 
     // 7. 在独立作用域中执行 extractor（确保 Runtime/Context 在函数结束前释放）
@@ -491,9 +497,20 @@ fn validate_request_url(
 
     let is_request_loopback = is_loopback_host(&parsed_request);
 
-    // 必须使用 HTTPS（允许 localhost 用于开发）
-    // 自定义模板模式下，允许用户自行决定是否使用 HTTP（用户需自行承担安全风险）
-    if !is_custom_template && parsed_request.scheme() != "https" && !is_request_loopback {
+    // 仅允许 http / https 协议，其余协议一律拒绝
+    let scheme = parsed_request.scheme();
+    if scheme != "https" && scheme != "http" {
+        return Err(AppError::localized(
+            "usage_script.request_scheme_invalid",
+            format!("不支持的请求协议: {scheme}（仅允许 https，localhost 可用 http）"),
+            format!("Unsupported request URL scheme: {scheme} (only https is allowed; http is permitted for localhost only)"),
+        ));
+    }
+
+    // 无条件强制 HTTPS（所有模板模式，包括 custom），仅 loopback/localhost 豁免用于本地开发。
+    // custom 模式不再豁免：脚本在校验前已注入 {{apiKey}} 等敏感变量，
+    // 若放行明文 HTTP，恶意/被诱导导入的脚本可将真实密钥外传到任意地址
+    if scheme != "https" && !is_request_loopback {
         return Err(AppError::localized(
             "usage_script.request_https_required",
             "请求 URL 必须使用 HTTPS 协议（localhost 除外）",
@@ -585,21 +602,73 @@ mod tests {
     }
 
     #[test]
-    fn test_custom_template_allows_http_lan_request_with_different_base_url() {
+    fn test_custom_template_rejects_http_non_loopback_request() {
+        // should_validate_base_url 维持现状：custom 模式跳过未使用的 base_url 校验
         assert!(
             !should_validate_base_url("http://10.37.192.156:8090/anthropic", true),
             "Custom scripts should not validate an unused provider base_url fallback"
         );
 
+        // 但请求 URL 的 HTTPS 强制不受 custom 影响：
+        // 脚本在校验前已注入 apiKey，放行明文 HTTP 会导致密钥外传
         let result = validate_request_url(
             "http://10.37.192.156:18344/user/balance",
             "http://10.37.192.156:8090/anthropic",
             true,
         );
         assert!(
-            result.is_ok(),
-            "Custom usage scripts should be able to call an explicit HTTP quota endpoint"
+            result.is_err(),
+            "Custom usage scripts must not send plaintext HTTP to non-loopback hosts"
         );
+    }
+
+    #[test]
+    fn test_custom_template_allows_cross_origin_https() {
+        let result = validate_request_url(
+            "https://quota.example.org/user/balance",
+            "https://api.example.com/anthropic",
+            true,
+        );
+        assert!(
+            result.is_ok(),
+            "Custom usage scripts should be able to call cross-origin HTTPS endpoints"
+        );
+    }
+
+    #[test]
+    fn test_loopback_http_exemption_still_allowed() {
+        for (request_url, is_custom) in [
+            ("http://localhost:8080/usage", true),
+            ("http://localhost:8080/usage", false),
+            ("http://127.0.0.1:18344/user/balance", true),
+            ("http://127.0.0.1:18344/user/balance", false),
+        ] {
+            let result = validate_request_url(request_url, "", is_custom);
+            assert!(
+                result.is_ok(),
+                "Loopback HTTP should stay allowed: url={request_url}, custom={is_custom}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_non_custom_rejects_http_non_loopback_request() {
+        let result = validate_request_url("http://api.example.com/usage", "", false);
+        assert!(
+            result.is_err(),
+            "Non-custom mode must keep rejecting plaintext HTTP to non-loopback hosts"
+        );
+    }
+
+    #[test]
+    fn test_rejects_non_http_schemes() {
+        for is_custom in [true, false] {
+            let result = validate_request_url("ftp://api.example.com/usage", "", is_custom);
+            assert!(
+                result.is_err(),
+                "Non-http(s) schemes must be rejected: custom={is_custom}"
+            );
+        }
     }
 
     #[test]
