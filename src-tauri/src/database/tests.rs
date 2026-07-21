@@ -1557,8 +1557,8 @@ fn schema_v30_creates_asset_receipt_files_table() {
             "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'asset_receipt_files'",
             [],
             |row| row.get(0),
-        )
-        .unwrap();
+    )
+    .unwrap();
     assert_eq!(count, 1);
 }
 
@@ -1574,4 +1574,50 @@ fn schema_v31_binds_receipts_to_asset_revisions() {
         Database::get_user_version(&conn).expect("schema version"),
         SCHEMA_VERSION
     );
+}
+
+#[test]
+fn file_database_moves_existing_usage_rows_to_sidecar() {
+    use tempfile::tempdir;
+
+    let dir = tempdir().expect("temporary directory");
+    let core_path = dir.path().join("OpenSunstar.db");
+    let usage_path = dir.path().join("usage.db");
+
+    // Simulate the last core-only version: create a normal file database and
+    // leave one historical usage row in its legacy table.
+    let legacy = Database::open_file(&core_path).expect("legacy file database");
+    {
+        let conn = legacy.conn.lock().expect("lock legacy core database");
+        conn.execute(
+            "INSERT INTO proxy_request_logs (
+                request_id, provider_id, app_type, model, request_model,
+                input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+                total_cost_usd, latency_ms, status_code, created_at
+             ) VALUES ('legacy-request', 'provider', 'claude', 'model', 'model',
+                1, 2, 0, 0, '0.01', 1, 200, 1)",
+            [],
+        )
+        .expect("insert legacy usage row");
+    }
+    drop(legacy);
+    std::fs::remove_file(&usage_path).expect("remove generated sidecar for legacy fixture");
+
+    let db = Database::open_file(&core_path).expect("open migrated file database");
+    let usage = db.usage_conn().lock().expect("lock usage sidecar");
+    let count: i64 = usage
+        .query_row(
+            "SELECT COUNT(*) FROM proxy_request_logs WHERE request_id = 'legacy-request'",
+            [],
+            |row| row.get(0),
+        )
+        .expect("read migrated usage row");
+
+    assert_eq!(count, 1);
+    drop(usage);
+
+    let summary = db
+        .get_usage_summary(None, None, None)
+        .expect("query migrated usage through sidecar");
+    assert_eq!(summary.total_requests, 1);
 }

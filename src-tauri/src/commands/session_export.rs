@@ -28,7 +28,7 @@ pub async fn export_session(
 ) -> Result<ExportResult, String> {
     let db = state.db.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let conn = lock_conn!(db.conn);
+        let conn = lock_conn!(db.usage_conn());
 
         let mut stmt = conn
             .prepare(

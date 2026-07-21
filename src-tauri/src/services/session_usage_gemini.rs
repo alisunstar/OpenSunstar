@@ -233,7 +233,7 @@ fn insert_gemini_session_entry(
     session_id: Option<&str>,
     timestamp: Option<&str>,
 ) -> Result<bool, AppError> {
-    let conn = lock_conn!(db.conn);
+    let conn = lock_conn!(db.usage_conn());
 
     let created_at = timestamp
         .and_then(|ts| {

@@ -60,7 +60,7 @@ impl Database {
     /// Returns the number of deleted detail rows.
     pub fn rollup_and_prune(&self, retain_days: i64) -> Result<u64, AppError> {
         let cutoff = compute_local_midnight_cutoff(Local::now(), retain_days)?;
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         // Check if there are any rows to process
         let count: i64 = conn

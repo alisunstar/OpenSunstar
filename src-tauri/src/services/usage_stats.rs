@@ -452,7 +452,7 @@ impl Database {
         end_date: Option<i64>,
         app_type: Option<&str>,
     ) -> Result<UsageSummary, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         // Build detail WHERE clause
         let mut conditions = vec![effective_usage_log_filter("l")];
@@ -584,7 +584,7 @@ impl Database {
         start_date: Option<i64>,
         end_date: Option<i64>,
     ) -> Result<Vec<UsageSummaryByApp>, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let mut detail_conditions = vec![effective_usage_log_filter("l")];
         let mut detail_params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -717,7 +717,7 @@ impl Database {
         end_date: Option<i64>,
         app_type: Option<&str>,
     ) -> Result<Vec<DailyStats>, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let end_ts = end_date.unwrap_or_else(|| Local::now().timestamp());
         let mut start_ts = start_date.unwrap_or_else(|| end_ts - 24 * 60 * 60);
@@ -999,7 +999,7 @@ impl Database {
         end_date: Option<i64>,
         app_type: Option<&str>,
     ) -> Result<Vec<ProviderStats>, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let mut detail_conditions = vec![effective_usage_log_filter("l")];
         let mut detail_params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -1125,7 +1125,7 @@ impl Database {
         end_date: Option<i64>,
         app_type: Option<&str>,
     ) -> Result<Vec<ModelStats>, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let mut detail_conditions = vec![effective_usage_log_filter("l")];
         let mut detail_params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -1240,7 +1240,7 @@ impl Database {
         page: u32,
         page_size: u32,
     ) -> Result<PaginatedLogs, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let mut conditions = vec![effective_usage_log_filter("l")];
         let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
@@ -1333,7 +1333,7 @@ impl Database {
         &self,
         request_id: &str,
     ) -> Result<Option<RequestLogDetail>, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         let detail_pname = provider_name_coalesce("l", "p");
         let detail_sql = format!(
@@ -1366,7 +1366,7 @@ impl Database {
         provider_id: &str,
         app_type: &str,
     ) -> Result<ProviderLimitStatus, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
 
         // 获取 provider 的限额设置
         let (limit_daily, limit_monthly) = conn
@@ -1466,7 +1466,7 @@ pub struct ProviderLimitStatus {
 impl Database {
     /// Recalculate stored zero-cost usage rows once pricing becomes available.
     pub(crate) fn backfill_missing_usage_costs(&self) -> Result<u64, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
         Self::backfill_missing_usage_costs_on_conn(&conn, None)
     }
 
@@ -1475,7 +1475,7 @@ impl Database {
         &self,
         model_id: &str,
     ) -> Result<u64, AppError> {
-        let conn = lock_conn!(self.conn);
+        let conn = lock_conn!(self.usage_conn());
         Self::backfill_missing_usage_costs_on_conn(&conn, Some(model_id))
     }
 

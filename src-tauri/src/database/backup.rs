@@ -35,6 +35,10 @@ const SYNC_PRESERVE_TABLES: &[&str] = &[
     "mcp_servers",
 ];
 
+/// Tables physically stored in usage.db but represented in a full backup as
+/// normal core tables.  Sync exports still skip their rows via SYNC_SKIP_TABLES.
+const USAGE_SIDECAR_TABLES: &[&str] = &["proxy_request_logs", "usage_daily_rollups"];
+
 /// A database backup entry for the UI
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +147,7 @@ impl Database {
                 .step(-1)
                 .map_err(|e| AppError::Database(e.to_string()))?;
         }
+        self.refresh_usage_sidecar_from_core()?;
 
         let backup_id = backup_path
             .and_then(|p| p.file_stem().map(|s| s.to_string_lossy().to_string()))
@@ -153,11 +158,11 @@ impl Database {
 
     /// 创建内存快照以避免长时间持有数据库锁
     pub(crate) fn snapshot_to_memory(&self) -> Result<Connection, AppError> {
-        let conn = lock_conn!(self.conn);
         let mut snapshot =
             Connection::open_in_memory().map_err(|e| AppError::Database(e.to_string()))?;
 
         {
+            let conn = lock_conn!(self.conn);
             let backup =
                 Backup::new(&conn, &mut snapshot).map_err(|e| AppError::Database(e.to_string()))?;
             backup
@@ -165,7 +170,55 @@ impl Database {
                 .map_err(|e| AppError::Database(e.to_string()))?;
         }
 
+        // A complete export/backup must contain current sidecar telemetry,
+        // while sync export still excludes those rows by table name.
+        {
+            let usage = lock_conn!(self.usage_conn());
+            Self::restore_tables(&usage, &snapshot, USAGE_SIDECAR_TABLES)?;
+        }
+
         Ok(snapshot)
+    }
+
+    /// After a full SQL import replaces the core file, overwrite sidecar data
+    /// from its core-table representation. Memory databases have no sidecar.
+    fn refresh_usage_sidecar_from_core(&self) -> Result<(), AppError> {
+        if self.usage_db_conn.get().is_none() {
+            return Ok(());
+        }
+
+        let usage = lock_conn!(self.usage_conn());
+        usage
+            .execute_batch(
+                "DELETE FROM proxy_request_logs;
+                 DELETE FROM usage_daily_rollups;
+                 INSERT INTO proxy_request_logs (
+                    request_id, provider_id, app_type, model, request_model, pricing_model,
+                    input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+                    input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd,
+                    total_cost_usd, latency_ms, first_token_ms, duration_ms, status_code,
+                    error_message, session_id, provider_type, is_streaming, cost_multiplier,
+                    created_at, data_source
+                 ) SELECT
+                    request_id, provider_id, app_type, model, request_model, pricing_model,
+                    input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+                    input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd,
+                    total_cost_usd, latency_ms, first_token_ms, duration_ms, status_code,
+                    error_message, session_id, provider_type, is_streaming, cost_multiplier,
+                    created_at, data_source
+                 FROM core.proxy_request_logs;
+                 INSERT INTO usage_daily_rollups (
+                    date, app_type, provider_id, model, request_model, pricing_model,
+                    request_count, success_count, input_tokens, output_tokens,
+                    cache_read_tokens, cache_creation_tokens, total_cost_usd, avg_latency_ms
+                 ) SELECT
+                    date, app_type, provider_id, model, request_model, pricing_model,
+                    request_count, success_count, input_tokens, output_tokens,
+                    cache_read_tokens, cache_creation_tokens, total_cost_usd, avg_latency_ms
+                 FROM core.usage_daily_rollups;",
+            )
+            .map_err(|e| AppError::Database(format!("导入后刷新 usage.db 失败: {e}")))?;
+        Ok(())
     }
 
     fn validate_open_sunstar_sql_export(sql: &str) -> Result<(), AppError> {
@@ -294,6 +347,13 @@ impl Database {
             if let Err(e) = conn.execute_batch("PRAGMA incremental_vacuum;") {
                 log::warn!("Periodic incremental vacuum failed: {e}");
             }
+            drop(conn);
+            if self.usage_db_conn.get().is_some() {
+                let usage = lock_conn!(self.usage_conn());
+                if let Err(e) = usage.execute_batch("PRAGMA incremental_vacuum;") {
+                    log::warn!("Periodic usage.db incremental vacuum failed: {e}");
+                }
+            }
         }
 
         Ok(())
@@ -324,10 +384,10 @@ impl Database {
         }
 
         {
-            let conn = lock_conn!(self.conn);
+            let snapshot = self.snapshot_to_memory()?;
             let mut dest_conn =
                 Connection::open(&backup_path).map_err(|e| AppError::Database(e.to_string()))?;
-            let backup = Backup::new(&conn, &mut dest_conn)
+            let backup = Backup::new(&snapshot, &mut dest_conn)
                 .map_err(|e| AppError::Database(e.to_string()))?;
             backup
                 .step(-1)

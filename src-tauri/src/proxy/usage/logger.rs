@@ -112,7 +112,7 @@ impl<'a> UsageLogger<'a> {
 
     /// 记录成功的请求
     pub fn log_request(&self, log: &RequestLog) -> Result<(), AppError> {
-        let conn = crate::database::lock_conn!(self.db.conn);
+        let conn = crate::database::lock_conn!(self.db.usage_conn());
         insert_request_log(&conn, log)?;
 
         // 通知前端使用统计有更新（200ms 防抖合并，不阻塞写入路径）

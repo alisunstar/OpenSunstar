@@ -56,11 +56,11 @@ pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 use crate::config::get_app_config_dir;
 use crate::error::AppError;
 use crate::proxy::usage::calculator::ModelPricing;
-use rusqlite::{hooks::Action, Connection};
+use rusqlite::{hooks::Action, Connection, OptionalExtension};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Mutex;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 // DAO 方法通过 impl Database 提供，无需额外导出
@@ -117,6 +117,10 @@ pub struct Database {
     pub(crate) conn: Mutex<Connection>,
     /// 文件库路径；`:memory:` 测试库为 `None`（无法开第二连接共享同一内存库）。
     db_path: Option<PathBuf>,
+    /// 高频、可增长的用量明细与 rollup 使用独立 SQLite 文件。内存数据库
+    /// 不创建它，以保持现有测试夹具可直接使用 `conn`。
+    usage_db_conn: OnceLock<Mutex<Connection>>,
+    usage_db_path: OnceLock<PathBuf>,
     pricing_cache: Mutex<PricingLookupCache>,
 }
 
@@ -139,7 +143,9 @@ pub(crate) fn apply_file_connection_pragmas(conn: &Connection) -> Result<(), App
     conn.busy_timeout(Duration::from_secs(5))
         .map_err(|e| AppError::Database(format!("设置 busy_timeout 失败: {e}")))?;
 
-    match conn.query_row("PRAGMA journal_mode = WAL;", [], |row| row.get::<_, String>(0)) {
+    match conn.query_row("PRAGMA journal_mode = WAL;", [], |row| {
+        row.get::<_, String>(0)
+    }) {
         Ok(mode) if mode.eq_ignore_ascii_case("wal") => {}
         Ok(mode) => {
             log::warn!("启用 WAL 未成功，当前 journal_mode={mode}；继续使用单连接语义");
@@ -159,6 +165,8 @@ impl Database {
         Self {
             conn: Mutex::new(conn),
             db_path,
+            usage_db_conn: OnceLock::new(),
+            usage_db_path: OnceLock::new(),
             pricing_cache: Mutex::new(PricingLookupCache::default()),
         }
     }
@@ -166,6 +174,157 @@ impl Database {
     /// 文件库路径（异步用量写线程开第二连接用）。
     pub fn path(&self) -> Option<&Path> {
         self.db_path.as_deref()
+    }
+
+    /// 用量专用连接。内存数据库回退到主连接，保证测试夹具与开发期行为一致。
+    pub(crate) fn usage_conn(&self) -> &Mutex<Connection> {
+        self.usage_db_conn.get().unwrap_or(&self.conn)
+    }
+
+    /// 文件库的用量 sidecar 路径；内存数据库没有独立文件。
+    pub(crate) fn usage_path(&self) -> Option<&Path> {
+        self.usage_db_path.get().map(PathBuf::as_path)
+    }
+
+    fn usage_sidecar_path(core_path: &Path) -> Result<PathBuf, AppError> {
+        let parent = core_path.parent().ok_or_else(|| {
+            AppError::Database(format!("主数据库路径没有父目录: {}", core_path.display()))
+        })?;
+        Ok(parent.join("usage.db"))
+    }
+
+    /// 初始化独立 usage.db，并只迁移一次旧主库中的历史用量数据。
+    ///
+    /// sidecar 保留两个查询所需的 TEMP 只读视图（providers/model_pricing），
+    /// 因而现有统计 SQL 可以在 usage 连接中继续关联主库配置，而不复制配置数据。
+    fn initialize_usage_database(&self) -> Result<(), AppError> {
+        let Some(core_path) = self.path() else {
+            return Ok(());
+        };
+        let usage_path = Self::usage_sidecar_path(core_path)?;
+        let new_usage_db = !usage_path.exists();
+        let conn = Connection::open(&usage_path).map_err(|e| AppError::Database(e.to_string()))?;
+        if new_usage_db {
+            conn.execute("PRAGMA auto_vacuum = INCREMENTAL;", [])
+                .map_err(|e| AppError::Database(format!("设置 usage.db auto_vacuum 失败: {e}")))?;
+        }
+        apply_file_connection_pragmas(&conn)?;
+        register_db_change_hook(&conn);
+        Self::create_usage_tables_on_conn(&conn)?;
+
+        let imported: Option<String> = conn
+            .query_row(
+                "SELECT value FROM usage_sidecar_meta WHERE key = 'legacy_core_import_v1'",
+                [],
+                |row| row.get(0),
+            )
+            .optional()
+            .map_err(|e| AppError::Database(format!("读取 usage.db 迁移标记失败: {e}")))?;
+
+        if imported.is_none() {
+            let core_path_string = core_path.to_string_lossy().into_owned();
+            conn.execute("ATTACH DATABASE ?1 AS core", [core_path_string])
+                .map_err(|e| AppError::Database(format!("关联旧主库失败: {e}")))?;
+
+            let import_result = (|| -> Result<(), AppError> {
+                conn.execute_batch(
+                    "INSERT OR IGNORE INTO proxy_request_logs (
+                        request_id, provider_id, app_type, model, request_model, pricing_model,
+                        input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+                        input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd,
+                        total_cost_usd, latency_ms, first_token_ms, duration_ms, status_code,
+                        error_message, session_id, provider_type, is_streaming, cost_multiplier,
+                        created_at, data_source
+                    ) SELECT
+                        request_id, provider_id, app_type, model, request_model, pricing_model,
+                        input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+                        input_cost_usd, output_cost_usd, cache_read_cost_usd, cache_creation_cost_usd,
+                        total_cost_usd, latency_ms, first_token_ms, duration_ms, status_code,
+                        error_message, session_id, provider_type, is_streaming, cost_multiplier,
+                        created_at, data_source
+                    FROM core.proxy_request_logs;
+
+                    INSERT OR IGNORE INTO usage_daily_rollups (
+                        date, app_type, provider_id, model, request_model, pricing_model,
+                        request_count, success_count, input_tokens, output_tokens,
+                        cache_read_tokens, cache_creation_tokens, total_cost_usd, avg_latency_ms
+                    ) SELECT
+                        date, app_type, provider_id, model, request_model, pricing_model,
+                        request_count, success_count, input_tokens, output_tokens,
+                        cache_read_tokens, cache_creation_tokens, total_cost_usd, avg_latency_ms
+                    FROM core.usage_daily_rollups;",
+                )
+                .map_err(|e| AppError::Database(format!("迁移历史用量到 usage.db 失败: {e}")))?;
+                conn.execute(
+                    "INSERT INTO usage_sidecar_meta (key, value) VALUES ('legacy_core_import_v1', 'complete')",
+                    [],
+                )
+                .map_err(|e| AppError::Database(format!("写入 usage.db 迁移标记失败: {e}")))?;
+                Ok(())
+            })();
+            let detach_result = conn.execute_batch("DETACH DATABASE core;");
+            import_result?;
+            detach_result.map_err(|e| AppError::Database(format!("断开旧主库失败: {e}")))?;
+        }
+
+        let core_path_string = core_path.to_string_lossy().into_owned();
+        conn.execute("ATTACH DATABASE ?1 AS core", [core_path_string])
+            .map_err(|e| AppError::Database(format!("关联主库配置失败: {e}")))?;
+        conn.execute_batch(
+            "CREATE TEMP VIEW model_pricing AS SELECT * FROM core.model_pricing;
+             CREATE TEMP VIEW providers AS SELECT * FROM core.providers;",
+        )
+        .map_err(|e| AppError::Database(format!("创建 usage.db 配置视图失败: {e}")))?;
+
+        self.usage_db_path
+            .set(usage_path)
+            .map_err(|_| AppError::Database("usage.db 路径被重复初始化".to_string()))?;
+        self.usage_db_conn
+            .set(Mutex::new(conn))
+            .map_err(|_| AppError::Database("usage.db 连接被重复初始化".to_string()))?;
+        Ok(())
+    }
+
+    fn create_usage_tables_on_conn(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS proxy_request_logs (
+                request_id TEXT PRIMARY KEY, provider_id TEXT NOT NULL, app_type TEXT NOT NULL, model TEXT NOT NULL,
+                request_model TEXT, pricing_model TEXT,
+                input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
+                cache_read_tokens INTEGER NOT NULL DEFAULT 0, cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
+                input_cost_usd TEXT NOT NULL DEFAULT '0', output_cost_usd TEXT NOT NULL DEFAULT '0',
+                cache_read_cost_usd TEXT NOT NULL DEFAULT '0', cache_creation_cost_usd TEXT NOT NULL DEFAULT '0',
+                total_cost_usd TEXT NOT NULL DEFAULT '0', latency_ms INTEGER NOT NULL, first_token_ms INTEGER,
+                duration_ms INTEGER, status_code INTEGER NOT NULL, error_message TEXT, session_id TEXT,
+                provider_type TEXT, is_streaming INTEGER NOT NULL DEFAULT 0,
+                cost_multiplier TEXT NOT NULL DEFAULT '1.0', created_at INTEGER NOT NULL,
+                data_source TEXT NOT NULL DEFAULT 'proxy'
+            );
+            CREATE INDEX IF NOT EXISTS idx_request_logs_provider ON proxy_request_logs(provider_id, app_type);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_created_at ON proxy_request_logs(created_at);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_model ON proxy_request_logs(model);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_session ON proxy_request_logs(session_id);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_status ON proxy_request_logs(status_code);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_provider_app_created
+                ON proxy_request_logs(provider_id, app_type, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_app_created
+                ON proxy_request_logs(app_type, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_request_logs_usage_group
+                ON proxy_request_logs(app_type, data_source, input_tokens, output_tokens, created_at DESC);
+            CREATE TABLE IF NOT EXISTS usage_daily_rollups (
+                date TEXT NOT NULL, app_type TEXT NOT NULL, provider_id TEXT NOT NULL, model TEXT NOT NULL,
+                request_model TEXT NOT NULL DEFAULT '', pricing_model TEXT NOT NULL DEFAULT '',
+                request_count INTEGER NOT NULL DEFAULT 0, success_count INTEGER NOT NULL DEFAULT 0,
+                input_tokens INTEGER NOT NULL DEFAULT 0, output_tokens INTEGER NOT NULL DEFAULT 0,
+                cache_read_tokens INTEGER NOT NULL DEFAULT 0, cache_creation_tokens INTEGER NOT NULL DEFAULT 0,
+                total_cost_usd TEXT NOT NULL DEFAULT '0', avg_latency_ms INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (date, app_type, provider_id, model, request_model, pricing_model)
+            );
+            CREATE TABLE IF NOT EXISTS usage_sidecar_meta (
+                key TEXT PRIMARY KEY, value TEXT NOT NULL
+            );",
+        )
+        .map_err(|e| AppError::Database(format!("创建 usage.db 表失败: {e}")))
     }
 
     /// 清空计价 TTL 缓存（全局默认倍率/来源或 model_pricing 变更后调用）。
@@ -237,9 +396,10 @@ impl Database {
         };
 
         if let Ok(mut cache) = self.pricing_cache.lock() {
-            cache
-                .models
-                .insert(model_id.to_string(), (now + PRICING_CACHE_TTL, pricing.clone()));
+            cache.models.insert(
+                model_id.to_string(),
+                (now + PRICING_CACHE_TTL, pricing.clone()),
+            );
         }
 
         Ok(pricing)
@@ -297,6 +457,7 @@ impl Database {
         }
 
         db.apply_schema_migrations()?;
+        db.initialize_usage_database()?;
         if let Err(e) = db.ensure_incremental_auto_vacuum() {
             log::warn!("Failed to ensure incremental auto-vacuum: {e}");
         }
@@ -314,6 +475,12 @@ impl Database {
             let conn = lock_conn!(db.conn);
             if let Err(e) = conn.execute_batch("PRAGMA incremental_vacuum;") {
                 log::warn!("Startup incremental vacuum failed: {e}");
+            }
+        }
+        if db.usage_db_conn.get().is_some() {
+            let conn = lock_conn!(db.usage_conn());
+            if let Err(e) = conn.execute_batch("PRAGMA incremental_vacuum;") {
+                log::warn!("Startup usage.db incremental vacuum failed: {e}");
             }
         }
 
@@ -357,6 +524,7 @@ impl Database {
         let db = Self::wrap(conn, Some(path));
         db.create_tables()?;
         db.apply_schema_migrations()?;
+        db.initialize_usage_database()?;
         db.ensure_model_pricing_seeded()?;
         Ok(db)
     }

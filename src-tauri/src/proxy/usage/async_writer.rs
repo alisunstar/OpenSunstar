@@ -1,6 +1,6 @@
 //! 异步批量用量写入
 //!
-//! 代理热路径只做非阻塞入队；独立线程持有第二 SQLite 连接（同一文件库 + WAL），
+//! 代理热路径只做非阻塞入队；独立线程持有 `usage.db` 的第二 SQLite 连接（WAL），
 //! 按批（最多 64 条或约 250ms）事务落库。
 //!
 //! 崩溃可能丢失最后一批未刷盘日志（可接受的用量统计折中）；`:memory:` 测试库
@@ -44,7 +44,7 @@ impl AsyncUsageWriter {
             stopped: AtomicBool::new(false),
         });
 
-        if let Some(path) = db.path() {
+        if let Some(path) = db.usage_path() {
             match spawn_writer(path.to_path_buf()) {
                 Ok((tx, join)) => {
                     if let Ok(mut slot) = inner.tx.lock() {
@@ -221,8 +221,7 @@ fn flush_batch(conn: &Connection, logs: &[RequestLog]) {
         for log in logs {
             insert_request_log(&tx, log)?;
         }
-        tx.commit()
-            .map_err(|e| AppError::Database(e.to_string()))?;
+        tx.commit().map_err(|e| AppError::Database(e.to_string()))?;
         Ok(())
     })();
 
@@ -241,6 +240,7 @@ fn flush_batch(conn: &Connection, logs: &[RequestLog]) {
 mod tests {
     use super::*;
     use crate::proxy::usage::parser::TokenUsage;
+    use crate::services::usage_stats::LogFilters;
     use tempfile::tempdir;
 
     fn sample_log(id: &str) -> RequestLog {
@@ -267,7 +267,7 @@ mod tests {
     #[test]
     fn async_writer_flushes_to_file_db() -> Result<(), AppError> {
         let dir = tempdir().map_err(|e| AppError::Database(e.to_string()))?;
-        let path = dir.path().join("usage.db");
+        let path = dir.path().join("OpenSunstar.db");
         let db = Arc::new(Database::open_file(&path)?);
         let writer = AsyncUsageWriter::new(db.clone());
 
@@ -276,11 +276,27 @@ mod tests {
         writer.flush_shutdown();
 
         let count: i64 = {
-            let conn = crate::database::lock_conn!(db.conn);
+            let conn = crate::database::lock_conn!(db.usage_conn());
             conn.query_row("SELECT COUNT(*) FROM proxy_request_logs", [], |r| r.get(0))
                 .map_err(|e| AppError::Database(e.to_string()))?
         };
         assert_eq!(count, 2);
+        let core_count: i64 = {
+            let conn = crate::database::lock_conn!(db.conn);
+            conn.query_row("SELECT COUNT(*) FROM proxy_request_logs", [], |r| r.get(0))
+                .map_err(|e| AppError::Database(e.to_string()))?
+        };
+        assert_eq!(
+            core_count, 0,
+            "proxy writes must not return to the core database"
+        );
+        let logs = db.get_request_logs(&LogFilters::default(), 0, 10)?;
+        assert_eq!(logs.total, 2, "usage queries must read the sidecar");
+        let full_export = db.export_sql_string()?;
+        assert!(
+            full_export.contains("req-1") && full_export.contains("req-2"),
+            "full export must include sidecar telemetry"
+        );
         Ok(())
     }
 

@@ -412,7 +412,7 @@ fn insert_session_log_entry(
     request_id: &str,
     msg: &ParsedAssistantUsage,
 ) -> Result<bool, AppError> {
-    let conn = lock_conn!(db.conn);
+    let conn = lock_conn!(db.usage_conn());
 
     let created_at = msg
         .timestamp
@@ -531,7 +531,7 @@ fn find_model_pricing_for_session(
 
 /// 查询数据来源分布统计
 pub fn get_data_source_breakdown(db: &Database) -> Result<Vec<DataSourceSummary>, AppError> {
-    let conn = lock_conn!(db.conn);
+    let conn = lock_conn!(db.usage_conn());
 
     let effective_filter = effective_usage_log_filter("l");
     let sql = format!(

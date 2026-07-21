@@ -29,7 +29,7 @@ pub async fn export_usage(
 ) -> Result<UsageExportResult, String> {
     let db = state.db.clone();
     let result = tauri::async_runtime::spawn_blocking(move || {
-        let conn = lock_conn!(db.conn);
+        let conn = lock_conn!(db.usage_conn());
 
         let mut sql = String::from(
             "SELECT request_id, provider_id, app_type, model, request_model, \

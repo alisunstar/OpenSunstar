@@ -104,7 +104,7 @@ fn run_budget_checks() -> Result<(), AppError> {
         None => return Ok(()),
     };
 
-    let conn = lock_conn!(db.conn);
+    let conn = lock_conn!(db.usage_conn());
 
     let mut stmt = conn
         .prepare(
