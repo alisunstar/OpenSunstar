@@ -406,21 +406,6 @@ pub fn sync_single_server_to_codex(
     Ok(())
 }
 
-#[cfg(test)]
-mod secret_ref_tests {
-    use super::*;
-
-    #[test]
-    fn resolves_secret_refs_at_codex_adapter_boundary() {
-        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("codex");
-        assert_eq!(
-            prepare_server_spec(&protected).expect("resolve Codex spec"),
-            expected
-        );
-        crate::keychain::delete_secret(&entry_key).expect("delete Codex fixture secret");
-    }
-}
-
 /// 从 Codex live 配置中移除单个 MCP 服务器
 /// 从正确的 [mcp_servers] 表中删除，同时清理可能存在于错误位置 [mcp.servers] 的数据
 pub fn remove_server_from_codex(id: &str) -> Result<(), AppError> {
@@ -697,4 +682,19 @@ fn json_server_to_toml_table(spec: &Value) -> Result<toml_edit::Table, AppError>
     }
 
     Ok(t)
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_codex_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("codex");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Codex spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Codex fixture secret");
+    }
 }

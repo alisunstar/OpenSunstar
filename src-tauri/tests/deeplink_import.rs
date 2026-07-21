@@ -1,10 +1,31 @@
 ﻿use std::sync::Arc;
 
-use open_sunstar_lib::{import_provider_from_deeplink, parse_deeplink_url, AppState, Database};
+use open_sunstar_lib::{
+    import_provider_from_deeplink, keychain, parse_deeplink_url, AppState, Database,
+};
 
 #[path = "support.rs"]
 mod support;
 use support::{ensure_test_home, reset_test_fs, test_mutex};
+
+fn assert_secret_ref_resolves(secret_ref: Option<&str>, expected_secret: &str) {
+    let secret_ref = secret_ref.expect("secret field should be present");
+    assert_ne!(
+        secret_ref, expected_secret,
+        "provider DB state must not persist plaintext secrets"
+    );
+    assert!(
+        keychain::is_keychain_ref(secret_ref),
+        "provider DB state should store a keychain reference"
+    );
+
+    let entry_key = keychain::extract_ref_key(secret_ref).expect("valid keychain ref");
+    assert_eq!(
+        keychain::get_secret(entry_key).expect("read stored secret"),
+        Some(expected_secret.to_string())
+    );
+    keychain::delete_secret(entry_key).expect("delete deeplink fixture secret");
+}
 
 #[test]
 fn deeplink_import_claude_provider_persists_to_db() {
@@ -38,7 +59,7 @@ fn deeplink_import_claude_provider_persists_to_db() {
         .settings_config
         .pointer("/env/ANTHROPIC_BASE_URL")
         .and_then(|v| v.as_str());
-    assert_eq!(auth_token, request.api_key.as_deref());
+    assert_secret_ref_resolves(auth_token, request.api_key.as_deref().unwrap());
     assert_eq!(base_url, request.endpoint.as_deref());
 }
 
@@ -74,7 +95,7 @@ fn deeplink_import_codex_provider_builds_auth_and_config() {
         .get("config")
         .and_then(|v| v.as_str())
         .unwrap_or_default();
-    assert_eq!(auth_value, request.api_key.as_deref());
+    assert_secret_ref_resolves(auth_value, request.api_key.as_deref().unwrap());
     assert!(
         config_text.contains(request.endpoint.as_deref().unwrap()),
         "config.toml content should contain endpoint"

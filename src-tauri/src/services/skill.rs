@@ -16,7 +16,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::time::timeout;
 
 use crate::app_config::{AppType, InstalledSkill, SkillApps, UnmanagedSkill};
-use crate::config::get_app_config_dir;
+use crate::config::{get_app_config_dir, get_home_dir};
 use crate::database::Database;
 use crate::error::format_skill_error;
 
@@ -375,20 +375,13 @@ fn parse_branch_from_source_url(source_url: Option<&str>) -> Option<String> {
 
 /// 获取 `~/.agents/skills/` 目录（存在时返回）
 fn get_agents_skills_dir() -> Option<PathBuf> {
-    dirs::home_dir()
-        .map(|h| h.join(".agents").join("skills"))
-        .filter(|p| p.exists())
+    let path = get_home_dir().join(".agents").join("skills");
+    path.exists().then_some(path)
 }
 
 /// 解析 `~/.agents/.skill-lock.json`，返回 skill_name -> 仓库信息
 fn parse_agents_lock() -> HashMap<String, LockRepoInfo> {
-    let path = match dirs::home_dir() {
-        Some(h) => h.join(".agents").join(".skill-lock.json"),
-        None => {
-            log::warn!("无法获取 HOME 目录，跳过解析 agents lock 文件");
-            return HashMap::new();
-        }
-    };
+    let path = get_home_dir().join(".agents").join(".skill-lock.json");
     let content = match fs::read_to_string(&path) {
         Ok(c) => c,
         Err(e) => {
@@ -482,14 +475,7 @@ impl SkillService {
         let location = crate::settings::get_skill_storage_location();
         let dir = match location {
             SkillStorageLocation::OpenSunstar => get_app_config_dir().join("skills"),
-            SkillStorageLocation::Unified => {
-                let home = dirs::home_dir().context(format_skill_error(
-                    "GET_HOME_DIR_FAILED",
-                    &[],
-                    Some("checkPermission"),
-                ))?;
-                home.join(".agents").join("skills")
-            }
+            SkillStorageLocation::Unified => get_home_dir().join(".agents").join("skills"),
         };
         fs::create_dir_all(&dir)?;
         Ok(dir)
@@ -540,11 +526,7 @@ impl SkillService {
         }
 
         // 默认路径：回退到用户主目录下的标准位置
-        let home = dirs::home_dir().context(format_skill_error(
-            "GET_HOME_DIR_FAILED",
-            &[],
-            Some("checkPermission"),
-        ))?;
+        let home = get_home_dir();
 
         Ok(match app {
             AppType::Claude => home.join(".claude").join("skills"),
@@ -1243,10 +1225,7 @@ impl SkillService {
         let old_dir = Self::get_ssot_dir()?;
         let new_dir = match target {
             SkillStorageLocation::OpenSunstar => get_app_config_dir().join("skills"),
-            SkillStorageLocation::Unified => {
-                let home = dirs::home_dir().context("Cannot determine home directory")?;
-                home.join(".agents").join("skills")
-            }
+            SkillStorageLocation::Unified => get_home_dir().join(".agents").join("skills"),
         };
         fs::create_dir_all(&new_dir)?;
 
@@ -3642,10 +3621,8 @@ pub fn auto_import_ssot_skills(db: &Arc<Database>) -> Result<usize> {
     }
 
     // 2. 如果旧版应用目录存在，也加入扫描
-    if let Some(legacy_skills) = dirs::home_dir()
-        .map(|h| h.join(".cc-switch").join("skills"))
-        .filter(|p| p.exists())
-    {
+    let legacy_skills = get_home_dir().join(".cc-switch").join("skills");
+    if legacy_skills.exists() {
         scan_dirs.push(legacy_skills);
     }
 
@@ -3659,10 +3636,8 @@ pub fn auto_import_ssot_skills(db: &Arc<Database>) -> Result<usize> {
     }
 
     // 4. 扫描共享目录 ~/.agents/skills/
-    if let Some(agents_dir) = dirs::home_dir()
-        .map(|h| h.join(".agents").join("skills"))
-        .filter(|p| p.exists())
-    {
+    let agents_dir = get_home_dir().join(".agents").join("skills");
+    if agents_dir.exists() {
         scan_dirs.push(agents_dir);
     }
 

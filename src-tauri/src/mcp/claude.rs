@@ -137,21 +137,6 @@ pub fn sync_single_server_to_claude(
     crate::claude_mcp::set_mcp_servers_map(&updated)
 }
 
-#[cfg(test)]
-mod secret_ref_tests {
-    use super::*;
-
-    #[test]
-    fn resolves_secret_refs_at_claude_adapter_boundary() {
-        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("claude");
-        assert_eq!(
-            prepare_server_spec(&protected).expect("resolve Claude spec"),
-            expected
-        );
-        crate::keychain::delete_secret(&entry_key).expect("delete Claude fixture secret");
-    }
-}
-
 /// 从 Claude live 配置中移除单个 MCP 服务器
 pub fn remove_server_from_claude(id: &str) -> Result<(), AppError> {
     if !should_sync_claude_mcp() {
@@ -165,4 +150,19 @@ pub fn remove_server_from_claude(id: &str) -> Result<(), AppError> {
 
     // 写回
     crate::claude_mcp::set_mcp_servers_map(&current)
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_claude_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("claude");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Claude spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Claude fixture secret");
+    }
 }

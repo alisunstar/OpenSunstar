@@ -132,21 +132,6 @@ pub fn sync_single_server_to_gemini(
     crate::gemini_mcp::set_mcp_servers_map(&current)
 }
 
-#[cfg(test)]
-mod secret_ref_tests {
-    use super::*;
-
-    #[test]
-    fn resolves_secret_refs_at_gemini_adapter_boundary() {
-        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("gemini");
-        assert_eq!(
-            prepare_server_spec(&protected).expect("resolve Gemini spec"),
-            expected
-        );
-        crate::keychain::delete_secret(&entry_key).expect("delete Gemini fixture secret");
-    }
-}
-
 /// 从 Gemini live 配置中移除单个 MCP 服务器
 pub fn remove_server_from_gemini(id: &str) -> Result<(), AppError> {
     if !should_sync_gemini_mcp() {
@@ -160,4 +145,19 @@ pub fn remove_server_from_gemini(id: &str) -> Result<(), AppError> {
 
     // 写回
     crate::gemini_mcp::set_mcp_servers_map(&current)
+}
+
+#[cfg(test)]
+mod secret_ref_tests {
+    use super::*;
+
+    #[test]
+    fn resolves_secret_refs_at_gemini_adapter_boundary() {
+        let (protected, expected, entry_key) = crate::mcp_secret::adapter_secret_fixture("gemini");
+        assert_eq!(
+            prepare_server_spec(&protected).expect("resolve Gemini spec"),
+            expected
+        );
+        crate::keychain::delete_secret(&entry_key).expect("delete Gemini fixture secret");
+    }
 }

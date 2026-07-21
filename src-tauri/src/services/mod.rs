@@ -32,6 +32,7 @@ pub mod project_config_sync;
 pub mod project_environment;
 pub mod prompt;
 pub mod provider;
+pub mod provider_terminal;
 pub mod proxy;
 pub mod quick_start;
 pub mod recipe_composer;
@@ -54,6 +55,7 @@ pub mod subscription_routing;
 pub mod sync_protocol;
 #[cfg(test)]
 pub(crate) mod sync_test_support;
+pub mod toolchain;
 pub mod usage_cache;
 pub mod usage_stats;
 pub mod webdav;
