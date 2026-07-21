@@ -182,13 +182,16 @@ impl Database {
 
     /// After a full SQL import replaces the core file, overwrite sidecar data
     /// from its core-table representation. Memory databases have no sidecar.
-    fn refresh_usage_sidecar_from_core(&self) -> Result<(), AppError> {
+    pub(crate) fn refresh_usage_sidecar_from_core(&self) -> Result<(), AppError> {
         if self.usage_db_conn.get().is_none() {
             return Ok(());
         }
 
         let usage = lock_conn!(self.usage_conn());
-        usage
+        let tx = usage
+            .unchecked_transaction()
+            .map_err(|e| AppError::Database(format!("启动 usage.db 刷新事务失败: {e}")))?;
+        tx
             .execute_batch(
                 "DELETE FROM proxy_request_logs;
                  DELETE FROM usage_daily_rollups;
@@ -218,6 +221,8 @@ impl Database {
                  FROM core.usage_daily_rollups;",
             )
             .map_err(|e| AppError::Database(format!("导入后刷新 usage.db 失败: {e}")))?;
+        tx.commit()
+            .map_err(|e| AppError::Database(format!("提交 usage.db 刷新事务失败: {e}")))?;
         Ok(())
     }
 

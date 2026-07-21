@@ -1621,3 +1621,49 @@ fn file_database_moves_existing_usage_rows_to_sidecar() {
         .expect("query migrated usage through sidecar");
     assert_eq!(summary.total_requests, 1);
 }
+
+#[test]
+fn file_database_refresh_replaces_usage_sidecar_from_core() {
+    use tempfile::tempdir;
+
+    let dir = tempdir().expect("temporary directory");
+    let db = Database::open_file(dir.path().join("OpenSunstar.db"))
+        .expect("open file database with usage sidecar");
+
+    {
+        let usage = db.usage_conn().lock().expect("lock usage sidecar");
+        usage
+            .execute(
+                "INSERT INTO proxy_request_logs (
+                    request_id, provider_id, app_type, model,
+                    latency_ms, status_code, created_at
+                 ) VALUES ('stale-sidecar', 'provider', 'claude', 'model', 1, 200, 1)",
+                [],
+            )
+            .expect("insert stale sidecar row");
+    }
+    {
+        let core = db.conn.lock().expect("lock core database");
+        core.execute(
+            "INSERT INTO proxy_request_logs (
+                request_id, provider_id, app_type, model,
+                latency_ms, status_code, created_at
+             ) VALUES ('restored-core', 'provider', 'claude', 'model', 1, 200, 2)",
+            [],
+        )
+        .expect("insert restored core row");
+    }
+
+    db.refresh_usage_sidecar_from_core()
+        .expect("refresh usage sidecar from core");
+
+    let usage = db.usage_conn().lock().expect("lock refreshed sidecar");
+    let ids: Vec<String> = usage
+        .prepare("SELECT request_id FROM proxy_request_logs ORDER BY request_id")
+        .expect("prepare usage rows")
+        .query_map([], |row| row.get(0))
+        .expect("query usage rows")
+        .map(|row| row.expect("read usage row"))
+        .collect();
+    assert_eq!(ids, vec!["restored-core"]);
+}
