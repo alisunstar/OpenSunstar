@@ -1,210 +1,54 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { ChevronRight } from "lucide-react";
+
+import { AppPageActions, hasPageActions } from "@/app/AppPageActions";
+import { AppPageRouter } from "@/app/AppPageRouter";
 import {
-  Plus,
-  Download,
-  FolderArchive,
-  RefreshCw,
-  Search,
-  Settings,
-  History,
-  ChevronRight,
-} from "lucide-react";
-import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
-import type { AppId } from "@/lib/api";
-import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
-import { DRAG_REGION_ATTR, DRAG_REGION_STYLE } from "@/lib/platform";
-import { Button } from "@/components/ui/button";
+  AGENT_ASSET_PAGE_TITLES,
+  ALL_VISIBLE_APPS,
+  APP_STORAGE_KEY,
+  getInitialApp,
+  getInitialView,
+  isAgentConfigView,
+  PAGE_META,
+  VIEW_STORAGE_KEY,
+  type PageView,
+} from "@/app/navigation";
+import { usePageActionRefs } from "@/app/pageActionRefs";
+import { useAppKeyboardShortcuts } from "@/app/useAppKeyboardShortcuts";
 import { AppSwitcher } from "@/components/AppSwitcher";
-import UnifiedMcpPanel from "@/components/mcp/UnifiedMcpPanel";
-import { McpDiscoveryPage } from "@/components/mcp/McpDiscoveryPage";
-import type { McpDiscoveryPageHandle } from "@/components/mcp/McpDiscoveryPage";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import PromptPanel from "@/components/prompts/PromptPanel";
-import CommandsPanel from "@/components/commands/CommandsPanel";
-import HooksPanel from "@/components/hooks/HooksPanel";
-import { ConvertPage } from "@/components/convert/ConvertPage";
-import IgnorePanel from "@/components/ignore/IgnorePanel";
-import PermissionsPanel from "@/components/permissions/PermissionsPanel";
-import AgentsPanel from "@/components/agents/AgentsPanel";
-import { SkillsPage } from "@/components/skills/SkillsPage";
-import UnifiedSkillsPanel from "@/components/skills/UnifiedSkillsPanel";
-import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
-import { QuickStartPage } from "@/components/quickStart/QuickStartPage";
 import { DeepLinkImportDialog } from "@/components/DeepLinkImportDialog";
-import { SettingsPageContent } from "@/components/settings/SettingsPage";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { TokenStatsPage } from "@/components/usage/TokenStatsPage";
-import { MethodologyPage } from "@/components/methodology/MethodologyPage";
-import { KanbanPage } from "@/components/kanban/KanbanPage";
-import { CloudSyncDashboard } from "@/components/sync/CloudSyncDashboard";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
+import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
-import { useProjects } from "@/hooks/useProjects";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
+import { useProjects } from "@/hooks/useProjects";
+import { DRAG_REGION_ATTR, DRAG_REGION_STYLE } from "@/lib/platform";
 import { useSettingsQuery } from "@/lib/query";
 import {
-  buildProxySettingsIntent,
   buildAiProviderSettingsIntent,
+  buildProxySettingsIntent,
   buildSubscriptionAccountsIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
-
-import type { WorkspaceTab } from "@/types/workspace";
-import { getInitialWorkspaceTab, persistWorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailTab } from "@/types/projectDetail";
+import {
+  getInitialWorkspaceTab,
+  persistWorkspaceTab,
+  type WorkspaceTab,
+} from "@/types/workspace";
 
-export type PageView =
-  | "simpleConnect"
-  | "mcp"
-  | "mcpDiscovery"
-  | "prompts"
-  | "commands"
-  | "hooks"
-  | "convert"
-  | "ignore"
-  | "permissions"
-  | "agents"
-  | "skills"
-  | "skillsDiscovery"
-  | "sessions"
-  | "kanban"
-  | "tokenStats"
-  | "methodology"
-  | "cloudSync"
-  | "settings";
+export type { PageView } from "@/app/navigation";
 
-// ── 常量 ──────────────────────────────────────────
-
-// Tauri window uses `titleBarStyle: "Overlay"`, so the WebView can extend under
-// native window controls on both macOS and Windows high-DPI displays.
-// Reserve a small top strip before rendering the app chrome to keep the sidebar
-// logo away from traffic-light / titlebar controls.
 const OVERLAY_TITLEBAR_SAFE_TOP = 34;
 const DEFAULT_DRAG_BAR_HEIGHT = OVERLAY_TITLEBAR_SAFE_TOP;
-
-const APP_STORAGE_KEY = "OpenSunstar-ext-last-app";
-const VIEW_STORAGE_KEY = "OpenSunstar-ext-last-view";
-
-const VALID_APPS: AppId[] = [
-  "claude",
-  "claude-desktop",
-  "codex",
-  "gemini",
-  "opencode",
-  "openclaw",
-  "hermes",
-];
-
-const VALID_VIEWS: PageView[] = [
-  "simpleConnect",
-  "mcp",
-  "mcpDiscovery",
-  "prompts",
-  "commands",
-  "hooks",
-  "convert",
-  "ignore",
-  "permissions",
-  "agents",
-  "skills",
-  "skillsDiscovery",
-  "sessions",
-  "kanban",
-  "tokenStats",
-  "methodology",
-  "settings",
-];
-
-const ALL_VISIBLE_APPS: Record<AppId, boolean> = {
-  claude: true,
-  "claude-desktop": true,
-  codex: true,
-  gemini: true,
-  opencode: true,
-  openclaw: true,
-  hermes: true,
-};
-
-const getInitialApp = (): AppId => {
-  const saved = localStorage.getItem(APP_STORAGE_KEY) as AppId | null;
-  if (saved && VALID_APPS.includes(saved)) return saved;
-  return "claude";
-};
-
-const getInitialView = (): PageView => {
-  const saved = localStorage.getItem(VIEW_STORAGE_KEY);
-  if (saved === "syncBackup") return "settings";
-  if (saved && VALID_VIEWS.includes(saved as PageView))
-    return saved as PageView;
-  return "kanban";
-};
-
-// ── 视图元数据 ────────────────────────────────────
-
-interface PageMeta {
-  titleKey: string;
-  defaultTitle: string;
-}
-
-const PAGE_META: Record<PageView, PageMeta> = {
-  simpleConnect: {
-    titleKey: "simpleConnect.pageTitle",
-    defaultTitle: "API Access",
-  },
-  mcp: { titleKey: "mcp.title", defaultTitle: "MCP" },
-  mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "Discover MCP" },
-  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts" },
-  commands: { titleKey: "commands.title", defaultTitle: "Commands" },
-  hooks: { titleKey: "hooks.title", defaultTitle: "Hooks" },
-  convert: { titleKey: "convert.title", defaultTitle: "Convert" },
-  ignore: { titleKey: "ignore.title", defaultTitle: "Ignore" },
-  permissions: { titleKey: "permissions.title", defaultTitle: "Permissions" },
-  agents: { titleKey: "agents.title", defaultTitle: "Subagents" },
-  skills: { titleKey: "skills.manage", defaultTitle: "Skills" },
-  skillsDiscovery: {
-    titleKey: "skills.discover",
-    defaultTitle: "Discover Skills",
-  },
-  sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
-  kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
-  tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
-  methodology: {
-    titleKey: "methodology.title",
-    defaultTitle: "Workflow & Governance",
-  },
-  cloudSync: {
-    titleKey: "cloudSyncDashboard.title",
-    defaultTitle: "Cloud Sync",
-  },
-  settings: { titleKey: "common.settings", defaultTitle: "Settings" },
-};
-
-/** Agent 资产页顶栏标题：与侧栏一致，固定英文 */
-const AGENT_ASSET_PAGE_TITLES: Partial<Record<PageView, string>> = {
-  commands: "Commands",
-  hooks: "Hooks",
-  ignore: "Ignore",
-  permissions: "Permissions",
-  agents: "Subagents",
-  convert: "Convert",
-};
-
-/** 全局 Agent 配置页面集合 — 这些页面操作全局作用域 */
-const AGENT_CONFIG_VIEWS: PageView[] = [
-  "mcp",
-  "skills",
-  "prompts",
-  "commands",
-  "hooks",
-  "ignore",
-  "permissions",
-  "agents",
-];
-
-// ── 组件 ──────────────────────────────────────────
 
 function App() {
   const { t } = useTranslation();
@@ -215,7 +59,7 @@ function App() {
   const [detailIntentKey, setDetailIntentKey] = useState(0);
   const [detailIntentTab, setDetailIntentTab] =
     useState<ProjectDetailTab>("overview");
-  const [targetApp, setTargetApp] = useState<AppId>(getInitialApp);
+  const [targetApp, setTargetApp] = useState(getInitialApp);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -225,31 +69,24 @@ function App() {
   const [settingsNavIntent, setSettingsNavIntent] =
     useState<SettingsNavIntent | null>(null);
 
+  const handleNavigate = useCallback((view: PageView) => {
+    setCurrentView(view);
+  }, []);
   const openProxySettings = useCallback(() => {
     setSettingsNavIntent(buildProxySettingsIntent());
-    setCurrentView("settings");
-  }, []);
-
+    handleNavigate("settings");
+  }, [handleNavigate]);
   const openAiProviderSettings = useCallback(() => {
     setSettingsNavIntent(buildAiProviderSettingsIntent());
-    setCurrentView("settings");
-  }, []);
-
+    handleNavigate("settings");
+  }, [handleNavigate]);
   const openSubscriptionAccounts = useCallback(() => {
     setSettingsNavIntent(buildSubscriptionAccountsIntent());
-    setCurrentView("settings");
-  }, []);
+    handleNavigate("settings");
+  }, [handleNavigate]);
 
   useBudgetAlerts();
   const { data: settings } = useSettingsQuery();
-
-  useEffect(() => {
-    invoke<boolean>("is_onboarding_needed")
-      .then((needed) => setShowOnboarding(needed))
-      .catch(() => setShowOnboarding(false));
-  }, []);
-
-  // ── 项目管理 ────────────────────────────────
   const {
     projects,
     add: addProject,
@@ -257,477 +94,108 @@ function App() {
     reload: reloadProjects,
   } = useProjects();
 
-  const selectedProject = useMemo(
-    () => projects.find((p) => p.id === selectedProjectId) ?? null,
-    [projects, selectedProjectId],
-  );
-
-  const isAgentConfigView = AGENT_CONFIG_VIEWS.includes(currentView);
-  // ── localStorage 同步 ──────────────────────
+  useEffect(() => {
+    invoke<boolean>("is_onboarding_needed")
+      .then(setShowOnboarding)
+      .catch(() => setShowOnboarding(false));
+  }, []);
   useEffect(() => {
     localStorage.setItem(VIEW_STORAGE_KEY, currentView);
   }, [currentView]);
-
   useEffect(() => {
     persistWorkspaceTab(workspaceTab);
   }, [workspaceTab]);
-
   useEffect(() => {
-    if (currentView === "settings" && settingsNavIntent) {
-      const timer = window.setTimeout(() => setSettingsNavIntent(null), 0);
-      return () => window.clearTimeout(timer);
-    }
+    if (currentView !== "settings" || settingsNavIntent === null) return;
+    const timer = window.setTimeout(() => setSettingsNavIntent(null), 0);
+    return () => window.clearTimeout(timer);
   }, [currentView, settingsNavIntent]);
-
   useEffect(() => {
     localStorage.setItem(APP_STORAGE_KEY, targetApp);
   }, [targetApp]);
 
-  const dragBarHeight = DEFAULT_DRAG_BAR_HEIGHT;
-  const useAppWindowControls = settings?.useAppWindowControls ?? false;
-  // macOS 叠加标题栏需要自定义拖拽区；Win/Linux 默认用系统标题栏，不额外占位
-  const needsCustomTitlebar = dragBarHeight > 0 || useAppWindowControls;
-  const contentTopOffset = needsCustomTitlebar ? dragBarHeight : 0;
+  const pageActionRefs = usePageActionRefs();
+  useAppKeyboardShortcuts({
+    currentView,
+    onNavigate: handleNavigate,
+    onToggleShortcuts: () => setShortcutsOpen((open) => !open),
+  });
 
-  // ── Refs ────────────────────────────────────
-  const commandsPanelRef = useRef<any>(null);
-  const hooksPanelRef = useRef<any>(null);
-  const ignorePanelRef = useRef<any>(null);
-  const permissionsPanelRef = useRef<any>(null);
-  const agentsPanelRef = useRef<any>(null);
-  const promptPanelRef = useRef<any>(null);
-  const mcpPanelRef = useRef<any>(null);
-  const mcpDiscoveryPageRef = useRef<McpDiscoveryPageHandle>(null);
-  const unifiedSkillsPanelRef = useRef<any>(null);
-  const skillsPageRef = useRef<any>(null);
+  const selectedProject = useMemo(
+    () => projects.find((project) => project.id === selectedProjectId) ?? null,
+    [projects, selectedProjectId],
+  );
+  const projectDetailIntent = useMemo(
+    () =>
+      selectedProjectId === null
+        ? null
+        : {
+            projectId: selectedProjectId,
+            tab: detailIntentTab,
+            key: detailIntentKey,
+          },
+    [detailIntentKey, detailIntentTab, selectedProjectId],
+  );
 
-  // ── 键盘快捷键 ────────────────────────────
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Ctrl/Cmd + B → 折叠/展开侧边栏
-      if ((event.ctrlKey || event.metaKey) && event.key === "b") {
-        event.preventDefault();
-        window.dispatchEvent(new Event("toggle-sidebar"));
-        return;
-      }
-      // Ctrl+/ 或 ? → 快捷键帮助面板
-      if (
-        ((event.ctrlKey || event.metaKey) && event.key === "/") ||
-        (!event.ctrlKey && !event.metaKey && !event.altKey && event.key === "?")
-      ) {
-        event.preventDefault();
-        setShortcutsOpen((prev) => !prev);
-        return;
-      }
-      // Alt+1~6 → 快速切换视图
-      if (event.altKey && !event.ctrlKey && !event.metaKey) {
-        const workspaceMap: Record<string, PageView> = {
-          "1": "mcp",
-          "2": "prompts",
-          "3": "skills",
-          "4": "sessions",
-          "5": "tokenStats",
-          "6": "kanban",
-        };
-        const view = workspaceMap[event.key];
-        if (view) {
-          event.preventDefault();
-          setCurrentView(view);
-          return;
-        }
-      }
-      // Escape → 返回
-      if (event.key === "Escape" && !event.defaultPrevented) {
-        if (document.body.style.overflow === "hidden") return;
-        if (currentView === "mcpDiscovery") setCurrentView("mcp");
-        if (currentView === "skillsDiscovery") setCurrentView("skills");
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentView]);
-
-  // ── 派生值 ─────────────────────────────────
-  const effectiveTargetApp = useMemo(() => {
-    if (targetApp === "claude-desktop") return "claude";
-    return targetApp;
-  }, [targetApp]);
-
-  const pageMeta = PAGE_META[currentView];
-
-  const showAppSwitcher =
-    currentView === "prompts" || currentView === "sessions";
-  const showBackButton =
-    currentView === "mcpDiscovery" || currentView === "skillsDiscovery";
-
-  // ── 导航 ────────────────────────────────────
-  const handleNavigate = useCallback((view: PageView) => {
-    setCurrentView(view);
-    // 保留项目上下文，用户可通过面包屑回到项目详情
-  }, []);
-
-  const openWorkspace = useCallback((tab: WorkspaceTab) => {
-    setCurrentView("kanban");
-    setWorkspaceTab(tab);
-    setSelectedProjectId(null);
-  }, []);
-
-  const handleBack = useCallback(() => {
-    if (currentView === "mcpDiscovery") setCurrentView("mcp");
-    if (currentView === "skillsDiscovery") setCurrentView("skills");
-  }, [currentView]);
-
-  const handleProjectClick = useCallback((projectId: string) => {
-    setSelectedProjectId(projectId);
-    setCurrentView("kanban");
-    setWorkspaceTab("board");
-    setDetailIntentTab("overview");
-    setDetailIntentKey((key) => key + 1);
-  }, []);
-
-  const handleOpenProjectAssets = useCallback((projectId: string) => {
-    setSelectedProjectId(projectId);
-    setCurrentView("kanban");
-    setWorkspaceTab("board");
-    setDetailIntentTab("aiAssets");
-    setDetailIntentKey((key) => key + 1);
-  }, []);
-
-  const projectDetailIntent = useMemo(() => {
-    if (!selectedProjectId) return null;
-    return {
-      projectId: selectedProjectId,
-      tab: detailIntentTab,
-      key: detailIntentKey,
-    };
-  }, [selectedProjectId, detailIntentTab, detailIntentKey]);
-
+  const openWorkspace = useCallback(
+    (tab: WorkspaceTab) => {
+      handleNavigate("kanban");
+      setWorkspaceTab(tab);
+      setSelectedProjectId(null);
+    },
+    [handleNavigate],
+  );
+  const handleProjectClick = useCallback(
+    (projectId: string) => {
+      setSelectedProjectId(projectId);
+      handleNavigate("kanban");
+      setWorkspaceTab("board");
+      setDetailIntentTab("overview");
+      setDetailIntentKey((key) => key + 1);
+    },
+    [handleNavigate],
+  );
+  const handleOpenProjectAssets = useCallback(
+    (projectId: string) => {
+      setSelectedProjectId(projectId);
+      handleNavigate("kanban");
+      setWorkspaceTab("board");
+      setDetailIntentTab("aiAssets");
+      setDetailIntentKey((key) => key + 1);
+    },
+    [handleNavigate],
+  );
+  const handleRemoveProject = useCallback(
+    (projectId: string) => {
+      if (selectedProjectId === projectId) setSelectedProjectId(null);
+      void removeProject(projectId);
+    },
+    [removeProject, selectedProjectId],
+  );
   const handleAddProject = useCallback(
     (name: string, path: string, description?: string) => {
       addProject(name, path, description);
     },
     [addProject],
   );
+  const handleBack = useCallback(() => {
+    if (currentView === "mcpDiscovery") handleNavigate("mcp");
+    if (currentView === "skillsDiscovery") handleNavigate("skills");
+  }, [currentView, handleNavigate]);
 
-  // ── 渲染页面内容 ────────────────────────────
-  const renderPageContent = () => {
-    switch (currentView) {
-      case "simpleConnect":
-        return (
-          <QuickStartPage
-            onOpenSettings={openProxySettings}
-            onOpenSubscriptionAccounts={openSubscriptionAccounts}
-          />
-        );
-      case "mcp":
-        return <UnifiedMcpPanel ref={mcpPanelRef} onOpenChange={() => {}} />;
-      case "mcpDiscovery":
-        return (
-          <ErrorBoundary
-            fallbackTitle={t("errors.mcpPageLoadFailed")}
-            fallbackDescription={t("errors.mcpPageLoadDescription")}
-            onGoBack={() => setCurrentView("mcp")}
-          >
-            <McpDiscoveryPage ref={mcpDiscoveryPageRef} />
-          </ErrorBoundary>
-        );
-      case "prompts":
-        return (
-          <PromptPanel
-            ref={promptPanelRef}
-            open={true}
-            onOpenChange={() => {}}
-            appId={effectiveTargetApp}
-          />
-        );
-      case "commands":
-        return <CommandsPanel ref={commandsPanelRef} open={true} />;
-      case "hooks":
-        return <HooksPanel ref={hooksPanelRef} open={true} />;
-      case "convert":
-        return <ConvertPage />;
-      case "ignore":
-        return <IgnorePanel ref={ignorePanelRef} open={true} />;
-      case "permissions":
-        return <PermissionsPanel ref={permissionsPanelRef} open={true} />;
-      case "agents":
-        return <AgentsPanel ref={agentsPanelRef} open={true} />;
-      case "skills":
-        return (
-          <UnifiedSkillsPanel
-            ref={unifiedSkillsPanelRef}
-            onOpenDiscovery={() => setCurrentView("skillsDiscovery")}
-            currentApp={
-              effectiveTargetApp === "openclaw" ? "claude" : effectiveTargetApp
-            }
-          />
-        );
-      case "skillsDiscovery":
-        return (
-          <SkillsPage
-            ref={skillsPageRef}
-            initialApp={
-              effectiveTargetApp === "openclaw" ? "claude" : effectiveTargetApp
-            }
-          />
-        );
-      case "sessions":
-        return (
-          <SessionManagerPage
-            key={effectiveTargetApp}
-            appId={effectiveTargetApp}
-          />
-        );
-      case "kanban":
-        return (
-          <KanbanPage
-            projects={projects}
-            selectedProjectId={selectedProjectId ?? undefined}
-            projectDetailIntent={projectDetailIntent}
-            workspaceTab={workspaceTab}
-            onWorkspaceTabChange={setWorkspaceTab}
-            targetApp={effectiveTargetApp}
-            onProjectClick={(project) => {
-              setSelectedProjectId(project.id);
-            }}
-            onProjectRemove={(projectId) => {
-              if (selectedProjectId === projectId) {
-                setSelectedProjectId(null);
-              }
-              void removeProject(projectId);
-            }}
-            onAddProject={() => setAddProjectOpen(true)}
-            onClearSelection={() => setSelectedProjectId(null)}
-            onOpenSettings={openAiProviderSettings}
-            onNavigate={(view) => setCurrentView(view)}
-            onProjectsReload={reloadProjects}
-          />
-        );
-      case "tokenStats":
-        return <TokenStatsPage />;
-      case "methodology":
-        return <MethodologyPage projects={projects} />;
-      case "cloudSync":
-        return (
-          <CloudSyncDashboard
-            onNavigate={(view) => setCurrentView(view)}
-            onSettingsNavIntent={(intent) => {
-              setSettingsNavIntent(intent);
-            }}
-          />
-        );
-      case "settings":
-        return (
-          <SettingsPageContent
-            settingsNavIntent={settingsNavIntent}
-            defaultTab={settingsNavIntent?.tab ?? "general"}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const isGlobalAgentConfigView = isAgentConfigView(currentView);
+  const pageMeta = PAGE_META[currentView];
+  const showAppSwitcher =
+    currentView === "prompts" || currentView === "sessions";
+  const showBackButton =
+    currentView === "mcpDiscovery" || currentView === "skillsDiscovery";
+  const hideContentHeader = ["settings", "tokenStats", "kanban"].includes(
+    currentView,
+  );
+  const dragBarHeight = DEFAULT_DRAG_BAR_HEIGHT;
+  const needsCustomTitlebar =
+    dragBarHeight > 0 || (settings?.useAppWindowControls ?? false);
 
-  // ── 渲染内容区操作按钮 ──────────────────────
-  const renderActions = () => {
-    switch (currentView) {
-      case "prompts":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => promptPanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("prompts.add", { defaultValue: "添加" })}
-          </Button>
-        );
-      case "commands":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => commandsPanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("commands.add", { defaultValue: "添加命令" })}
-          </Button>
-        );
-      case "hooks":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => hooksPanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("hooks.add", { defaultValue: "添加钩子" })}
-          </Button>
-        );
-      case "ignore":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => ignorePanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("ignore.add", { defaultValue: "添加规则" })}
-          </Button>
-        );
-      case "permissions":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => permissionsPanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("permissions.add", { defaultValue: "添加权限" })}
-          </Button>
-        );
-      case "agents":
-        return (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => agentsPanelRef.current?.openAdd()}
-            className="hover:bg-black/5 dark:hover:bg-white/5"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            {t("agents.add", { defaultValue: "添加 Subagent" })}
-          </Button>
-        );
-      case "mcp":
-        return (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => mcpPanelRef.current?.openImport()}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              {t("mcp.importExisting", { defaultValue: "导入" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => mcpPanelRef.current?.openAdd()}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Plus className="w-4 h-4 mr-1" />
-              {t("mcp.addMcp", { defaultValue: "添加" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentView("mcpDiscovery")}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Search className="w-4 h-4 mr-1" />
-              {t("mcp.discover", { defaultValue: "发现MCP" })}
-            </Button>
-          </>
-        );
-      case "mcpDiscovery":
-        return null;
-      case "skills":
-        return (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                unifiedSkillsPanelRef.current?.openRestoreFromBackup()
-              }
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <History className="w-4 h-4 mr-1" />
-              {t("skills.restoreFromBackup.button", { defaultValue: "恢复" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() =>
-                unifiedSkillsPanelRef.current?.openInstallFromZip()
-              }
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <FolderArchive className="w-4 h-4 mr-1" />
-              {t("skills.installFromZip.button", { defaultValue: "安装" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => unifiedSkillsPanelRef.current?.openImport()}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              {t("skills.import", { defaultValue: "导入" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setCurrentView("skillsDiscovery")}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Search className="w-4 h-4 mr-1" />
-              {t("skills.discover", { defaultValue: "发现" })}
-            </Button>
-          </>
-        );
-      case "skillsDiscovery":
-        return (
-          <>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => skillsPageRef.current?.refresh()}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <RefreshCw className="w-4 h-4 mr-1" />
-              {t("skills.refresh", { defaultValue: "刷新" })}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => skillsPageRef.current?.openRepoManager()}
-              className="hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <Settings className="w-4 h-4 mr-1" />
-              {t("skills.repoManager", { defaultValue: "仓库" })}
-            </Button>
-          </>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const hasActions = [
-    "mcp",
-    "mcpDiscovery",
-    "prompts",
-    "commands",
-    "hooks",
-    "agents",
-    "skills",
-    "skillsDiscovery",
-  ].includes(currentView);
-
-  // 是否隐藏内容区顶栏（设置页 / 看板页自带 header）
-  const hideContentHeader =
-    currentView === "settings" ||
-    currentView === "tokenStats" ||
-    currentView === "kanban";
-
-  // ── 渲染 ────────────────────────────────────
   return (
     <div
       className="flex flex-col h-screen overflow-hidden bg-background text-foreground selection:bg-primary/30"
@@ -736,8 +204,6 @@ function App() {
       {showOnboarding && (
         <OnboardingWizard onComplete={() => setShowOnboarding(false)} />
       )}
-
-      {/* ── Titlebar（macOS 叠加标题栏 / 应用级窗口按钮时显示）── */}
       {needsCustomTitlebar && (
         <header
           className="fixed top-0 z-50 w-full bg-background/80 backdrop-blur-md border-b border-border/40"
@@ -750,12 +216,10 @@ function App() {
           }
         />
       )}
-
-      {/* ── Body：Sidebar + Content ──────────── */}
       <TooltipProvider delayDuration={300}>
         <div
           className="flex flex-1 min-h-0"
-          style={{ paddingTop: contentTopOffset }}
+          style={{ paddingTop: needsCustomTitlebar ? dragBarHeight : 0 }}
         >
           <Sidebar
             activeView={currentView}
@@ -767,17 +231,9 @@ function App() {
             projects={projects}
             activeProjectId={selectedProjectId ?? undefined}
             onProjectClick={handleProjectClick}
-            onProjectRemove={(projectId) => {
-              if (selectedProjectId === projectId) {
-                setSelectedProjectId(null);
-              }
-              void removeProject(projectId);
-            }}
+            onProjectRemove={handleRemoveProject}
           />
-
-          {/* ── 内容区 ─────────────────────────── */}
           <main className="flex-1 min-h-0 flex flex-col overflow-y-auto">
-            {/* 内容区顶栏：sticky 置顶，免疫页面组件内部布局抖动 */}
             {!hideContentHeader && (
               <div
                 className="sticky top-0 z-10 shrink-0 flex items-center justify-between gap-4 px-6 py-2.5 border-b border-border/30 bg-background/90 backdrop-blur-sm"
@@ -794,8 +250,7 @@ function App() {
                       {t("common.back", { defaultValue: "返回" })}
                     </Button>
                   )}
-                  {/* 面包屑：在全局面板且有选中项目时，显示回链 */}
-                  {isAgentConfigView && selectedProject && (
+                  {isGlobalAgentConfigView && selectedProject && (
                     <button
                       onClick={() => handleProjectClick(selectedProject.id)}
                       className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors shrink-0"
@@ -814,10 +269,7 @@ function App() {
                         defaultValue: pageMeta.defaultTitle,
                       })}
                   </h1>
-                  {/* 作用域标记：全局 Agent 配置页面显示 "全局" badge */}
-                  {isAgentConfigView && (
-                    <PageScopeBadge scope="global" />
-                  )}
+                  {isGlobalAgentConfigView && <PageScopeBadge scope="global" />}
                   {showAppSwitcher && (
                     <AppSwitcher
                       activeApp={targetApp}
@@ -827,39 +279,55 @@ function App() {
                     />
                   )}
                 </div>
-
-                {hasActions && (
+                {hasPageActions(currentView) && (
                   <div className="flex items-center gap-1 shrink-0">
-                    {renderActions()}
+                    <AppPageActions
+                      view={currentView}
+                      refs={pageActionRefs}
+                      onNavigate={handleNavigate}
+                    />
                   </div>
                 )}
               </div>
             )}
-
-            {/* 页面主体 */}
             <ErrorBoundary
               fallbackTitle={t("errors.pageLoadFailed")}
               fallbackDescription={t("errors.pageLoadFailedDescription")}
-              onGoBack={() => setCurrentView("mcp")}
+              onGoBack={() => handleNavigate("mcp")}
             >
               <div key={currentView} className="flex-1 min-h-0 flex flex-col">
-                {renderPageContent()}
+                <AppPageRouter
+                  view={currentView}
+                  refs={pageActionRefs}
+                  targetApp={targetApp}
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  projectDetailIntent={projectDetailIntent}
+                  workspaceTab={workspaceTab}
+                  settingsNavIntent={settingsNavIntent}
+                  onNavigate={handleNavigate}
+                  onOpenProxySettings={openProxySettings}
+                  onOpenSubscriptionAccounts={openSubscriptionAccounts}
+                  onOpenAiProviderSettings={openAiProviderSettings}
+                  onWorkspaceTabChange={setWorkspaceTab}
+                  onProjectClick={handleProjectClick}
+                  onProjectRemove={handleRemoveProject}
+                  onAddProject={() => setAddProjectOpen(true)}
+                  onClearProjectSelection={() => setSelectedProjectId(null)}
+                  onProjectsReload={reloadProjects}
+                  onSettingsNavIntent={setSettingsNavIntent}
+                />
               </div>
             </ErrorBoundary>
           </main>
         </div>
       </TooltipProvider>
-
-      {/* ── 添加项目 Dialog ──────────────────── */}
       <AddProjectDialog
         open={addProjectOpen}
         onOpenChange={setAddProjectOpen}
         onAdd={handleAddProject}
       />
-
-      {/* ── 快捷键帮助 ────────────────────────── */}
       <ShortcutsHelp open={shortcutsOpen} onOpenChange={setShortcutsOpen} />
-
       <DeepLinkImportDialog />
     </div>
   );

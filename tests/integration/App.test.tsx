@@ -1,4 +1,5 @@
 import { act, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { renderAppWithProviders } from "../renderWithProviders";
 import { emitTauriEvent } from "../msw/tauriMocks";
@@ -19,6 +20,12 @@ vi.mock("@/components/onboarding/OnboardingWizard", () => ({
 
 vi.mock("@/components/kanban/KanbanPage", () => ({
   KanbanPage: () => <div data-testid="workspace-page">Workspace</div>,
+}));
+
+vi.mock("@/components/team/TeamCollaborationPage", () => ({
+  TeamCollaborationPage: () => (
+    <div data-testid="team-collaboration-page">Team collaboration</div>
+  ),
 }));
 
 describe("App integration with MSW", () => {
@@ -44,6 +51,20 @@ describe("App integration with MSW", () => {
     expect(screen.getAllByText("跨项目工作区").length).toBeGreaterThan(0);
   });
 
+  it("navigates from the sidebar into the team collaboration center", async () => {
+    const user = userEvent.setup();
+    const { default: App } = await import("@/App");
+    renderAppWithProviders(App);
+
+    await user.click(
+      await screen.findByRole("button", { name: /团队协作配置/i }),
+    );
+
+    expect(
+      await screen.findByTestId("team-collaboration-page"),
+    ).toBeInTheDocument();
+  });
+
   it("does not throw when background sync status events fire", async () => {
     const { default: App } = await import("@/App");
     renderAppWithProviders(App);
@@ -52,20 +73,20 @@ describe("App integration with MSW", () => {
       expect(screen.getByTestId("workspace-page")).toBeInTheDocument(),
     );
 
-    emitTauriEvent("webdav-sync-status-updated", {
-      source: "auto",
-      status: "error",
-      error: "network timeout",
+    await act(async () => {
+      emitTauriEvent("webdav-sync-status-updated", {
+        source: "auto",
+        status: "error",
+        error: "network timeout",
+      });
+      emitTauriEvent("s3-sync-status-updated", {
+        source: "auto",
+        status: "error",
+        error: "s3 timeout",
+      });
     });
 
     // SyncStatusBar updates inline state; global auto-sync toasts are not wired yet.
-    expect(toastErrorMock).not.toHaveBeenCalled();
-
-    emitTauriEvent("s3-sync-status-updated", {
-      source: "auto",
-      status: "error",
-      error: "s3 timeout",
-    });
     expect(toastErrorMock).not.toHaveBeenCalled();
   });
 
