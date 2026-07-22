@@ -36,6 +36,7 @@ mod mcp_smithery;
 mod openclaw_config;
 mod opencode_config;
 mod panic_hook;
+pub mod product_auth;
 mod prompt;
 mod prompt_files;
 mod provider;

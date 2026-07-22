@@ -87,7 +87,10 @@ pub fn resolve_requirement_sources(sources: &[RequirementSource]) -> Requirement
     }
 }
 
-fn resolve_group(key: RequirementKey, mut sources: Vec<&RequirementSource>) -> RequirementResolution {
+fn resolve_group(
+    key: RequirementKey,
+    mut sources: Vec<&RequirementSource>,
+) -> RequirementResolution {
     sources.sort_by(|left, right| {
         (
             left.priority_class,
@@ -204,7 +207,10 @@ mod tests {
             source("team-denied", PolicyAction::Denied, None),
         ]);
         assert_eq!(
-            plan.entries[0].conflict.as_ref().map(|conflict| conflict.code.as_str()),
+            plan.entries[0]
+                .conflict
+                .as_ref()
+                .map(|conflict| conflict.code.as_str()),
             Some("policy_invalid")
         );
     }
@@ -212,11 +218,22 @@ mod tests {
     #[test]
     fn incompatible_pinned_revisions_are_an_explicit_conflict() {
         let plan = resolve_requirement_sources(&[
-            source("team-required-a", PolicyAction::Required, Some("revision-a")),
-            source("project-required-b", PolicyAction::Required, Some("revision-b")),
+            source(
+                "team-required-a",
+                PolicyAction::Required,
+                Some("revision-a"),
+            ),
+            source(
+                "project-required-b",
+                PolicyAction::Required,
+                Some("revision-b"),
+            ),
         ]);
         assert_eq!(
-            plan.entries[0].conflict.as_ref().map(|conflict| conflict.code.as_str()),
+            plan.entries[0]
+                .conflict
+                .as_ref()
+                .map(|conflict| conflict.code.as_str()),
             Some("revision_conflict")
         );
     }

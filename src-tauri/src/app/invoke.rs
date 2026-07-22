@@ -334,6 +334,18 @@ pub(super) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         commands::auth_set_default_account,
         commands::auth_logout,
         commands::get_local_cli_auth_status,
+        // OpenSunstar product-account session (token-free IPC only)
+        commands::product_auth_get_session,
+        commands::product_auth_login,
+        commands::product_auth_cancel_login,
+        commands::product_auth_logout,
+        commands::product_team_create_organization,
+        commands::product_team_accept_invite,
+        commands::product_team_get_overview,
+        commands::product_team_list_members,
+        commands::product_team_list_invites,
+        commands::product_team_invite_member,
+        commands::product_team_remove_member,
         // Copilot OAuth commands (multi-account support)
         commands::copilot_start_device_flow,
         commands::copilot_poll_for_auth,

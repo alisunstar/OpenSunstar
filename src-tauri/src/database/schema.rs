@@ -644,9 +644,7 @@ impl Database {
                         Self::set_user_version(conn, 37)?;
                     }
                     37 => {
-                        log::info!(
-                            "Migrating database from v37 to v38 (team requirement sources)"
-                        );
+                        log::info!("Migrating database from v37 to v38 (team requirement sources)");
                         Self::migrate_v37_to_v38(conn)?;
                         Self::set_user_version(conn, 38)?;
                     }

@@ -43,7 +43,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { PageView } from "@/App";
+import type { PageView } from "@/app/navigation";
 import type { Project } from "@/types/project";
 import type { WorkspaceTab } from "@/types/workspace";
 import appIcon from "@/assets/icons/app-icon-128.png";
@@ -81,11 +81,7 @@ const AGENT_CONFIG_VIEWS: PageView[] = [
   "convert",
 ];
 
-const AI_MODEL_VIEWS: PageView[] = [
-  "simpleConnect",
-  "sessions",
-  "tokenStats",
-];
+const AI_MODEL_VIEWS: PageView[] = ["simpleConnect", "sessions", "tokenStats"];
 
 function isAgentConfigActive(view: PageView): boolean {
   return AGENT_CONFIG_VIEWS.includes(view);
@@ -247,15 +243,20 @@ export function Sidebar({
               onClick={() => onNavigate("cloudSync")}
               accent={activeView === "cloudSync"}
               collapsed
-              title={t("sidebar.section.cloudSync", { defaultValue: "跨设备云同步" })}
+              title={t("sidebar.section.cloudSync", {
+                defaultValue: "跨设备云同步",
+              })}
             />
             <SidebarItem
               icon={<Users className="w-4 h-4" />}
               label=""
-              active={false}
-              onClick={() => {}}
+              active={activeView === "teamCollaboration"}
+              onClick={() => onNavigate("teamCollaboration")}
+              accent={activeView === "teamCollaboration"}
               collapsed
-              title={`${t("sidebar.section.teamCollab", { defaultValue: "团队协作配置" })}（${t("sidebar.planning", { defaultValue: "规划中" })}）`}
+              title={t("sidebar.section.teamCollab", {
+                defaultValue: "团队协作配置",
+              })}
             />
           </div>
         ) : (
@@ -464,26 +465,27 @@ export function Sidebar({
             </SectionLabel>
             <SidebarItem
               icon={<Cloud className="w-4 h-4" />}
-              label={t("cloudSyncDashboard.title", { defaultValue: "跨设备云同步" })}
+              label={t("cloudSyncDashboard.title", {
+                defaultValue: "跨设备云同步",
+              })}
               active={activeView === "cloudSync"}
               onClick={() => onNavigate("cloudSync")}
             />
 
-            {/* ▸ 团队协作配置（规划中） */}
-            <div className="opacity-50 cursor-not-allowed">
-              <SidebarItem
-                icon={<Users className="w-4 h-4" />}
-                label={t("sidebar.section.teamCollab", { defaultValue: "团队协作配置" })}
-                badge={
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                    {t("sidebar.planning", { defaultValue: "规划中" })}
-                  </span>
-                }
-                active={false}
-                onClick={() => {}}
-              />
-            </div>
-
+            {/* ▸ 团队协作配置 */}
+            <SidebarItem
+              icon={<Users className="w-4 h-4" />}
+              label={t("sidebar.section.teamCollab", {
+                defaultValue: "团队协作配置",
+              })}
+              badge={
+                <span className="rounded-full border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
+                  MVP
+                </span>
+              }
+              active={activeView === "teamCollaboration"}
+              onClick={() => onNavigate("teamCollaboration")}
+            />
           </>
         )}
       </nav>
@@ -499,11 +501,17 @@ export function Sidebar({
         <div className={cn("px-2.5 py-1.5 space-y-1", collapsed && "px-1.5")}>
           <SidebarItem
             icon={<Settings className="w-4 h-4" />}
-            label={collapsed ? "" : t("common.settings", { defaultValue: "设置" })}
+            label={
+              collapsed ? "" : t("common.settings", { defaultValue: "设置" })
+            }
             active={activeView === "settings"}
             onClick={() => onNavigate("settings")}
             collapsed={collapsed}
-            title={collapsed ? t("common.settings", { defaultValue: "设置" }) : undefined}
+            title={
+              collapsed
+                ? t("common.settings", { defaultValue: "设置" })
+                : undefined
+            }
           />
 
           {/* 折叠按钮 + 主题切换 */}
@@ -542,7 +550,9 @@ export function Sidebar({
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className={cn(
                 "rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 shrink-0",
-                collapsed ? "h-9 w-full justify-center" : "h-9 w-9 justify-center",
+                collapsed
+                  ? "h-9 w-full justify-center"
+                  : "h-9 w-9 justify-center",
               )}
               title={
                 theme === "dark"
