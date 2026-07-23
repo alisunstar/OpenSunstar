@@ -508,9 +508,7 @@ pub fn validate_effective_stage_semantic(
                     .iter()
                     .find(|s| s.id == *stage_id)
                     .and_then(|s| s.skip_when.as_ref())
-                    .is_some_and(|sw| {
-                        sw.project_type.iter().any(|t| t == project_type)
-                    });
+                    .is_some_and(|sw| sw.project_type.iter().any(|t| t == project_type));
                 if !has_skip {
                     issues.push(format!(
                         "S5: {stage_id} 阶段出现在 {project_type} 路径中但没有 skipWhen 覆盖（UI 设计不适用于 {project_type} 项目）"

@@ -1,0 +1,21 @@
+# 此目录存放长期问答（query 类型页面）
+#
+# 与 questions/ 的区别：
+# - questions/ 记录尚未确认的信息和待查项
+# - queries/ 记录已确认、值得长期保留的问题答案
+#
+# 使用方法：
+# 创建 query 页面时，使用 frontmatter:
+#   ---
+#   title: 问题标题
+#   type: query
+#   status: active
+#   source_files:
+#     - 相关源码路径
+#   ---
+#
+# 正文结构：
+#   ## Question
+#   ## Answer
+#   ## Search Evidence
+#   ## Verified At

@@ -29,7 +29,7 @@ import { ignoreApi, type IgnoreRule } from "@/lib/api/ignore";
 import { permissionsApi, type ToolPermission } from "@/lib/api/permissions";
 import { agentsApi, type Agent } from "@/lib/api/agents";
 import type { McpServersMap } from "@/types";
-import type { PageView } from "@/App";
+import type { PageView } from "@/app/navigation";
 import type { ProjectAssetSection } from "@/types/projectAsset";
 import type { ExtendedProjectAssetType } from "@/types/projectAsset";
 import {
@@ -38,6 +38,7 @@ import {
   ProjectAssetSupportTooltipProvider,
 } from "./ProjectAssetSupport";
 import { ProjectAssetHealthSummary } from "./ProjectAssetHealthSummary";
+import { ProjectWikiPanel } from "./ProjectWikiPanel";
 import {
   summarizeAssetSupport,
   PROMPT_SYNC_APP_IDS,
@@ -242,12 +243,17 @@ export function ProjectAssetPanel({
   const isSkillGloballyEnabled = (skill: InstalledSkill) =>
     Object.values(skill.apps).some(Boolean);
   const isPromptGloballyEnabled = (id: string, appType: string) =>
-    promptCatalog.some((p) => p.id === id && p.appType === appType && p.enabled);
+    promptCatalog.some(
+      (p) => p.id === id && p.appType === appType && p.enabled,
+    );
   const isExtendedGloballyEnabled = (
     type: ExtendedProjectAssetType,
     id: string,
   ) => {
-    const lists: Record<string, { id: string; apps?: Record<string, boolean>; enabled?: boolean }[]> = {
+    const lists: Record<
+      string,
+      { id: string; apps?: Record<string, boolean>; enabled?: boolean }[]
+    > = {
       command: allCommands,
       hook: allHooks,
       ignore: allIgnore,
@@ -422,7 +428,9 @@ export function ProjectAssetPanel({
                     </p>
                   )}
                 </div>
-                <GlobalStatus enabled={isExtendedGloballyEnabled(section, item.id)} />
+                <GlobalStatus
+                  enabled={isExtendedGloballyEnabled(section, item.id)}
+                />
               </div>
               <ProjectAssetEnableSwitch
                 assetType={section}
@@ -442,6 +450,7 @@ export function ProjectAssetPanel({
     <ProjectAssetSupportTooltipProvider>
       <div className="space-y-6">
         <ProjectAssetHealthSummary projectId={projectId} />
+        <ProjectWikiPanel projectId={projectId} onConfigChanged={notifyChanged} />
         <ProjectEnvironmentSnapshotPanel
           projectId={projectId}
           onApplied={notifyChanged}
@@ -603,12 +612,16 @@ export function ProjectAssetPanel({
                 >
                   <div className="min-w-0 flex-1 flex items-center gap-2">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{item.name}</p>
+                      <p className="text-sm font-medium truncate">
+                        {item.name}
+                      </p>
                       <p className="text-[11px] text-muted-foreground truncate">
                         {item.appType}
                       </p>
                     </div>
-                    <GlobalStatus enabled={isPromptGloballyEnabled(item.id, item.appType)} />
+                    <GlobalStatus
+                      enabled={isPromptGloballyEnabled(item.id, item.appType)}
+                    />
                   </div>
                   <ProjectAssetEnableSwitch
                     assetType="prompt"

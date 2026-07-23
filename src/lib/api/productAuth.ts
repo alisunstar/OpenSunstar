@@ -104,6 +104,44 @@ export async function removeTeamMember(orgId: string, userId: string) {
   return invoke<void>("product_team_remove_member", { orgId, userId });
 }
 
+// ─── D16 Team Key API ──────────────────────────────────────────────────────────
+
+export interface TeamKeyLocal {
+  slot_slug: string;
+  org_id: string;
+  provider_kind: string;
+  endpoint_url: string | null;
+  keychain_ref: string;
+  version_seq: number;
+  value_sha256: string;
+  grant_id: string;
+  grant_expires: number;
+  last_renewed: number;
+  status: string;
+}
+
+export async function listTeamKeys(): Promise<TeamKeyLocal[]> {
+  return invoke<TeamKeyLocal[]>("team_key_list");
+}
+
+export async function getTeamKeyStatus(
+  slotSlug: string,
+): Promise<TeamKeyLocal | null> {
+  return invoke<TeamKeyLocal | null>("team_key_status", { slotSlug });
+}
+
+export async function syncTeamKeys(
+  orgId: string,
+): Promise<{ synced: number }> {
+  return invoke<{ synced: number }>("team_key_sync", { orgId });
+}
+
+export async function renewTeamKeys(
+  orgId: string,
+): Promise<{ rotated: number }> {
+  return invoke<{ rotated: number }>("team_key_renew", { orgId });
+}
+
 export const productAuthApi = {
   getSession: getProductSession,
   login: loginProductSession,
@@ -116,4 +154,8 @@ export const productAuthApi = {
   listInvites: listTeamInvites,
   inviteMember: inviteTeamMember,
   removeMember: removeTeamMember,
+  listTeamKeys,
+  getTeamKeyStatus,
+  syncTeamKeys,
+  renewTeamKeys,
 };

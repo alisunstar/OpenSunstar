@@ -1,4 +1,63 @@
 {
+  "projectWiki": {
+    "title": "Project Wiki / Knowledge Baseline",
+    "subtitle": "Engineering knowledge baseline consumable by humans and agents",
+    "loading": "Scanning Wiki…",
+    "notInitialized": "No wiki/index.md detected",
+    "pageCount": "{{count}} pages",
+    "sourceRefs": "{{count}} source refs",
+    "questions": "{{count}} open questions",
+    "lastUpdated": "Last updated",
+    "status": {
+      "missing": "Not initialized",
+      "scaffolded": "Scaffolded",
+      "effective": "Fresh",
+      "drifted": "Changed",
+      "invalid": "Lint failed"
+    },
+    "quality": {
+      "NA": "N/A",
+      "L1": "L1 · Orientation",
+      "L2": "L2 · Integration",
+      "L3": "L3 · Operations"
+    },
+    "coverage": {
+      "corePages": "Core pages",
+      "componentPages": "Components",
+      "flowPages": "Flows",
+      "apiPages": "APIs",
+      "runbookPages": "Runbooks"
+    },
+    "actions": {
+      "init": "Initialize Wiki",
+      "lint": "Run Lint",
+      "refresh": "Refresh",
+      "openInEditor": "Open in editor",
+      "previewInit": "Preview init"
+    },
+    "changedFiles": {
+      "coldStart": "Wiki just initialized, change mapping not yet active",
+      "coldStartProgress": "Effective source_files pages: {{current}}/{{threshold}}",
+      "coldStartGuidance": "Fill wiki content using maintain-repo-wiki Skill in Claude Code",
+      "affectedPages": "{{count}} source changes affect {{pages}} wiki pages",
+      "unmapped": "{{count}} unmapped changes",
+      "noChanges": "No source changes, wiki pages are up to date"
+    },
+    "lint": {
+      "passed": "Lint passed",
+      "failed": "Lint failed: {{errors}} errors",
+      "warnings": "{{count}} warnings",
+      "qualityLevel": "Quality level: {{level}}"
+    },
+    "init": {
+      "previewTitle": "Wiki init preview",
+      "willCreate": "Will create {{count}} files",
+      "alreadyExists": "{{count}} files already exist (will skip)",
+      "confirm": "Confirm init",
+      "success": "Wiki initialized, {{count}} files created",
+      "blocked": "Safety audit blocked"
+    }
+  },
   "app": {
     "title": "OpenSunstar",
     "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI"

@@ -133,6 +133,7 @@ fn sync_check_name(asset_type: &str) -> Option<&'static str> {
         "skill" => Some("skills_configured"),
         "subagent" => Some("subagents_configured"),
         "ignore" => Some("ignore_rules"),
+        "wiki" => Some("wiki_files"),
         _ => None,
     }
 }
@@ -184,6 +185,7 @@ fn snapshot_managed_files(root: &Path) -> HashMap<String, ManagedFileSnapshot> {
         ".hermes",
         ".agents",
         ".opensunstar",
+        "wiki",
     ] {
         let path = root.join(directory);
         if path.is_dir() {

@@ -256,8 +256,7 @@ fn execute_text_write_plan_with_receipt(
         }
 
         let snapshot_path = if let Some(existing) = before.as_deref() {
-            let snapshot_path =
-                snapshot_root.join(target_rel.replace(['/', '\\'], "__"));
+            let snapshot_path = snapshot_root.join(target_rel.replace(['/', '\\'], "__"));
             if !dry_run {
                 write_text_file(&snapshot_path, existing)?;
             }

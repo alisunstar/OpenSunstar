@@ -141,8 +141,10 @@ pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppErr
     let has_specs = root.join(".specs").is_dir();
     let has_design = root.join("DESIGN.md").is_file();
     let has_design_manifest = dot.join("design-system.json").is_file();
+    let has_wiki = root.join("wiki/index.md").is_file();
+    let has_wiki_profile = dot.join("wiki/profile.json").is_file();
 
-    if !has_profile && !has_flow_config && !has_recipe_dir && !has_specs && !has_design {
+    if !has_profile && !has_flow_config && !has_recipe_dir && !has_specs && !has_design && !has_wiki {
         return Ok(());
     }
 
@@ -191,6 +193,18 @@ pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppErr
         ".opensunstar/recipe/",
         "Saved change execution recipes and templates.",
     );
+    push_context_line(
+        &mut lines,
+        has_wiki,
+        "wiki/",
+        "Project Wiki / knowledge baseline. Read before modifying code mapped by wiki source_files. Run `os wiki lint` to validate.",
+    );
+    push_context_line(
+        &mut lines,
+        has_wiki_profile,
+        ".opensunstar/wiki/profile.json",
+        "Wiki profile: mode, quality_target (L1/L2/L3), gate_enabled, changed_files_threshold.",
+    );
 
     lines.extend([
         String::new(),
@@ -201,6 +215,8 @@ pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppErr
         "- If a required upstream artifact is missing, stop and ask to run `os flow validate --strict --json`.".to_string(),
         "- For frontend/UI changes, follow `DESIGN.md` and `.specs/<change-id>/design-context.md` when present.".to_string(),
         "- Do not delete or rewrite OpenSunstar managed artifacts unless the user explicitly asks.".to_string(),
+        "- If `wiki/` exists, treat it as the knowledge baseline: read affected pages before changing source files listed in their `source_files` frontmatter.".to_string(),
+        "- If `wiki/` exists and `os wiki changed` reports cold_start, fill wiki pages with `source_files` before expecting change-to-page mapping.".to_string(),
     ]);
 
     let context_path = root.join(ORCHESTRATION_CONTEXT_REL);
@@ -319,6 +335,12 @@ pub fn sync_project_mcp_json_with_report(
     for link in links.into_iter().filter(|l| l.enabled) {
         if let Some(server) = all_servers.get(&link.config_id) {
             if server.apps.claude {
+                if crate::mcp_secret::has_secret_refs(&server.server) {
+                    return Err(AppError::Message(format!(
+                        "项目 MCP '{}' 包含本机 Keychain 凭证，拒绝写入 .mcp.json；请改用凭证槽并在本机注入",
+                        server.name
+                    )));
+                }
                 enabled.insert(
                     link.config_id.clone(),
                     crate::mcp_secret::resolve_spec_for_use(&server.server)?,
@@ -1350,6 +1372,42 @@ mod tests {
         let text = fs::read_to_string(dir.path().join(".mcp.json")).unwrap();
         assert!(text.contains("mcpServers"));
         assert!(text.contains("ctx7"));
+    }
+
+    #[test]
+    fn rejects_project_mcp_sync_when_definition_has_local_secret_refs() {
+        let dir = tempdir().unwrap();
+        let state = test_state();
+        let pid = seed_project(&state.db, dir.path());
+
+        state
+            .db
+            .save_mcp_server(&McpServer {
+                id: "private-mcp".into(),
+                name: "Private MCP".into(),
+                server: json!({
+                    "command": "npx",
+                    "args": ["-y", "private-mcp"],
+                    "env": { "PRIVATE_MCP_TOKEN": "test-secret-that-must-not-reach-git" }
+                }),
+                apps: McpApps {
+                    claude: true,
+                    ..Default::default()
+                },
+                description: None,
+                homepage: None,
+                docs: None,
+                tags: vec![],
+            })
+            .unwrap();
+        state
+            .db
+            .link_project_mcp_server(&pid, "private-mcp", true)
+            .unwrap();
+
+        let err = sync_project_mcp_json_with_report(&state, dir.path()).unwrap_err();
+        assert!(err.to_string().contains("Keychain"));
+        assert!(!dir.path().join(".mcp.json").exists());
     }
 
     #[test]

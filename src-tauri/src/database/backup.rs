@@ -1,4 +1,4 @@
-﻿//! 数据库备份和恢复
+//! 数据库备份和恢复
 //!
 //! 提供 SQL 导出/导入和二进制快照备份功能。
 
@@ -25,6 +25,21 @@ const SYNC_SKIP_TABLES: &[&str] = &[
     "mcp_servers",
 ];
 
+/// Product-account and team-control-plane projections are device-local or
+/// server-authoritative. They must never travel in personal database sync.
+/// Keep future local cache tables in this single classification list.
+const SYNC_SENSITIVE_TABLES: &[&str] = &[
+    "product_accounts",
+    "product_sessions",
+    "product_refresh_tokens",
+    "product_devices",
+    "team_organizations",
+    "team_memberships",
+    "team_invites",
+    "team_entitlements",
+    "team_audit_events",
+];
+
 /// Tables whose local data is preserved (restored from local snapshot) during WebDAV import.
 /// Excludes ephemeral tables like provider_health that can safely rebuild at runtime.
 const SYNC_PRESERVE_TABLES: &[&str] = &[
@@ -38,6 +53,22 @@ const SYNC_PRESERVE_TABLES: &[&str] = &[
 /// Tables physically stored in usage.db but represented in a full backup as
 /// normal core tables.  Sync exports still skip their rows via SYNC_SKIP_TABLES.
 const USAGE_SIDECAR_TABLES: &[&str] = &["proxy_request_logs", "usage_daily_rollups"];
+
+fn sync_skip_tables() -> Vec<&'static str> {
+    SYNC_SKIP_TABLES
+        .iter()
+        .chain(SYNC_SENSITIVE_TABLES)
+        .copied()
+        .collect()
+}
+
+fn sync_preserve_tables() -> Vec<&'static str> {
+    SYNC_PRESERVE_TABLES
+        .iter()
+        .chain(SYNC_SENSITIVE_TABLES)
+        .copied()
+        .collect()
+}
 
 /// A database backup entry for the UI
 #[derive(Debug, serde::Serialize)]
@@ -58,7 +89,8 @@ impl Database {
     /// Export SQL for sync (WebDAV), skipping local-only tables' data
     pub fn export_sql_string_for_sync(&self) -> Result<String, AppError> {
         let snapshot = self.snapshot_to_memory()?;
-        Self::dump_sql(&snapshot, SYNC_SKIP_TABLES)
+        let skip_tables = sync_skip_tables();
+        Self::dump_sql(&snapshot, &skip_tables)
     }
 
     /// 导出为 SQLite 兼容的 SQL 文本
@@ -94,7 +126,8 @@ impl Database {
     /// Import SQL generated for sync, then restore local-only tables from the
     /// current device snapshot before replacing the main database.
     pub(crate) fn import_sql_string_for_sync(&self, sql_raw: &str) -> Result<String, AppError> {
-        self.import_sql_string_inner(sql_raw, SYNC_PRESERVE_TABLES)
+        let preserve_tables = sync_preserve_tables();
+        self.import_sql_string_inner(sql_raw, &preserve_tables)
     }
 
     fn import_sql_string_inner(
@@ -191,9 +224,8 @@ impl Database {
         let tx = usage
             .unchecked_transaction()
             .map_err(|e| AppError::Database(format!("启动 usage.db 刷新事务失败: {e}")))?;
-        tx
-            .execute_batch(
-                "DELETE FROM proxy_request_logs;
+        tx.execute_batch(
+            "DELETE FROM proxy_request_logs;
                  DELETE FROM usage_daily_rollups;
                  INSERT INTO proxy_request_logs (
                     request_id, provider_id, app_type, model, request_model, pricing_model,
@@ -219,8 +251,8 @@ impl Database {
                     request_count, success_count, input_tokens, output_tokens,
                     cache_read_tokens, cache_creation_tokens, total_cost_usd, avg_latency_ms
                  FROM core.usage_daily_rollups;",
-            )
-            .map_err(|e| AppError::Database(format!("导入后刷新 usage.db 失败: {e}")))?;
+        )
+        .map_err(|e| AppError::Database(format!("导入后刷新 usage.db 失败: {e}")))?;
         tx.commit()
             .map_err(|e| AppError::Database(format!("提交 usage.db 刷新事务失败: {e}")))?;
         Ok(())
@@ -848,6 +880,67 @@ mod tests {
             "local stream check logs should be preserved"
         );
 
+        Ok(())
+    }
+
+    #[test]
+    fn sync_snapshot_excludes_and_preserves_product_account_and_team_sensitive_rows(
+    ) -> Result<(), AppError> {
+        const CREATE_SENSITIVE_TABLES: &str = "
+            CREATE TABLE product_sessions (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+            CREATE TABLE team_invites (id TEXT PRIMARY KEY, payload TEXT NOT NULL);
+        ";
+
+        let remote_db = Database::memory()?;
+        {
+            let conn = crate::database::lock_conn!(remote_db.conn);
+            conn.execute_batch(CREATE_SENSITIVE_TABLES)?;
+            conn.execute(
+                "INSERT INTO providers (id, app_type, name, settings_config, meta)
+                 VALUES ('remote-provider', 'claude', 'Remote Provider', '{}', '{}')",
+                [],
+            )?;
+            conn.execute(
+                "INSERT INTO product_sessions VALUES ('remote-session', 'remote-refresh-secret')",
+                [],
+            )?;
+            conn.execute(
+                "INSERT INTO team_invites VALUES ('remote-invite', 'remote-invite-secret')",
+                [],
+            )?;
+        }
+        let remote_sql = remote_db.export_sql_string_for_sync()?;
+        assert!(!remote_sql.contains("remote-refresh-secret"));
+        assert!(!remote_sql.contains("remote-invite-secret"));
+
+        let local_db = Database::memory()?;
+        {
+            let conn = crate::database::lock_conn!(local_db.conn);
+            conn.execute_batch(CREATE_SENSITIVE_TABLES)?;
+            conn.execute(
+                "INSERT INTO product_sessions VALUES ('local-session', 'local-refresh-secret')",
+                [],
+            )?;
+            conn.execute(
+                "INSERT INTO team_invites VALUES ('local-invite', 'local-invite-secret')",
+                [],
+            )?;
+        }
+
+        local_db.import_sql_string_for_sync(&remote_sql)?;
+        let conn = crate::database::lock_conn!(local_db.conn);
+        let local_session_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM product_sessions WHERE id = 'local-session' AND payload = 'local-refresh-secret'",
+            [],
+            |row| row.get(0),
+        )?;
+        let local_invite_count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM team_invites WHERE id = 'local-invite' AND payload = 'local-invite-secret'",
+            [],
+            |row| row.get(0),
+        )?;
+        assert_eq!(local_session_count, 1);
+        assert_eq!(local_invite_count, 1);
         Ok(())
     }
 

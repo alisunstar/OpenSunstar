@@ -1,0 +1,20 @@
+# 此目录存放架构决策记录（decision 类型页面）
+#
+# 使用方法：
+# 创建 decision 页面时，使用 frontmatter:
+#   ---
+#   title: 决策标题
+#   type: decision
+#   status: active
+#   source_files:
+#     - 相关源码路径
+#   ---
+#
+# 正文结构：
+#   ## Context       — 架构背景
+#   ## Decision      — 决策内容
+#   ## Impact        — 影响范围
+#   ## Alternatives  — 备选方案
+#   ## Re-evaluation Triggers — 重新评估触发条件
+#
+# 历史决策使用 status: retired，并在正文说明源码为什么消失或决策为什么过时。

@@ -30,6 +30,7 @@ pub mod permission_sync;
 pub mod project_artifacts;
 pub mod project_config_sync;
 pub mod project_environment;
+pub mod project_wiki;
 pub mod prompt;
 pub mod provider;
 pub mod provider_terminal;

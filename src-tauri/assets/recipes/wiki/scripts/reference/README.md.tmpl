@@ -1,0 +1,29 @@
+# Python 参考实现说明
+
+> **重要**：OpenSunstar 的 `run_project_wiki_lint_cmd` 和 `map_project_wiki_changed_files_cmd` 使用 **Rust 原生实现**，不依赖 Python 运行时。
+
+本目录保留 `maintain-repo-wiki` 上游的 Python 脚本，仅供高级用户：
+
+- 对比验证 Rust 原生 lint 的结果
+- 手动调用上游完整 quality 检查（Rust 实现可能未覆盖全部 edge case）
+- 参考 `changed_files.py` 的映射算法实现
+
+## 运行前提
+
+如需手动运行 Python 脚本，需自行确保：
+
+- Python 3.10+（避免 3.11+ 的 pyenv shim 问题）
+- 脚本依赖的 `repo_wiki_common` 模块在同一目录
+
+## 脚本清单
+
+| 脚本 | 用途 | OpenSunstar 对应命令 |
+|---|---|---|
+| `wiki_lint.py` | wiki 结构和质量检查 | `os wiki lint --quality` |
+| `changed_files.py` | 源码变更 → wiki 页面映射 | `os wiki changed` |
+
+## 注意事项
+
+- OpenSunstar 不会自动调用这些 Python 脚本
+- Windows 环境下 Python 运行时存在不可控问题（PATH 污染、pyenv shim、版本冲突），优先使用 Rust 原生命令
+- 如发现 Rust 原生 lint 与 Python 参考实现结果不一致，请向 OpenSunstar 提交 issue

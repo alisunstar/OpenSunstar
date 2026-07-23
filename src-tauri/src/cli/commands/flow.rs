@@ -293,6 +293,31 @@ fn run_validate(
                 "FlowConfig not exported (.opensunstar/flow-config.yaml missing)".to_string(),
             );
         }
+
+        // Wiki baseline governance (optional asset, warn-only if present but unhealthy)
+        let wiki_scan = open_sunstar_lib::project_wiki::scan_project_wiki(project_path, "cli");
+        if let Ok(scan) = &wiki_scan {
+            if scan.exists {
+                match scan.base_status.as_str() {
+                    "invalid" => {
+                        governance_warnings.push(
+                            "Wiki baseline is invalid (run `os wiki lint` for details)".to_string(),
+                        );
+                    }
+                    "drifted" => {
+                        governance_warnings.push(
+                            "Wiki baseline has drifted from source code (run `os wiki changed` for mapping)".to_string(),
+                        );
+                    }
+                    _ => {}
+                }
+                if scan.quality_level == "N/A" || scan.quality_level.is_empty() {
+                    governance_warnings.push(
+                        "Wiki quality level not assessed (run `os wiki lint` to evaluate)".to_string(),
+                    );
+                }
+            }
+        }
     }
 
     if json {

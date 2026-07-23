@@ -12,4 +12,6 @@ pub mod readiness;
 pub mod recipe;
 pub mod skill;
 pub mod sync;
+pub mod team_key;
 pub mod version;
+pub mod wiki;

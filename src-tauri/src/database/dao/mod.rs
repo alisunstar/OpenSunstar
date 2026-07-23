@@ -23,6 +23,7 @@ pub mod sdd;
 pub mod settings;
 pub mod skills;
 pub mod stream_check;
+pub mod team_key;
 pub mod team_requirements;
 pub mod universal_providers;
 pub mod usage_rollup;

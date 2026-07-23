@@ -1526,11 +1526,8 @@ fn extract_typography_from_md(body: &str) -> Option<DesignTypography> {
                     let rest = rest.trim();
                     if let Some((size_part, lh_part)) = rest.split_once('/') {
                         let size = size_part.trim().to_string();
-                        let line_height = lh_part
-                            .split_whitespace()
-                            .next()
-                            .unwrap_or("")
-                            .to_string();
+                        let line_height =
+                            lh_part.split_whitespace().next().unwrap_or("").to_string();
                         if !size.is_empty() && !line_height.is_empty() {
                             size_scale.push(FontSize {
                                 name: name.trim().to_string(),
@@ -1560,20 +1557,23 @@ fn extract_typography_from_md(body: &str) -> Option<DesignTypography> {
                 }
                 match token.as_str() {
                     "font-family-base" | "fontfamilybase" | "base-font" | "font-base"
-                        if font_family_base.is_none() => {
-                            font_family_base = Some(value.to_string());
-                        }
+                        if font_family_base.is_none() =>
+                    {
+                        font_family_base = Some(value.to_string());
+                    }
                     "font-family-heading"
                     | "fontfamilyheading"
                     | "heading-font"
                     | "font-heading"
-                        if font_family_heading.is_none() => {
-                            font_family_heading = Some(value.to_string());
-                        }
+                        if font_family_heading.is_none() =>
+                    {
+                        font_family_heading = Some(value.to_string());
+                    }
                     "font-family-mono" | "fontfamilymono" | "mono-font" | "font-mono"
-                        if font_family_mono.is_none() => {
-                            font_family_mono = Some(value.to_string());
-                        }
+                        if font_family_mono.is_none() =>
+                    {
+                        font_family_mono = Some(value.to_string());
+                    }
                     _ => {}
                 }
             }

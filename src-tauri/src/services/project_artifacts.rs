@@ -372,6 +372,22 @@ pub struct BaselineSnapshot {
     pub blueprint_id: Option<String>,
     pub readiness: BaselineReadinessSummary,
     pub assets: BaselineSnapshotAssets,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub wiki: Option<BaselineWikiSummary>,
+}
+
+/// Wiki 基线摘要（写入 baseline-snapshot.json）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BaselineWikiSummary {
+    pub base_status: String,
+    pub quality_level: String,
+    pub page_count: u32,
+    pub source_ref_count: u32,
+    pub question_count: u32,
+    pub latest_mtime: Option<i64>,
+    pub content_sha256: Option<String>,
+    pub last_lint_passed: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -478,6 +494,23 @@ pub fn export_baseline_snapshot(
         }
     };
 
+    let wiki_summary = match crate::services::project_wiki::scan_project_wiki(
+        &project.path,
+        &project.id,
+    ) {
+        Ok(scan) => Some(BaselineWikiSummary {
+            base_status: scan.base_status,
+            quality_level: scan.quality_level,
+            page_count: scan.page_count,
+            source_ref_count: scan.source_ref_count,
+            question_count: scan.question_count,
+            latest_mtime: scan.latest_mtime,
+            content_sha256: scan.content_sha256,
+            last_lint_passed: scan.last_lint_passed,
+        }),
+        Err(_) => None,
+    };
+
     let snapshot = BaselineSnapshot {
         version: BASELINE_SNAPSHOT_VERSION,
         exported_at,
@@ -487,6 +520,7 @@ pub fn export_baseline_snapshot(
         blueprint_id: project.blueprint_id.clone(),
         readiness: readiness_summary,
         assets: collect_baseline_assets(db, project_id)?,
+        wiki: wiki_summary,
     };
 
     let out_path = root.join(OPENSUNSTAR_DIR).join(BASELINE_SNAPSHOT_FILENAME);

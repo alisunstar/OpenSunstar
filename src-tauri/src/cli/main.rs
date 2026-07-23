@@ -84,6 +84,12 @@ pub enum Commands {
 
     /// 配置导入/导出
     Config(commands::config::ConfigArgs),
+
+    /// 团队密钥管理 (D16)
+    TeamKey(commands::team_key::TeamKeyArgs),
+
+    /// 项目 Wiki / 知识基线管理
+    Wiki(commands::wiki::WikiArgs),
 }
 
 /// CLI 错误：携带可选 hint（Agent-Native 契约）
@@ -214,6 +220,17 @@ fn run_command(command: Commands, json: bool) -> Result<(), String> {
             } else {
                 commands::config::run(args, None, json)
             }
+        }
+
+        // team key: 所有子命令都需要 DB（本地表 + keychain）
+        Commands::TeamKey(args) => {
+            let state = init_state_or_exit(json);
+            commands::team_key::run(args, &state, json)
+        }
+
+        // wiki: 本地离线命令，不需要 DB
+        Commands::Wiki(args) => {
+            commands::wiki::run(args, json)
         }
     };
 

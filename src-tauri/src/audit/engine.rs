@@ -70,7 +70,6 @@ pub enum BlockThreshold {
     Never,
 }
 
-
 impl BlockThreshold {
     pub fn should_block(&self, severity: Severity) -> bool {
         match self {
@@ -123,6 +122,9 @@ pub enum AuditSource {
     RecipeInstall {
         recipe_name: String,
         change_id: String,
+    },
+    TeamRelease {
+        release_id: String,
     },
 }
 

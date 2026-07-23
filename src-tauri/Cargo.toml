@@ -86,7 +86,7 @@ rust_decimal = "1.33"
 uuid = { version = "1.11", features = ["v4"] }
 sha2 = "0.10"
 hmac = "0.12"
-keyring = "3"
+keyring = { version = "3", features = ["windows-native", "apple-native", "linux-native"] }
 aes-gcm = "0.10"
 hkdf = "0.12"
 rand = "0.8"

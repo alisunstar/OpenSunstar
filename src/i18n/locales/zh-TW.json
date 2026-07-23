@@ -1,4 +1,63 @@
 {
+  "projectWiki": {
+    "title": "專案 Wiki / 知識基線",
+    "subtitle": "可被人類與 Agent 共同消費的工程知識基線",
+    "loading": "正在掃描 Wiki…",
+    "notInitialized": "未偵測到 wiki/index.md",
+    "pageCount": "{{count}} 個頁面",
+    "sourceRefs": "{{count}} 個原始碼參照",
+    "questions": "{{count}} 個待查",
+    "lastUpdated": "最近更新",
+    "status": {
+      "missing": "未初始化",
+      "scaffolded": "已初始化",
+      "effective": "新鮮",
+      "drifted": "已變更",
+      "invalid": "Lint 失敗"
+    },
+    "quality": {
+      "NA": "N/A",
+      "L1": "L1 · 快速入門",
+      "L2": "L2 · 介面對接",
+      "L3": "L3 · 運維排障"
+    },
+    "coverage": {
+      "corePages": "核心頁面",
+      "componentPages": "元件",
+      "flowPages": "流程",
+      "apiPages": "介面",
+      "runbookPages": "運維手冊"
+    },
+    "actions": {
+      "init": "初始化 Wiki",
+      "lint": "執行 Lint 校驗",
+      "refresh": "重新整理",
+      "openInEditor": "在編輯器中開啟",
+      "previewInit": "預覽初始化"
+    },
+    "changedFiles": {
+      "coldStart": "Wiki 剛初始化，變更對映尚未生效",
+      "coldStartProgress": "目前有效 source_files 頁面：{{current}}/{{threshold}}",
+      "coldStartGuidance": "請在 Claude Code 中使用 maintain-repo-wiki Skill 填充 wiki 內容",
+      "affectedPages": "{{count}} 個原始碼變更，影響 {{pages}} 個 wiki 頁面",
+      "unmapped": "{{count}} 個未對映變更",
+      "noChanges": "無原始碼變更，wiki 頁面均為最新"
+    },
+    "lint": {
+      "passed": "Lint 通過",
+      "failed": "Lint 失敗：{{errors}} 個錯誤",
+      "warnings": "{{count}} 個警告",
+      "qualityLevel": "品質等級：{{level}}"
+    },
+    "init": {
+      "previewTitle": "Wiki 初始化預檢",
+      "willCreate": "將建立 {{count}} 個檔案",
+      "alreadyExists": "{{count}} 個檔案已存在（將跳過）",
+      "confirm": "確認初始化",
+      "success": "Wiki 初始化完成，已建立 {{count}} 個檔案",
+      "blocked": "安全稽核阻斷"
+    }
+  },
   "app": {
     "title": "OpenSunstar",
     "description": "Claude Code / Codex / Gemini CLI 全方位輔助工具"

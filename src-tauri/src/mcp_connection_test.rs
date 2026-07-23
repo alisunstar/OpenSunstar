@@ -255,14 +255,12 @@ pub async fn test_sse_connection(
             // 网络错误，仍然尝试 POST
             return test_http_connection(url, headers).await;
         }
-        Err(_) => {
-            Ok(McpConnectionTestResult {
-                status: McpConnectionStatus::Timeout,
-                message: status_msg(&McpConnectionStatus::Timeout),
-                server_info: None,
-                error_detail: Some("SSE 检测超时".into()),
-            })
-        }
+        Err(_) => Ok(McpConnectionTestResult {
+            status: McpConnectionStatus::Timeout,
+            message: status_msg(&McpConnectionStatus::Timeout),
+            server_info: None,
+            error_detail: Some("SSE 检测超时".into()),
+        }),
     }
 }
 

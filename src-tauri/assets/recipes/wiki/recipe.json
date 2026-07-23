@@ -1,0 +1,135 @@
+{
+  "name": "project-wiki-baseline",
+  "version": "1.0.0",
+  "description": "Project Wiki Baseline 脚手架：初始化 wiki/ 目录结构、SCHEMA、核心页面模板和 Python 参考脚本",
+  "mode": "repo",
+  "templates": [
+    {
+      "source": "index.md.tmpl",
+      "target": "wiki/index.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "log.md.tmpl",
+      "target": "wiki/log.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "SCHEMA.md.tmpl",
+      "target": "wiki/SCHEMA.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "overview.md.tmpl",
+      "target": "wiki/overview.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "source-map.md.tmpl",
+      "target": "wiki/source-map.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "components/config-and-cache.md.tmpl",
+      "target": "wiki/components/config-and-cache.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "components/external-dependencies.md.tmpl",
+      "target": "wiki/components/external-dependencies.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "flows/auth-and-identity.md.tmpl",
+      "target": "wiki/flows/auth-and-identity.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "flows/business-flows.md.tmpl",
+      "target": "wiki/flows/business-flows.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "flows/field-propagation.md.tmpl",
+      "target": "wiki/flows/field-propagation.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "apis/http-endpoints.md.tmpl",
+      "target": "wiki/apis/http-endpoints.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "runbooks/request-troubleshooting.md.tmpl",
+      "target": "wiki/runbooks/request-troubleshooting.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "questions/idl-source-location.md.tmpl",
+      "target": "wiki/questions/idl-source-location.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "questions/operations-metadata.md.tmpl",
+      "target": "wiki/questions/operations-metadata.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "queries/.gitkeep",
+      "target": "wiki/queries/.gitkeep",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "decisions/.gitkeep",
+      "target": "wiki/decisions/.gitkeep",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "scripts/reference/README.md.tmpl",
+      "target": "wiki/scripts/reference/README.md",
+      "required": false,
+      "overwrite": false
+    },
+    {
+      "source": "profile.json.tmpl",
+      "target": ".opensunstar/wiki/profile.json",
+      "required": true,
+      "overwrite": false
+    }
+  ],
+  "variables": [
+    {
+      "name": "project_name",
+      "description": "项目名称",
+      "required": true
+    },
+    {
+      "name": "date",
+      "description": "当前日期（YYYY-MM-DD）",
+      "required": true,
+      "default": "auto"
+    },
+    {
+      "name": "timestamp",
+      "description": "当前 Unix 时间戳",
+      "required": true,
+      "default": "auto"
+    }
+  ]
+}

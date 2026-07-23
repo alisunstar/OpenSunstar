@@ -134,10 +134,7 @@ fn run_list(
         }
 
         println!("Providers for {app} ({} total):\n", providers.len());
-        println!(
-            "  {:<6} {:<24} {:<12} ID",
-            "ACTIVE", "NAME", "CATEGORY"
-        );
+        println!("  {:<6} {:<24} {:<12} ID", "ACTIVE", "NAME", "CATEGORY");
         println!("  {}", "-".repeat(60));
         for p in providers.values() {
             let is_current = current_id.as_deref() == Some(&p.id);

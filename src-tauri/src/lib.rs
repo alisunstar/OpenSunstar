@@ -48,6 +48,7 @@ mod session_manager;
 mod settings;
 mod store;
 pub mod team_config;
+pub mod team_key;
 mod tool_permission;
 
 mod ai;
@@ -81,6 +82,7 @@ pub use services::{
     ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
     SkillService, SpeedtestService,
 };
+pub use services::project_wiki;
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
 

@@ -516,14 +516,16 @@ async fn compensate_failed_apply(
                 .await
                 .map_err(AppError::Message)?;
         }
-        if proxy_start_may_have_completed && !operation.proxy_was_running
-            && state.proxy_service.is_running().await {
-                state
-                    .proxy_service
-                    .stop()
-                    .await
-                    .map_err(AppError::Message)?;
-            }
+        if proxy_start_may_have_completed
+            && !operation.proxy_was_running
+            && state.proxy_service.is_running().await
+        {
+            state
+                .proxy_service
+                .stop()
+                .await
+                .map_err(AppError::Message)?;
+        }
         if provider_switch_may_have_completed {
             if let Some(previous_provider_id) = operation.previous_provider_id.as_deref() {
                 ProviderService::switch(state, app_type.clone(), previous_provider_id)?;

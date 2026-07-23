@@ -14,6 +14,7 @@ const productAuthApiMock = vi.hoisted(() => ({
   getOverview: vi.fn(),
   listMembers: vi.fn(),
   listInvites: vi.fn(),
+  listTeamKeys: vi.fn(),
   inviteMember: vi.fn(),
   removeMember: vi.fn(),
 }));
@@ -33,6 +34,7 @@ describe("TeamCollaborationPage", () => {
     productAuthApiMock.getOverview.mockReset();
     productAuthApiMock.listMembers.mockReset();
     productAuthApiMock.listInvites.mockReset();
+    productAuthApiMock.listTeamKeys.mockReset();
     productAuthApiMock.inviteMember.mockReset();
     productAuthApiMock.removeMember.mockReset();
     productAuthApiMock.getOverview.mockResolvedValue({
@@ -48,6 +50,7 @@ describe("TeamCollaborationPage", () => {
     });
     productAuthApiMock.listMembers.mockResolvedValue({ members: [] });
     productAuthApiMock.listInvites.mockResolvedValue({ invites: [] });
+    productAuthApiMock.listTeamKeys.mockResolvedValue([]);
   });
 
   it("shows an honest connection state when no product session exists", async () => {

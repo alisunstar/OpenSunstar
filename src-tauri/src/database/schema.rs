@@ -419,6 +419,9 @@ impl Database {
             [],
         );
 
+        // 32. Team Key Local 表（D16 团队 Key 下发 — 仅存引用，绝不存值）
+        Self::create_team_key_local_table(conn)?;
+
         Ok(())
     }
 
@@ -654,6 +657,13 @@ impl Database {
                         );
                         Self::migrate_v38_to_v39(conn)?;
                         Self::set_user_version(conn, 39)?;
+                    }
+                    39 => {
+                        log::info!(
+                            "Migrating database from v39 to v40 (team_key_local — D16 team key distribution)"
+                        );
+                        Self::migrate_v39_to_v40(conn)?;
+                        Self::set_user_version(conn, 40)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -2438,6 +2448,34 @@ impl Database {
         // 幂等确保用量查询相关索引存在（旧库可能缺）。
         Self::create_request_logs_usage_indexes_if_supported(conn)?;
         Ok(())
+    }
+
+    /// D16 团队 Key 本地引用表（仅存 keychain://ref/ 引用和元数据，绝不存 Key 明文）
+    fn create_team_key_local_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS team_key_local (
+                slot_slug       TEXT PRIMARY KEY,
+                org_id          TEXT NOT NULL,
+                provider_kind   TEXT NOT NULL,
+                endpoint_url    TEXT,
+                keychain_ref    TEXT NOT NULL,
+                version_seq     INTEGER NOT NULL,
+                value_sha256    TEXT NOT NULL,
+                grant_id        TEXT NOT NULL,
+                grant_expires   INTEGER NOT NULL,
+                last_renewed    INTEGER NOT NULL,
+                status          TEXT NOT NULL DEFAULT 'active'
+            );
+            CREATE INDEX IF NOT EXISTS idx_team_key_local_org
+                ON team_key_local(org_id);
+            CREATE INDEX IF NOT EXISTS idx_team_key_local_status
+                ON team_key_local(status);",
+        )
+        .map_err(|e| AppError::Database(format!("创建 team_key_local 表失败: {e}")))
+    }
+
+    fn migrate_v39_to_v40(conn: &Connection) -> Result<(), AppError> {
+        Self::create_team_key_local_table(conn)
     }
 
     fn create_model_pricing_provenance_table(conn: &Connection) -> Result<(), AppError> {

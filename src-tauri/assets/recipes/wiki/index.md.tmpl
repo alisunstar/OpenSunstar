@@ -1,0 +1,33 @@
+---
+title: 项目知识基线
+type: overview
+status: draft
+last_verified: {{date}}
+---
+
+# {{project_name}} Wiki
+
+> 本文件由 OpenSunstar Project Wiki Baseline 初始化。请在 Claude Code / Codex 中使用 maintain-repo-wiki Skill 填充内容。
+
+## 知识地图
+
+- [概览](overview.md)
+- [源码地图](source-map.md)
+- [组件](components/)
+- [流程](flows/)
+- [接口](apis/)
+- [运维手册](runbooks/)
+- [待查问题](questions/)
+- [长期问答](queries/)
+- [架构决策](decisions/)
+
+## 变更日志
+
+见 [log.md](log.md)。
+
+## 使用说明
+
+- 每个页面的 frontmatter 必须包含 `title` / `type` / `status`
+- 结论性页面必须通过 `source_files` 引用真实源码文件
+- 未确认的信息写入 `questions/`，不要伪装成结论
+- 修改页面后，在 OpenSunstar 中运行 Lint 校验

@@ -260,6 +260,18 @@ fn run_status(
             output::info(&format!("    Artifact Completeness: {label}"));
         }
 
+        // Wiki baseline
+        output::info(&format!(
+            "  {} Wiki Baseline (wiki/)",
+            status_icon(ctx.has_wiki)
+        ));
+        if ctx.has_wiki {
+            output::info(&format!(
+                "    Status: {}  Quality: {}  Pages: {}",
+                ctx.wiki_status, ctx.wiki_quality_level, ctx.wiki_page_count
+            ));
+        }
+
         eprintln!();
 
         // ── Asset counts ──

@@ -1,0 +1,62 @@
+---
+title: Wiki 页面 Schema
+type: overview
+status: active
+last_verified: {{date}}
+---
+
+# Project Wiki 页面 Schema
+
+> 本文件是 wiki 格式的自描述参考，供 Agent 首次读取时理解页面结构。完整规范见 OpenSunstar `docs/design/project-wiki/00-schema-spec.md`。
+
+## 通用 Frontmatter
+
+```yaml
+---
+title: 人类可读标题
+type: overview | component | flow | api | runbook | query | question | decision
+status: active | draft | retired
+source_files:
+  - path/from/repo/root.ext
+last_verified_commit: commit-sha-or-unknown
+last_verified: YYYY-MM-DD
+tags:
+  - short-tag
+---
+```
+
+## 字段说明
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `title` | 是 | 人类可读标题 |
+| `type` | 是 | 页面类型 |
+| `status` | 是 | `active`=已验证；`draft`=有未决事实；`retired`=历史归档 |
+| `source_files` | 条件必填 | 页面结论核验过的源码文件路径（仓库根相对路径） |
+| `last_verified_commit` | 否 | 最后核验时的 git commit SHA |
+| `last_verified` | 否 | 最后核验日期 |
+| `tags` | 否 | 短标签 |
+
+## type 枚举
+
+- `overview`：仓库职责、技术栈、目录地图
+- `component`：模块、服务、配置对象、外部依赖
+- `flow`：业务流程、字段传播、认证、数据流
+- `api`：endpoint/interface 级别接口说明
+- `runbook`：排障手册
+- `query`：长期保留的问题答案
+- `question`：无法确认的信息和下一步检查
+- `decision`：架构决策记录
+
+## source_files 规则
+
+- 路径必须是仓库根目录相对路径，使用正斜杠 `/`
+- 支持 glob 通配符：`src/api/**/*.rs`
+- 不允许绝对路径、不允许 `../` 跨仓库引用
+- 页面只记录外部运行时信息时可不填，但必须链接到 contract 或 question
+
+## 质量等级
+
+- **L1**：index + overview + source-map 就绪，基础 lint 通过
+- **L2**：L1 + apis/components/flows 各至少 1 个页面通过 quality lint
+- **L3**：L2 + runbooks 就绪 + log.md + 可观测性内容

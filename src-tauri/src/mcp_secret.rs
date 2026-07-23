@@ -45,6 +45,16 @@ pub fn resolve_spec_for_use(spec: &Value) -> Result<Value, AppError> {
     Ok(resolved)
 }
 
+/// Whether an MCP definition depends on a local Keychain secret.
+///
+/// Such a definition is safe in the local database, but it must never be
+/// resolved and written into a project-managed file because that file can be
+/// committed to Git. Project delivery needs a credential slot with a local
+/// injection step instead.
+pub fn has_secret_refs(spec: &Value) -> bool {
+    !collect_secret_ref_keys(spec).is_empty()
+}
+
 pub fn hydrate_masked_spec(incoming: &Value, existing: Option<&Value>) -> Result<Value, AppError> {
     hydrate_value(incoming, existing, "$")
 }

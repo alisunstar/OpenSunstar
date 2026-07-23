@@ -828,7 +828,7 @@ pub fn cli_project_save_scan(
 }
 
 /// 项目统一上下文：桥接 DB (project_id) 与文件系统 (project_path)，
-/// 聚合编排状态（flow profile / recipe / design contract / specs）+ 资产计数。
+/// 聚合编排状态（flow profile / recipe / design contract / specs / wiki）+ 资产计数。
 #[derive(serde::Serialize, Debug)]
 pub struct ProjectContext {
     pub managed: bool,
@@ -844,6 +844,10 @@ pub struct ProjectContext {
     pub specs_exists: bool,
     pub active_change_id: Option<String>,
     pub total_artifact_completeness: Option<u8>,
+    pub has_wiki: bool,
+    pub wiki_status: String,
+    pub wiki_quality_level: String,
+    pub wiki_page_count: u32,
 }
 
 /// CLI: `os project status` — 聚合项目全景上下文
@@ -926,6 +930,13 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
         None
     };
 
+    // 6. Wiki baseline (best-effort, non-blocking)
+    let wiki_scan = crate::services::project_wiki::scan_project_wiki(&project_path, "cli").ok();
+    let has_wiki = wiki_scan.as_ref().is_some_and(|s| s.exists);
+    let wiki_status = wiki_scan.as_ref().map(|s| s.base_status.clone()).unwrap_or_else(|| "missing".to_string());
+    let wiki_quality_level = wiki_scan.as_ref().map(|s| s.quality_level.clone()).unwrap_or_else(|| "N/A".to_string());
+    let wiki_page_count = wiki_scan.as_ref().map(|s| s.page_count).unwrap_or(0);
+
     Ok(ProjectContext {
         managed,
         assessment_state: if managed { "managed" } else { "unmanaged" }.to_string(),
@@ -940,6 +951,10 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
         specs_exists,
         active_change_id,
         total_artifact_completeness,
+        has_wiki,
+        wiki_status,
+        wiki_quality_level,
+        wiki_page_count,
     })
 }
 

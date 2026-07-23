@@ -346,6 +346,11 @@ pub(super) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         commands::product_team_list_invites,
         commands::product_team_invite_member,
         commands::product_team_remove_member,
+        // D16 Team Key commands
+        commands::team_key_sync,
+        commands::team_key_renew,
+        commands::team_key_list,
+        commands::team_key_status,
         // Copilot OAuth commands (multi-account support)
         commands::copilot_start_device_flow,
         commands::copilot_poll_for_auth,
@@ -529,5 +534,12 @@ pub(super) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         commands::sync_tool_permissions,
         commands::get_permission_presets,
         commands::apply_permission_preset,
+        // Project Wiki Baseline
+        commands::scan_project_wiki_cmd,
+        commands::inventory_project_wiki_cmd,
+        commands::run_project_wiki_lint_cmd,
+        commands::preview_project_wiki_init_cmd,
+        commands::init_project_wiki_cmd,
+        commands::map_project_wiki_changed_files_cmd,
     ])
 }

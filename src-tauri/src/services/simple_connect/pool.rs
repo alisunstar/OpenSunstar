@@ -268,15 +268,14 @@ pub fn build_runtime_pool(supplier_id: &str) -> Result<KeyPool, AppError> {
             });
         }
     }
-    if keys.is_empty()
-        && get_primary_key(supplier_id)?.is_some() {
-            keys.push(PoolKey {
-                id: "primary".into(),
-                label: "主 Key".into(),
-                weight: 1,
-                enabled: true,
-            });
-        }
+    if keys.is_empty() && get_primary_key(supplier_id)?.is_some() {
+        keys.push(PoolKey {
+            id: "primary".into(),
+            label: "主 Key".into(),
+            weight: 1,
+            enabled: true,
+        });
+    }
     if keys.is_empty() {
         return Err(AppError::Message("Keychain 中无可用 API Key".into()));
     }

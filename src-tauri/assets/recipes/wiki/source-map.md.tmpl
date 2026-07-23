@@ -1,0 +1,26 @@
+---
+title: 源码地图
+type: overview
+status: draft
+source_files: []
+last_verified: {{date}}
+---
+
+# 源码地图
+
+> 建立源码区域到 wiki 页面的映射。changed-files 功能依赖此页面和各页面的 source_files 字段。
+
+## 源码区域映射
+
+| 源码区域 | Wiki 页面 | 说明 |
+|---|---|---|
+| `src/` | [overview.md](overview.md) | TODO: 前端源码 |
+| `src-tauri/src/` | [overview.md](overview.md) | TODO: 后端源码 |
+| `src-tauri/src/commands/` | [apis/http-endpoints.md](apis/http-endpoints.md) | TODO: Tauri 命令层 |
+| `src-tauri/src/services/` | [components/](components/) | TODO: 业务服务层 |
+
+## 填充指引
+
+- 遍历项目主要目录，为每个区域标注对应的 wiki 页面
+- 若某区域尚无 wiki 页面，标注 `TODO: 待补充`
+- 此页面的 `source_files` 应包含项目主要源码根目录（如 `src/`、`src-tauri/src/`）

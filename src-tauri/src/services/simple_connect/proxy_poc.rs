@@ -330,9 +330,7 @@ async fn forward_inner(state: Arc<ProxyState>, req: Request<Body>) -> Result<Res
 
                     let stream = resp.bytes_stream().map(|result| {
                         result.map_err(|e| {
-                            std::io::Error::other(
-                                format!("upstream stream error: {e}"),
-                            )
+                            std::io::Error::other(format!("upstream stream error: {e}"))
                         })
                     });
 

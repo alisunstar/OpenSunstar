@@ -1,4 +1,63 @@
 {
+  "projectWiki": {
+    "title": "プロジェクト Wiki / ナレッジベースライン",
+    "subtitle": "人間とエージェントが共に消費できるエンジニアリングナレッジベースライン",
+    "loading": "Wiki をスキャン中…",
+    "notInitialized": "wiki/index.md が検出されません",
+    "pageCount": "{{count}} ページ",
+    "sourceRefs": "{{count}} 件のソース参照",
+    "questions": "{{count}} 件の未解決質問",
+    "lastUpdated": "最終更新",
+    "status": {
+      "missing": "未初期化",
+      "scaffolded": "初期化済み",
+      "effective": "最新",
+      "drifted": "変更あり",
+      "invalid": "Lint 失敗"
+    },
+    "quality": {
+      "NA": "N/A",
+      "L1": "L1 · オリエンテーション",
+      "L2": "L2 · インテグレーション",
+      "L3": "L3 · オペレーション"
+    },
+    "coverage": {
+      "corePages": "コアページ",
+      "componentPages": "コンポーネント",
+      "flowPages": "フロー",
+      "apiPages": "API",
+      "runbookPages": "運用手順書"
+    },
+    "actions": {
+      "init": "Wiki を初期化",
+      "lint": "Lint を実行",
+      "refresh": "更新",
+      "openInEditor": "エディタで開く",
+      "previewInit": "初期化をプレビュー"
+    },
+    "changedFiles": {
+      "coldStart": "Wiki 初期化直後、変更マッピングはまだ有効ではありません",
+      "coldStartProgress": "有効な source_files ページ: {{current}}/{{threshold}}",
+      "coldStartGuidance": "Claude Code で maintain-repo-wiki Skill を使用して wiki 内容を入力してください",
+      "affectedPages": "{{count}} 件のソース変更が {{pages}} 個の wiki ページに影響",
+      "unmapped": "{{count}} 件の未マップ変更",
+      "noChanges": "ソース変更なし、wiki ページは最新です"
+    },
+    "lint": {
+      "passed": "Lint 合格",
+      "failed": "Lint 失敗: {{errors}} 件のエラー",
+      "warnings": "{{count}} 件の警告",
+      "qualityLevel": "品質レベル: {{level}}"
+    },
+    "init": {
+      "previewTitle": "Wiki 初期化プレビュー",
+      "willCreate": "{{count}} 個のファイルを作成",
+      "alreadyExists": "{{count}} 個のファイルは既存（スキップ）",
+      "confirm": "初期化を確認",
+      "success": "Wiki 初期化完了、{{count}} 個のファイルを作成",
+      "blocked": "安全監査でブロック"
+    }
+  },
   "app": {
     "title": "OpenSunstar",
     "description": "Claude Code・Codex・Gemini CLI のためのオールインワンアシスタント"

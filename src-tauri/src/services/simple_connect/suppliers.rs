@@ -15,7 +15,6 @@ pub enum ApiProtocol {
     Anthropic,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SupplierProfile {
     pub id: String,

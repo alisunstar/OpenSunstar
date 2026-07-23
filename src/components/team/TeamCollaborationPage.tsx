@@ -20,8 +20,10 @@ import {
   type TeamMembership,
   type TeamOverview,
   type TeamInvite,
+  type TeamKeyLocal,
 } from "@/lib/api/productAuth";
 import { cn } from "@/lib/utils";
+import { translateProductError } from "@/lib/productAuthErrors";
 
 type AccountState =
   | { kind: "loading" }
@@ -102,6 +104,7 @@ export function TeamCollaborationPage() {
   const [overview, setOverview] = useState<TeamOverview | null>(null);
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [pendingInvites, setPendingInvites] = useState<TeamInvite[]>([]);
+  const [teamKeys, setTeamKeys] = useState<TeamKeyLocal[]>([]);
   const [teamDataError, setTeamDataError] = useState<string | null>(null);
 
   const loadSession = useCallback(async () => {
@@ -112,7 +115,9 @@ export function TeamCollaborationPage() {
     } catch (error) {
       setAccountState({
         kind: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message: translateProductError(
+          error instanceof Error ? error.message : String(error),
+        ),
       });
     }
   }, []);
@@ -129,7 +134,9 @@ export function TeamCollaborationPage() {
     } catch (error) {
       setAccountState({
         kind: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message: translateProductError(
+          error instanceof Error ? error.message : String(error),
+        ),
       });
     } finally {
       setLoggingOut(false);
@@ -143,6 +150,7 @@ export function TeamCollaborationPage() {
       setOverview(null);
       setMembers([]);
       setPendingInvites([]);
+      setTeamKeys([]);
       return;
     }
     let cancelled = false;
@@ -151,18 +159,22 @@ export function TeamCollaborationPage() {
       productAuthApi.getOverview(session.organization_id),
       productAuthApi.listMembers(session.organization_id),
       productAuthApi.listInvites(session.organization_id),
+      productAuthApi.listTeamKeys().catch(() => [] as TeamKeyLocal[]),
     ])
-      .then(([nextOverview, memberResult, inviteResult]) => {
+      .then(([nextOverview, memberResult, inviteResult, keys]) => {
         if (!cancelled) {
           setOverview(nextOverview);
           setMembers(memberResult.members);
           setPendingInvites(inviteResult.invites);
+          setTeamKeys(keys);
         }
       })
       .catch((error: unknown) => {
         if (!cancelled) {
           setTeamDataError(
-            error instanceof Error ? error.message : String(error),
+            translateProductError(
+              error instanceof Error ? error.message : String(error),
+            ),
           );
         }
       });
@@ -178,18 +190,26 @@ export function TeamCollaborationPage() {
       await action();
       await loadSession();
     } catch (error) {
-      setActionError(error instanceof Error ? error.message : String(error));
+      setActionError(
+        translateProductError(
+          error instanceof Error ? error.message : String(error),
+        ),
+      );
     } finally {
       setWorking(false);
     }
   };
 
-  const slugFromName = (name: string) =>
-    name
+  const slugFromName = (name: string) => {
+    const ascii = name
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
+    if (ascii.length >= 3) return ascii;
+    // Non-ASCII names (e.g. Chinese): generate a stable slug from timestamp
+    return `org-${Date.now().toString(36)}`;
+  };
 
   return (
     <div className="h-full overflow-y-auto bg-[radial-gradient(circle_at_86%_8%,hsl(var(--primary)/0.07),transparent_28%)]">
@@ -348,7 +368,7 @@ export function TeamCollaborationPage() {
                   />
                   <Button
                     disabled={
-                      working || slugFromName(organizationName).length < 3
+                      working || organizationName.trim().length === 0
                     }
                     onClick={() =>
                       void runAction(() =>
@@ -581,6 +601,76 @@ export function TeamCollaborationPage() {
                         </div>
                       ))}
                     </div>
+                  </div>
+                </section>
+              )}
+              {overview && (
+                <section className="rounded-xl border border-border/60 bg-card/75 p-5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">团队密钥</h3>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={working}
+                      onClick={() =>
+                        void runAction(async () => {
+                          if (!session?.organization_id) return;
+                          const result = await productAuthApi.syncTeamKeys(
+                            session.organization_id,
+                          );
+                          const keys = await productAuthApi.listTeamKeys();
+                          setTeamKeys(keys);
+                          return result;
+                        })
+                      }
+                    >
+                      {working ? (
+                        <Loader2 className="mr-1 size-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="mr-1 size-3" />
+                      )}
+                      同步密钥
+                    </Button>
+                  </div>
+                  <div className="mt-4 space-y-2">
+                    {teamKeys.length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        暂无团队密钥。点击"同步密钥"从控制面获取。
+                      </p>
+                    )}
+                    {teamKeys.map((key) => (
+                      <div
+                        key={key.slot_slug}
+                        className="flex items-center justify-between rounded-lg border border-border/50 px-3 py-2"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium">
+                            {key.slot_slug}
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {key.provider_kind} · v{key.version_seq}
+                            {key.endpoint_url ? ` · ${key.endpoint_url}` : ""}
+                          </p>
+                        </div>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium",
+                            key.status === "active" &&
+                              "bg-emerald-500/10 text-emerald-600",
+                            key.status === "expired" &&
+                              "bg-amber-500/10 text-amber-600",
+                            key.status === "revoked" &&
+                              "bg-red-500/10 text-red-600",
+                          )}
+                        >
+                          {key.status === "active"
+                            ? "有效"
+                            : key.status === "expired"
+                              ? "已过期"
+                              : "已撤销"}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </section>
               )}
