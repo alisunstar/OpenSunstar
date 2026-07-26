@@ -6,10 +6,42 @@
  */
 
 const ERROR_MESSAGES: Record<string, { zh: string; en: string }> = {
+  // --- Entitlement gate ---
+  // The control plane denies every paid key-vault route with 403 unless the
+  // organization holds a live entitlement. Each message states plainly that
+  // individual use is untouched — that separation is the product's red line,
+  // not a marketing line.
+  entitlement_inactive: {
+    zh: "团队功能目前为邀请制内测，当前账号所属团队尚未开通。个人使用的全部功能不受影响。",
+    en: "Team features are in invite-only beta and this organization is not enrolled. Everything you use individually is unaffected.",
+  },
+  capability_not_entitled: {
+    zh: "当前团队的内测权限不包含该功能。个人使用的全部功能不受影响。",
+    en: "This organization's beta access does not include this feature. Everything you use individually is unaffected.",
+  },
+  seat_limit_exceeded: {
+    zh: "当前团队席位已满，你的账号不在生效席位内。请联系团队管理员调整席位。",
+    en: "This organization is over its seat limit and your account is not within the active seats. Ask a team admin to adjust seats.",
+  },
+
+  // --- Access revoked ---
+  // The desktop client wipes every locally cached team key whenever the control
+  // plane answers 403, so these two must both say so. They differ in cause:
+  // `forbidden` means the membership is gone; the entitlement codes above mean
+  // the organization's access lapsed while the membership is intact.
+  forbidden: {
+    zh: "你的账号已不在该团队，或当前角色无权访问。本机缓存的团队密钥已清除。",
+    en: "Your account is no longer in this organization, or your role lacks access. Locally cached team keys have been cleared.",
+  },
+  team_key_membership_revoked: {
+    zh: "团队访问权限已失效，本机缓存的团队密钥已清除。",
+    en: "Team access is no longer valid. Locally cached team keys have been cleared.",
+  },
+
   // --- Control plane connectivity ---
   product_auth_control_plane_not_configured: {
-    zh: "尚未配置团队服务地址。请在「设置 → 团队」中填写控制面 URL，或设置环境变量 OPENSUNSTAR_CONTROL_PLANE_URL。",
-    en: "Team service URL is not configured. Set it in Settings → Team, or define the OPENSUNSTAR_CONTROL_PLANE_URL environment variable.",
+    zh: "团队服务尚未就绪。团队功能目前为邀请制内测；若你在自建控制面，请设置环境变量 OPENSUNSTAR_CONTROL_PLANE_URL。",
+    en: "Team service is not available. Team features are in invite-only beta; if you self-host a control plane, set the OPENSUNSTAR_CONTROL_PLANE_URL environment variable.",
   },
   product_auth_control_plane_url_invalid: {
     zh: "团队服务地址格式无效，请检查 URL 是否正确（示例：https://cp.example.com）。",
@@ -146,28 +178,56 @@ const ERROR_MESSAGES: Record<string, { zh: string; en: string }> = {
 };
 
 /**
- * Translate a raw error code/message from Rust into a user-friendly string.
- * Falls back to the original string if no mapping exists.
+ * Reduce a raw error string to the bare code we can look up.
+ *
+ * Two wrappers have to come off:
+ *  1. Tauri's invoke wrapper, added on the JS side of the bridge.
+ *  2. `authenticated_json`'s HTTP wrapper, `product_team_request_failed_<status>`
+ *     optionally followed by `:<code>` carrying the control plane's own code.
+ *     Without unwrapping (2) every entitlement denial would render as the raw
+ *     `product_team_request_failed_403`.
  */
-export function translateProductError(raw: string, locale?: string): string {
-  // Strip Tauri invoke error wrapper if present
+function normalizeErrorCode(raw: string): string {
   const code = raw
     .replace(/^Error invoking remote command '.*?':\s*/, "")
     .trim();
 
-  const entry = ERROR_MESSAGES[code];
-  if (!entry) return code;
+  const httpWrapper = /^product_team_request_failed_\d{3}(?::(.+))?$/.exec(
+    code,
+  );
+  if (httpWrapper) return httpWrapper[1]?.trim() || code;
 
+  return code;
+}
+
+/**
+ * Translate a raw error code/message from Rust into a user-friendly string.
+ * Falls back to the original string if no mapping exists.
+ */
+export function translateProductError(raw: string, locale?: string): string {
+  const code = normalizeErrorCode(raw);
   const lang = locale ?? navigator.language;
-  return lang.startsWith("zh") ? entry.zh : entry.en;
+  const zh = lang.startsWith("zh");
+
+  const entry = ERROR_MESSAGES[code];
+  if (entry) return zh ? entry.zh : entry.en;
+
+  // An unwrapped HTTP failure means the control plane answered without an error
+  // code. Keep the status visible for support, but never show the bare
+  // `product_team_request_failed_500` token to the user.
+  const bareStatus = /^product_team_request_failed_(\d{3})$/.exec(code);
+  if (bareStatus) {
+    return zh
+      ? `团队服务请求失败（HTTP ${bareStatus[1]}），请稍后重试。`
+      : `Team service request failed (HTTP ${bareStatus[1]}). Please try again later.`;
+  }
+
+  return code;
 }
 
 /**
  * Check if a raw error string is a known product auth error code.
  */
 export function isKnownProductError(raw: string): boolean {
-  const code = raw
-    .replace(/^Error invoking remote command '.*?':\s*/, "")
-    .trim();
-  return code in ERROR_MESSAGES;
+  return normalizeErrorCode(raw) in ERROR_MESSAGES;
 }

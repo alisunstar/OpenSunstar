@@ -252,6 +252,27 @@ export function TeamCollaborationPage() {
           )}
         </section>
 
+        {/*
+          Invite-only beta notice. Two jobs, in this order:
+          1. Explain the 403s. Without this, a denial from the control plane
+             reads as a broken build rather than "not enrolled yet".
+          2. Draw the line. The two panels below (配置包 / 部署) are local and
+             need no account — that separation is the product's promise, so it
+             is stated on the page, not just in error copy.
+          Deliberately no contact channel here: enrolment is handled out of band.
+        */}
+        <section className="rounded-xl border border-primary/20 bg-primary/[0.04] px-4 py-3">
+          <p className="text-xs leading-6 text-muted-foreground">
+            <span className="mr-2 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
+              Beta
+            </span>
+            云端团队服务（组织、成员、托管密钥）目前为邀请制内测，未开通的账号会收到“尚未开通”提示，属于预期行为。
+            <span className="font-medium text-foreground">
+              下方的团队配置包与团队部署是本地能力，不需要账号、不受内测限制。
+            </span>
+          </p>
+        </section>
+
         <CollaborationRail session={session} />
 
         {/* Local Alpha: 团队配置包（只读闭环，独立于云平台登录） */}

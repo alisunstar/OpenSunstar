@@ -331,6 +331,16 @@ pub async fn product_team_remove_member(org_id: String, user_id: String) -> Resu
     .map(|_| ())
 }
 
+/// Pull the control plane's error code out of an error produced by
+/// [`authenticated_json`], e.g. "product_team_request_failed_403:entitlement_inactive"
+/// → "entitlement_inactive". Returns None when the response carried no code.
+fn control_plane_error_code(error: &str) -> Option<&str> {
+    error
+        .strip_prefix("product_team_request_failed_")?
+        .split_once(':')
+        .map(|(_status, code)| code)
+}
+
 async fn authenticated_json(
     method: reqwest::Method,
     path: &str,
@@ -364,10 +374,24 @@ async fn authenticated_json(
         .await?;
     }
     if !response.status().is_success() {
-        return Err(format!(
-            "product_team_request_failed_{}",
-            response.status().as_u16()
-        ));
+        let status = response.status().as_u16();
+        // Keep the control plane's error code. A bare 403 cannot tell "removed
+        // from the team" apart from "the organization's entitlement lapsed", and
+        // those need different messages even though both wipe local team keys.
+        let code = response
+            .json::<serde_json::Value>()
+            .await
+            .ok()
+            .and_then(|body| {
+                body.get("error")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string)
+            })
+            .filter(|code| !code.trim().is_empty());
+        return Err(match code {
+            Some(code) => format!("product_team_request_failed_{status}:{code}"),
+            None => format!("product_team_request_failed_{status}"),
+        });
     }
     if response.status() == reqwest::StatusCode::NO_CONTENT {
         return Ok(serde_json::Value::Null);
@@ -487,13 +511,16 @@ pub async fn team_key_sync(
     let response = match authenticated_json(reqwest::Method::GET, &path, None).await {
         Ok(r) => r,
         Err(e) => {
-            // C-3: 403 + membership_revoked → 离职，清除本地全部团队 Key
+            // C-3: 403 → 离职、权益到期或超席位，三种情况都清除本地全部团队 Key。
+            // 清除动作一致，但回传的错误码必须区分：这条路由对所有角色开放，
+            // 所以 forbidden 只可能是 membership 没了，而 entitlement_inactive
+            // 是团队订阅失效——对用户的解释完全不同，不能都说“已被移出团队”。
             let err_str = e.to_string();
             if err_str.contains("403") || err_str.contains("membership_revoked") {
                 let _ = crate::team_key::revoke_all_team_keys_for_org(&state.db, &org_id);
-                return Err(format!(
-                    "team_key_membership_revoked: 团队 membership 已移除，本机密钥已清除"
-                ));
+                return Err(control_plane_error_code(&err_str)
+                    .unwrap_or("team_key_membership_revoked")
+                    .to_string());
             }
             return Err(err_str);
         }
@@ -565,13 +592,16 @@ pub async fn team_key_renew(
     {
         Ok(r) => r,
         Err(e) => {
-            // C-3: 403 + membership_revoked → 离职，清除本地全部团队 Key
+            // C-3: 403 → 离职、权益到期或超席位，三种情况都清除本地全部团队 Key。
+            // 清除动作一致，但回传的错误码必须区分：这条路由对所有角色开放，
+            // 所以 forbidden 只可能是 membership 没了，而 entitlement_inactive
+            // 是团队订阅失效——对用户的解释完全不同，不能都说“已被移出团队”。
             let err_str = e.to_string();
             if err_str.contains("403") || err_str.contains("membership_revoked") {
                 let _ = crate::team_key::revoke_all_team_keys_for_org(&state.db, &org_id);
-                return Err(format!(
-                    "team_key_membership_revoked: 团队 membership 已移除，本机密钥已清除"
-                ));
+                return Err(control_plane_error_code(&err_str)
+                    .unwrap_or("team_key_membership_revoked")
+                    .to_string());
             }
             return Err(err_str);
         }
@@ -671,7 +701,31 @@ pub fn team_key_status(
 
 #[cfg(test)]
 mod tests {
-    use super::parse_callback_request;
+    use super::{control_plane_error_code, parse_callback_request};
+
+    #[test]
+    fn control_plane_error_code_separates_lapsed_entitlement_from_removed_membership() {
+        // Both wipe local team keys, but the user-facing explanation differs, so
+        // the server's code has to survive the trip through authenticated_json.
+        assert_eq!(
+            control_plane_error_code("product_team_request_failed_403:entitlement_inactive"),
+            Some("entitlement_inactive")
+        );
+        assert_eq!(
+            control_plane_error_code("product_team_request_failed_403:forbidden"),
+            Some("forbidden")
+        );
+        // No body / empty code → caller falls back to the generic revoked message.
+        assert_eq!(
+            control_plane_error_code("product_team_request_failed_403"),
+            None
+        );
+        // Unrelated errors must not be mistaken for a control plane code.
+        assert_eq!(
+            control_plane_error_code("product_auth_session_required"),
+            None
+        );
+    }
 
     #[test]
     fn callback_parser_accepts_only_the_loopback_callback_path() {

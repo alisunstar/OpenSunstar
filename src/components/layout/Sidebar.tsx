@@ -479,8 +479,11 @@ export function Sidebar({
                 defaultValue: "团队协作配置",
               })}
               badge={
+                // Invite-only beta: the control plane answers 403 on every paid
+                // team route until an entitlement is granted, so the badge has to
+                // read "Beta" — under "MVP" that denial looks like a bug.
                 <span className="rounded-full border border-primary/20 bg-primary/10 px-1.5 py-0.5 text-[9px] font-semibold text-primary">
-                  MVP
+                  Beta
                 </span>
               }
               active={activeView === "teamCollaboration"}
