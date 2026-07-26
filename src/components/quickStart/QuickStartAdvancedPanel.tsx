@@ -11,7 +11,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
-import type { QuickStartFormFields, QuickStartSelection } from "@/lib/quickStart/types";
+import type {
+  QuickStartFormFields,
+  QuickStartSelection,
+} from "@/lib/quickStart/types";
 
 interface QuickStartAdvancedPanelProps {
   appId: QuickStartAppId;
@@ -153,7 +156,9 @@ function ClaudeAdvanced({
   return (
     <>
       <div className="space-y-2">
-        <Label>{t("quickStart.advanced.apiFormat", { defaultValue: "API 格式" })}</Label>
+        <Label>
+          {t("quickStart.advanced.apiFormat", { defaultValue: "API 格式" })}
+        </Label>
         <Select
           value={value.apiFormat}
           onValueChange={(apiFormat) =>

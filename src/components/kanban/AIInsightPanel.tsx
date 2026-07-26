@@ -1,9 +1,6 @@
 import { useState, useEffect } from "react";
 import { Sparkles, ChevronDown } from "lucide-react";
-import {
-  getAICostSummary,
-  type AICostSummary,
-} from "@/api/aiInsight";
+import { getAICostSummary, type AICostSummary } from "@/api/aiInsight";
 
 interface AIInsightPanelProps {
   projectCount: number;
@@ -58,7 +55,9 @@ export function AIInsightPanel({
       <button
         type="button"
         className={`flex w-full items-center gap-2 text-[11px] text-muted-foreground/60 text-left ${
-          typeEntries.length > 0 ? "cursor-pointer select-none" : "cursor-default"
+          typeEntries.length > 0
+            ? "cursor-pointer select-none"
+            : "cursor-default"
         }`}
         onClick={() => typeEntries.length > 0 && setExpanded((v) => !v)}
         aria-expanded={expanded}

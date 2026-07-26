@@ -32,7 +32,10 @@ export interface Contributor {
 }
 
 function warn(msg: string, e: unknown): void {
-  console.warn(`[codeMetrics] ${msg}:`, e instanceof Error ? e.message : String(e));
+  console.warn(
+    `[codeMetrics] ${msg}:`,
+    e instanceof Error ? e.message : String(e),
+  );
 }
 
 /** 使用 tokei 统计项目目录的代码行数 */
@@ -48,9 +51,7 @@ export async function countProjectCodeLines(
 }
 
 /** 读取项目 package.json 中的 version */
-export async function readPackageVersion(
-  root: string,
-): Promise<string | null> {
+export async function readPackageVersion(root: string): Promise<string | null> {
   try {
     return await invoke<string | null>("read_package_version", { root });
   } catch (e) {
@@ -87,9 +88,7 @@ export async function gitCommitCountLastNDays(
 }
 
 /** 返回最近 12 周每周的提交数量 */
-export async function gitWeeklyCommitCounts(
-  root: string,
-): Promise<number[]> {
+export async function gitWeeklyCommitCounts(root: string): Promise<number[]> {
   try {
     return await invoke<number[]>("git_weekly_commit_counts", { root });
   } catch (e) {
@@ -99,9 +98,7 @@ export async function gitWeeklyCommitCounts(
 }
 
 /** 返回 Git 仓库的贡献者列表 */
-export async function gitContributors(
-  root: string,
-): Promise<Contributor[]> {
+export async function gitContributors(root: string): Promise<Contributor[]> {
   try {
     return await invoke<Contributor[]>("git_contributors", { root });
   } catch (e) {

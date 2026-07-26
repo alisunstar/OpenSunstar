@@ -67,10 +67,7 @@ export const mcpRegistryApi = {
   },
 
   /** 从注册表安装 */
-  async installServer(
-    name: string,
-    enabledApps: McpApps,
-  ): Promise<McpServer> {
+  async installServer(name: string, enabledApps: McpApps): Promise<McpServer> {
     return await invoke("install_mcp_from_registry", {
       name,
       enabledApps: enabledApps,

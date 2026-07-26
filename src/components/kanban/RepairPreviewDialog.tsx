@@ -70,7 +70,10 @@ export function RepairPreviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onCancel()}>
-      <DialogContent zIndex="top" className="max-w-xl max-h-[85vh] flex flex-col">
+      <DialogContent
+        zIndex="top"
+        className="max-w-xl max-h-[85vh] flex flex-col"
+      >
         <DialogHeader>
           <DialogTitle>
             {t("repairPreview.title", {
@@ -211,8 +214,7 @@ function RepairPreviewItemRow({
           <span
             className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400"
             title={t("repairPreview.safetyCriticalTooltip", {
-              defaultValue:
-                "安全关键项：修复将覆盖访问控制或命令执行相关配置",
+              defaultValue: "安全关键项：修复将覆盖访问控制或命令执行相关配置",
             })}
           >
             <AlertTriangle className="h-3 w-3" />

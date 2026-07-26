@@ -2,7 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { Cloud, CloudOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Cloud,
+  CloudOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type SyncState = "idle" | "syncing" | "success" | "error" | "disabled";
@@ -14,13 +20,18 @@ interface SyncInfo {
   backend: "webdav" | "s3" | "none";
 }
 
-function formatRelativeTime(timestamp: number, t: (key: string, options?: Record<string, unknown>) => string): string {
+function formatRelativeTime(
+  timestamp: number,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): string {
   const now = Math.floor(Date.now() / 1000);
   const diff = now - timestamp;
 
   if (diff < 60) return t("sync.justNow");
-  if (diff < 3600) return t("sync.minutesAgo", { count: Math.floor(diff / 60) });
-  if (diff < 86400) return t("sync.hoursAgo", { count: Math.floor(diff / 3600) });
+  if (diff < 3600)
+    return t("sync.minutesAgo", { count: Math.floor(diff / 60) });
+  if (diff < 86400)
+    return t("sync.hoursAgo", { count: Math.floor(diff / 3600) });
   return t("sync.daysAgo", { count: Math.floor(diff / 86400) });
 }
 
@@ -46,7 +57,11 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
           backend: "webdav",
           lastSyncAt: webdav.status?.lastSyncAt ?? null,
           lastError: webdav.status?.lastError ?? null,
-          state: webdav.status?.lastError ? "error" : prev.state === "syncing" ? "syncing" : "idle",
+          state: webdav.status?.lastError
+            ? "error"
+            : prev.state === "syncing"
+              ? "syncing"
+              : "idle",
         }));
       } else if (s3?.enabled && s3?.autoSync) {
         setSyncInfo((prev) => ({
@@ -54,10 +69,19 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
           backend: "s3",
           lastSyncAt: s3.status?.lastSyncAt ?? null,
           lastError: s3.status?.lastError ?? null,
-          state: s3.status?.lastError ? "error" : prev.state === "syncing" ? "syncing" : "idle",
+          state: s3.status?.lastError
+            ? "error"
+            : prev.state === "syncing"
+              ? "syncing"
+              : "idle",
         }));
       } else {
-        setSyncInfo({ state: "disabled", lastSyncAt: null, lastError: null, backend: "none" });
+        setSyncInfo({
+          state: "disabled",
+          lastSyncAt: null,
+          lastError: null,
+          backend: "none",
+        });
       }
     } catch {
       // Settings not available yet
@@ -75,35 +99,64 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
     const unlisteners: Promise<() => void>[] = [];
 
     unlisteners.push(
-      listen<{ source: string; status: string; error?: string }>("webdav-sync-status-updated", (event) => {
-        const { status, error } = event.payload;
-        setSyncInfo((prev) => {
-          if (prev.backend !== "webdav" && prev.backend !== "none") return prev;
-          if (status === "success") {
-            return { ...prev, state: "success", lastSyncAt: Math.floor(Date.now() / 1000), lastError: null, backend: "webdav" };
-          }
-          if (status === "error") {
-            return { ...prev, state: "error", lastError: error ?? "Unknown error", backend: "webdav" };
-          }
-          return { ...prev, state: "syncing", backend: "webdav" };
-        });
-      })
+      listen<{ source: string; status: string; error?: string }>(
+        "webdav-sync-status-updated",
+        (event) => {
+          const { status, error } = event.payload;
+          setSyncInfo((prev) => {
+            if (prev.backend !== "webdav" && prev.backend !== "none")
+              return prev;
+            if (status === "success") {
+              return {
+                ...prev,
+                state: "success",
+                lastSyncAt: Math.floor(Date.now() / 1000),
+                lastError: null,
+                backend: "webdav",
+              };
+            }
+            if (status === "error") {
+              return {
+                ...prev,
+                state: "error",
+                lastError: error ?? "Unknown error",
+                backend: "webdav",
+              };
+            }
+            return { ...prev, state: "syncing", backend: "webdav" };
+          });
+        },
+      ),
     );
 
     unlisteners.push(
-      listen<{ source: string; status: string; error?: string }>("s3-sync-status-updated", (event) => {
-        const { status, error } = event.payload;
-        setSyncInfo((prev) => {
-          if (prev.backend !== "s3" && prev.backend !== "none") return prev;
-          if (status === "success") {
-            return { ...prev, state: "success", lastSyncAt: Math.floor(Date.now() / 1000), lastError: null, backend: "s3" };
-          }
-          if (status === "error") {
-            return { ...prev, state: "error", lastError: error ?? "Unknown error", backend: "s3" };
-          }
-          return { ...prev, state: "syncing", backend: "s3" };
-        });
-      })
+      listen<{ source: string; status: string; error?: string }>(
+        "s3-sync-status-updated",
+        (event) => {
+          const { status, error } = event.payload;
+          setSyncInfo((prev) => {
+            if (prev.backend !== "s3" && prev.backend !== "none") return prev;
+            if (status === "success") {
+              return {
+                ...prev,
+                state: "success",
+                lastSyncAt: Math.floor(Date.now() / 1000),
+                lastError: null,
+                backend: "s3",
+              };
+            }
+            if (status === "error") {
+              return {
+                ...prev,
+                state: "error",
+                lastError: error ?? "Unknown error",
+                backend: "s3",
+              };
+            }
+            return { ...prev, state: "syncing", backend: "s3" };
+          });
+        },
+      ),
     );
 
     return () => {
@@ -114,14 +167,20 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
   // Auto-clear "success" state after 5s → back to idle
   useEffect(() => {
     if (syncInfo.state === "success") {
-      const timer = setTimeout(() => setSyncInfo((prev) => ({ ...prev, state: "idle" })), 5000);
+      const timer = setTimeout(
+        () => setSyncInfo((prev) => ({ ...prev, state: "idle" })),
+        5000,
+      );
       return () => clearTimeout(timer);
     }
   }, [syncInfo.state]);
 
   if (syncInfo.state === "disabled") return null;
 
-  const stateConfig: Record<SyncState, { icon: React.ReactNode; color: string; label: string }> = {
+  const stateConfig: Record<
+    SyncState,
+    { icon: React.ReactNode; color: string; label: string }
+  > = {
     idle: {
       icon: <Cloud className="w-3 h-3" />,
       color: "text-muted-foreground",
@@ -163,10 +222,19 @@ export function SyncStatusBar({ collapsed }: { collapsed: boolean }) {
   }
 
   return (
-    <div className={cn("flex items-center gap-1.5 px-3 py-1.5 text-[11px]", config.color)}>
+    <div
+      className={cn(
+        "flex items-center gap-1.5 px-3 py-1.5 text-[11px]",
+        config.color,
+      )}
+    >
       {config.icon}
       <span className="truncate">
-        {syncInfo.backend === "webdav" ? "WebDAV" : syncInfo.backend === "s3" ? "S3" : ""}
+        {syncInfo.backend === "webdav"
+          ? "WebDAV"
+          : syncInfo.backend === "s3"
+            ? "S3"
+            : ""}
         {" · "}
         {config.label}
       </span>

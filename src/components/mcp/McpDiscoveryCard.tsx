@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Download, Check, Loader2, Globe, Server } from "lucide-react";
+import {
+  ExternalLink,
+  Download,
+  Check,
+  Loader2,
+  Globe,
+  Server,
+} from "lucide-react";
 import type { RegistryServer } from "@/lib/api/mcpRegistry";
 import type { McpApps } from "@/types";
 import { useAllMcpServers } from "@/hooks/useMcp";
@@ -39,12 +46,17 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [selectedApps, setSelectedApps] = useState<McpApps>({ ...DEFAULT_APPS });
+  const [selectedApps, setSelectedApps] = useState<McpApps>({
+    ...DEFAULT_APPS,
+  });
 
   const { data: existingServers } = useAllMcpServers();
   const installMutation = useInstallFromRegistry();
 
-  const installedId = server.name.replace(/[/@.]/g, "-").replace(/^-+/, "").replace(/-+$/, "");
+  const installedId = server.name
+    .replace(/[/@.]/g, "-")
+    .replace(/^-+/, "")
+    .replace(/-+$/, "");
   const isInstalled = existingServers && installedId in existingServers;
 
   const handleInstall = async () => {
@@ -63,7 +75,9 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
     if (server.websiteUrl) {
       try {
         await settingsApi.openExternal(server.websiteUrl);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -71,7 +85,9 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
     if (server.repository?.url) {
       try {
         await settingsApi.openExternal(server.repository.url);
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
   };
 
@@ -80,8 +96,7 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
   const version = server.version;
   const remoteTypes = server.remotes?.map((r) => r.type).join(", ") || "";
   const isOfficial =
-    _meta &&
-    "io.modelcontextprotocol.registry/official" in (_meta || {});
+    _meta && "io.modelcontextprotocol.registry/official" in (_meta || {});
 
   return (
     <Card className="glass-card flex flex-col h-full transition-all duration-300 hover:shadow-lg group relative overflow-hidden">
@@ -91,7 +106,10 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <Server size={14} className="text-muted-foreground flex-shrink-0" />
+              <Server
+                size={14}
+                className="text-muted-foreground flex-shrink-0"
+              />
               <CardTitle className="text-sm font-semibold truncate">
                 {displayName}
               </CardTitle>
@@ -101,12 +119,18 @@ export const McpDiscoveryCard: React.FC<McpDiscoveryCardProps> = ({
                 {server.name}
               </span>
               {version && (
-                <Badge variant="outline" className="shrink-0 text-[10px] px-1.5 py-0 h-4 border-border-default">
+                <Badge
+                  variant="outline"
+                  className="shrink-0 text-[10px] px-1.5 py-0 h-4 border-border-default"
+                >
                   v{version}
                 </Badge>
               )}
               {remoteTypes && (
-                <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0 h-4">
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 text-[10px] px-1.5 py-0 h-4"
+                >
                   <Globe className="h-2.5 w-2.5 mr-0.5" />
                   {remoteTypes}
                 </Badge>

@@ -2,14 +2,14 @@ import { useMemo } from "react";
 import type { TFunction } from "i18next";
 import type { Project } from "@/types/project";
 import type { StageKey } from "@/hooks/useProjectStages";
-import {
-  buildProjectContext,
-  type ProjectContextInput,
-} from "@/api/aiInsight";
+import { buildProjectContext, type ProjectContextInput } from "@/api/aiInsight";
 import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
 import type { ProjectGitInfo } from "@/api/projectGit";
 import type { PortfolioOverviewWindowDays } from "@/lib/portfolioMetrics";
-import { activityTierForWindow, formatCompactNumber } from "@/lib/portfolioMetrics";
+import {
+  activityTierForWindow,
+  formatCompactNumber,
+} from "@/lib/portfolioMetrics";
 
 interface PortfolioDerivedInput {
   projects: Project[];
@@ -57,7 +57,7 @@ export function usePortfolioDerivedMetrics({
       const weekly = weeklyCommitsMap.get(p.id) ?? [];
       const contribs = contributorsMap.get(p.id) ?? [];
       const version = versionMap.get(p.id) ?? null;
-      const mvpProg = stage === "mvp" ? progressMap.get(p.id) ?? null : null;
+      const mvpProg = stage === "mvp" ? (progressMap.get(p.id) ?? null) : null;
       m.set(
         p.id,
         buildProjectContext(
@@ -141,7 +141,9 @@ export function usePortfolioDerivedMetrics({
     const avg = total / commitsInWindowMap.size;
     if (avg >= 3.5)
       return {
-        averageActivityLabel: t("kanban.activity.veryHigh", { defaultValue: "很高" }),
+        averageActivityLabel: t("kanban.activity.veryHigh", {
+          defaultValue: "很高",
+        }),
         averageActivityColor: "text-emerald-500",
       };
     if (avg >= 2.5)
@@ -151,7 +153,9 @@ export function usePortfolioDerivedMetrics({
       };
     if (avg >= 1.5)
       return {
-        averageActivityLabel: t("kanban.activity.medium", { defaultValue: "中等" }),
+        averageActivityLabel: t("kanban.activity.medium", {
+          defaultValue: "中等",
+        }),
         averageActivityColor: "text-amber-500",
       };
     return {

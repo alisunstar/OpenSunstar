@@ -385,7 +385,11 @@ export function ProviderList({
 
   if (isLoading) {
     return (
-      <div className="space-y-3" aria-busy="true" aria-label="Loading providers">
+      <div
+        className="space-y-3"
+        aria-busy="true"
+        aria-label="Loading providers"
+      >
         {[0, 1, 2].map((index) => (
           <div
             key={index}

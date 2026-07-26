@@ -339,9 +339,7 @@ export const skillsApi = {
   },
 
   /** 批量获取 ClawHub 技能的星标/下载/安装量 */
-  async batchGetClawHubStats(
-    slugs: string[],
-  ): Promise<ClawHubSkillStats[]> {
+  async batchGetClawHubStats(slugs: string[]): Promise<ClawHubSkillStats[]> {
     return await invoke("batch_get_clawhub_stats", { slugs });
   },
 

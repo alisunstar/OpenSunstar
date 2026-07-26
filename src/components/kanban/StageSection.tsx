@@ -167,7 +167,9 @@ export function StageSection({
                     aiSummaryLoading={aiLoadingMap?.get(project.id)}
                     healthScore={aiHealthMap?.get(project.id)}
                     agentReadiness={agentReadinessMap?.get(project.id)?.score}
-                    agentDriftCount={agentReadinessMap?.get(project.id)?.driftCount}
+                    agentDriftCount={
+                      agentReadinessMap?.get(project.id)?.driftCount
+                    }
                     onClick={() => onProjectClick(project)}
                     onRemove={() => onProjectRemove(project.id)}
                     onStageChange={(s) => onStageChange(project.id, s)}

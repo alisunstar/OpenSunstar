@@ -102,7 +102,9 @@ export function ProjectBlueprintPanel({
     try {
       await projectsApi.setTargetApp(projectId, targetApp || null);
       toast.success(
-        t("projectBlueprint.targetSaved", { defaultValue: "项目目标 CLI 已保存" }),
+        t("projectBlueprint.targetSaved", {
+          defaultValue: "项目目标 CLI 已保存",
+        }),
       );
       onApplied?.();
     } catch (e) {
@@ -144,7 +146,9 @@ export function ProjectBlueprintPanel({
         <div>
           <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Layers className="h-4 w-4 text-primary" />
-            {t("projectBlueprint.title", { defaultValue: "项目基线 Blueprint" })}
+            {t("projectBlueprint.title", {
+              defaultValue: "项目基线 Blueprint",
+            })}
           </h3>
           <p className="text-[11px] text-muted-foreground mt-1">
             {t("projectBlueprint.hint", {
@@ -194,7 +198,9 @@ export function ProjectBlueprintPanel({
           disabled={savingTarget}
           onClick={() => void handleSaveTarget()}
         >
-          {savingTarget && <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />}
+          {savingTarget && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+          )}
           {t("projectBlueprint.saveTarget", { defaultValue: "保存" })}
         </Button>
       </div>
@@ -238,13 +244,18 @@ export function ProjectBlueprintPanel({
             })}
           </p>
           {preview.warnings.map((w) => (
-            <p key={w} className="text-[11px] text-amber-700 dark:text-amber-400">
+            <p
+              key={w}
+              className="text-[11px] text-amber-700 dark:text-amber-400"
+            >
               {w}
             </p>
           ))}
           <ul className="max-h-32 overflow-y-auto text-[11px] text-muted-foreground space-y-0.5">
             {preview.toLink.slice(0, 12).map((item) => (
-              <li key={`${item.assetType}-${item.assetId}-${item.appType ?? ""}`}>
+              <li
+                key={`${item.assetType}-${item.assetId}-${item.appType ?? ""}`}
+              >
                 {item.assetType}: {item.assetId}
                 {item.appType ? ` (${item.appType})` : ""}
               </li>
@@ -253,7 +264,11 @@ export function ProjectBlueprintPanel({
               <li>…+{preview.toLink.length - 12}</li>
             )}
           </ul>
-          <Button size="sm" disabled={applying} onClick={() => void handleApply()}>
+          <Button
+            size="sm"
+            disabled={applying}
+            onClick={() => void handleApply()}
+          >
             {applying ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
             ) : (

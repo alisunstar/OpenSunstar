@@ -70,7 +70,9 @@ export function TeamDeployments({
   const mountedRef = useRef(true);
   useEffect(() => {
     mountedRef.current = true;
-    return () => { mountedRef.current = false; };
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   const handleGeneratePlan = useCallback(async () => {
@@ -80,7 +82,7 @@ export function TeamDeployments({
       const result = await teamConfigApi.generatePlan(
         sourcePath,
         targetApp,
-        projectRoot
+        projectRoot,
       );
       if (!mountedRef.current) return;
       setPlan(result);
@@ -93,27 +95,30 @@ export function TeamDeployments({
     }
   }, [sourcePath, targetApp, projectRoot]);
 
-  const handleDeploy = useCallback(async (dryRun = false) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await teamConfigApi.executeDeployment(
-        sourcePath,
-        targetApp,
-        projectRoot,
-        undefined,
-        dryRun
-      );
-      if (!mountedRef.current) return;
-      setReceipt(result);
-      setPhase("receipt");
-    } catch (e: unknown) {
-      if (!mountedRef.current) return;
-      setError(extractErrorMessage(e, "部署执行失败"));
-    } finally {
-      if (mountedRef.current) setLoading(false);
-    }
-  }, [sourcePath, targetApp, projectRoot]);
+  const handleDeploy = useCallback(
+    async (dryRun = false) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await teamConfigApi.executeDeployment(
+          sourcePath,
+          targetApp,
+          projectRoot,
+          undefined,
+          dryRun,
+        );
+        if (!mountedRef.current) return;
+        setReceipt(result);
+        setPhase("receipt");
+      } catch (e: unknown) {
+        if (!mountedRef.current) return;
+        setError(extractErrorMessage(e, "部署执行失败"));
+      } finally {
+        if (mountedRef.current) setLoading(false);
+      }
+    },
+    [sourcePath, targetApp, projectRoot],
+  );
 
   const handleCheckDrift = useCallback(async () => {
     if (!receipt) return;
@@ -122,7 +127,7 @@ export function TeamDeployments({
     try {
       const result = await teamConfigApi.checkDrift(
         JSON.stringify(receipt),
-        projectRoot
+        projectRoot,
       );
       if (!mountedRef.current) return;
       setDrift(result);
@@ -143,7 +148,7 @@ export function TeamDeployments({
       const result = await teamConfigApi.rollback(
         JSON.stringify(receipt),
         JSON.stringify(drift),
-        projectRoot
+        projectRoot,
       );
       if (!mountedRef.current) return;
       setRollback(result);
@@ -190,7 +195,10 @@ export function TeamDeployments({
 
       {/* 错误提示 */}
       {error && (
-        <div role="alert" className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div
+          role="alert"
+          className="flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+        >
           <XCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="break-all">{error}</span>
         </div>
@@ -199,18 +207,39 @@ export function TeamDeployments({
       {/* 操作栏 */}
       <div className="flex flex-wrap items-center gap-2">
         {phase === "idle" && (
-          <Button size="sm" onClick={handleGeneratePlan} disabled={loading || !sourcePath || !projectRoot}>
-            {loading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <FileSearch className="mr-1 h-3.5 w-3.5" />}
+          <Button
+            size="sm"
+            onClick={handleGeneratePlan}
+            disabled={loading || !sourcePath || !projectRoot}
+          >
+            {loading ? (
+              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <FileSearch className="mr-1 h-3.5 w-3.5" />
+            )}
             生成部署计划
           </Button>
         )}
         {phase === "plan" && plan && (
           <>
-            <Button size="sm" onClick={() => handleDeploy(false)} disabled={loading || plan.summary.writeCount === 0}>
-              {loading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <Rocket className="mr-1 h-3.5 w-3.5" />}
+            <Button
+              size="sm"
+              onClick={() => handleDeploy(false)}
+              disabled={loading || plan.summary.writeCount === 0}
+            >
+              {loading ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Rocket className="mr-1 h-3.5 w-3.5" />
+              )}
               确认部署 ({plan.summary.writeCount} 项写入)
             </Button>
-            <Button size="sm" variant="outline" onClick={() => handleDeploy(true)} disabled={loading}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDeploy(true)}
+              disabled={loading}
+            >
               <Eye className="mr-1 h-3.5 w-3.5" />
               预演
             </Button>
@@ -221,8 +250,17 @@ export function TeamDeployments({
         )}
         {phase === "receipt" && (
           <>
-            <Button size="sm" variant="outline" onClick={handleCheckDrift} disabled={loading}>
-              {loading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <FileSearch className="mr-1 h-3.5 w-3.5" />}
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCheckDrift}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileSearch className="mr-1 h-3.5 w-3.5" />
+              )}
               检测偏差
             </Button>
             <Button size="sm" variant="ghost" onClick={reset}>
@@ -232,12 +270,22 @@ export function TeamDeployments({
         )}
         {phase === "drift" && drift && (
           <>
-            {drift.summary.hasDrift && drift.summary.rollbackEligibleCount > 0 && (
-              <Button size="sm" variant="destructive" onClick={handleRollback} disabled={loading}>
-                {loading ? <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="mr-1 h-3.5 w-3.5" />}
-                回滚 ({drift.summary.rollbackEligibleCount} 项)
-              </Button>
-            )}
+            {drift.summary.hasDrift &&
+              drift.summary.rollbackEligibleCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleRollback}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RotateCcw className="mr-1 h-3.5 w-3.5" />
+                  )}
+                  回滚 ({drift.summary.rollbackEligibleCount} 项)
+                </Button>
+              )}
             <Button size="sm" variant="ghost" onClick={reset}>
               完成
             </Button>
@@ -319,12 +367,16 @@ function RiskBadge({ level }: { level: string }) {
   if (level === "safe") return null;
   const colors: Record<string, string> = {
     low: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-    medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+    medium:
+      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
     high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-    requiresTrust: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
+    requiresTrust:
+      "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
   };
   return (
-    <span className={`inline-block rounded px-1 py-0.5 text-[10px] font-medium ${colors[level] || ""}`}>
+    <span
+      className={`inline-block rounded px-1 py-0.5 text-[10px] font-medium ${colors[level] || ""}`}
+    >
       {level}
     </span>
   );
@@ -353,7 +405,10 @@ function PlanPreview({ plan }: { plan: DeploymentPlan }) {
       {plan.warnings.length > 0 && (
         <div className="mb-3 space-y-1">
           {plan.warnings.map((w, i) => (
-            <div key={i} className="flex items-center gap-1.5 text-xs text-amber-600">
+            <div
+              key={i}
+              className="flex items-center gap-1.5 text-xs text-amber-600"
+            >
               <ShieldAlert className="h-3 w-3 shrink-0" />
               <span>{w.message}</span>
             </div>
@@ -364,7 +419,10 @@ function PlanPreview({ plan }: { plan: DeploymentPlan }) {
       {/* 步骤列表 */}
       <div className="max-h-64 space-y-1 overflow-y-auto">
         {plan.steps.map((step, i) => (
-          <div key={i} className="flex items-center gap-2 rounded px-2 py-1 hover:bg-muted/50">
+          <div
+            key={i}
+            className="flex items-center gap-2 rounded px-2 py-1 hover:bg-muted/50"
+          >
             <ActionIcon action={step.action} />
             <span className="font-mono text-xs">
               [{step.assetType}:{step.assetId}]
@@ -400,7 +458,8 @@ function ReceiptView({ receipt }: { receipt: DeploymentReceipt }) {
           {receipt.summary.allSuccess ? "部署完成" : "部署完成（有错误）"}
         </h4>
         <span className="ml-auto text-xs text-muted-foreground">
-          {receipt.summary.successCount} 成功 / {receipt.summary.failureCount} 失败
+          {receipt.summary.successCount} 成功 / {receipt.summary.failureCount}{" "}
+          失败
         </span>
       </div>
 
@@ -417,9 +476,13 @@ function ReceiptView({ receipt }: { receipt: DeploymentReceipt }) {
               <span className="font-mono text-xs">
                 [{step.assetType}:{step.assetId}]
               </span>
-              <span className="text-xs text-muted-foreground">{step.targetPath}</span>
+              <span className="text-xs text-muted-foreground">
+                {step.targetPath}
+              </span>
               {step.error && !step.error.includes("dry-run") && (
-                <span className="ml-auto text-xs text-red-500">{step.error}</span>
+                <span className="ml-auto text-xs text-red-500">
+                  {step.error}
+                </span>
               )}
             </div>
           ))}
@@ -449,14 +512,23 @@ function DriftView({ drift }: { drift: DriftReport }) {
           {drift.entries
             .filter((e) => e.status !== "clean" && e.status !== "unknown")
             .map((entry, i) => (
-              <div key={i} className="flex items-center gap-2 rounded px-2 py-1">
-                <span className="text-xs font-medium text-amber-600">{entry.status}</span>
+              <div
+                key={i}
+                className="flex items-center gap-2 rounded px-2 py-1"
+              >
+                <span className="text-xs font-medium text-amber-600">
+                  {entry.status}
+                </span>
                 <span className="font-mono text-xs">
                   [{entry.assetType}:{entry.assetId}]
                 </span>
-                <span className="text-xs text-muted-foreground">{entry.targetPath}</span>
+                <span className="text-xs text-muted-foreground">
+                  {entry.targetPath}
+                </span>
                 {entry.hasBackup && (
-                  <span className="ml-auto text-[10px] text-green-600">可回滚</span>
+                  <span className="ml-auto text-[10px] text-green-600">
+                    可回滚
+                  </span>
                 )}
               </div>
             ))}
@@ -479,7 +551,8 @@ function RollbackView({ rollback }: { rollback: RollbackReport }) {
           {rollback.summary.allSuccess ? "回滚完成" : "回滚完成（有错误）"}
         </h4>
         <span className="ml-auto text-xs text-muted-foreground">
-          {rollback.summary.successCount} 恢复 / {rollback.summary.failureCount} 失败
+          {rollback.summary.successCount} 恢复 / {rollback.summary.failureCount}{" "}
+          失败
         </span>
       </div>
 
@@ -494,7 +567,9 @@ function RollbackView({ rollback }: { rollback: RollbackReport }) {
             <span className="font-mono text-xs">
               [{step.assetType}:{step.assetId}]
             </span>
-            <span className="text-xs text-muted-foreground">{step.targetPath}</span>
+            <span className="text-xs text-muted-foreground">
+              {step.targetPath}
+            </span>
             {step.error && (
               <span className="ml-auto text-xs text-red-500">{step.error}</span>
             )}

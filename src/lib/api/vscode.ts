@@ -69,5 +69,4 @@ export const vscodeApi = {
       url,
     });
   },
-
 };

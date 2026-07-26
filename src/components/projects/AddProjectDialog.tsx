@@ -127,7 +127,9 @@ export function AddProjectDialog({
                 size="icon"
                 className="h-9 w-9 shrink-0"
                 onClick={handleBrowse}
-                title={t("projects.browseFolder", { defaultValue: "浏览文件夹" })}
+                title={t("projects.browseFolder", {
+                  defaultValue: "浏览文件夹",
+                })}
               >
                 <FolderSearch className="h-4 w-4" />
               </Button>

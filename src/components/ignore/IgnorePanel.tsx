@@ -60,11 +60,21 @@ const IgnorePanel = React.forwardRef<IgnorePanelHandle, { open: boolean }>(
             })}
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => void handleImport()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleImport()}
+            >
               <FileInput className="w-4 h-4 mr-1" />
-              {t("ignore.importGitignore", { defaultValue: "从 .gitignore 导入" })}
+              {t("ignore.importGitignore", {
+                defaultValue: "从 .gitignore 导入",
+              })}
             </Button>
-            <Button variant="outline" size="sm" onClick={() => void syncRules()}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void syncRules()}
+            >
               {t("ignore.syncNow", { defaultValue: "同步到工具" })}
             </Button>
           </div>
@@ -120,7 +130,9 @@ const IgnorePanel = React.forwardRef<IgnorePanelHandle, { open: boolean }>(
         {confirmId && (
           <ConfirmDialog
             isOpen
-            title={t("ignore.confirm.deleteTitle", { defaultValue: "删除规则" })}
+            title={t("ignore.confirm.deleteTitle", {
+              defaultValue: "删除规则",
+            })}
             message={t("ignore.confirm.deleteMessage", {
               defaultValue: "确定删除此忽略规则？相关 ignore 文件将同步更新。",
             })}

@@ -12,7 +12,12 @@ export const mcpApi = {
   probeProjectRuntime: async (projectId: string, app: "claude" | "gemini") =>
     invoke<{
       app: string;
-      status: "read_and_effective" | "not_effective" | "cli_unavailable" | "timeout" | "not_supported";
+      status:
+        | "read_and_effective"
+        | "not_effective"
+        | "cli_unavailable"
+        | "timeout"
+        | "not_supported";
       configuredServers: string[];
       observedServers: string[];
       summary: string;

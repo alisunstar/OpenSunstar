@@ -32,7 +32,11 @@ import {
   useProjectWikiLint,
   useProjectWikiChangedFiles,
 } from "@/hooks/useProjectWiki";
-import type { WikiScanResult, WikiLintResult, WikiChangedFilesResult } from "@/types/projectWiki";
+import type {
+  WikiScanResult,
+  WikiLintResult,
+  WikiChangedFilesResult,
+} from "@/types/projectWiki";
 
 interface ProjectWikiPanelProps {
   projectId: string;
@@ -89,12 +93,23 @@ const QUALITY_META: Record<string, { label: string; className: string }> = {
   },
 };
 
-export function ProjectWikiPanel({ projectId, onConfigChanged }: ProjectWikiPanelProps) {
+export function ProjectWikiPanel({
+  projectId,
+  onConfigChanged,
+}: ProjectWikiPanelProps) {
   const { t } = useTranslation();
   const { data, loading, refresh } = useProjectWikiScan(projectId);
   const { plan, preview, confirm, installing } = useProjectWikiInit(projectId);
-  const { result: lintResult, loading: linting, lint } = useProjectWikiLint(projectId);
-  const { data: changedFiles, loading: mappingLoading, refresh: refreshChangedFiles } = useProjectWikiChangedFiles(projectId);
+  const {
+    result: lintResult,
+    loading: linting,
+    lint,
+  } = useProjectWikiLint(projectId);
+  const {
+    data: changedFiles,
+    loading: mappingLoading,
+    refresh: refreshChangedFiles,
+  } = useProjectWikiChangedFiles(projectId);
   const [showInitConfirm, setShowInitConfirm] = useState(false);
   const [qualityMode, setQualityMode] = useState(false);
 
@@ -175,7 +190,9 @@ export function ProjectWikiPanel({ projectId, onConfigChanged }: ProjectWikiPane
       {/* 核心页面覆盖率 */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <CoverageItem
-          label={t("projectWiki.coverage.corePages", { defaultValue: "核心页面" })}
+          label={t("projectWiki.coverage.corePages", {
+            defaultValue: "核心页面",
+          })}
           value={`${[
             data.corePageCoverage.hasIndex && "index",
             data.corePageCoverage.hasOverview && "overview",
@@ -192,7 +209,9 @@ export function ProjectWikiPanel({ projectId, onConfigChanged }: ProjectWikiPane
           }
         />
         <CoverageItem
-          label={t("projectWiki.coverage.componentPages", { defaultValue: "组件" })}
+          label={t("projectWiki.coverage.componentPages", {
+            defaultValue: "组件",
+          })}
           value={`${data.corePageCoverage.componentPages}`}
           ok={data.corePageCoverage.componentPages > 0}
         />
@@ -239,9 +258,7 @@ export function ProjectWikiPanel({ projectId, onConfigChanged }: ProjectWikiPane
         )}
       </div>
 
-      {lintResult && (
-        <LintResultBlock result={lintResult} />
-      )}
+      {lintResult && <LintResultBlock result={lintResult} />}
 
       {/* 变更文件映射 */}
       <ChangedFilesBlock
@@ -308,7 +325,9 @@ function WikiHeader({
           variant="ghost"
           className={cn("h-6 w-6", qualityMode && "text-primary")}
           onClick={onToggleQuality}
-          aria-label={t("projectWiki.actions.toggleQuality", { defaultValue: "切换 quality 模式" })}
+          aria-label={t("projectWiki.actions.toggleQuality", {
+            defaultValue: "切换 quality 模式",
+          })}
         >
           {qualityMode ? (
             <ToggleRight className="h-3.5 w-3.5" />
@@ -324,7 +343,9 @@ function WikiHeader({
           className="h-6 w-6"
           onClick={onLint}
           disabled={linting}
-          aria-label={t("projectWiki.actions.lint", { defaultValue: "运行 Lint" })}
+          aria-label={t("projectWiki.actions.lint", {
+            defaultValue: "运行 Lint",
+          })}
         >
           {linting ? (
             <Loader2 className="h-3 w-3 animate-spin" />
@@ -385,7 +406,8 @@ function LintResultBlock({ result }: { result: WikiLintResult }) {
         </span>
         <span className="text-muted-foreground">
           {t("projectWiki.lint.summary", {
-            defaultValue: "{{files}} 文件 / {{errors}} 错误 / {{warnings}} 警告 / 等级 {{level}}",
+            defaultValue:
+              "{{files}} 文件 / {{errors}} 错误 / {{warnings}} 警告 / 等级 {{level}}",
             files: summary.totalFiles,
             errors: summary.errorCount,
             warnings: summary.warningCount,
@@ -404,19 +426,30 @@ function LintResultBlock({ result }: { result: WikiLintResult }) {
         <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2">
           <p className="mb-1 text-[11px] font-medium text-red-600 dark:text-red-400">
             {t("projectWiki.lint.errors", { defaultValue: "错误" })}
-            {" ("}{result.errors.length}{")"}
+            {" ("}
+            {result.errors.length}
+            {")"}
           </p>
           <ul className="space-y-0.5 text-[11px]">
             {result.errors.slice(0, 10).map((e, i) => (
               <li key={i} className="flex gap-1 text-muted-foreground">
-                <span className="font-mono text-red-500 shrink-0">{e.ruleId}</span>
-                <span className="truncate">{e.file}{e.line ? `:${e.line}` : ""}</span>
+                <span className="font-mono text-red-500 shrink-0">
+                  {e.ruleId}
+                </span>
+                <span className="truncate">
+                  {e.file}
+                  {e.line ? `:${e.line}` : ""}
+                </span>
                 <span className="truncate">{e.message}</span>
               </li>
             ))}
             {result.errors.length > 10 && (
               <li className="text-muted-foreground/60">
-                …{t("projectWiki.lint.more", { defaultValue: "还有 {{count}} 条", count: result.errors.length - 10 })}
+                …
+                {t("projectWiki.lint.more", {
+                  defaultValue: "还有 {{count}} 条",
+                  count: result.errors.length - 10,
+                })}
               </li>
             )}
           </ul>
@@ -428,19 +461,30 @@ function LintResultBlock({ result }: { result: WikiLintResult }) {
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-2">
           <p className="mb-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
             {t("projectWiki.lint.warnings", { defaultValue: "警告" })}
-            {" ("}{result.warnings.length}{")"}
+            {" ("}
+            {result.warnings.length}
+            {")"}
           </p>
           <ul className="space-y-0.5 text-[11px]">
             {result.warnings.slice(0, 8).map((w, i) => (
               <li key={i} className="flex gap-1 text-muted-foreground">
-                <span className="font-mono text-amber-500 shrink-0">{w.ruleId}</span>
-                <span className="truncate">{w.file}{w.line ? `:${w.line}` : ""}</span>
+                <span className="font-mono text-amber-500 shrink-0">
+                  {w.ruleId}
+                </span>
+                <span className="truncate">
+                  {w.file}
+                  {w.line ? `:${w.line}` : ""}
+                </span>
                 <span className="truncate">{w.message}</span>
               </li>
             ))}
             {result.warnings.length > 8 && (
               <li className="text-muted-foreground/60">
-                …{t("projectWiki.lint.more", { defaultValue: "还有 {{count}} 条", count: result.warnings.length - 8 })}
+                …
+                {t("projectWiki.lint.more", {
+                  defaultValue: "还有 {{count}} 条",
+                  count: result.warnings.length - 8,
+                })}
               </li>
             )}
           </ul>
@@ -489,7 +533,9 @@ function ChangedFilesBlock({
           <div>
             <p className="font-medium">
               {t("projectWiki.changed.coldStart", { defaultValue: "冷启动态" })}
-              {" ("}{data.effectiveSourcePages}/{data.threshold}{")"}
+              {" ("}
+              {data.effectiveSourcePages}/{data.threshold}
+              {")"}
             </p>
             {data.guidance && (
               <p className="text-muted-foreground mt-0.5">{data.guidance}</p>
@@ -500,22 +546,27 @@ function ChangedFilesBlock({
         <div className="space-y-1 text-[11px]">
           <div className="flex gap-3 text-muted-foreground">
             <span>
-              {t("projectWiki.changed.changedFiles", { defaultValue: "变更" })}
-              : {data.changedFiles.length}
+              {t("projectWiki.changed.changedFiles", { defaultValue: "变更" })}:{" "}
+              {data.changedFiles.length}
             </span>
             <span>
-              {t("projectWiki.changed.affectedPages", { defaultValue: "影响页面" })}
+              {t("projectWiki.changed.affectedPages", {
+                defaultValue: "影响页面",
+              })}
               : {data.affectedPages.length}
             </span>
             <span>
-              {t("projectWiki.changed.unmapped", { defaultValue: "未映射" })}
-              : {data.unmappedChangedFiles.length}
+              {t("projectWiki.changed.unmapped", { defaultValue: "未映射" })}:{" "}
+              {data.unmappedChangedFiles.length}
             </span>
           </div>
           {data.affectedPages.length > 0 && (
             <ul className="space-y-0.5">
               {data.affectedPages.slice(0, 5).map((p, i) => (
-                <li key={i} className="flex items-center gap-1 text-muted-foreground">
+                <li
+                  key={i}
+                  className="flex items-center gap-1 text-muted-foreground"
+                >
                   <span className="text-green-500 shrink-0">→</span>
                   <span className="truncate">{p}</span>
                 </li>
@@ -525,14 +576,21 @@ function ChangedFilesBlock({
           {data.unmappedChangedFiles.length > 0 && (
             <ul className="space-y-0.5">
               {data.unmappedChangedFiles.slice(0, 3).map((f, i) => (
-                <li key={i} className="flex items-center gap-1 text-muted-foreground/70">
+                <li
+                  key={i}
+                  className="flex items-center gap-1 text-muted-foreground/70"
+                >
                   <FileQuestion className="h-2.5 w-2.5 shrink-0 text-amber-500" />
                   <span className="truncate">{f}</span>
                 </li>
               ))}
               {data.unmappedChangedFiles.length > 3 && (
                 <li className="text-muted-foreground/50">
-                  …{t("projectWiki.lint.more", { defaultValue: "还有 {{count}} 条", count: data.unmappedChangedFiles.length - 3 })}
+                  …
+                  {t("projectWiki.lint.more", {
+                    defaultValue: "还有 {{count}} 条",
+                    count: data.unmappedChangedFiles.length - 3,
+                  })}
                 </li>
               )}
             </ul>
@@ -594,7 +652,12 @@ function InitConfirmDialog({
             <li key={i}>• {w}</li>
           ))}
         </ul>
-        <Button size="sm" variant="ghost" className="mt-2 h-6" onClick={onCancel}>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="mt-2 h-6"
+          onClick={onCancel}
+        >
           {t("common.close", { defaultValue: "关闭" })}
         </Button>
       </div>
@@ -604,7 +667,9 @@ function InitConfirmDialog({
   return (
     <div className="rounded-lg border border-border/60 bg-muted/20 p-3 space-y-2">
       <p className="text-xs font-medium">
-        {t("projectWiki.init.previewTitle", { defaultValue: "Wiki 初始化预检" })}
+        {t("projectWiki.init.previewTitle", {
+          defaultValue: "Wiki 初始化预检",
+        })}
       </p>
       <div className="flex gap-3 text-xs text-muted-foreground">
         <span>
@@ -631,7 +696,12 @@ function InitConfirmDialog({
           )}
           {t("projectWiki.init.confirm", { defaultValue: "确认初始化" })}
         </Button>
-        <Button size="sm" variant="ghost" onClick={onCancel} disabled={installing}>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={onCancel}
+          disabled={installing}
+        >
           {t("common.cancel", { defaultValue: "取消" })}
         </Button>
       </div>

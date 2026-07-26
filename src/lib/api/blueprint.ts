@@ -44,10 +44,13 @@ export const blueprintApi = {
     projectId: string,
     blueprintId: string,
   ): Promise<BlueprintApplyPreview> {
-    return await invoke<BlueprintApplyPreview>("preview_apply_project_blueprint", {
-      projectId,
-      blueprintId,
-    });
+    return await invoke<BlueprintApplyPreview>(
+      "preview_apply_project_blueprint",
+      {
+        projectId,
+        blueprintId,
+      },
+    );
   },
 
   async apply(

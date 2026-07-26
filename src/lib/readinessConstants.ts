@@ -7,9 +7,7 @@ export const READINESS_OK_THRESHOLD = 75;
 /** 警告区间下限（约 50% 满分，对齐旧 40/80） */
 export const READINESS_WARN_THRESHOLD = 50;
 
-export function readinessMaxScore(
-  maxScore?: number | null,
-): number {
+export function readinessMaxScore(maxScore?: number | null): number {
   return maxScore && maxScore > 0 ? maxScore : AGENT_READINESS_MAX;
 }
 

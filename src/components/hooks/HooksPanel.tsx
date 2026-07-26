@@ -18,8 +18,15 @@ const HooksPanel = React.forwardRef<HooksPanelHandle, { open: boolean }>(
     const [editingId, setEditingId] = useState<string | null>(null);
     const [confirmId, setConfirmId] = useState<string | null>(null);
 
-    const { hooks, loading, reload, saveHook, deleteHook, toggleApp, syncHooks } =
-      useHookActions();
+    const {
+      hooks,
+      loading,
+      reload,
+      saveHook,
+      deleteHook,
+      toggleApp,
+      syncHooks,
+    } = useHookActions();
 
     useEffect(() => {
       if (open) void reload();

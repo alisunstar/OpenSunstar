@@ -55,11 +55,16 @@ const FRAMEWORK_COLORS: Record<string, string> = {
 /** Map install_type code to human-readable label for framework cards. */
 function installTypeLabel(type: string): string {
   switch (type) {
-    case "npm": return "npm";
-    case "uvx": return "uvx (Python)";
-    case "plugin": return "IDE 插件";
-    case "file_copy": return "文件复制";
-    default: return type;
+    case "npm":
+      return "npm";
+    case "uvx":
+      return "uvx (Python)";
+    case "plugin":
+      return "IDE 插件";
+    case "file_copy":
+      return "文件复制";
+    default:
+      return type;
   }
 }
 
@@ -198,8 +203,8 @@ function MethodologyCard({
     "from-gray-500/20 to-gray-600/10 border-gray-500/30";
   const description =
     i18n.language === "zh" || i18n.language === "zh-TW"
-      ? descriptor.descriptionZh ?? descriptor.descriptionEn
-      : descriptor.descriptionEn ?? descriptor.descriptionZh;
+      ? (descriptor.descriptionZh ?? descriptor.descriptionEn)
+      : (descriptor.descriptionEn ?? descriptor.descriptionZh);
 
   // Collect signal matches across projects (dedup by signal text)
   const allSignals = useMemo(() => {
@@ -219,9 +224,8 @@ function MethodologyCard({
 
   const primaryDetectedProject = useMemo(
     () =>
-      perProjectDetections.find((entry) =>
-        isDetectionPositive(entry.result),
-      )?.project,
+      perProjectDetections.find((entry) => isDetectionPositive(entry.result))
+        ?.project,
     [perProjectDetections],
   );
 
@@ -326,12 +330,12 @@ function MethodologyCard({
 /** Compact cell badge for the detection matrix. */
 function MatrixCell({ result }: { result?: SddDetectionResult }) {
   if (!result) {
-    return <MinusCircle className="w-3.5 h-3.5 text-muted-foreground/30 mx-auto" />;
+    return (
+      <MinusCircle className="w-3.5 h-3.5 text-muted-foreground/30 mx-auto" />
+    );
   }
   if (result.confidence === "verified") {
-    return (
-      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mx-auto" />
-    );
+    return <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mx-auto" />;
   }
   if (result.confidence === "inferred") {
     return <HelpCircle className="w-3.5 h-3.5 text-amber-500 mx-auto" />;
@@ -370,7 +374,8 @@ function DetectionMatrix({
           </h3>
           <p className="text-[11px] text-muted-foreground mt-0.5">
             {t("methodology.detectionMatrixHint", {
-              defaultValue: "项目 × 框架检测结果（✓ 已检测到 / ? 可能使用 / ✗ 未检测到 / — 未扫描）",
+              defaultValue:
+                "项目 × 框架检测结果（✓ 已检测到 / ? 可能使用 / ✗ 未检测到 / — 未扫描）",
             })}
           </p>
         </div>
@@ -435,8 +440,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
 
   // Tab 2 orchestration: selected project for flow config
   const [orchestrationProjectId, setOrchestrationProjectId] = useState("");
-  const [orchestrationInitialPreset, setOrchestrationInitialPreset] =
-    useState<string | undefined>();
+  const [orchestrationInitialPreset, setOrchestrationInitialPreset] = useState<
+    string | undefined
+  >();
   const [presetRecommendations, setPresetRecommendations] = useState<
     Record<string, string | null>
   >({});
@@ -556,12 +562,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
     }
     const detectedIds = new Set(detectedDescriptors.map((d) => d.id));
     return descriptors.filter((d) => !detectedIds.has(d.id));
-  }, [
-    descriptors,
-    detectedDescriptors,
-    detectedFrameworkCount,
-    hasScannedAny,
-  ]);
+  }, [descriptors, detectedDescriptors, detectedFrameworkCount, hasScannedAny]);
 
   useEffect(() => {
     if (!hasScannedAny || detectedDescriptors.length === 0) {
@@ -578,9 +579,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
         )?.project;
         if (!primaryProject) continue;
         try {
-          next[descriptor.id] = await sddApi.recommendPreset(
-            primaryProject.id,
-          );
+          next[descriptor.id] = await sddApi.recommendPreset(primaryProject.id);
         } catch {
           next[descriptor.id] = null;
         }
@@ -657,7 +656,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             </p>
             {projects.length > 0 && (
               <label className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">当前配置项目</span>
+                <span className="font-medium text-foreground">
+                  当前配置项目
+                </span>
                 <select
                   aria-label="当前配置项目"
                   className="h-8 min-w-48 rounded-md border border-input bg-background px-2 text-sm text-foreground"
@@ -706,11 +707,15 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           <TabsList className="shrink-0 mb-4">
             <TabsTrigger value="rulesContext">
               <FileStack className="w-3.5 h-3.5 mr-1.5" />
-              {t("methodology.tabRulesContext", { defaultValue: "规则与上下文" })}
+              {t("methodology.tabRulesContext", {
+                defaultValue: "规则与上下文",
+              })}
             </TabsTrigger>
             <TabsTrigger value="orchestration">
               <Workflow className="w-3.5 h-3.5 mr-1.5" />
-              {t("methodology.tabOrchestration", { defaultValue: "工作流配置" })}
+              {t("methodology.tabOrchestration", {
+                defaultValue: "工作流配置",
+              })}
             </TabsTrigger>
             <TabsTrigger value="recipe">
               <ChefHat className="w-3.5 h-3.5 mr-1.5" />
@@ -776,7 +781,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                   <Button
                     size="sm"
                     variant="secondary"
-                    onClick={() => handleGoToOrchestration(projects[0]?.id ?? "")}
+                    onClick={() =>
+                      handleGoToOrchestration(projects[0]?.id ?? "")
+                    }
                   >
                     {t("methodology.goToOrchestration", {
                       defaultValue: "去工作流配置",
@@ -794,45 +801,49 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
             {hasScannedAny &&
               detectedFrameworkCount === 0 &&
               projects.length > 0 && (
-              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
-                <div className="flex gap-3 flex-1">
-                  <Workflow className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium text-foreground">
-                      {t("methodology.directOrchestrationTitle", {
-                        defaultValue: "不依赖框架也可开始编排",
+                <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex gap-3 flex-1">
+                    <Workflow className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium text-foreground">
+                        {t("methodology.directOrchestrationTitle", {
+                          defaultValue: "不依赖框架也可开始编排",
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {t("methodology.directOrchestrationHint", {
+                          defaultValue:
+                            "可独立保存项目工作规则，也可生成变更执行材料；具体文件名放在高级详情中查看。",
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() =>
+                        handleGoToOrchestration(
+                          orchestrationProjectId || projects[0]?.id || "",
+                        )
+                      }
+                    >
+                      {t("methodology.goToOrchestration", {
+                        defaultValue: "去工作流配置",
                       })}
-                    </p>
-                    <p className="text-xs text-muted-foreground leading-relaxed">
-                      {t("methodology.directOrchestrationHint", {
-                        defaultValue:
-                          "可独立保存项目工作规则，也可生成变更执行材料；具体文件名放在高级详情中查看。",
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleGoToRecipe}
+                    >
+                      {t("methodology.goToRecipe", {
+                        defaultValue: "变更执行方案",
                       })}
-                    </p>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2 shrink-0">
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    onClick={() =>
-                      handleGoToOrchestration(
-                        orchestrationProjectId || projects[0]?.id || "",
-                      )
-                    }
-                  >
-                    {t("methodology.goToOrchestration", {
-                      defaultValue: "去工作流配置",
-                    })}
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={handleGoToRecipe}>
-                    {t("methodology.goToRecipe", {
-                      defaultValue: "变更执行方案",
-                    })}
-                  </Button>
-                </div>
-              </div>
-            )}
+              )}
 
             {hasScannedAny && detectedFrameworkCount === 0 && (
               <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 flex gap-3">
@@ -962,7 +973,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <select
                       className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
                       value={orchestrationProjectId}
-                      onChange={(e) => setOrchestrationProjectId(e.target.value)}
+                      onChange={(e) =>
+                        setOrchestrationProjectId(e.target.value)
+                      }
                     >
                       <option value="">
                         {t("methodology.orchestrationChooseProject", {
@@ -1030,8 +1043,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <FolderOpen className="w-8 h-8 text-muted-foreground/40 mb-2" />
                     <p className="text-sm text-muted-foreground">
                       {t("methodology.recipeNoProjects", {
-                        defaultValue:
-                          "暂无项目。请先在工作区添加项目。",
+                        defaultValue: "暂无项目。请先在工作区添加项目。",
                       })}
                     </p>
                   </div>
@@ -1045,7 +1057,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <select
                       className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
                       value={orchestrationProjectId}
-                      onChange={(e) => setOrchestrationProjectId(e.target.value)}
+                      onChange={(e) =>
+                        setOrchestrationProjectId(e.target.value)
+                      }
                     >
                       <option value="">
                         {t("methodology.recipePickPlaceholder", {
@@ -1112,8 +1126,7 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <FolderOpen className="w-8 h-8 text-muted-foreground/40 mb-2" />
                     <p className="text-sm text-muted-foreground">
                       {t("methodology.designContractNoProjects", {
-                        defaultValue:
-                          "暂无项目。请先在工作区添加项目。",
+                        defaultValue: "暂无项目。请先在工作区添加项目。",
                       })}
                     </p>
                   </div>
@@ -1127,7 +1140,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
                     <select
                       className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm"
                       value={orchestrationProjectId}
-                      onChange={(e) => setOrchestrationProjectId(e.target.value)}
+                      onChange={(e) =>
+                        setOrchestrationProjectId(e.target.value)
+                      }
                     >
                       <option value="">
                         {t("methodology.designContractPickPlaceholder", {

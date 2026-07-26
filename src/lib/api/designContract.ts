@@ -157,23 +157,49 @@ export interface DesignInstallPlan {
 }
 
 export interface DesignSystemPackage {
-  id: string; name: string; version: string; licenseId: string;
-  applicableScenarios: string[]; source: "builtin" | "user";
+  id: string;
+  name: string;
+  version: string;
+  licenseId: string;
+  applicableScenarios: string[];
+  source: "builtin" | "user";
 }
-export interface DesignSystemDiscovery { packages: DesignSystemPackage[]; rejected: { path: string; reason: string }[]; }
-export interface DesignSystemPackageDetail { package: DesignSystemPackage; components: { components?: string[]; pageTemplates?: string[] }; responsive: { modes?: string[]; breakpoints?: Record<string, number>; rules?: string[] }; accessibility: string; }
+export interface DesignSystemDiscovery {
+  packages: DesignSystemPackage[];
+  rejected: { path: string; reason: string }[];
+}
+export interface DesignSystemPackageDetail {
+  package: DesignSystemPackage;
+  components: { components?: string[]; pageTemplates?: string[] };
+  responsive: {
+    modes?: string[];
+    breakpoints?: Record<string, number>;
+    rules?: string[];
+  };
+  accessibility: string;
+}
 
 // ────────────────────────── API Methods ──────────────────────────
 
 export const designContractApi = {
   async listPackages(): Promise<DesignSystemDiscovery> {
-    return await invoke<DesignSystemDiscovery>("list_design_system_packages_cmd");
+    return await invoke<DesignSystemDiscovery>(
+      "list_design_system_packages_cmd",
+    );
   },
   async getPackageContract(packageId: string): Promise<DesignContract> {
-    return await invoke<DesignContract>("get_design_system_package_contract_cmd", { packageId });
+    return await invoke<DesignContract>(
+      "get_design_system_package_contract_cmd",
+      { packageId },
+    );
   },
-  async getPackageDetail(packageId: string): Promise<DesignSystemPackageDetail> {
-    return await invoke<DesignSystemPackageDetail>("get_design_system_package_detail_cmd", { packageId });
+  async getPackageDetail(
+    packageId: string,
+  ): Promise<DesignSystemPackageDetail> {
+    return await invoke<DesignSystemPackageDetail>(
+      "get_design_system_package_detail_cmd",
+      { packageId },
+    );
   },
   /** List all built-in design templates (returns [id, name][]). */
   async listTemplates(): Promise<[string, string][]> {
@@ -249,10 +275,15 @@ export const designContractApi = {
   },
 
   /** Read-only check that project outputs still match the selected design system. */
-  async verifyProjectSystem(projectId: string): Promise<DesignSystemVerification> {
-    return await invoke<DesignSystemVerification>("verify_design_system_manifest_cmd", {
-      projectId,
-    });
+  async verifyProjectSystem(
+    projectId: string,
+  ): Promise<DesignSystemVerification> {
+    return await invoke<DesignSystemVerification>(
+      "verify_design_system_manifest_cmd",
+      {
+        projectId,
+      },
+    );
   },
 
   /** Import a DESIGN.md from a local file path. */

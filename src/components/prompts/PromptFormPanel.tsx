@@ -15,7 +15,13 @@ import MarkdownEditor from "@/components/MarkdownEditor";
 import { FullScreenPanel } from "@/components/common/FullScreenPanel";
 import type { Prompt, AppId } from "@/lib/api";
 
-const TARGET_APPS = ["claude", "codex", "gemini", "opencode", "hermes"] as const;
+const TARGET_APPS = [
+  "claude",
+  "codex",
+  "gemini",
+  "opencode",
+  "hermes",
+] as const;
 
 interface ParentOption {
   id: string;
@@ -147,11 +153,7 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
         <Button
           type="button"
           onClick={() => void handleSave()}
-          disabled={
-            !name.trim() ||
-            saving ||
-            (isFragment && !parentPromptId)
-          }
+          disabled={!name.trim() || saving || (isFragment && !parentPromptId)}
           className="bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? t("common.saving") : t("common.save")}
@@ -199,8 +201,15 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
           {isFragment && (
             <>
               <div>
-                <Label>{t("prompts.fragment.parent", { defaultValue: "所属 Prompt" })}</Label>
-                <Select value={parentPromptId} onValueChange={setParentPromptId}>
+                <Label>
+                  {t("prompts.fragment.parent", {
+                    defaultValue: "所属 Prompt",
+                  })}
+                </Label>
+                <Select
+                  value={parentPromptId}
+                  onValueChange={setParentPromptId}
+                >
                   <SelectTrigger className="mt-2">
                     <SelectValue
                       placeholder={t("prompts.fragment.selectParent", {

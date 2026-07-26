@@ -130,9 +130,7 @@ export async function getTeamKeyStatus(
   return invoke<TeamKeyLocal | null>("team_key_status", { slotSlug });
 }
 
-export async function syncTeamKeys(
-  orgId: string,
-): Promise<{ synced: number }> {
+export async function syncTeamKeys(orgId: string): Promise<{ synced: number }> {
   return invoke<{ synced: number }>("team_key_sync", { orgId });
 }
 

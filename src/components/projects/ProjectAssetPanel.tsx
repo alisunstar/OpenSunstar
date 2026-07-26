@@ -450,7 +450,10 @@ export function ProjectAssetPanel({
     <ProjectAssetSupportTooltipProvider>
       <div className="space-y-6">
         <ProjectAssetHealthSummary projectId={projectId} />
-        <ProjectWikiPanel projectId={projectId} onConfigChanged={notifyChanged} />
+        <ProjectWikiPanel
+          projectId={projectId}
+          onConfigChanged={notifyChanged}
+        />
         <ProjectEnvironmentSnapshotPanel
           projectId={projectId}
           onApplied={notifyChanged}

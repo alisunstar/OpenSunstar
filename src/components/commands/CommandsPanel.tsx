@@ -21,14 +21,8 @@ const CommandsPanel = React.forwardRef<CommandsPanelHandle, { open: boolean }>(
       name: string;
     } | null>(null);
 
-    const {
-      commands,
-      loading,
-      reload,
-      saveCommand,
-      deleteCommand,
-      toggleApp,
-    } = useCommandActions();
+    const { commands, loading, reload, saveCommand, deleteCommand, toggleApp } =
+      useCommandActions();
 
     useEffect(() => {
       if (open) void reload();
@@ -109,8 +103,7 @@ const CommandsPanel = React.forwardRef<CommandsPanelHandle, { open: boolean }>(
             })}
             message={t("commands.confirm.deleteMessage", {
               name: confirmDialog.name,
-              defaultValue:
-                '确定删除命令 "{{name}}"？已同步的文件将被清理。',
+              defaultValue: '确定删除命令 "{{name}}"？已同步的文件将被清理。',
             })}
             onConfirm={async () => {
               try {

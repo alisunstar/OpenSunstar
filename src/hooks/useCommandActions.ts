@@ -6,14 +6,15 @@ import type { AppId } from "@/lib/api";
 
 const APP_FIELD_MAP: Record<
   AppId,
-  keyof Pick<
-    Command,
-    | "enabledClaude"
-    | "enabledCodex"
-    | "enabledGemini"
-    | "enabledOpencode"
-    | "enabledHermes"
-  > | null
+  | keyof Pick<
+      Command,
+      | "enabledClaude"
+      | "enabledCodex"
+      | "enabledGemini"
+      | "enabledOpencode"
+      | "enabledHermes"
+    >
+  | null
 > = {
   claude: "enabledClaude",
   "claude-desktop": null,
@@ -60,7 +61,9 @@ export function useCommandActions() {
       try {
         await commandsApi.delete(id);
         await reload();
-        toast.success(t("commands.deleteSuccess", { defaultValue: "删除成功" }));
+        toast.success(
+          t("commands.deleteSuccess", { defaultValue: "删除成功" }),
+        );
       } catch {
         toast.error(t("commands.deleteFailed", { defaultValue: "删除失败" }));
         throw new Error("delete failed");

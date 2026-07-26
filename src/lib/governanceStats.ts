@@ -42,7 +42,8 @@ export function aggregateGovernanceStats(
 
     for (const item of entry.details) {
       const state = item.effective_state;
-      if (!state || state === "not_applicable" || state === "unchecked") continue;
+      if (!state || state === "not_applicable" || state === "unchecked")
+        continue;
       comparableItems += 1;
       if (state === "effective") {
         effectiveItems += 1;

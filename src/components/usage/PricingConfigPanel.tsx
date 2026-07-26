@@ -419,7 +419,8 @@ export function PricingConfigPanel() {
                           </span>
                           {model.pricingEffectiveAt && (
                             <p className="whitespace-nowrap text-muted-foreground">
-                              {t("usage.pricingEffectiveAt", "生效")}: {model.pricingEffectiveAt}
+                              {t("usage.pricingEffectiveAt", "生效")}:{" "}
+                              {model.pricingEffectiveAt}
                               {model.pricingCurrency
                                 ? ` · ${model.pricingCurrency}`
                                 : ""}
@@ -428,7 +429,10 @@ export function PricingConfigPanel() {
                           {model.longContextThresholdTokens && (
                             <p className="whitespace-nowrap text-muted-foreground">
                               {t("usage.longContextRate", "长上下文")}: &gt;
-                              {Math.round(model.longContextThresholdTokens / 1000)}K
+                              {Math.round(
+                                model.longContextThresholdTokens / 1000,
+                              )}
+                              K
                             </p>
                           )}
                         </div>

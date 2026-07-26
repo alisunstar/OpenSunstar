@@ -7,7 +7,8 @@ import {
   getAIInsight,
   getAIHealthScore,
 } from "@/api/aiInsight";
-import { useAICostOptional } from "@/contexts/AICostContext";import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
+import { useAICostOptional } from "@/contexts/AICostContext";
+import type { CodeLineResult, Contributor } from "@/api/codeMetrics";
 import type { ProjectGitInfo } from "@/api/projectGit";
 
 interface PortfolioAIAnalysisInput {
@@ -80,7 +81,7 @@ export function usePortfolioAIAnalysis({
           const contribs = contributorsMap.get(p.id) ?? [];
           const version = versionMap.get(p.id) ?? null;
           const mvpProg =
-            stage === "mvp" ? progressMap.get(p.id) ?? null : null;
+            stage === "mvp" ? (progressMap.get(p.id) ?? null) : null;
 
           const ctx = buildProjectContext(
             p,
@@ -116,7 +117,12 @@ export function usePortfolioAIAnalysis({
           }
 
           if (weekly.length > 0 && weekly.some((c) => c > 0)) {
-            const trend = await getAIInsight(p.id, "trend_analysis", config, ctx);
+            const trend = await getAIInsight(
+              p.id,
+              "trend_analysis",
+              config,
+              ctx,
+            );
             if (!cancelled && trend?.content) {
               setAiTrendInsightMap((m) => new Map(m).set(p.id, trend.content));
               costCtx?.recordCall({

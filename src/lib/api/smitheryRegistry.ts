@@ -78,9 +78,7 @@ export const smitheryRegistryApi = {
   },
 
   /** 获取 Smithery 服务器详情 */
-  async getServerDetail(
-    qualifiedName: string,
-  ): Promise<SmitheryServerDetail> {
+  async getServerDetail(qualifiedName: string): Promise<SmitheryServerDetail> {
     return await invoke("get_smithery_server_detail", { qualifiedName });
   },
 

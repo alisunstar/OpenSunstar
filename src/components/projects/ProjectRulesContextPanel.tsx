@@ -1,13 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  FileText,
-  Globe2,
-  Layers,
-  Puzzle,
-  RefreshCw,
-  Tag,
-} from "lucide-react";
+import { FileText, Globe2, Layers, Puzzle, RefreshCw, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +15,13 @@ import type { AppId } from "@/lib/api/types";
 
 // ─── Types & Constants ──────────────────────────────────────────────────────
 
-const PROMPT_APPS: AppId[] = ["claude", "codex", "gemini", "opencode", "hermes"];
+const PROMPT_APPS: AppId[] = [
+  "claude",
+  "codex",
+  "gemini",
+  "opencode",
+  "hermes",
+];
 
 interface EnrichedRule {
   prompt: Prompt;
@@ -44,11 +43,7 @@ function parseJsonArray(raw: string | undefined): string[] {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 
-export function ProjectRulesContextPanel({
-  projectId,
-}: {
-  projectId: string;
-}) {
+export function ProjectRulesContextPanel({ projectId }: { projectId: string }) {
   const { t } = useTranslation();
   const assets = useProjectAssets(projectId);
 
@@ -248,9 +243,7 @@ export function ProjectRulesContextPanel({
 
                       {/* Priority (only for fragments) */}
                       {isFragment && rule.prompt.priority != null && (
-                        <span>
-                          P{rule.prompt.priority}
-                        </span>
+                        <span>P{rule.prompt.priority}</span>
                       )}
                     </div>
                   </div>

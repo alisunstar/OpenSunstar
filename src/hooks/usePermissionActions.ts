@@ -24,7 +24,9 @@ export function usePermissionActions() {
       setPermissions(data);
       setPresets(presetData);
     } catch {
-      toast.error(t("permissions.loadFailed", { defaultValue: "加载权限失败" }));
+      toast.error(
+        t("permissions.loadFailed", { defaultValue: "加载权限失败" }),
+      );
     } finally {
       setLoading(false);
     }
@@ -35,7 +37,9 @@ export function usePermissionActions() {
       try {
         await permissionsApi.upsert(permission);
         await reload();
-        toast.success(t("permissions.saveSuccess", { defaultValue: "保存成功" }));
+        toast.success(
+          t("permissions.saveSuccess", { defaultValue: "保存成功" }),
+        );
       } catch {
         toast.error(t("permissions.saveFailed", { defaultValue: "保存失败" }));
         throw new Error("save failed");
@@ -49,9 +53,13 @@ export function usePermissionActions() {
       try {
         await permissionsApi.delete(id);
         await reload();
-        toast.success(t("permissions.deleteSuccess", { defaultValue: "删除成功" }));
+        toast.success(
+          t("permissions.deleteSuccess", { defaultValue: "删除成功" }),
+        );
       } catch {
-        toast.error(t("permissions.deleteFailed", { defaultValue: "删除失败" }));
+        toast.error(
+          t("permissions.deleteFailed", { defaultValue: "删除失败" }),
+        );
         throw new Error("delete failed");
       }
     },
@@ -90,9 +98,13 @@ export function usePermissionActions() {
       try {
         await permissionsApi.applyPreset(presetId);
         await reload();
-        toast.success(t("permissions.presetApplied", { defaultValue: "预设已应用" }));
+        toast.success(
+          t("permissions.presetApplied", { defaultValue: "预设已应用" }),
+        );
       } catch {
-        toast.error(t("permissions.presetFailed", { defaultValue: "应用预设失败" }));
+        toast.error(
+          t("permissions.presetFailed", { defaultValue: "应用预设失败" }),
+        );
       }
     },
     [reload, t],

@@ -56,7 +56,10 @@ export const McpDiscoveryPage = forwardRef<McpDiscoveryPageHandle, object>(
           className="flex flex-col flex-1 min-h-0"
         >
           <TabsList className="flex-shrink-0 self-start mt-3 mb-1">
-            <TabsTrigger value="search" className="gap-1.5 text-xs min-w-[100px]">
+            <TabsTrigger
+              value="search"
+              className="gap-1.5 text-xs min-w-[100px]"
+            >
               <SearchIcon size={13} />
               {t("mcp.discovery.tabSearch", { defaultValue: "搜索 MCP" })}
             </TabsTrigger>
@@ -64,7 +67,10 @@ export const McpDiscoveryPage = forwardRef<McpDiscoveryPageHandle, object>(
               <Flame size={13} />
               {t("mcp.discovery.tabHot", { defaultValue: "安装热榜" })}
             </TabsTrigger>
-            <TabsTrigger value="picks" className="gap-1.5 text-xs min-w-[100px]">
+            <TabsTrigger
+              value="picks"
+              className="gap-1.5 text-xs min-w-[100px]"
+            >
               <Star size={13} />
               {t("mcp.discovery.tabPicks", { defaultValue: "编辑精选" })}
             </TabsTrigger>
@@ -95,18 +101,12 @@ function OfficialRegistryPanel() {
     undefined,
   );
 
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    isFetching,
-    refetch,
-  } = useRegistryServers(
-    searchQuery || undefined,
-    currentCursor,
-    SMITHERY_PAGE_SIZE,
-  );
+  const { data, isLoading, isError, error, isFetching, refetch } =
+    useRegistryServers(
+      searchQuery || undefined,
+      currentCursor,
+      SMITHERY_PAGE_SIZE,
+    );
 
   const { data: existingServers } = useAllMcpServers();
 
@@ -181,8 +181,7 @@ function OfficialRegistryPanel() {
             onChange={(e) => setSearchInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={t("mcp.discovery.searchPlaceholder", {
-              defaultValue:
-                "输入关键词搜索所有来源（Official Registry）...",
+              defaultValue: "输入关键词搜索所有来源（Official Registry）...",
             })}
             className="pl-9"
           />
@@ -271,14 +270,8 @@ function SmitheryPanel({ mode }: { mode: "hot" | "picks" }) {
 
   const verified = mode === "picks" ? true : undefined;
 
-  const {
-    data,
-    isLoading,
-    isError,
-    error,
-    isFetching,
-    refetch,
-  } = useSmitheryServers(page, SMITHERY_PAGE_SIZE, verified);
+  const { data, isLoading, isError, error, isFetching, refetch } =
+    useSmitheryServers(page, SMITHERY_PAGE_SIZE, verified);
 
   const { data: existingServers } = useAllMcpServers();
 

@@ -43,7 +43,11 @@ export function SidebarItem({
         // 折叠模式：居中图标
         collapsed
           ? "w-full justify-center h-9 px-0"
-          : ["w-full justify-start gap-3 h-9", indent ? "pl-10" : "pl-3", "pr-3"],
+          : [
+              "w-full justify-start gap-3 h-9",
+              indent ? "pl-10" : "pl-3",
+              "pr-3",
+            ],
         // 状态样式
         active
           ? [

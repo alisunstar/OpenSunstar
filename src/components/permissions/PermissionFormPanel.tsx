@@ -101,7 +101,9 @@ export function PermissionFormPanel({
           })}
         </p>
         <div className="space-y-2">
-          <Label>{t("permissions.form.type", { defaultValue: "权限类型" })}</Label>
+          <Label>
+            {t("permissions.form.type", { defaultValue: "权限类型" })}
+          </Label>
           <Select
             value={permissionType}
             onValueChange={(v) => setPermissionType(v as PermissionType)}

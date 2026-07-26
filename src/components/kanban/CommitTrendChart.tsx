@@ -56,7 +56,9 @@ export function CommitTrendChart({
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <TrendingUp className="h-3.5 w-3.5 text-muted-foreground/50" />
-          <span className="text-xs font-medium text-foreground/80">提交趋势</span>
+          <span className="text-xs font-medium text-foreground/80">
+            提交趋势
+          </span>
         </div>
         <span className="text-[10px] text-muted-foreground/50 tabular-nums">
           12 周共 {total} 次
@@ -71,8 +73,16 @@ export function CommitTrendChart({
           >
             <defs>
               <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                <stop
+                  offset="5%"
+                  stopColor="hsl(var(--primary))"
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset="95%"
+                  stopColor="hsl(var(--primary))"
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
             <XAxis

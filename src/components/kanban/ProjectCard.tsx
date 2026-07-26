@@ -63,7 +63,10 @@ const STAGE_OPTIONS: { key: StageKey; label: string }[] = [
 
 // ── 工具函数 ────────────────────────────────────
 
-function relativeTime(iso: string, t: (k: string, d: { defaultValue: string }) => string): string {
+function relativeTime(
+  iso: string,
+  t: (k: string, d: { defaultValue: string }) => string,
+): string {
   const now = Date.now();
   const then = new Date(iso).getTime();
   const diffMs = now - then;
@@ -112,7 +115,8 @@ export function ProjectCard({
   const dirPath =
     project.path.split(/[/\\]/).slice(0, -1).join("/") || project.path;
 
-  const showProgress = stage === "mvp" && typeof progress === "number" && progress > 0;
+  const showProgress =
+    stage === "mvp" && typeof progress === "number" && progress > 0;
 
   return (
     <article
@@ -283,7 +287,11 @@ export function ProjectCard({
         <div
           className={cn(
             "flex items-center gap-3 mt-2.5 pl-6",
-            !project.description && !showProgress && !aiSummary && !aiSummaryLoading && "mt-0",
+            !project.description &&
+              !showProgress &&
+              !aiSummary &&
+              !aiSummaryLoading &&
+              "mt-0",
           )}
         >
           <span className="text-[10px] text-muted-foreground/50">

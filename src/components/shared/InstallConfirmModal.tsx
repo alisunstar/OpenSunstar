@@ -32,7 +32,8 @@ interface InstallConfirmModalProps {
 const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30",
   HIGH: "bg-orange-500/20 text-orange-600 dark:text-orange-400 border-orange-500/30",
-  MEDIUM: "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  MEDIUM:
+    "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30",
   LOW: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30",
   INFO: "bg-muted text-muted-foreground border-border/50",
 };
@@ -62,9 +63,15 @@ export function InstallConfirmModal({
         {/* Header */}
         <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between shrink-0">
           <h3 className="text-sm font-semibold text-foreground">
-            {title || t("installConfirm.title", { defaultValue: "确认安装到项目" })}
+            {title ||
+              t("installConfirm.title", { defaultValue: "确认安装到项目" })}
           </h3>
-          <Button variant="ghost" size="sm" onClick={onCancel} className="h-7 px-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onCancel}
+            className="h-7 px-2"
+          >
             <XCircle className="w-4 h-4" />
           </Button>
         </div>
@@ -91,11 +98,16 @@ export function InstallConfirmModal({
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
               )}
               <span className="text-xs font-medium text-foreground">
-                {t("installConfirm.auditScan", { defaultValue: "安全审计扫描" })}
+                {t("installConfirm.auditScan", {
+                  defaultValue: "安全审计扫描",
+                })}
               </span>
               <span className="text-[10px] text-muted-foreground">
                 ({audit.filesScanned}{" "}
-                {t("installConfirm.filesScanned", { defaultValue: "文件已扫描" })})
+                {t("installConfirm.filesScanned", {
+                  defaultValue: "文件已扫描",
+                })}
+                )
               </span>
             </div>
 
@@ -227,29 +239,32 @@ export function InstallConfirmModal({
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           : f.status === "overwrite"
                             ? "bg-amber-500/10 text-amber-700 dark:text-amber-400"
-                          : "bg-muted text-muted-foreground",
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
                       {f.status === "create"
                         ? t("installConfirm.create", { defaultValue: "创建" })
                         : f.status === "overwrite"
-                          ? t("installConfirm.overwrite", { defaultValue: "覆盖" })
-                        : t("installConfirm.skip", { defaultValue: "跳过" })}
+                          ? t("installConfirm.overwrite", {
+                              defaultValue: "覆盖",
+                            })
+                          : t("installConfirm.skip", { defaultValue: "跳过" })}
                     </span>
-                    {f.newContent && (
-                      expandedFile === f.path ? (
+                    {f.newContent &&
+                      (expandedFile === f.path ? (
                         <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" />
                       ) : (
                         <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />
-                      )
-                    )}
+                      ))}
                   </button>
                   {expandedFile === f.path && f.newContent && (
                     <div className="border-t border-border/40 px-3 py-2">
                       {f.existingContent && (
                         <div className="mb-2">
                           <span className="text-[9px] uppercase font-medium text-muted-foreground">
-                            {t("installConfirm.existing", { defaultValue: "现有内容" })}
+                            {t("installConfirm.existing", {
+                              defaultValue: "现有内容",
+                            })}
                           </span>
                           <pre className="text-[10px] font-mono text-muted-foreground bg-muted/30 rounded p-2 mt-1 max-h-32 overflow-auto whitespace-pre-wrap">
                             {f.existingContent.slice(0, 500)}
@@ -258,18 +273,18 @@ export function InstallConfirmModal({
                         </div>
                       )}
                       <div>
-                          <span className="text-[9px] uppercase font-medium text-muted-foreground">
+                        <span className="text-[9px] uppercase font-medium text-muted-foreground">
                           {f.status === "overwrite"
                             ? t("installConfirm.willOverwrite", {
                                 defaultValue: "将覆盖为",
                               })
                             : f.existingContent
-                            ? t("installConfirm.wouldOverwrite", {
-                                defaultValue: "将覆盖为 (当前跳过)",
-                              })
-                            : t("installConfirm.newContent", {
-                                defaultValue: "新内容",
-                              })}
+                              ? t("installConfirm.wouldOverwrite", {
+                                  defaultValue: "将覆盖为 (当前跳过)",
+                                })
+                              : t("installConfirm.newContent", {
+                                  defaultValue: "新内容",
+                                })}
                         </span>
                         <pre className="text-[10px] font-mono text-foreground bg-muted/20 rounded p-2 mt-1 max-h-48 overflow-auto whitespace-pre-wrap">
                           {f.newContent.slice(0, 1000)}

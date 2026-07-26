@@ -148,10 +148,7 @@ export const recipeComposerApi = {
   },
 
   /** Read a saved recipe file content. */
-  async readSavedRecipe(
-    projectId: string,
-    name: string,
-  ): Promise<string> {
+  async readSavedRecipe(projectId: string, name: string): Promise<string> {
     return await invoke<string>("read_saved_recipe_cmd", {
       projectId,
       name,
@@ -170,10 +167,7 @@ export const recipeComposerApi = {
   },
 
   /** Delete a saved recipe file. */
-  async deleteSavedRecipe(
-    projectId: string,
-    name: string,
-  ): Promise<void> {
+  async deleteSavedRecipe(projectId: string, name: string): Promise<void> {
     return await invoke<void>("delete_saved_recipe_cmd", {
       projectId,
       name,

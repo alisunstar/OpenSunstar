@@ -28,8 +28,8 @@ interface AIPortfolioMatrixProps {
 }
 
 const stageColors: Record<string, string> = {
-  mvp: "#a855f7",    // purple
-  rapid: "#10b981",  // emerald
+  mvp: "#a855f7", // purple
+  rapid: "#10b981", // emerald
   stable: "#3b82f6", // blue
 };
 
@@ -94,7 +94,9 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
   const midIdx = Math.floor(sorted.length / 2);
   const medianActivity =
     sorted.length > 0
-      ? (sorted[midIdx]!.activity + (sorted[midIdx - 1]?.activity ?? sorted[midIdx]!.activity)) / 2
+      ? (sorted[midIdx]!.activity +
+          (sorted[midIdx - 1]?.activity ?? sorted[midIdx]!.activity)) /
+        2
       : 5;
   const healthThreshold = 60;
 
@@ -105,7 +107,8 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
       if (p.activity >= medianActivity && p.health >= healthThreshold) q.star++;
       else if (p.activity >= medianActivity && p.health < healthThreshold)
         q.attention++;
-      else if (p.activity < medianActivity && p.health >= healthThreshold) q.stable++;
+      else if (p.activity < medianActivity && p.health >= healthThreshold)
+        q.stable++;
       else q.dormant++;
     }
     return q;
@@ -122,7 +125,9 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <Grid3x3 className="w-4 h-4 text-primary/60" />
-          <h3 className="text-sm font-semibold text-foreground">项目组合矩阵</h3>
+          <h3 className="text-sm font-semibold text-foreground">
+            项目组合矩阵
+          </h3>
         </div>
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground/60">
           {Object.entries(quadrants).map(([key, count]) => (
@@ -162,7 +167,10 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
                 value: "近 7 天提交数",
                 position: "insideBottom",
                 offset: -2,
-                style: { fontSize: 9, fill: "hsl(var(--muted-foreground) / 0.4)" },
+                style: {
+                  fontSize: 9,
+                  fill: "hsl(var(--muted-foreground) / 0.4)",
+                },
               }}
             />
             <YAxis
@@ -178,7 +186,10 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
                 angle: -90,
                 position: "insideLeft",
                 offset: 16,
-                style: { fontSize: 9, fill: "hsl(var(--muted-foreground) / 0.4)" },
+                style: {
+                  fontSize: 9,
+                  fill: "hsl(var(--muted-foreground) / 0.4)",
+                },
               }}
             />
             <Tooltip
@@ -189,11 +200,13 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
                 fontSize: "11px",
                 padding: "6px 10px",
               }}
-              formatter={((value: unknown, name?: unknown) => {
-                if (name === "活跃度") return [`${value} 次`, "活跃度"];
-                if (name === "健康度") return [`${value} 分`, "健康度"];
-                return [value, name];
-              }) as any}
+              formatter={
+                ((value: unknown, name?: unknown) => {
+                  if (name === "活跃度") return [`${value} 次`, "活跃度"];
+                  if (name === "健康度") return [`${value} 分`, "健康度"];
+                  return [value, name];
+                }) as any
+              }
               labelFormatter={(_, payload) => {
                 if (payload && payload.length > 0) {
                   const d = payload[0].payload as {
@@ -210,9 +223,7 @@ export function AIPortfolioMatrix({ points }: AIPortfolioMatrixProps) {
                         ? "快速迭代"
                         : "稳定维护";
                   const overlapHint =
-                    d.overlapCount > 1
-                      ? ` · 同坐标 ${d.overlapCount} 项`
-                      : "";
+                    d.overlapCount > 1 ? ` · 同坐标 ${d.overlapCount} 项` : "";
                   return `${d.name} (${stageLabel})${overlapHint}`;
                 }
                 return "";

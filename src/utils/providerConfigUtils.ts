@@ -619,9 +619,9 @@ const isOtherProviderSection = (
 ): boolean =>
   Boolean(
     sectionName &&
-      sectionName !== targetSectionName &&
-      (sectionName === "model_providers" ||
-        sectionName.startsWith("model_providers.")),
+    sectionName !== targetSectionName &&
+    (sectionName === "model_providers" ||
+      sectionName.startsWith("model_providers.")),
   );
 
 const getRecoverableBaseUrlAssignments = (

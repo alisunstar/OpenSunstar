@@ -339,7 +339,10 @@ export function buildProjectContext(
 // ── Tauri 命令封装 ──────────────────────────────
 
 function warn(msg: string, e: unknown): void {
-  console.warn(`[aiInsight] ${msg}:`, e instanceof Error ? e.message : String(e));
+  console.warn(
+    `[aiInsight] ${msg}:`,
+    e instanceof Error ? e.message : String(e),
+  );
 }
 
 /** 获取 AI 项目洞察 */

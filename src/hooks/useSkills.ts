@@ -453,7 +453,13 @@ export function useSkillsShLeaderboard(
 ) {
   const forceRefresh = refreshKey > 0 || forceNonce > 0;
   return useQuery({
-    queryKey: ["skills", "skillssh-leaderboard", period, refreshKey, forceNonce],
+    queryKey: [
+      "skills",
+      "skillssh-leaderboard",
+      period,
+      refreshKey,
+      forceNonce,
+    ],
     queryFn: () => skillsApi.getSkillsShLeaderboard(period, forceRefresh),
     staleTime: 6 * 60 * 60 * 1000,
     gcTime: 24 * 60 * 60 * 1000,

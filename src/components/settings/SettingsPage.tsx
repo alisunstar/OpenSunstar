@@ -315,9 +315,11 @@ export function SettingsPageContent({
                     />
 
                     <Accordion
-                      key={`outer-${proxyOpenSections.filter(s => !["proxy", "failover"].includes(s)).join(",")}`}
+                      key={`outer-${proxyOpenSections.filter((s) => !["proxy", "failover"].includes(s)).join(",")}`}
                       type="multiple"
-                      defaultValue={proxyOpenSections.filter(s => !["proxy", "failover"].includes(s))}
+                      defaultValue={proxyOpenSections.filter(
+                        (s) => !["proxy", "failover"].includes(s),
+                      )}
                       className="w-full space-y-4"
                     >
                       <AccordionItem

@@ -125,7 +125,8 @@ export function ProjectAssetEnableSwitch({
       </TooltipTrigger>
       <TooltipContent side="left" className="max-w-xs text-xs">
         {t("projectAssets.switchAllUnsupported", {
-          defaultValue: "当前资产类型在所有目标 CLI 上均不支持同步，无法为项目启用",
+          defaultValue:
+            "当前资产类型在所有目标 CLI 上均不支持同步，无法为项目启用",
         })}
         {firstUnsupported?.reasonDefault && (
           <span className="block mt-1 text-muted-foreground">

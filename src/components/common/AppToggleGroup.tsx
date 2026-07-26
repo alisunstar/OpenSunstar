@@ -51,11 +51,7 @@ export const AppToggleGroup: React.FC<AppToggleGroupProps> = ({
             <TooltipContent side="bottom">
               <p>
                 {label}
-                {isDisabled
-                  ? ` — ${disabledReason}`
-                  : enabled
-                    ? " ✓"
-                    : ""}
+                {isDisabled ? ` — ${disabledReason}` : enabled ? " ✓" : ""}
               </p>
             </TooltipContent>
           </Tooltip>

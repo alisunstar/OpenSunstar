@@ -35,24 +35,32 @@ import {
 
 type PanelTab = "connect" | "profiles" | "effective" | "diff";
 
-export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) => void }) {
+export function TeamConfigPanel({
+  onConnected,
+}: {
+  onConnected?: (path: string) => void;
+}) {
   const [activeTab, setActiveTab] = useState<PanelTab>("connect");
   const [sourcePath, setSourcePath] = useState("");
   const [connecting, setConnecting] = useState(false);
-  const [connectResult, setConnectResult] = useState<TeamConnectResponse | null>(null);
+  const [connectResult, setConnectResult] =
+    useState<TeamConnectResponse | null>(null);
   const [connectError, setConnectError] = useState<string | null>(null);
 
   // Profiles
   const [profiles, setProfiles] = useState<TeamProfileSummary[]>([]);
 
   // Effective config
-  const [effectiveConfig, setEffectiveConfig] = useState<EffectiveConfig | null>(null);
+  const [effectiveConfig, setEffectiveConfig] =
+    useState<EffectiveConfig | null>(null);
   const [effectiveLoading, setEffectiveLoading] = useState(false);
   const [effectiveError, setEffectiveError] = useState<string | null>(null);
   const [targetApp, setTargetApp] = useState("claude_code");
 
   // Validation
-  const [validation, setValidation] = useState<TeamValidateResponse | null>(null);
+  const [validation, setValidation] = useState<TeamValidateResponse | null>(
+    null,
+  );
 
   // Diff
   const [releaseDiff, setReleaseDiff] = useState<ReleaseDiff | null>(null);
@@ -76,7 +84,9 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
       setValidation(val);
       setActiveTab("profiles");
     } catch (e: unknown) {
-      setConnectError(typeof e === "string" ? e : (e as Error)?.message ?? "连接失败");
+      setConnectError(
+        typeof e === "string" ? e : ((e as Error)?.message ?? "连接失败"),
+      );
     } finally {
       setConnecting(false);
     }
@@ -87,11 +97,16 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
     setEffectiveLoading(true);
     setEffectiveError(null);
     try {
-      const config = await teamConfigApi.getEffectiveState(sourcePath.trim(), targetApp);
+      const config = await teamConfigApi.getEffectiveState(
+        sourcePath.trim(),
+        targetApp,
+      );
       setEffectiveConfig(config);
       setActiveTab("effective");
     } catch (e: unknown) {
-      setEffectiveError(typeof e === "string" ? e : (e as Error)?.message ?? "编译失败");
+      setEffectiveError(
+        typeof e === "string" ? e : ((e as Error)?.message ?? "编译失败"),
+      );
     } finally {
       setEffectiveLoading(false);
     }
@@ -107,7 +122,9 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
       setReleaseDiff(diff);
       setActiveTab("diff");
     } catch (e: unknown) {
-      setDiffError(typeof e === "string" ? e : (e as Error)?.message ?? "Diff 失败");
+      setDiffError(
+        typeof e === "string" ? e : ((e as Error)?.message ?? "Diff 失败"),
+      );
     } finally {
       setDiffLoading(false);
     }
@@ -137,8 +154,16 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
             placeholder="团队配置包路径（本地目录或 Git 仓库）"
             className="flex-1 rounded-lg border border-border/60 bg-background/50 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <Button size="sm" onClick={handleConnect} disabled={connecting || !sourcePath.trim()}>
-            {connecting ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : "连接"}
+          <Button
+            size="sm"
+            onClick={handleConnect}
+            disabled={connecting || !sourcePath.trim()}
+          >
+            {connecting ? (
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              "连接"
+            )}
           </Button>
         </div>
 
@@ -155,17 +180,33 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
             <InfoChip label="名称" value={connectResult.name} />
             <InfoChip
               label="类型"
-              value={connectResult.sourceKind === "git" ? "Git 仓库" : "本地目录"}
+              value={
+                connectResult.sourceKind === "git" ? "Git 仓库" : "本地目录"
+              }
             />
-            <InfoChip label="Profiles" value={String(connectResult.profilesCount)} />
-            <InfoChip label="策略" value={String(connectResult.policiesCount)} />
+            <InfoChip
+              label="Profiles"
+              value={String(connectResult.profilesCount)}
+            />
+            <InfoChip
+              label="策略"
+              value={String(connectResult.policiesCount)}
+            />
             {connectResult.branch && (
-              <InfoChip label="分支" value={connectResult.branch} icon={<GitBranch className="h-3 w-3" />} />
+              <InfoChip
+                label="分支"
+                value={connectResult.branch}
+                icon={<GitBranch className="h-3 w-3" />}
+              />
             )}
             {validation && (
               <InfoChip
                 label="校验"
-                value={validation.passed ? "通过" : `${validation.errors.length} 错误`}
+                value={
+                  validation.passed
+                    ? "通过"
+                    : `${validation.errors.length} 错误`
+                }
                 icon={
                   validation.passed ? (
                     <ShieldCheck className="h-3 w-3 text-emerald-500" />
@@ -181,7 +222,10 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
         {connectResult?.warnings && connectResult.warnings.length > 0 && (
           <div className="mt-2 space-y-1">
             {connectResult.warnings.map((w, i) => (
-              <p key={i} className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400">
+              <p
+                key={i}
+                className="flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400"
+              >
                 <AlertTriangle className="h-3 w-3 shrink-0" />
                 {w}
               </p>
@@ -192,7 +236,10 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
 
       {/* 连接后：Tabs 展示 Profiles / 有效配置 / Diff */}
       {connectResult && (
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as PanelTab)}>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as PanelTab)}
+        >
           <TabsList className="w-full justify-start">
             <TabsTrigger value="profiles" className="text-xs">
               <Layers className="mr-1 h-3 w-3" />
@@ -223,9 +270,13 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                     </span>
                   </div>
                   {p.description && (
-                    <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {p.description}
+                    </p>
                   )}
-                  <p className="mt-1 text-[10px] text-muted-foreground/60 font-mono">{p.profileId}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground/60 font-mono">
+                    {p.profileId}
+                  </p>
                 </div>
               ))}
               {profiles.length === 0 && (
@@ -248,7 +299,12 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                   <option value="claude_code">Claude Code</option>
                   <option value="codex">Codex</option>
                 </select>
-                <Button size="sm" variant="outline" onClick={handleExplain} disabled={effectiveLoading}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleExplain}
+                  disabled={effectiveLoading}
+                >
                   {effectiveLoading ? (
                     <RefreshCw className="h-3 w-3 animate-spin" />
                   ) : (
@@ -257,10 +313,16 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                 </Button>
               </div>
 
-              {effectiveError && <p className="text-xs text-destructive">{effectiveError}</p>}
+              {effectiveError && (
+                <p className="text-xs text-destructive">{effectiveError}</p>
+              )}
 
               {effectiveConfig && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-2"
+                >
                   <p className="text-[11px] text-muted-foreground font-mono">
                     SHA-256: {effectiveConfig.configSha256.slice(0, 16)}…
                   </p>
@@ -277,7 +339,10 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                           </span>
                           {item.provenance.length > 0 && (
                             <p className="mt-0.5 text-[10px] text-muted-foreground">
-                              {item.provenance[item.provenance.length - 1].explanation}
+                              {
+                                item.provenance[item.provenance.length - 1]
+                                  .explanation
+                              }
                             </p>
                           )}
                         </div>
@@ -290,7 +355,10 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                         冲突
                       </p>
                       {effectiveConfig.conflicts.map((c, i) => (
-                        <p key={i} className="text-[11px] text-amber-600/80 dark:text-amber-400/80">
+                        <p
+                          key={i}
+                          className="text-[11px] text-amber-600/80 dark:text-amber-400/80"
+                        >
                           {c.assetId}: {c.message}
                         </p>
                       ))}
@@ -304,7 +372,12 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
           {/* Release Diff Tab */}
           <TabsContent value="diff" className="mt-3">
             <div className="space-y-3">
-              <Button size="sm" variant="outline" onClick={handleDiff} disabled={diffLoading}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDiff}
+                disabled={diffLoading}
+              >
                 {diffLoading ? (
                   <RefreshCw className="h-3 w-3 animate-spin" />
                 ) : (
@@ -313,10 +386,16 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                 比对 lock.json 基线
               </Button>
 
-              {diffError && <p className="text-xs text-destructive">{diffError}</p>}
+              {diffError && (
+                <p className="text-xs text-destructive">{diffError}</p>
+              )}
 
               {releaseDiff && (
-                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="space-y-2"
+                >
                   {!releaseDiff.summary.hasChanges ? (
                     <p className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 py-2">
                       <CheckCircle2 className="h-3.5 w-3.5" />
@@ -338,13 +417,31 @@ export function TeamConfigPanel({ onConnected }: { onConnected?: (path: string) 
                       </div>
                       <div className="space-y-1 max-h-64 overflow-y-auto">
                         {releaseDiff.added.map((e) => (
-                          <DiffRow key={e.path} icon={<Plus className="h-3 w-3 text-emerald-500" />} path={e.path} detail={`${e.newSize ?? 0} B`} color="text-emerald-600 dark:text-emerald-400" />
+                          <DiffRow
+                            key={e.path}
+                            icon={<Plus className="h-3 w-3 text-emerald-500" />}
+                            path={e.path}
+                            detail={`${e.newSize ?? 0} B`}
+                            color="text-emerald-600 dark:text-emerald-400"
+                          />
                         ))}
                         {releaseDiff.removed.map((e) => (
-                          <DiffRow key={e.path} icon={<Minus className="h-3 w-3 text-red-500" />} path={e.path} detail="" color="text-red-600 dark:text-red-400" />
+                          <DiffRow
+                            key={e.path}
+                            icon={<Minus className="h-3 w-3 text-red-500" />}
+                            path={e.path}
+                            detail=""
+                            color="text-red-600 dark:text-red-400"
+                          />
                         ))}
                         {releaseDiff.modified.map((e) => (
-                          <DiffRow key={e.path} icon={<Pencil className="h-3 w-3 text-amber-500" />} path={e.path} detail={`${e.oldSize ?? 0} → ${e.newSize ?? 0} B`} color="text-amber-600 dark:text-amber-400" />
+                          <DiffRow
+                            key={e.path}
+                            icon={<Pencil className="h-3 w-3 text-amber-500" />}
+                            path={e.path}
+                            detail={`${e.oldSize ?? 0} → ${e.newSize ?? 0} B`}
+                            color="text-amber-600 dark:text-amber-400"
+                          />
                         ))}
                       </div>
                     </>
@@ -382,13 +479,19 @@ function InfoChip({
 function DecisionIcon({ decision }: { decision: string }) {
   switch (decision) {
     case "enabled":
-      return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />;
+      return (
+        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5" />
+      );
     case "denied":
       return <XCircle className="h-3.5 w-3.5 text-red-500 shrink-0 mt-0.5" />;
     case "conflicted":
-      return <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />;
+      return (
+        <AlertTriangle className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+      );
     default:
-      return <span className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0 mt-0.5" />;
+      return (
+        <span className="h-3.5 w-3.5 rounded-full border border-muted-foreground/30 shrink-0 mt-0.5" />
+      );
   }
 }
 
@@ -407,7 +510,9 @@ function DiffRow({
     <div className="flex items-center gap-2 rounded-md px-2 py-1 text-[11px] hover:bg-muted/30">
       {icon}
       <span className={`font-mono ${color}`}>{path}</span>
-      {detail && <span className="ml-auto text-muted-foreground">{detail}</span>}
+      {detail && (
+        <span className="ml-auto text-muted-foreground">{detail}</span>
+      )}
     </div>
   );
 }

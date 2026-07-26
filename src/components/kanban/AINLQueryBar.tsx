@@ -50,7 +50,8 @@ export function AINLQueryBar({
   const [costSummary, setCostSummary] = useState<AICostSummary | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const { refreshToken } = useAICost();
-  const { answer, isLoading, error, costEstimate, queryLogId, ask } = useNLQuery();
+  const { answer, isLoading, error, costEstimate, queryLogId, ask } =
+    useNLQuery();
 
   useEffect(() => {
     if (!aiConfigured) return;
@@ -155,9 +156,7 @@ export function AINLQueryBar({
             ) : (
               <ChevronDown className="h-3 w-3" />
             )}
-            <span>
-              近 {costSummary?.period_days ?? 30} 天分析明细
-            </span>
+            <span>近 {costSummary?.period_days ?? 30} 天分析明细</span>
           </button>
           {expanded && (
             <div
@@ -192,7 +191,10 @@ export function AINLQueryBar({
             </span>
             {costEstimate > 0 && (
               <span className="ml-auto text-[10px] text-muted-foreground/40 tabular-nums">
-                ¥{costEstimate < 0.001 ? costEstimate.toFixed(4) : costEstimate.toFixed(3)}
+                ¥
+                {costEstimate < 0.001
+                  ? costEstimate.toFixed(4)
+                  : costEstimate.toFixed(3)}
               </span>
             )}
           </div>

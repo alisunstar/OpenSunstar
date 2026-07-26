@@ -113,10 +113,7 @@ function classifyProject(
 
   // Classify level
   let level: HealthEntry["level"] = "ok";
-  if (
-    (score !== null && score < READINESS_WARN_THRESHOLD) ||
-    driftCount > 0
-  ) {
+  if ((score !== null && score < READINESS_WARN_THRESHOLD) || driftCount > 0) {
     level = "alert";
   } else if (
     (score !== null && score < READINESS_OK_THRESHOLD) ||

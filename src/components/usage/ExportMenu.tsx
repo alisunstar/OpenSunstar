@@ -59,7 +59,12 @@ export function ExportMenu({ appType, startDate, endDate }: ExportMenuProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 px-3 text-xs" disabled={exporting}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-9 px-3 text-xs"
+          disabled={exporting}
+        >
           {exporting ? (
             <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
           ) : (

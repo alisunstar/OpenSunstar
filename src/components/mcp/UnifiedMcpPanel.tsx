@@ -13,7 +13,15 @@ import type { McpServer } from "@/types";
 import type { AppId } from "@/lib/api/types";
 import McpFormModal from "./McpFormModal";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { Edit3, Trash2, ExternalLink, Wifi, WifiOff, ShieldAlert, Loader2 } from "lucide-react";
+import {
+  Edit3,
+  Trash2,
+  ExternalLink,
+  Wifi,
+  WifiOff,
+  ShieldAlert,
+  Loader2,
+} from "lucide-react";
 import { settingsApi } from "@/lib/api";
 import { mcpPresets } from "@/config/mcpPresets";
 import { toast } from "sonner";
@@ -23,7 +31,10 @@ import { AppToggleGroup } from "@/components/common/AppToggleGroup";
 import { ListItemRow } from "@/components/common/ListItemRow";
 import { useMcpTestConnection } from "@/hooks/useMcpDiscovery";
 import { mcpRegistryApi } from "@/lib/api/mcpRegistry";
-import type { McpConnectionStatus, McpConnectionTestResult } from "@/lib/api/mcpRegistry";
+import type {
+  McpConnectionStatus,
+  McpConnectionTestResult,
+} from "@/lib/api/mcpRegistry";
 
 interface UnifiedMcpPanelProps {
   onOpenChange: (open: boolean) => void;
@@ -122,7 +133,9 @@ const UnifiedMcpPanel = React.forwardRef<
   // 批量测试所有 MCP 服务器链接
   const handleBatchTestConnections = async () => {
     if (serverEntries.length === 0) {
-      toast.error(t("mcp.test.noServersToTest", { defaultValue: "没有可测试的服务器" }));
+      toast.error(
+        t("mcp.test.noServersToTest", { defaultValue: "没有可测试的服务器" }),
+      );
       return;
     }
     setBatchTestRunning(true);
@@ -230,7 +243,9 @@ const UnifiedMcpPanel = React.forwardRef<
             onClick={handleBatchTestConnections}
             disabled={batchTestRunning}
             className="h-9 px-3 flex-shrink-0"
-            title={t("mcp.test.batchTestConnection", { defaultValue: "批量测试所有服务器链接" })}
+            title={t("mcp.test.batchTestConnection", {
+              defaultValue: "批量测试所有服务器链接",
+            })}
           >
             {batchTestRunning ? (
               <Loader2 size={14} className="animate-spin mr-1" />
@@ -333,7 +348,10 @@ const getTestStatusIcon = (status: McpConnectionStatus | null) => {
   }
 };
 
-const getTestStatusLabel = (status: McpConnectionStatus | null, t: (k: string, options?: Record<string, unknown>) => string) => {
+const getTestStatusLabel = (
+  status: McpConnectionStatus | null,
+  t: (k: string, options?: Record<string, unknown>) => string,
+) => {
   switch (status) {
     case "connected":
       return t("mcp.test.connected", { defaultValue: "已连接" });
@@ -370,7 +388,9 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
   const tags = server.tags || meta?.tags;
 
   const testMutation = useMcpTestConnection();
-  const [testStatus, setTestStatus] = useState<McpConnectionStatus | null>(null);
+  const [testStatus, setTestStatus] = useState<McpConnectionStatus | null>(
+    null,
+  );
   const [testMessage, setTestMessage] = useState<string>("");
 
   const openDocs = async () => {
@@ -387,11 +407,15 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
     setTestStatus(null);
     setTestMessage("");
     try {
-      const result = await testMutation.mutateAsync(server.server as Record<string, unknown>);
+      const result = await testMutation.mutateAsync(
+        server.server as Record<string, unknown>,
+      );
       setTestStatus(result.status);
       setTestMessage(result.message);
       if (result.server_info?.name) {
-        setTestMessage(`${result.message} (${result.server_info.name}${result.server_info.version ? " v" + result.server_info.version : ""})`);
+        setTestMessage(
+          `${result.message} (${result.server_info.name}${result.server_info.version ? " v" + result.server_info.version : ""})`,
+        );
       }
     } catch (e: any) {
       setTestStatus("unreachable");
@@ -425,7 +449,9 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
               title={testMessage}
             >
               {getTestStatusIcon(testStatus)}
-              <span className="text-muted-foreground/80">{getTestStatusLabel(testStatus, t)}</span>
+              <span className="text-muted-foreground/80">
+                {getTestStatusLabel(testStatus, t)}
+              </span>
             </span>
           )}
         </div>
@@ -444,7 +470,10 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
         )}
         {/* 测试结果消息 */}
         {testMessage && testStatus && testStatus !== "connected" && (
-          <p className="text-[10px] text-muted-foreground/70 truncate mt-0.5" title={testMessage}>
+          <p
+            className="text-[10px] text-muted-foreground/70 truncate mt-0.5"
+            title={testMessage}
+          >
             {testMessage}
           </p>
         )}
@@ -470,7 +499,9 @@ const UnifiedMcpListItem: React.FC<UnifiedMcpListItemProps> = ({
           {isTesting ? (
             <Loader2 size={13} className="animate-spin" />
           ) : (
-            getTestStatusIcon(testStatus) || <Wifi size={13} className="text-muted-foreground/50" />
+            getTestStatusIcon(testStatus) || (
+              <Wifi size={13} className="text-muted-foreground/50" />
+            )
           )}
         </Button>
         <Button

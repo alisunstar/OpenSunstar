@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Github, Upload, Download, Trash2, CheckCircle, Loader2 } from "lucide-react";
+import {
+  Github,
+  Upload,
+  Download,
+  Trash2,
+  CheckCircle,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -20,14 +27,24 @@ export function GistSyncSection() {
   const [loading, setLoading] = useState<string | null>(null);
 
   useEffect(() => {
-    invoke<boolean>("gist_sync_is_configured").then(setConfigured).catch(() => {});
+    invoke<boolean>("gist_sync_is_configured")
+      .then(setConfigured)
+      .catch(() => {});
   }, []);
 
   const testConnection = useCallback(async () => {
     setLoading("test");
     try {
-      const result = await invoke<{ status: string; username: string; gist_id: string }>("gist_sync_test_connection");
-      setStatus({ connected: true, username: result.username, gistId: result.gist_id });
+      const result = await invoke<{
+        status: string;
+        username: string;
+        gist_id: string;
+      }>("gist_sync_test_connection");
+      setStatus({
+        connected: true,
+        username: result.username,
+        gistId: result.gist_id,
+      });
       toast.success(
         t("gistSync.connectedAs", {
           username: result.username,
@@ -78,14 +95,16 @@ export function GistSyncSection() {
   const upload = useCallback(async () => {
     setLoading("upload");
     try {
-      const result = await invoke<{ status: string; gist_id: string }>("gist_sync_upload");
+      const result = await invoke<{ status: string; gist_id: string }>(
+        "gist_sync_upload",
+      );
       toast.success(
         t("gistSync.uploadSuccess", {
           gistId: result.gist_id.slice(0, 8),
           defaultValue: "已上传到 Gist {{gistId}}...",
         }),
       );
-      setStatus((prev) => prev ? { ...prev, gistId: result.gist_id } : prev);
+      setStatus((prev) => (prev ? { ...prev, gistId: result.gist_id } : prev));
     } catch (e) {
       toast.error(
         t("gistSync.uploadFailed", {
@@ -101,10 +120,16 @@ export function GistSyncSection() {
   const download = useCallback(async () => {
     setLoading("download");
     try {
-      const result = await invoke<{ status: string; gist_id: string; device_name: string }>("gist_sync_download");
+      const result = await invoke<{
+        status: string;
+        gist_id: string;
+        device_name: string;
+      }>("gist_sync_download");
       toast.success(
         t("gistSync.downloadSuccess", {
-          device: result.device_name || t("gistSync.remoteDevice", { defaultValue: "远程设备" }),
+          device:
+            result.device_name ||
+            t("gistSync.remoteDevice", { defaultValue: "远程设备" }),
           defaultValue: "已从 {{device}} 下载",
         }),
       );
@@ -153,7 +178,9 @@ export function GistSyncSection() {
 
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <Github className="w-4 h-4" />
-        <span>{t("gistSync.sectionLabel", { defaultValue: "GitHub Gist 同步" })}</span>
+        <span>
+          {t("gistSync.sectionLabel", { defaultValue: "GitHub Gist 同步" })}
+        </span>
         {status?.connected && (
           <span className="flex items-center gap-1 text-green-600 dark:text-green-400">
             <CheckCircle className="w-3 h-3" />
@@ -178,7 +205,10 @@ export function GistSyncSection() {
               onChange={(e) => setPat(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={savePat} disabled={loading === "save" || !pat.trim()}>
+            <Button
+              onClick={savePat}
+              disabled={loading === "save" || !pat.trim()}
+            >
               {loading === "save" ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
@@ -198,7 +228,12 @@ export function GistSyncSection() {
             </p>
           )}
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={testConnection} disabled={!!loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={testConnection}
+              disabled={!!loading}
+            >
               {loading === "test" ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
@@ -206,7 +241,12 @@ export function GistSyncSection() {
               )}
               {t("gistSync.test", { defaultValue: "测试连接" })}
             </Button>
-            <Button variant="outline" size="sm" onClick={upload} disabled={!!loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={upload}
+              disabled={!!loading}
+            >
               {loading === "upload" ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
@@ -214,7 +254,12 @@ export function GistSyncSection() {
               )}
               {t("gistSync.upload", { defaultValue: "上传" })}
             </Button>
-            <Button variant="outline" size="sm" onClick={download} disabled={!!loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={download}
+              disabled={!!loading}
+            >
               {loading === "download" ? (
                 <Loader2 className="w-4 h-4 mr-1 animate-spin" />
               ) : (
@@ -222,7 +267,13 @@ export function GistSyncSection() {
               )}
               {t("gistSync.download", { defaultValue: "下载" })}
             </Button>
-            <Button variant="ghost" size="sm" onClick={clearConfig} disabled={!!loading} className="text-destructive hover:text-destructive">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={clearConfig}
+              disabled={!!loading}
+              className="text-destructive hover:text-destructive"
+            >
               <Trash2 className="w-4 h-4 mr-1" />
               {t("gistSync.clear", { defaultValue: "清除" })}
             </Button>

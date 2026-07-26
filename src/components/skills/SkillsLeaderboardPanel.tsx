@@ -54,7 +54,11 @@ function formatInstallCount(value: number): string {
   }).format(value);
 }
 
-function formatNextSyncAt(syncedAtMs: number, ttlSecs: number, locale: string): string {
+function formatNextSyncAt(
+  syncedAtMs: number,
+  ttlSecs: number,
+  locale: string,
+): string {
   const nextMs = syncedAtMs + ttlSecs * 1000;
   return formatSyncedAt(nextMs, locale);
 }
@@ -126,7 +130,11 @@ export function SkillsLeaderboardPanel({
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      const { title, description } = formatSkillError(msg, t, "skills.installFailed");
+      const { title, description } = formatSkillError(
+        msg,
+        t,
+        "skills.installFailed",
+      );
       toast.error(title, { description, duration: 10000 });
     }
   };
@@ -143,7 +151,8 @@ export function SkillsLeaderboardPanel({
   const periodDesc =
     period === "all_time"
       ? t("skills.leaderboard.allTimeDesc", {
-          defaultValue: "与 skills.sh 官网 All Time 排行榜 TOP50 对齐（历史总安装量）",
+          defaultValue:
+            "与 skills.sh 官网 All Time 排行榜 TOP50 对齐（历史总安装量）",
         })
       : t("skills.leaderboard.trendingDesc", {
           defaultValue: "与 skills.sh 官网 Trending (24h) 排行榜 TOP50 对齐",
@@ -172,7 +181,9 @@ export function SkillsLeaderboardPanel({
                 <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
                   skills.sh
                 </span>
-                <span className="text-[10px] text-muted-foreground">TOP 50</span>
+                <span className="text-[10px] text-muted-foreground">
+                  TOP 50
+                </span>
               </div>
               <p className="text-xs text-muted-foreground">{periodDesc}</p>
               <p className="text-[11px] text-muted-foreground/90">
@@ -225,12 +236,18 @@ export function SkillsLeaderboardPanel({
             </span>
             {data.fromCache && (
               <span>
-                {t("skills.leaderboard.fromCache", { defaultValue: "本地缓存" })}
+                {t("skills.leaderboard.fromCache", {
+                  defaultValue: "本地缓存",
+                })}
               </span>
             )}
             <span>
               {t("skills.leaderboard.nextSyncAt", {
-                time: formatNextSyncAt(data.syncedAt, cacheTtlSecs, i18n.language),
+                time: formatNextSyncAt(
+                  data.syncedAt,
+                  cacheTtlSecs,
+                  i18n.language,
+                ),
                 defaultValue: `下次自动同步约 ${formatNextSyncAt(data.syncedAt, cacheTtlSecs, i18n.language)}`,
               })}
             </span>

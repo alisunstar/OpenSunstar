@@ -326,10 +326,8 @@ export function useAgentReadiness(
       if (!enabled || !projectPath) return;
       const config = await buildProviderConfig();
 
-      const scanEffective =
-        options?.scanEffective ?? scanEffectiveRef.current;
-      const forceRefresh =
-        options?.forceRefresh ?? forceRefreshRef.current;
+      const scanEffective = options?.scanEffective ?? scanEffectiveRef.current;
+      const forceRefresh = options?.forceRefresh ?? forceRefreshRef.current;
       forceRefreshRef.current = false;
 
       abortRef.current = false;

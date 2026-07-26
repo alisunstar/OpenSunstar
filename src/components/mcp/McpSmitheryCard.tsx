@@ -55,7 +55,9 @@ export const McpSmitheryCard: React.FC<McpSmitheryCardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [selectedApps, setSelectedApps] = useState<McpApps>({ ...DEFAULT_APPS });
+  const [selectedApps, setSelectedApps] = useState<McpApps>({
+    ...DEFAULT_APPS,
+  });
 
   const { data: existingServers } = useAllMcpServers();
   const installMutation = useInstallFromSmithery();
@@ -79,7 +81,8 @@ export const McpSmitheryCard: React.FC<McpSmitheryCardProps> = ({
   };
 
   const handleOpenWebsite = async () => {
-    const url = server.homepage || `https://smithery.ai/server/${server.qualifiedName}`;
+    const url =
+      server.homepage || `https://smithery.ai/server/${server.qualifiedName}`;
     try {
       await settingsApi.openExternal(url);
     } catch {
@@ -98,7 +101,10 @@ export const McpSmitheryCard: React.FC<McpSmitheryCardProps> = ({
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
-              <Server size={14} className="text-muted-foreground flex-shrink-0" />
+              <Server
+                size={14}
+                className="text-muted-foreground flex-shrink-0"
+              />
               <CardTitle className="text-sm font-semibold truncate">
                 {displayName}
               </CardTitle>

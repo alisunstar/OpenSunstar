@@ -37,7 +37,9 @@ export function useProjectAssets(projectId: string | null) {
   const [skillLinks, setSkillLinks] = useState<ProjectConfigLink[]>([]);
   const [promptLinks, setPromptLinks] = useState<ProjectPromptLink[]>([]);
   const [linksByType, setLinksByType] =
-    useState<Record<ExtendedProjectAssetType, ProjectAssetLink[]>>(EMPTY_EXTENDED);
+    useState<Record<ExtendedProjectAssetType, ProjectAssetLink[]>>(
+      EMPTY_EXTENDED,
+    );
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
@@ -52,13 +54,16 @@ export function useProjectAssets(projectId: string | null) {
 
     setLoading(true);
     try {
-      const [proj, mcp, skills, prompts, ...extendedResults] = await Promise.all([
-        projectsApi.getById(projectId),
-        projectsApi.getMcpServers(projectId),
-        projectsApi.getSkills(projectId),
-        projectsApi.getPrompts(projectId),
-        ...EXTENDED_TYPES.map((type) => projectsApi.getAssetLinks(projectId, type)),
-      ]);
+      const [proj, mcp, skills, prompts, ...extendedResults] =
+        await Promise.all([
+          projectsApi.getById(projectId),
+          projectsApi.getMcpServers(projectId),
+          projectsApi.getSkills(projectId),
+          projectsApi.getPrompts(projectId),
+          ...EXTENDED_TYPES.map((type) =>
+            projectsApi.getAssetLinks(projectId, type),
+          ),
+        ]);
 
       setProject(proj);
       setMcpLinks(mcp);

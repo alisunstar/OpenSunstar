@@ -128,7 +128,9 @@ export function AppSwitcher({
                   : "max-w-[120px] opacity-100 ml-2",
               )}
             >
-              {compact ? (compactLabels[app] || appDisplayName[app]) : appDisplayName[app]}
+              {compact
+                ? compactLabels[app] || appDisplayName[app]
+                : appDisplayName[app]}
             </span>
           </button>
         );

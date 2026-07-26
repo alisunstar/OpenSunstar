@@ -101,24 +101,27 @@ export function ConvertPage() {
     [sourceApp],
   );
 
-  const loadSources = useCallback(async (app: string) => {
-    setLoadingSources(true);
-    try {
-      const items = await detectConvertSources(app);
-      setSources(items);
-      const first = items.find((i) => i.exists) ?? items[0];
-      if (first) setSelectedType(first.contentType);
-    } catch (e) {
-      toast.error(
-        t("convert.loadFailed", {
-          defaultValue: "检测源配置失败",
-        }),
-      );
-      setSources([]);
-    } finally {
-      setLoadingSources(false);
-    }
-  }, [t]);
+  const loadSources = useCallback(
+    async (app: string) => {
+      setLoadingSources(true);
+      try {
+        const items = await detectConvertSources(app);
+        setSources(items);
+        const first = items.find((i) => i.exists) ?? items[0];
+        if (first) setSelectedType(first.contentType);
+      } catch (e) {
+        toast.error(
+          t("convert.loadFailed", {
+            defaultValue: "检测源配置失败",
+          }),
+        );
+        setSources([]);
+      } finally {
+        setLoadingSources(false);
+      }
+    },
+    [t],
+  );
 
   useEffect(() => {
     void loadSources(sourceApp);
@@ -173,7 +176,9 @@ export function ConvertPage() {
     } catch (e) {
       toast.error(
         String(e) ||
-          t("convert.applyFailed", { defaultValue: "写入失败，已尝试保留备份" }),
+          t("convert.applyFailed", {
+            defaultValue: "写入失败，已尝试保留备份",
+          }),
       );
     } finally {
       setApplying(false);
@@ -221,12 +226,7 @@ export function ConvertPage() {
                 )}
               >
                 {t(`convert.steps.${s}`, {
-                  defaultValue: [
-                    "选择源",
-                    "预览源",
-                    "预览转换",
-                    "确认写入",
-                  ][i],
+                  defaultValue: ["选择源", "预览源", "预览转换", "确认写入"][i],
                 })}
               </span>
               {i < STEPS.length - 1 && (
@@ -300,7 +300,9 @@ export function ConvertPage() {
                         </div>
                         {!item.exists && (
                           <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
-                            {t("convert.notFound", { defaultValue: "文件不存在" })}
+                            {t("convert.notFound", {
+                              defaultValue: "文件不存在",
+                            })}
                           </div>
                         )}
                       </div>
@@ -425,7 +427,8 @@ export function ConvertPage() {
                 onCheckedChange={(v) => setOverwrite(v === true)}
               />
               {t("convert.overwrite", {
-                defaultValue: "覆盖已存在的目标文件（写入前会自动备份 .bak.opensunstar）",
+                defaultValue:
+                  "覆盖已存在的目标文件（写入前会自动备份 .bak.opensunstar）",
               })}
             </label>
 
@@ -450,7 +453,8 @@ export function ConvertPage() {
             <Button
               disabled={
                 (step === "source" && !canNextFromSource) ||
-                (step === "previewTarget" && (!targetApp || !preview || previewing))
+                (step === "previewTarget" &&
+                  (!targetApp || !preview || previewing))
               }
               onClick={() => setStep(STEPS[stepIndex + 1])}
             >

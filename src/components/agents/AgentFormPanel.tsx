@@ -8,10 +8,7 @@ import { FullScreenPanel } from "@/components/common/FullScreenPanel";
 import { AppToggleGroup } from "@/components/common/AppToggleGroup";
 import type { Agent } from "@/lib/api/agents";
 import type { AppId } from "@/lib/api";
-import {
-  AGENT_APP_IDS,
-  AGENT_DISABLED_APP_KEYS,
-} from "./agentAppConfig";
+import { AGENT_APP_IDS, AGENT_DISABLED_APP_KEYS } from "./agentAppConfig";
 
 const DEFAULT_AGENT_CONTENT = `---
 name: code-reviewer

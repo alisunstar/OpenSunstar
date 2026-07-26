@@ -23,7 +23,9 @@ vi.mock("@/components/projects/ProjectRecipeComposer", () => ({
   ),
 }));
 vi.mock("@/components/projects/ProjectDesignContractPanel", () => ({
-  default: ({ projectId }: { projectId: string }) => <div>设计面板：{projectId}</div>,
+  default: ({ projectId }: { projectId: string }) => (
+    <div>设计面板：{projectId}</div>
+  ),
 }));
 
 const projects = [
@@ -43,10 +45,14 @@ describe("MethodologyPage", () => {
     render(<MethodologyPage projects={projects} />);
 
     await waitFor(() =>
-      expect(screen.getByRole("tab", { name: "工作流配置" })).toBeInTheDocument(),
+      expect(
+        screen.getByRole("tab", { name: "工作流配置" }),
+      ).toBeInTheDocument(),
     );
     expect(screen.getAllByLabelText("当前配置项目")).toHaveLength(1);
-    expect((screen.getByLabelText("当前配置项目") as HTMLSelectElement).value).toBe("");
+    expect(
+      (screen.getByLabelText("当前配置项目") as HTMLSelectElement).value,
+    ).toBe("");
     expect(screen.queryByText("工作流面板：alpha")).not.toBeInTheDocument();
   });
 

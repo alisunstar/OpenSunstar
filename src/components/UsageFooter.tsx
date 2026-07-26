@@ -134,7 +134,10 @@ const UsageFooter: React.FC<UsageFooterProps> = ({
                 className="p-1 rounded hover:bg-amber-100 dark:hover:bg-amber-800/40 transition-colors disabled:opacity-50"
                 title={t("usage.refreshUsage")}
               >
-                <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+                <RefreshCw
+                  size={12}
+                  className={loading ? "animate-spin" : ""}
+                />
               </button>
             </div>
           </div>

@@ -50,9 +50,7 @@ export function DiffConfirmDialog({
             <Eye className="h-5 w-5 text-blue-500" />
             {title}
           </DialogTitle>
-          {description && (
-            <DialogDescription>{description}</DialogDescription>
-          )}
+          {description && <DialogDescription>{description}</DialogDescription>}
           {filePath && (
             <p className="text-xs font-mono text-muted-foreground truncate">
               {filePath}

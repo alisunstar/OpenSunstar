@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, XCircle, FlaskConical, Key, Globe } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  FlaskConical,
+  Key,
+  Globe,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -111,19 +118,13 @@ export function AiProviderSettings() {
     setGlmConfigured(configured);
     setGlmKey("");
     setBusy(false);
-    toast.success(
-      t("aiProvider.saved", { defaultValue: "GLM 配置已保存" }),
-    );
+    toast.success(t("aiProvider.saved", { defaultValue: "GLM 配置已保存" }));
   };
 
   const handleTestGlm = async () => {
     setBusy(true);
     setGlmTestResult(null);
-    const r = await testGlmConnection(
-      glmKey || undefined,
-      glmUrl,
-      glmModel,
-    );
+    const r = await testGlmConnection(glmKey || undefined, glmUrl, glmModel);
     setGlmTestResult(r);
     setBusy(false);
   };
@@ -211,9 +212,7 @@ export function AiProviderSettings() {
               type="password"
               autoComplete="off"
               placeholder={
-                dsConfigured
-                  ? "密钥已保存；输入新密钥可覆盖（sk-…）"
-                  : "sk-…"
+                dsConfigured ? "密钥已保存；输入新密钥可覆盖（sk-…）" : "sk-…"
               }
               value={dsKey}
               onChange={(e) => setDsKey(e.target.value)}
@@ -389,7 +388,9 @@ export function AiProviderSettings() {
               id="custom-key"
               type="password"
               autoComplete="off"
-              placeholder={customConfigured ? "密钥已保存；输入新密钥可覆盖" : "sk-…"}
+              placeholder={
+                customConfigured ? "密钥已保存；输入新密钥可覆盖" : "sk-…"
+              }
               value={customKey}
               onChange={(e) => setCustomKey(e.target.value)}
             />

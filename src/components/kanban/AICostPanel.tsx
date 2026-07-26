@@ -42,7 +42,8 @@ interface AICostPanelProps {
 const RANGE_OPTIONS = [7, 30, 90] as const;
 
 export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
-  const [rangeDays, setRangeDays] = useState<(typeof RANGE_OPTIONS)[number]>(30);
+  const [rangeDays, setRangeDays] =
+    useState<(typeof RANGE_OPTIONS)[number]>(30);
   const { refreshToken, bumpRefresh } = useAICost();
   const { report, loading, error } = useAIRoiReport(rangeDays, refreshToken);
 
@@ -156,7 +157,8 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                         contentStyle={{ fontSize: 12 }}
                         formatter={(value, name) => {
                           const n = Number(value ?? 0);
-                          if (name === "cost") return [formatAiCostYuan(n), "费用"];
+                          if (name === "cost")
+                            return [formatAiCostYuan(n), "费用"];
                           if (name === "calls") return [n, "API 调用"];
                           return [n, "NL 问答"];
                         }}
@@ -181,16 +183,29 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                       <thead>
                         <tr className="text-muted-foreground/60 border-b border-border/40">
                           <th className="text-left py-1.5 font-medium">类型</th>
-                          <th className="text-right py-1.5 font-medium">次数</th>
-                          <th className="text-right py-1.5 font-medium">Token</th>
-                          <th className="text-right py-1.5 font-medium">费用</th>
+                          <th className="text-right py-1.5 font-medium">
+                            次数
+                          </th>
+                          <th className="text-right py-1.5 font-medium">
+                            Token
+                          </th>
+                          <th className="text-right py-1.5 font-medium">
+                            费用
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
                         {report.by_type.map((row) => (
-                          <tr key={row.insight_type} className="border-b border-border/20">
-                            <td className="py-1.5">{insightTypeLabel(row.insight_type)}</td>
-                            <td className="py-1.5 text-right tabular-nums">{row.count}</td>
+                          <tr
+                            key={row.insight_type}
+                            className="border-b border-border/20"
+                          >
+                            <td className="py-1.5">
+                              {insightTypeLabel(row.insight_type)}
+                            </td>
+                            <td className="py-1.5 text-right tabular-nums">
+                              {row.count}
+                            </td>
                             <td className="py-1.5 text-right tabular-nums">
                               {row.total_tokens.toLocaleString()}
                             </td>
@@ -219,7 +234,8 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                             {p.project_name}
                           </span>
                           <span className="text-[11px] tabular-nums text-muted-foreground">
-                            {formatAiCostYuan(p.cost)} · {formatAiTokens(p.tokens)}
+                            {formatAiCostYuan(p.cost)} ·{" "}
+                            {formatAiTokens(p.tokens)}
                           </span>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground/70">
@@ -250,14 +266,17 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                 </Section>
               )}
 
-              {report.by_type.length === 0 && report.by_project.length === 0 && (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  近 {rangeDays} 天尚无 AI 调用记录。触发摘要、风险分析或 NL 问答后将在此展示 ROI。
-                </p>
-              )}
+              {report.by_type.length === 0 &&
+                report.by_project.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">
+                    近 {rangeDays} 天尚无 AI 调用记录。触发摘要、风险分析或 NL
+                    问答后将在此展示 ROI。
+                  </p>
+                )}
 
               <p className="text-[10px] text-muted-foreground/40 text-center pb-2">
-                费用为基于公开定价的估算，以供应商账单为准。CLI 代理用量见「设置 → 用量」。
+                费用为基于公开定价的估算，以供应商账单为准。CLI 代理用量见「设置
+                → 用量」。
               </p>
             </>
           )}
@@ -267,13 +286,7 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
       <p className="text-xs font-medium text-muted-foreground mb-2">{title}</p>
@@ -295,7 +308,9 @@ function StatChip({
     <span className="inline-flex items-center gap-1 rounded-md bg-background/60 px-2 py-1 border border-border/30">
       {icon}
       <span className="text-muted-foreground/60">{label}</span>
-      <span className="font-medium tabular-nums text-foreground/80">{value}</span>
+      <span className="font-medium tabular-nums text-foreground/80">
+        {value}
+      </span>
     </span>
   );
 }

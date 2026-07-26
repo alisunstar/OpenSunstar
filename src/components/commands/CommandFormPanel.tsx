@@ -118,7 +118,10 @@ export function CommandFormPanel({
       }
       onClose={onClose}
       footer={
-        <Button onClick={() => void handleSave()} disabled={saving || !name.trim()}>
+        <Button
+          onClick={() => void handleSave()}
+          disabled={saving || !name.trim()}
+        >
           {t("common.save")}
         </Button>
       }
@@ -160,7 +163,9 @@ export function CommandFormPanel({
         <CommandVariableHelp />
         <div className="space-y-2">
           <Label>
-            {t("commands.form.content", { defaultValue: "命令内容（Markdown）" })}
+            {t("commands.form.content", {
+              defaultValue: "命令内容（Markdown）",
+            })}
           </Label>
           <MarkdownEditor
             value={content}

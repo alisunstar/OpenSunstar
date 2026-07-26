@@ -55,7 +55,9 @@ export function useIgnoreActions() {
         await ignoreApi.toggleApp(ruleId, app, enabled);
         await reload();
       } catch {
-        toast.error(t("ignore.toggleFailed", { defaultValue: "切换同步目标失败" }));
+        toast.error(
+          t("ignore.toggleFailed", { defaultValue: "切换同步目标失败" }),
+        );
       }
     },
     [reload, t],
@@ -82,7 +84,9 @@ export function useIgnoreActions() {
   const syncRules = useCallback(async () => {
     try {
       await ignoreApi.sync();
-      toast.success(t("ignore.syncSuccess", { defaultValue: "已同步到各工具 ignore 文件" }));
+      toast.success(
+        t("ignore.syncSuccess", { defaultValue: "已同步到各工具 ignore 文件" }),
+      );
     } catch {
       toast.error(t("ignore.syncFailed", { defaultValue: "同步失败" }));
     }

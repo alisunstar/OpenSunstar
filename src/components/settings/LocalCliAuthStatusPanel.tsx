@@ -374,7 +374,8 @@ export function LocalCliAuthStatusPanel() {
                   </ul>
                 ) : (
                   <p className="mt-3 border-t border-border/50 pt-3 text-xs text-muted-foreground">
-                    未发现可披露的本地授权信号。请在 CLI 内完成官方登录，或在快速接入中保存第三方 Key。
+                    未发现可披露的本地授权信号。请在 CLI
+                    内完成官方登录，或在快速接入中保存第三方 Key。
                   </p>
                 )}
               </article>

@@ -65,7 +65,9 @@ export function BridgeDialog({
 
   useEffect(() => {
     if (open) {
-      invoke<boolean>("get_bridge_auto_push").then(setAutoPush).catch(() => {});
+      invoke<boolean>("get_bridge_auto_push")
+        .then(setAutoPush)
+        .catch(() => {});
     } else {
       setTargetApp("");
       setPreview(null);

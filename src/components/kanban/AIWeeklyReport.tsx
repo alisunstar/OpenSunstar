@@ -11,7 +11,12 @@ import {
 } from "@/components/ui/dialog";
 import { copyText } from "@/lib/clipboard";
 import { toast } from "sonner";
-import { buildProviderConfig, generateWeeklyReport, type ProjectContextInput, type WeeklyReportResult } from "@/api/aiInsight";
+import {
+  buildProviderConfig,
+  generateWeeklyReport,
+  type ProjectContextInput,
+  type WeeklyReportResult,
+} from "@/api/aiInsight";
 import { PORTFOLIO_COMMIT_WINDOW_DAYS } from "@/lib/portfolioMetrics";
 import { useAICostOptional } from "@/contexts/AICostContext";
 
@@ -153,7 +158,8 @@ export function AIWeeklyReport({
                 </span>
                 {report.cost_estimate > 0 && (
                   <span className="tabular-nums">
-                    ¥{report.cost_estimate < 0.01
+                    ¥
+                    {report.cost_estimate < 0.01
                       ? report.cost_estimate.toFixed(4)
                       : report.cost_estimate.toFixed(2)}
                   </span>

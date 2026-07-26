@@ -116,11 +116,7 @@ export function customPresetCard(
     websiteUrl: "",
     category: "custom",
     icon:
-      appId === "codex"
-        ? "openai"
-        : appId === "gemini"
-          ? "gemini"
-          : "claude",
+      appId === "codex" ? "openai" : appId === "gemini" ? "gemini" : "claude",
     raw: null,
   };
 }

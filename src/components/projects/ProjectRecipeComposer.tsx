@@ -112,16 +112,18 @@ function StageGraphSVG({ graph }: { graph: StageGraph }) {
   }
 
   const nodeColor = (node: (typeof graph.nodes)[0]) => {
-    if (node.condition === "branch") return "fill-amber-100 dark:fill-amber-900/40 stroke-amber-400";
-    if (node.standalone === "true") return "fill-emerald-100 dark:fill-emerald-900/40 stroke-emerald-400";
-    if (node.standalone === "semi") return "fill-blue-100 dark:fill-blue-900/40 stroke-blue-400";
+    if (node.condition === "branch")
+      return "fill-amber-100 dark:fill-amber-900/40 stroke-amber-400";
+    if (node.standalone === "true")
+      return "fill-emerald-100 dark:fill-emerald-900/40 stroke-emerald-400";
+    if (node.standalone === "semi")
+      return "fill-blue-100 dark:fill-blue-900/40 stroke-blue-400";
     return "fill-muted stroke-border";
   };
 
   // Available inner width (container padding is 8px each side).
   const availableW = containerW > 0 ? containerW - 16 : 0;
-  const fitScale =
-    availableW > 0 && svgW > availableW ? availableW / svgW : 1;
+  const fitScale = availableW > 0 && svgW > availableW ? availableW / svgW : 1;
   const overflows = svgW > availableW && availableW > 0;
   // When fitting, scale the whole graph down so it's fully visible.
   const renderW = fitToWidth ? svgW * fitScale : svgW;
@@ -174,7 +176,11 @@ function StageGraphSVG({ graph }: { graph: StageGraph }) {
             refY="3"
             orient="auto"
           >
-            <polygon points="0 0, 8 3, 0 6" fill="currentColor" className="text-muted-foreground" />
+            <polygon
+              points="0 0, 8 3, 0 6"
+              fill="currentColor"
+              className="text-muted-foreground"
+            />
           </marker>
         </defs>
 
@@ -361,7 +367,9 @@ export function ProjectRecipeComposer({
   const [recipeName, setRecipeName] = useState("My Recipe");
   const [recipeDescription, setRecipeDescription] = useState("");
   const [recipeNotes, setRecipeNotes] = useState("");
-  const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
+  const [selectedModules, setSelectedModules] = useState<Set<string>>(
+    new Set(),
+  );
   const [enabledStages, setEnabledStages] = useState<Set<string>>(new Set());
   const [resolvedStages, setResolvedStages] = useState<string[]>([]);
 
@@ -376,10 +384,14 @@ export function ProjectRecipeComposer({
   const [previewing, setPreviewing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [installing, setInstalling] = useState(false);
-  const [installResult, setInstallResult] = useState<InstallResult | null>(null);
+  const [installResult, setInstallResult] = useState<InstallResult | null>(
+    null,
+  );
   const [changeId, setChangeId] = useState("");
   const [savedRecipes, setSavedRecipes] = useState<string[]>([]);
-  const [installPlan, setInstallPlan] = useState<RecipeInstallPlan | null>(null);
+  const [installPlan, setInstallPlan] = useState<RecipeInstallPlan | null>(
+    null,
+  );
 
   // --- Load presets + modules ---
   useEffect(() => {
@@ -398,7 +410,9 @@ export function ProjectRecipeComposer({
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [projectId]);
 
   // --- Load saved recipes ---
@@ -421,12 +435,15 @@ export function ProjectRecipeComposer({
         setFullPreset(preset);
         setStageGraph(graph);
         setSelectedModules(new Set(preset.modules));
-        const pathStages = preset.paths[projectType] ?? preset.paths.backend ?? [];
+        const pathStages =
+          preset.paths[projectType] ?? preset.paths.backend ?? [];
         setResolvedStages(pathStages);
         setEnabledStages(new Set(pathStages));
       })
       .catch(() => {});
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [presetId, projectId, projectType]);
 
   // --- Computed ---
@@ -494,7 +511,16 @@ export function ProjectRecipeComposer({
       setPreviewing(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, presetId, projectType, recipeName, recipeDescription, recipeNotes, selectedModules, disabledStages]);
+  }, [
+    projectId,
+    presetId,
+    projectType,
+    recipeName,
+    recipeDescription,
+    recipeNotes,
+    selectedModules,
+    disabledStages,
+  ]);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -506,7 +532,7 @@ export function ProjectRecipeComposer({
       setPreviewContent(content);
       toast.success(
         t("recipeComposer.toastExported", {
-          defaultValue: 'Recipe「{{name}}」已导出到 .opensunstar/recipe/',
+          defaultValue: "Recipe「{{name}}」已导出到 .opensunstar/recipe/",
           name: recipeName,
         }),
       );
@@ -519,7 +545,16 @@ export function ProjectRecipeComposer({
       setExporting(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, presetId, projectType, recipeName, recipeDescription, recipeNotes, selectedModules, disabledStages]);
+  }, [
+    projectId,
+    presetId,
+    projectType,
+    recipeName,
+    recipeDescription,
+    recipeNotes,
+    selectedModules,
+    disabledStages,
+  ]);
 
   const handleCopyPreview = useCallback(async () => {
     if (!previewContent) {
@@ -596,7 +631,17 @@ export function ProjectRecipeComposer({
       setInstalling(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, presetId, projectType, recipeName, recipeDescription, recipeNotes, selectedModules, disabledStages, changeId]);
+  }, [
+    projectId,
+    presetId,
+    projectType,
+    recipeName,
+    recipeDescription,
+    recipeNotes,
+    selectedModules,
+    disabledStages,
+    changeId,
+  ]);
 
   const handleDeleteRecipe = useCallback(
     async (name: string) => {
@@ -605,7 +650,7 @@ export function ProjectRecipeComposer({
         setSavedRecipes((prev) => prev.filter((n) => n !== name));
         toast.success(
           t("recipeComposer.toastDeleted", {
-            defaultValue: 'Recipe「{{name}}」已删除',
+            defaultValue: "Recipe「{{name}}」已删除",
             name,
           }),
         );
@@ -619,10 +664,8 @@ export function ProjectRecipeComposer({
   const handleLoadRecipe = useCallback(
     async (name: string) => {
       try {
-        const recipe: CompositionRecipe = await recipeComposerApi.loadSavedRecipe(
-          projectId,
-          name,
-        );
+        const recipe: CompositionRecipe =
+          await recipeComposerApi.loadSavedRecipe(projectId, name);
         setPresetId(recipe.presetId);
         setProjectType(recipe.projectType as (typeof PROJECT_TYPES)[number]);
         setRecipeName(recipe.name);
@@ -630,9 +673,15 @@ export function ProjectRecipeComposer({
         setRecipeNotes(recipe.notes);
         setSelectedModules(new Set(recipe.modules));
         setEnabledStages(
-          new Set(recipe.stages.filter((stage) => stage.enabled).map((stage) => stage.id)),
+          new Set(
+            recipe.stages
+              .filter((stage) => stage.enabled)
+              .map((stage) => stage.id),
+          ),
         );
-        setPreviewContent(await recipeComposerApi.readSavedRecipe(projectId, name));
+        setPreviewContent(
+          await recipeComposerApi.readSavedRecipe(projectId, name),
+        );
         setPreviewExpanded(true);
         toast.success("已载入变更执行方案，可继续编辑或重新安装。");
       } catch (e) {
@@ -820,9 +869,7 @@ export function ProjectRecipeComposer({
                 className="h-3.5 w-3.5"
               />
               <span className="font-mono text-muted-foreground">{sid}</span>
-              <span className="text-foreground">
-                {info?.name ?? sid}
-              </span>
+              <span className="text-foreground">{info?.name ?? sid}</span>
             </label>
           );
         })}
@@ -937,12 +984,18 @@ export function ProjectRecipeComposer({
           </div>
           <div className="space-y-1 pl-6">
             {installResult.filesCreated.map((f) => (
-              <div key={f} className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+              <div
+                key={f}
+                className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono"
+              >
                 + {f}
               </div>
             ))}
             {installResult.filesSkipped.map((f) => (
-              <div key={f} className="text-[10px] text-muted-foreground font-mono">
+              <div
+                key={f}
+                className="text-[10px] text-muted-foreground font-mono"
+              >
                 ~ {f} {t("recipeComposer.exists", { defaultValue: "(已存在)" })}
               </div>
             ))}
@@ -991,7 +1044,9 @@ export function ProjectRecipeComposer({
               >
                 <div className="flex items-center gap-1.5">
                   <FileText className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-[11px] font-mono">{name}.recipe.md</span>
+                  <span className="text-[11px] font-mono">
+                    {name}.recipe.md
+                  </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button

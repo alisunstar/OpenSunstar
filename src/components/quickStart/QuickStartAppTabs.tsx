@@ -9,7 +9,12 @@ import { Monitor, Terminal } from "lucide-react";
 
 const APP_META: Record<
   QuickStartAppId,
-  { icon: string; labelKey: string; defaultLabel: string; badge?: typeof Terminal }
+  {
+    icon: string;
+    labelKey: string;
+    defaultLabel: string;
+    badge?: typeof Terminal;
+  }
 > = {
   claude: {
     icon: "claude",
@@ -65,7 +70,10 @@ export function QuickStartAppTabs({
           >
             <ProviderIcon icon={meta.icon} name={meta.defaultLabel} size={18} />
             {Badge && (
-              <Badge className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+              <Badge
+                className="h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden
+              />
             )}
             <span>{t(meta.labelKey, { defaultValue: meta.defaultLabel })}</span>
           </button>

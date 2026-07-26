@@ -28,10 +28,7 @@ export async function getBridgeablePrompts(
   return invoke("get_bridgeable_prompts", { sourceApp });
 }
 
-export async function pushBridgeChanges(
-  sourceApp: string,
-  sourceId: string,
-) {
+export async function pushBridgeChanges(sourceApp: string, sourceId: string) {
   return invoke("push_bridge_changes", { sourceApp, sourceId });
 }
 

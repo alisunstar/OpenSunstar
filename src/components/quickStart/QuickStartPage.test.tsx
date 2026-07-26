@@ -200,7 +200,9 @@ describe("QuickStartPage single-page provider workbench", () => {
       expect(getQuickStartOperationEvents).toHaveBeenCalledWith("operation-id");
     });
     expect(screen.getByTestId("quick-start-audit-events")).toBeInTheDocument();
-    expect(screen.getByText(/上游验证：openai · api\.example\.test · 2 个模型/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/上游验证：openai · api\.example\.test · 2 个模型/),
+    ).toBeInTheDocument();
   });
 
   it("offers an executable recovery action for an interrupted operation", async () => {
@@ -244,9 +246,15 @@ describe("QuickStartPage single-page provider workbench", () => {
     ]);
     renderPage();
 
-    expect(await screen.findByTestId("quick-start-operation-history")).toBeInTheDocument();
+    expect(
+      await screen.findByTestId("quick-start-operation-history"),
+    ).toBeInTheDocument();
     expect(screen.getByText("completed-operation")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "查看审计记录" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "撤销本次接入" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "查看审计记录" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "撤销本次接入" }),
+    ).toBeInTheDocument();
   });
 });

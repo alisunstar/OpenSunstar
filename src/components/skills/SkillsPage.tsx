@@ -65,9 +65,12 @@ type SearchSource =
 const PAGE_SIZE = 20;
 
 /** 解析 ModelScope skill 的 GitHub source_url，提取 owner/repo/branch/directory */
-function parseModelScopeGitHubUrl(
-  sourceUrl?: string,
-): { repoOwner: string; repoName: string; repoBranch: string; directory: string } | null {
+function parseModelScopeGitHubUrl(sourceUrl?: string): {
+  repoOwner: string;
+  repoName: string;
+  repoBranch: string;
+  directory: string;
+} | null {
   if (!sourceUrl) return null;
   // 匹配: https://github.com/owner/repo/tree/branch/path/to/skill
   const match = sourceUrl.match(
@@ -246,10 +249,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
         if (skillsShOffset === 0) {
           setAccumulatedResults(skillsShResult.skills);
         } else {
-          setAccumulatedResults((prev) => [
-            ...prev,
-            ...skillsShResult.skills,
-          ]);
+          setAccumulatedResults((prev) => [...prev, ...skillsShResult.skills]);
         }
       }
     }, [skillsShResult, skillsShOffset, searchSource]);
@@ -321,9 +321,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       });
     }, [discoverableSkills, installedKeys]);
 
-    const isSkillsShInstalled = (
-      skill: SkillsShDiscoverableSkill,
-    ): boolean => {
+    const isSkillsShInstalled = (skill: SkillsShDiscoverableSkill): boolean => {
       const key = `${skill.directory.toLowerCase()}:${skill.repoOwner.toLowerCase()}:${skill.repoName.toLowerCase()}`;
       return installedKeys.has(key);
     };
@@ -570,8 +568,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
         } else {
           // 无 GitHub 源 → 打开 ModelScope 页面
           const url =
-            msSkill?.skillUrl ||
-            `https://www.modelscope.cn/skills/${skillId}`;
+            msSkill?.skillUrl || `https://www.modelscope.cn/skills/${skillId}`;
           window.open(url, "_blank");
           toast.success(
             t("skills.modelscope.openPage", {
@@ -725,7 +722,12 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
               : t("skills.all.searchPlaceholder");
 
     // Tab 定义
-    const tabs: { id: SearchSource; label: string; mw: string; icon?: React.ReactNode }[] = [
+    const tabs: {
+      id: SearchSource;
+      label: string;
+      mw: string;
+      icon?: React.ReactNode;
+    }[] = [
       { id: "all", label: t("skills.searchSource.all"), mw: "min-w-[48px]" },
       {
         id: "repos",
@@ -735,8 +737,22 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       { id: "skillssh", label: "skills.sh", mw: "min-w-[64px]" },
       { id: "clawhub", label: "ClawHub", mw: "min-w-[64px]" },
       { id: "modelscope", label: "ModelScope", mw: "min-w-[80px]" },
-      { id: "leaderboardAllTime", label: t("skills.searchSource.leaderboardAllTime", { defaultValue: "全站总榜" }), mw: "min-w-[80px]", icon: <Flame className="w-3.5 h-3.5 text-amber-500" /> },
-      { id: "leaderboardTrending", label: t("skills.searchSource.leaderboardTrending", { defaultValue: "24h 趋势" }), mw: "min-w-[80px]", icon: <Star className="w-3.5 h-3.5 text-orange-500" /> },
+      {
+        id: "leaderboardAllTime",
+        label: t("skills.searchSource.leaderboardAllTime", {
+          defaultValue: "全站总榜",
+        }),
+        mw: "min-w-[80px]",
+        icon: <Flame className="w-3.5 h-3.5 text-amber-500" />,
+      },
+      {
+        id: "leaderboardTrending",
+        label: t("skills.searchSource.leaderboardTrending", {
+          defaultValue: "24h 趋势",
+        }),
+        mw: "min-w-[80px]",
+        icon: <Star className="w-3.5 h-3.5 text-orange-500" />,
+      },
     ];
 
     // 来源计数（"全部" 标签页）
@@ -779,7 +795,9 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                       }
                       onClick={() => setSearchSource(tab.id)}
                     >
-                      {tab.icon && <span className="mr-1 inline-flex">{tab.icon}</span>}
+                      {tab.icon && (
+                        <span className="mr-1 inline-flex">{tab.icon}</span>
+                      )}
                       {tab.label}
                     </Button>
                   ))}
@@ -792,114 +810,119 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
               {/* 搜索 + 筛选行 — 热榜/精选 Tab 无需搜索 */}
               {searchSource !== "leaderboardAllTime" &&
                 searchSource !== "leaderboardTrending" && (
-              <div className="flex flex-col gap-3 md:flex-row md:items-center">
-                <div className="relative flex-1 min-w-0">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder={searchPlaceholder}
-                    value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleSearch();
-                    }}
-                    className="pl-9 pr-3"
-                  />
-                </div>
-
-                {/* 仓库模式筛选 */}
-                {searchSource === "repos" && (
-                  <>
-                    <div className="w-full md:w-56">
-                      <Select value={filterRepo} onValueChange={setFilterRepo}>
-                        <SelectTrigger className="bg-card border shadow-sm text-foreground">
-                          <SelectValue
-                            placeholder={t("skills.filter.repo")}
-                            className="text-left truncate"
-                          />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card text-foreground shadow-lg max-h-64 min-w-[var(--radix-select-trigger-width)]">
-                          <SelectItem
-                            value="all"
-                            className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
-                          >
-                            {t("skills.filter.allRepos")}
-                          </SelectItem>
-                          {repoOptions.map((repo) => (
-                            <SelectItem
-                              key={repo}
-                              value={repo}
-                              className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
-                              title={repo}
-                            >
-                              <span className="truncate block max-w-[200px]">
-                                {repo}
-                              </span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center">
+                    <div className="relative flex-1 min-w-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder={searchPlaceholder}
+                        value={searchInput}
+                        onChange={(e) => setSearchInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleSearch();
+                        }}
+                        className="pl-9 pr-3"
+                      />
                     </div>
-                    <div className="w-full md:w-36">
-                      <Select
-                        value={filterStatus}
-                        onValueChange={(val) =>
-                          setFilterStatus(
-                            val as "all" | "installed" | "uninstalled",
-                          )
-                        }
-                      >
-                        <SelectTrigger className="bg-card border shadow-sm text-foreground">
-                          <SelectValue
-                            placeholder={t("skills.filter.placeholder")}
-                            className="text-left"
-                          />
-                        </SelectTrigger>
-                        <SelectContent className="bg-card text-foreground shadow-lg">
-                          <SelectItem
-                            value="all"
-                            className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
-                          >
-                            {t("skills.filter.all")}
-                          </SelectItem>
-                          <SelectItem
-                            value="installed"
-                            className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
-                          >
-                            {t("skills.filter.installed")}
-                          </SelectItem>
-                          <SelectItem
-                            value="uninstalled"
-                            className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
-                          >
-                            {t("skills.filter.uninstalled")}
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
 
-                {/* skills.sh / ClawHub / ModelScope 搜索按钮 */}
-                {(searchSource === "skillssh" ||
-                  searchSource === "clawhub" ||
-                  searchSource === "modelscope") && (
-                  <Button
-                    size="sm"
-                    onClick={handleSearch}
-                    disabled={searchInput.trim().length < 2 || isSearchFetching}
-                    className="shrink-0"
-                  >
-                    {isSearchFetching ? (
-                      <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    ) : (
-                      <Search className="h-3.5 w-3.5 mr-1.5" />
+                    {/* 仓库模式筛选 */}
+                    {searchSource === "repos" && (
+                      <>
+                        <div className="w-full md:w-56">
+                          <Select
+                            value={filterRepo}
+                            onValueChange={setFilterRepo}
+                          >
+                            <SelectTrigger className="bg-card border shadow-sm text-foreground">
+                              <SelectValue
+                                placeholder={t("skills.filter.repo")}
+                                className="text-left truncate"
+                              />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card text-foreground shadow-lg max-h-64 min-w-[var(--radix-select-trigger-width)]">
+                              <SelectItem
+                                value="all"
+                                className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
+                              >
+                                {t("skills.filter.allRepos")}
+                              </SelectItem>
+                              {repoOptions.map((repo) => (
+                                <SelectItem
+                                  key={repo}
+                                  value={repo}
+                                  className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
+                                  title={repo}
+                                >
+                                  <span className="truncate block max-w-[200px]">
+                                    {repo}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="w-full md:w-36">
+                          <Select
+                            value={filterStatus}
+                            onValueChange={(val) =>
+                              setFilterStatus(
+                                val as "all" | "installed" | "uninstalled",
+                              )
+                            }
+                          >
+                            <SelectTrigger className="bg-card border shadow-sm text-foreground">
+                              <SelectValue
+                                placeholder={t("skills.filter.placeholder")}
+                                className="text-left"
+                              />
+                            </SelectTrigger>
+                            <SelectContent className="bg-card text-foreground shadow-lg">
+                              <SelectItem
+                                value="all"
+                                className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
+                              >
+                                {t("skills.filter.all")}
+                              </SelectItem>
+                              <SelectItem
+                                value="installed"
+                                className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
+                              >
+                                {t("skills.filter.installed")}
+                              </SelectItem>
+                              <SelectItem
+                                value="uninstalled"
+                                className="text-left pr-3 [&[data-state=checked]>span:first-child]:hidden"
+                              >
+                                {t("skills.filter.uninstalled")}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </>
                     )}
-                    {t("skills.search")}
-                  </Button>
+
+                    {/* skills.sh / ClawHub / ModelScope 搜索按钮 */}
+                    {(searchSource === "skillssh" ||
+                      searchSource === "clawhub" ||
+                      searchSource === "modelscope") && (
+                      <Button
+                        size="sm"
+                        onClick={handleSearch}
+                        disabled={
+                          searchInput.trim().length < 2 || isSearchFetching
+                        }
+                        className="shrink-0"
+                      >
+                        {isSearchFetching ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Search className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        {t("skills.search")}
+                      </Button>
+                    )}
+                  </div>
                 )}
-              </div>
-              )}
             </div>
 
             {/* ===== 内容区域 ===== */}
@@ -1124,8 +1147,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                       {t("skills.clawhub.searchPlaceholder")}
                     </p>
                   </div>
-                ) : !clawHubResult ||
-                  clawHubResult.skills.length === 0 ? (
+                ) : !clawHubResult || clawHubResult.skills.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-48 text-center">
                     <p className="text-lg font-medium text-foreground">
                       {t("skills.clawhub.noResults", { query: searchQuery })}
@@ -1156,9 +1178,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                             key={`clawhub:${s.slug}`}
                             skill={{
                               ...d,
-                              installed: installedKeys.has(
-                                `clawhub:${s.slug}`,
-                              ),
+                              installed: installedKeys.has(`clawhub:${s.slug}`),
                             }}
                             source="clawhub"
                             stars={stats?.stars}
@@ -1194,7 +1214,8 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                     <Search className="h-12 w-12 text-muted-foreground/30 mb-4" />
                     <p className="text-sm text-muted-foreground">
                       {t("skills.modelscope.searchPlaceholder", {
-                        defaultValue: "输入关键词搜索 ModelScope 技能中心的 80,000+ 技能",
+                        defaultValue:
+                          "输入关键词搜索 ModelScope 技能中心的 80,000+ 技能",
                       })}
                     </p>
                   </div>
@@ -1211,7 +1232,9 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                   <>
                     <p className="mb-3 text-sm text-muted-foreground">
                       {t("skills.modelscope.resultCount", {
-                        count: modelScopeResult?.total ?? accumulatedModelscope.length,
+                        count:
+                          modelScopeResult?.total ??
+                          accumulatedModelscope.length,
                         defaultValue: `共 ${modelScopeResult?.total ?? accumulatedModelscope.length} 个技能`,
                       })}
                     </p>

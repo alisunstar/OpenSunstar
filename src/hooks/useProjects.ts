@@ -7,10 +7,7 @@ import {
   removeProjectLocal,
   PROJECTS_STORAGE_KEY,
 } from "@/types/project";
-import {
-  projectsApi,
-  type Project as DbProject,
-} from "@/lib/api/projects";
+import { projectsApi, type Project as DbProject } from "@/lib/api/projects";
 import { migrateBoardMetadataToDb } from "@/lib/migrateProjectBoardMetadata";
 
 const DB_MIGRATED_KEY = "OpenSunstar-projects-db-sync-v1";
@@ -113,7 +110,11 @@ export function useProjects() {
   }, []);
 
   const add = useCallback(
-    async (name: string, path: string, description?: string): Promise<Project> => {
+    async (
+      name: string,
+      path: string,
+      description?: string,
+    ): Promise<Project> => {
       const project = createLocalProject(name, path, description);
       setProjects(loadProjects());
       try {

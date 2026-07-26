@@ -157,7 +157,12 @@ export interface OrchestrationLogEntry {
   payload: Record<string, unknown>;
 }
 
-export type OrchestrationStepStatus = "planned" | "applied" | "skipped" | "verified" | "failed";
+export type OrchestrationStepStatus =
+  | "planned"
+  | "applied"
+  | "skipped"
+  | "verified"
+  | "failed";
 
 export interface OrchestrationStepReceipt {
   id: string;
@@ -244,15 +249,18 @@ export const flowOrchestratorApi = {
     disabledStages?: string[],
     strictSemantics = true,
   ): Promise<WorkflowProfile> {
-    return await invoke<WorkflowProfile>("export_project_workflow_profile_cmd", {
-      projectId,
-      presetId,
-      projectType,
-      activeChangeId: activeChangeId ?? null,
-      selectedModules: selectedModules ?? null,
-      disabledStages: disabledStages ?? null,
-      strictSemantics,
-    });
+    return await invoke<WorkflowProfile>(
+      "export_project_workflow_profile_cmd",
+      {
+        projectId,
+        presetId,
+        projectType,
+        activeChangeId: activeChangeId ?? null,
+        selectedModules: selectedModules ?? null,
+        disabledStages: disabledStages ?? null,
+        strictSemantics,
+      },
+    );
   },
 
   async previewProfileExport(
@@ -263,14 +271,17 @@ export const flowOrchestratorApi = {
     selectedModules?: string[],
     disabledStages?: string[],
   ): Promise<FlowWritePlan> {
-    return await invoke<FlowWritePlan>("preview_project_workflow_profile_export_cmd", {
-      projectId,
-      presetId,
-      projectType,
-      activeChangeId: activeChangeId ?? null,
-      selectedModules: selectedModules ?? null,
-      disabledStages: disabledStages ?? null,
-    });
+    return await invoke<FlowWritePlan>(
+      "preview_project_workflow_profile_export_cmd",
+      {
+        projectId,
+        presetId,
+        projectType,
+        activeChangeId: activeChangeId ?? null,
+        selectedModules: selectedModules ?? null,
+        disabledStages: disabledStages ?? null,
+      },
+    );
   },
 
   async exportFlowConfig(
@@ -318,8 +329,11 @@ export const flowOrchestratorApi = {
   },
 
   async restoreLatestReceipt(projectId: string): Promise<OrchestrationReceipt> {
-    return await invoke<OrchestrationReceipt>("restore_latest_orchestration_receipt_cmd", {
-      projectId,
-    });
+    return await invoke<OrchestrationReceipt>(
+      "restore_latest_orchestration_receipt_cmd",
+      {
+        projectId,
+      },
+    );
   },
 };

@@ -16,9 +16,9 @@ import {
 } from "@/lib/portfolioMetrics";
 
 export function useProjectMetricsScan(projects: Project[]) {
-  const [codeLinesMap, setCodeLinesMap] = useState<
-    Map<string, CodeLineResult>
-  >(new Map());
+  const [codeLinesMap, setCodeLinesMap] = useState<Map<string, CodeLineResult>>(
+    new Map(),
+  );
   const [versionMap, setVersionMap] = useState<Map<string, string>>(new Map());
   const [gitInfoMap, setGitInfoMap] = useState<Map<string, ProjectGitInfo>>(
     new Map(),
@@ -52,16 +52,23 @@ export function useProjectMetricsScan(projects: Project[]) {
       await mapWithConcurrency(projects, 4, async (p) => {
         if (cancelled) return;
         try {
-          const [code, version, commits7d, commits30d, contribs, gitInfo, weekly] =
-            await Promise.all([
-              countProjectCodeLines(p.path),
-              readPackageVersion(p.path),
-              gitCommitCountLastNDays(p.path, PORTFOLIO_COMMIT_WINDOW_DAYS),
-              gitCommitCountLastNDays(p.path, 30),
-              gitContributors(p.path),
-              detectProjectGitInfo(p.path),
-              gitWeeklyCommitCounts(p.path),
-            ]);
+          const [
+            code,
+            version,
+            commits7d,
+            commits30d,
+            contribs,
+            gitInfo,
+            weekly,
+          ] = await Promise.all([
+            countProjectCodeLines(p.path),
+            readPackageVersion(p.path),
+            gitCommitCountLastNDays(p.path, PORTFOLIO_COMMIT_WINDOW_DAYS),
+            gitCommitCountLastNDays(p.path, 30),
+            gitContributors(p.path),
+            detectProjectGitInfo(p.path),
+            gitWeeklyCommitCounts(p.path),
+          ]);
           if (cancelled) return;
           if (code) setCodeLinesMap((m) => new Map(m).set(p.id, code));
           if (version) setVersionMap((m) => new Map(m).set(p.id, version));

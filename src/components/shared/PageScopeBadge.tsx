@@ -15,7 +15,11 @@ interface PageScopeBadgeProps {
  * - global: 蓝色地球图标 + "全局"
  * - project: 绿色文件夹图标 + 项目名称
  */
-export function PageScopeBadge({ scope, projectName, className }: PageScopeBadgeProps) {
+export function PageScopeBadge({
+  scope,
+  projectName,
+  className,
+}: PageScopeBadgeProps) {
   if (scope === "global") {
     return (
       <Badge

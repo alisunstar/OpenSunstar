@@ -48,8 +48,7 @@ function resolveLegacyProgress(
   project: Project,
   legacyId: string,
 ): number | null {
-  const value =
-    progress.get(project.id) ?? progress.get(legacyId);
+  const value = progress.get(project.id) ?? progress.get(legacyId);
   if (value === undefined || value <= 0) return null;
   return Math.max(0, Math.min(100, Math.round(value)));
 }

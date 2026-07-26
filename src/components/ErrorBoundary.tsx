@@ -19,7 +19,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
@@ -79,20 +82,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           )}
           <div className="flex items-center gap-3">
             {this.props.onGoBack && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={this.handleGoBack}
-              >
+              <Button variant="outline" size="sm" onClick={this.handleGoBack}>
                 <ArrowLeft size={14} className="mr-1" />
                 返回
               </Button>
             )}
-            <Button
-              variant="default"
-              size="sm"
-              onClick={this.handleReset}
-            >
+            <Button variant="default" size="sm" onClick={this.handleReset}>
               <RefreshCw size={14} className="mr-1" />
               重试
             </Button>

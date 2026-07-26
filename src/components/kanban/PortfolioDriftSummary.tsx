@@ -6,9 +6,7 @@ import { Button } from "@/components/ui/button";
 import type { Project } from "@/types/project";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 import { cn } from "@/lib/utils";
-import {
-  RepairDriftConfirmDialog,
-} from "./RepairDriftConfirmDialog";
+import { RepairDriftConfirmDialog } from "./RepairDriftConfirmDialog";
 
 export interface PortfolioDriftSummaryProps {
   projects: Project[];
@@ -38,8 +36,10 @@ export function PortfolioDriftSummary({
   } | null>(null);
 
   const { driftProjects, totalDriftItems, latestScan } = useMemo(() => {
-    const driftProjects: Array<{ project: Project; entry: AgentReadinessBatchEntry }> =
-      [];
+    const driftProjects: Array<{
+      project: Project;
+      entry: AgentReadinessBatchEntry;
+    }> = [];
     let totalDriftItems = 0;
     let latestScan: number | null = null;
 
@@ -50,7 +50,9 @@ export function PortfolioDriftSummary({
       totalDriftItems += entry.driftCount;
       if (entry.scannedAt != null) {
         latestScan =
-          latestScan == null ? entry.scannedAt : Math.max(latestScan, entry.scannedAt);
+          latestScan == null
+            ? entry.scannedAt
+            : Math.max(latestScan, entry.scannedAt);
       }
     }
 

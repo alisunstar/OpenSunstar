@@ -1,6 +1,11 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
-import { Activity, CheckCircle2, LayoutDashboard, ShieldAlert } from "lucide-react";
+import {
+  Activity,
+  CheckCircle2,
+  LayoutDashboard,
+  ShieldAlert,
+} from "lucide-react";
 
 import type { Project } from "@/types/project";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
@@ -36,10 +41,15 @@ function StatCard({
         : "border-border/60 bg-card/40";
 
   return (
-    <div className={cn("rounded-xl border px-4 py-3", toneClass)} title={tooltip}>
+    <div
+      className={cn("rounded-xl border px-4 py-3", toneClass)}
+      title={tooltip}
+    >
       <p className="text-[11px] text-muted-foreground">{label}</p>
       <p className="text-xl font-bold tabular-nums mt-0.5">{value}</p>
-      {sub && <p className="text-[10px] text-muted-foreground/80 mt-0.5">{sub}</p>}
+      {sub && (
+        <p className="text-[10px] text-muted-foreground/80 mt-0.5">{sub}</p>
+      )}
     </div>
   );
 }
@@ -64,7 +74,10 @@ export function GovernanceDashboard({
 
   return (
     <section
-      className={cn("rounded-xl border border-border/60 bg-card/30 p-4", className)}
+      className={cn(
+        "rounded-xl border border-border/60 bg-card/30 p-4",
+        className,
+      )}
       aria-labelledby="governance-dashboard-title"
     >
       <div className="flex flex-wrap items-start justify-between gap-2 mb-3">
@@ -136,7 +149,8 @@ export function GovernanceDashboard({
                 : "default"
           }
           tooltip={t("kanban.governance.tooltip.effectiveRate", {
-            defaultValue: "生效率 = 已生效项 / 可比对项。已生效 = 配置已正确写入项目；可比对项 = 排除「不支持」后的有效检查项总数。",
+            defaultValue:
+              "生效率 = 已生效项 / 可比对项。已生效 = 配置已正确写入项目；可比对项 = 排除「不支持」后的有效检查项总数。",
           })}
         />
         <StatCard

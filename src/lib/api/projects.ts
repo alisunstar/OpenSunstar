@@ -325,9 +325,7 @@ export const projectsApi = {
   },
 
   /** 获取项目上下文文件状态（各 CLI 的 CLAUDE.md / AGENTS.md / GEMINI.md 存在性与托管状态） */
-  async getContextFiles(
-    projectId: string,
-  ): Promise<ProjectContextFile[]> {
+  async getContextFiles(projectId: string): Promise<ProjectContextFile[]> {
     return await invoke("get_project_context_files", { projectId });
   },
 

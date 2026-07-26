@@ -4,9 +4,8 @@ export const PORTFOLIO_COMMIT_WINDOW_DAYS = 7;
 /** 项目总览可选统计窗口（方案 A：仅总览，不含 90 天） */
 export type PortfolioOverviewWindowDays = 7 | 30;
 
-export const PORTFOLIO_OVERVIEW_WINDOW_OPTIONS: PortfolioOverviewWindowDays[] = [
-  7, 30,
-];
+export const PORTFOLIO_OVERVIEW_WINDOW_OPTIONS: PortfolioOverviewWindowDays[] =
+  [7, 30];
 
 /** 近 12 周数组最后一项 = 当前自然周提交数（git_weekly_commit_counts） */
 export function currentWeekCommits(weekly: number[]): number {
@@ -38,7 +37,8 @@ export function activityTierForWindow(
 
 /** 大数字紧凑展示（1.2K / 3.4M） */
 export function formatCompactNumber(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
+  if (n >= 1_000_000)
+    return (n / 1_000_000).toFixed(1).replace(/\.0$/, "") + "M";
   if (n >= 10_000) return (n / 1_000).toFixed(1).replace(/\.0$/, "") + "K";
   return n.toLocaleString();
 }

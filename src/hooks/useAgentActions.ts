@@ -38,7 +38,9 @@ export function useAgentActions() {
       const data = await agentsApi.getAll();
       setAgents(data);
     } catch {
-      toast.error(t("agents.loadFailed", { defaultValue: "加载 Subagent 失败" }));
+      toast.error(
+        t("agents.loadFailed", { defaultValue: "加载 Subagent 失败" }),
+      );
     } finally {
       setLoading(false);
     }
@@ -61,8 +63,7 @@ export function useAgentActions() {
         if (agent.enabledCodex) {
           toast.info(
             t("agents.codexHint", {
-              defaultValue:
-                "已转换为 TOML 并写入 ~/.codex/agents/{name}.toml",
+              defaultValue: "已转换为 TOML 并写入 ~/.codex/agents/{name}.toml",
             }),
           );
         }
@@ -116,8 +117,7 @@ export function useAgentActions() {
         if (enabled && app === "codex") {
           toast.info(
             t("agents.codexHint", {
-              defaultValue:
-                "已转换为 TOML 并写入 ~/.codex/agents/{name}.toml",
+              defaultValue: "已转换为 TOML 并写入 ~/.codex/agents/{name}.toml",
             }),
           );
         }

@@ -94,7 +94,10 @@ export function IgnoreFormPanel({
       }
       onClose={onClose}
       footer={
-        <Button onClick={() => void handleSave()} disabled={saving || !pattern.trim()}>
+        <Button
+          onClick={() => void handleSave()}
+          disabled={saving || !pattern.trim()}
+        >
           {t("common.save")}
         </Button>
       }
@@ -123,7 +126,9 @@ export function IgnoreFormPanel({
           />
         </div>
         <div className="space-y-2">
-          <Label>{t("ignore.form.syncTargets", { defaultValue: "同步到" })}</Label>
+          <Label>
+            {t("ignore.form.syncTargets", { defaultValue: "同步到" })}
+          </Label>
           <AppToggleGroup
             apps={enabledApps}
             onToggle={(app, enabled) =>

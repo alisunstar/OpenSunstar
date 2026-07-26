@@ -1,4 +1,12 @@
-import { AlertTriangle, Shield, Activity, Users, Code2, Clock, Loader2 } from "lucide-react";
+import {
+  AlertTriangle,
+  Shield,
+  Activity,
+  Users,
+  Code2,
+  Clock,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AIFeedbackButtons } from "./AIFeedbackButtons";
 import type { AIRiskResult, RiskItem } from "@/api/aiInsight";
@@ -83,7 +91,10 @@ export function AIRiskAnalysis({
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-md bg-muted/30 animate-pulse" />
+            <div
+              key={i}
+              className="h-12 rounded-md bg-muted/30 animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -101,7 +112,9 @@ export function AIRiskAnalysis({
       <div className="flex items-center justify-between mb-2.5">
         <div className="flex items-center gap-2">
           <Shield className="h-3.5 w-3.5 text-muted-foreground/50" />
-          <span className="text-xs font-medium text-foreground/80">风险分析</span>
+          <span className="text-xs font-medium text-foreground/80">
+            风险分析
+          </span>
           <span
             className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${overallColor}`}
           >
@@ -126,7 +139,9 @@ export function AIRiskAnalysis({
       </div>
 
       {/* 总体摘要 */}
-      <p className="text-[11px] text-muted-foreground/70 mb-2.5">{data.summary}</p>
+      <p className="text-[11px] text-muted-foreground/70 mb-2.5">
+        {data.summary}
+      </p>
 
       {/* 风险项列表 */}
       {data.risks.length > 0 ? (
@@ -138,7 +153,9 @@ export function AIRiskAnalysis({
       ) : (
         <div className="flex items-center gap-2 rounded-md bg-emerald-500/5 p-2.5">
           <Shield className="h-3.5 w-3.5 text-emerald-500/60" />
-          <span className="text-[11px] text-emerald-600/80">项目状态健康，暂未发现风险</span>
+          <span className="text-[11px] text-emerald-600/80">
+            项目状态健康，暂未发现风险
+          </span>
         </div>
       )}
     </div>
@@ -154,15 +171,21 @@ function RiskCard({ risk }: { risk: RiskItem }) {
     <div className="rounded-md border border-border/40 bg-card/50 p-2.5">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-muted-foreground/50">{icon}</span>
-        <span className="text-[11px] font-medium text-foreground/70">{label}</span>
+        <span className="text-[11px] font-medium text-foreground/70">
+          {label}
+        </span>
         <span
           className={`ml-auto inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${color}`}
         >
           {levelLabels[risk.level] ?? risk.level}
         </span>
       </div>
-      <p className="text-[11px] text-muted-foreground/60 leading-relaxed">{risk.evidence}</p>
-      <p className="text-[11px] text-primary/70 mt-1 leading-relaxed">{risk.suggestion}</p>
+      <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
+        {risk.evidence}
+      </p>
+      <p className="text-[11px] text-primary/70 mt-1 leading-relaxed">
+        {risk.suggestion}
+      </p>
     </div>
   );
 }

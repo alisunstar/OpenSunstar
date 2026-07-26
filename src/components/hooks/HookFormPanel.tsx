@@ -108,7 +108,9 @@ export function HookFormPanel({
           })}
         </p>
         <div className="space-y-2">
-          <Label>{t("hooks.form.eventType", { defaultValue: "事件类型" })}</Label>
+          <Label>
+            {t("hooks.form.eventType", { defaultValue: "事件类型" })}
+          </Label>
           <Select
             value={eventType}
             onValueChange={(v) => setEventType(v as HookEventType)}

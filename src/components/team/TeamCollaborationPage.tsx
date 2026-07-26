@@ -259,7 +259,8 @@ export function TeamCollaborationPage() {
           <div className="mb-4">
             <h3 className="text-base font-semibold">团队配置包</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              连接本地或 Git 团队配置源，浏览 Profile、编译有效配置、比对 Release 基线。
+              连接本地或 Git 团队配置源，浏览 Profile、编译有效配置、比对
+              Release 基线。
             </p>
           </div>
           <TeamConfigPanel onConnected={setConnectedSourcePath} />
@@ -392,9 +393,7 @@ export function TeamCollaborationPage() {
                     className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                   />
                   <Button
-                    disabled={
-                      working || organizationName.trim().length === 0
-                    }
+                    disabled={working || organizationName.trim().length === 0}
                     onClick={() =>
                       void runAction(() =>
                         productAuthApi.createOrganization(

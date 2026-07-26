@@ -4,10 +4,7 @@
 
 import { useState, useCallback } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
-import {
-  submitInsightFeedback,
-  submitAIQueryFeedback,
-} from "@/api/aiInsight";
+import { submitInsightFeedback, submitAIQueryFeedback } from "@/api/aiInsight";
 import { useAICostOptional } from "@/contexts/AICostContext";
 
 interface AIFeedbackButtonsProps {
@@ -29,7 +26,9 @@ export function AIFeedbackButtons({
   onSubmitted,
 }: AIFeedbackButtonsProps) {
   const costCtx = useAICostOptional();
-  const [feedback, setFeedback] = useState<"useful" | "not_useful" | null>(null);
+  const [feedback, setFeedback] = useState<"useful" | "not_useful" | null>(
+    null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   const handleClick = useCallback(
@@ -51,7 +50,15 @@ export function AIFeedbackButtons({
       }
       setSubmitting(false);
     },
-    [projectId, insightType, queryLogId, feedback, submitting, costCtx, onSubmitted],
+    [
+      projectId,
+      insightType,
+      queryLogId,
+      feedback,
+      submitting,
+      costCtx,
+      onSubmitted,
+    ],
   );
 
   if (!queryLogId && (!projectId || !insightType)) {

@@ -42,18 +42,13 @@ export const sddApi = {
     );
   },
 
-  async getDetectionResults(
-    projectId: string,
-  ): Promise<SddDetectionResult[]> {
-    return await invoke<SddDetectionResult[]>(
-      "sdd_get_detection_results_cmd",
-      { projectId },
-    );
+  async getDetectionResults(projectId: string): Promise<SddDetectionResult[]> {
+    return await invoke<SddDetectionResult[]>("sdd_get_detection_results_cmd", {
+      projectId,
+    });
   },
 
-  async getAllSavedDetections(): Promise<
-    Record<string, SddDetectionResult[]>
-  > {
+  async getAllSavedDetections(): Promise<Record<string, SddDetectionResult[]>> {
     return await invoke<Record<string, SddDetectionResult[]>>(
       "sdd_get_all_saved_detections_cmd",
     );

@@ -10,7 +10,9 @@ export function DryRunSettings() {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="space-y-1">
-        <Label>{t("dryRun.title", { defaultValue: "预览模式（Dry Run）" })}</Label>
+        <Label>
+          {t("dryRun.title", { defaultValue: "预览模式（Dry Run）" })}
+        </Label>
         <p className="text-sm text-muted-foreground">
           {t("dryRun.description", {
             defaultValue:

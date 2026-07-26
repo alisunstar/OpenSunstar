@@ -26,11 +26,14 @@ export function QuickStartCustomFields({
     <div className="space-y-3 rounded-lg border border-dashed border-border p-4">
       <p className="text-xs text-muted-foreground">
         {t("quickStart.custom.hint", {
-          defaultValue: "自定义网关：填写最小必填项即可接入，高级配置可在供应商管理中编辑。",
+          defaultValue:
+            "自定义网关：填写最小必填项即可接入，高级配置可在供应商管理中编辑。",
         })}
       </p>
       <div className="space-y-2">
-        <Label>{t("quickStart.custom.name", { defaultValue: "供应商名称" })}</Label>
+        <Label>
+          {t("quickStart.custom.name", { defaultValue: "供应商名称" })}
+        </Label>
         <Input
           value={fields.customName}
           onChange={(e) => onChange({ customName: e.target.value })}
@@ -40,7 +43,9 @@ export function QuickStartCustomFields({
         />
       </div>
       <div className="space-y-2">
-        <Label>{t("quickStart.custom.baseUrl", { defaultValue: "Base URL" })}</Label>
+        <Label>
+          {t("quickStart.custom.baseUrl", { defaultValue: "Base URL" })}
+        </Label>
         <Input
           value={fields.customBaseUrl}
           onChange={(e) => onChange({ customBaseUrl: e.target.value })}

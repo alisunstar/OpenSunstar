@@ -151,7 +151,9 @@ const ERROR_MESSAGES: Record<string, { zh: string; en: string }> = {
  */
 export function translateProductError(raw: string, locale?: string): string {
   // Strip Tauri invoke error wrapper if present
-  const code = raw.replace(/^Error invoking remote command '.*?':\s*/, "").trim();
+  const code = raw
+    .replace(/^Error invoking remote command '.*?':\s*/, "")
+    .trim();
 
   const entry = ERROR_MESSAGES[code];
   if (!entry) return code;
@@ -164,6 +166,8 @@ export function translateProductError(raw: string, locale?: string): string {
  * Check if a raw error string is a known product auth error code.
  */
 export function isKnownProductError(raw: string): boolean {
-  const code = raw.replace(/^Error invoking remote command '.*?':\s*/, "").trim();
+  const code = raw
+    .replace(/^Error invoking remote command '.*?':\s*/, "")
+    .trim();
   return code in ERROR_MESSAGES;
 }

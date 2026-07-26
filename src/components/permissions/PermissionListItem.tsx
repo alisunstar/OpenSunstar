@@ -76,7 +76,11 @@ export function PermissionListItem({
           />
         </div>
         <div className="flex gap-1 shrink-0">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(permission.id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onEdit(permission.id)}
+          >
             <Edit3 size={16} />
           </Button>
           <Button

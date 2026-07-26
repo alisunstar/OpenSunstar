@@ -34,7 +34,8 @@ export function ProxyTabContent({
   const { t } = useTranslation();
   const [showProxyConfirm, setShowProxyConfirm] = useState(false);
   const [showFailoverConfirm, setShowFailoverConfirm] = useState(false);
-  const [openSections, setOpenSections] = useState<string[]>(defaultOpenSections);
+  const [openSections, setOpenSections] =
+    useState<string[]>(defaultOpenSections);
 
   useEffect(() => {
     if (defaultOpenSections.length) {

@@ -42,17 +42,26 @@ interface ProjectFlowOrchestratorPanelProps {
 
 function CompletenessBar({ value }: { value: number }) {
   const tone =
-    value >= 80 ? "bg-emerald-500" : value >= 40 ? "bg-amber-500" : "bg-red-500";
+    value >= 80
+      ? "bg-emerald-500"
+      : value >= 40
+        ? "bg-amber-500"
+        : "bg-red-500";
   return (
     <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-      <div className={cn("h-full rounded-full transition-all", tone)} style={{ width: `${value}%` }} />
+      <div
+        className={cn("h-full rounded-full transition-all", tone)}
+        style={{ width: `${value}%` }}
+      />
     </div>
   );
 }
 
 function ChangeRow({ change }: { change: SpecsChangeIndex }) {
   const { t } = useTranslation();
-  const missing = change.artifacts.filter((a) => !a.optional && (!a.exists || !a.nonEmpty));
+  const missing = change.artifacts.filter(
+    (a) => !a.optional && (!a.exists || !a.nonEmpty),
+  );
 
   return (
     <div className="rounded-lg border border-border/50 bg-background/40 px-3 py-2 space-y-2">
@@ -136,25 +145,29 @@ function SupportStatusMatrix({
     {
       label: "变更执行工件",
       status: hasRecipeSpecs ? "已自动写入" : "需手动生成变更材料",
-      detail: "到“变更执行方案”生成需求、设计、任务材料；未生成前 Agent/CI 只能提示缺失。",
+      detail:
+        "到“变更执行方案”生成需求、设计、任务材料；未生成前 Agent/CI 只能提示缺失。",
       tone: hasRecipeSpecs ? "emerald" : "amber",
     },
     {
       label: "自动检查配置",
       status: hasFlowConfig ? "已自动写入" : "待自动写入",
-      detail: "导出后生成检查规则与风险分层评审策略；GitHub Actions 模板只在缺失时创建。",
+      detail:
+        "导出后生成检查规则与风险分层评审策略；GitHub Actions 模板只在缺失时创建。",
       tone: hasFlowConfig ? "emerald" : "muted",
     },
     {
       label: "Agent 规则桥接",
       status: hasWorkflowProfile || hasFlowConfig ? "已自动写入" : "只读发现",
-      detail: "AGENTS.md / CLAUDE.md / GEMINI.md 只注入 OpenSunstar 管理段，保留用户内容。",
+      detail:
+        "AGENTS.md / CLAUDE.md / GEMINI.md 只注入 OpenSunstar 管理段，保留用户内容。",
       tone: hasWorkflowProfile || hasFlowConfig ? "emerald" : "muted",
     },
     {
       label: "多 Agent 深度适配",
       status: "实验性",
-      detail: "当前先保证项目上下文与门禁可消费；不同 Agent 的原生能力后续按适配器分级开放。",
+      detail:
+        "当前先保证项目上下文与门禁可消费；不同 Agent 的原生能力后续按适配器分级开放。",
       tone: "blue",
     },
   ];
@@ -178,14 +191,24 @@ function SupportStatusMatrix({
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {rows.map((row) => (
-          <div key={row.label} className="rounded-md border border-border/50 bg-muted/10 px-2.5 py-2">
+          <div
+            key={row.label}
+            className="rounded-md border border-border/50 bg-muted/10 px-2.5 py-2"
+          >
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] font-medium">{row.label}</span>
-              <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border", toneClass(row.tone))}>
+              <span
+                className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded-full border",
+                  toneClass(row.tone),
+                )}
+              >
                 {row.status}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">{row.detail}</p>
+            <p className="text-[10px] text-muted-foreground mt-1 leading-relaxed">
+              {row.detail}
+            </p>
           </div>
         ))}
       </div>
@@ -217,7 +240,11 @@ function SectionToggle({
         <ChevronRight className="h-3.5 w-3.5" />
       )}
       {label}
-      {count && <span className="text-[10px] text-muted-foreground font-normal">({count})</span>}
+      {count && (
+        <span className="text-[10px] text-muted-foreground font-normal">
+          ({count})
+        </span>
+      )}
     </button>
   );
 }
@@ -237,8 +264,10 @@ export function ProjectFlowOrchestratorPanel({
   const [configExporting, setConfigExporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [validating, setValidating] = useState(false);
-  const [profileExportPlan, setProfileExportPlan] = useState<FlowWritePlan | null>(null);
-  const [flowConfigExportPlan, setFlowConfigExportPlan] = useState<FlowWritePlan | null>(null);
+  const [profileExportPlan, setProfileExportPlan] =
+    useState<FlowWritePlan | null>(null);
+  const [flowConfigExportPlan, setFlowConfigExportPlan] =
+    useState<FlowWritePlan | null>(null);
   const [strictSemantics, setStrictSemantics] = useState(true);
 
   const [presetId, setPresetId] = useState("standard");
@@ -248,11 +277,15 @@ export function ProjectFlowOrchestratorPanel({
   const [selectedChangeId, setSelectedChangeId] = useState("");
   const [targetStage, setTargetStage] = useState("3-task");
   const [gateResult, setGateResult] = useState<StageGateResult | null>(null);
-  const [orchestrationLog, setOrchestrationLog] = useState<OrchestrationLogEntry[]>([]);
+  const [orchestrationLog, setOrchestrationLog] = useState<
+    OrchestrationLogEntry[]
+  >([]);
 
   // --- A-1: Module multi-select ---
   const [modules, setModules] = useState<WorkflowModule[]>([]);
-  const [selectedModules, setSelectedModules] = useState<Set<string>>(new Set());
+  const [selectedModules, setSelectedModules] = useState<Set<string>>(
+    new Set(),
+  );
   const [modulesExpanded, setModulesExpanded] = useState(false);
 
   // --- A-2/A-4: Full preset + stage trimmer ---
@@ -269,10 +302,16 @@ export function ProjectFlowOrchestratorPanel({
 
   const loadOrchestrationLog = useCallback(async () => {
     try {
-      const entries = await flowOrchestratorApi.readOrchestrationLog(projectId, 8);
+      const entries = await flowOrchestratorApi.readOrchestrationLog(
+        projectId,
+        8,
+      );
       setOrchestrationLog(entries);
     } catch (error) {
-      console.warn("[ProjectFlowOrchestratorPanel] load orchestration log failed", error);
+      console.warn(
+        "[ProjectFlowOrchestratorPanel] load orchestration log failed",
+        error,
+      );
     }
   }, [projectId]);
 
@@ -324,7 +363,8 @@ export function ProjectFlowOrchestratorPanel({
   // --- Recompute resolved stages when projectType changes ---
   useEffect(() => {
     if (!fullPreset) return;
-    const pathStages = fullPreset.paths[projectType] ?? fullPreset.paths.backend ?? [];
+    const pathStages =
+      fullPreset.paths[projectType] ?? fullPreset.paths.backend ?? [];
     setResolvedStages(pathStages);
     setEnabledStages(new Set(pathStages));
     if (pathStages.length > 0 && !pathStages.includes(targetStage)) {
@@ -346,11 +386,11 @@ export function ProjectFlowOrchestratorPanel({
         setPresetId(result.savedProfile.presetId);
       }
       if (result.savedProfile?.projectType) {
-        const pt = result.savedProfile.projectType as (typeof PROJECT_TYPES)[number];
+        const pt = result.savedProfile
+          .projectType as (typeof PROJECT_TYPES)[number];
         if (PROJECT_TYPES.includes(pt)) setProjectType(pt);
       }
-      const active =
-        result.activeChangeId ?? result.changes[0]?.changeId ?? "";
+      const active = result.activeChangeId ?? result.changes[0]?.changeId ?? "";
       setSelectedChangeId(active);
     } catch (e) {
       toast.error(String(e));
@@ -409,10 +449,9 @@ export function ProjectFlowOrchestratorPanel({
 
   const githubActionsSnippet = useMemo(
     () =>
-      [
-        "- name: OpenSunstar flow gate",
-        `  run: ${ciValidateCommand}`,
-      ].join("\n"),
+      ["- name: OpenSunstar flow gate", `  run: ${ciValidateCommand}`].join(
+        "\n",
+      ),
     [ciValidateCommand],
   );
 
@@ -534,7 +573,8 @@ export function ProjectFlowOrchestratorPanel({
       );
       toast.success(
         t("flowOrchestrator.flowConfigOk", {
-          defaultValue: "已导出 .opensunstar/flow-config.yaml (R9.6 安全阀已注入)",
+          defaultValue:
+            "已导出 .opensunstar/flow-config.yaml (R9.6 安全阀已注入)",
         }),
       );
       // Show rules summary in toast
@@ -627,7 +667,9 @@ export function ProjectFlowOrchestratorPanel({
   }, [fullPreset]);
 
   const hasWorkflowProfile = Boolean(index?.savedProfile);
-  const hasRecipeSpecs = Boolean(index?.hasSpecsDir && index.changes.length > 0);
+  const hasRecipeSpecs = Boolean(
+    index?.hasSpecsDir && index.changes.length > 0,
+  );
   const hasFlowConfig = Boolean(index?.hasFlowConfig);
 
   if (loading) {
@@ -651,7 +693,8 @@ export function ProjectFlowOrchestratorPanel({
             </h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">
               {t("flowOrchestrator.subtitle", {
-                defaultValue: "flow-kit 兼容 · 档位 + 模块 + .specs 索引 + 阶段门禁",
+                defaultValue:
+                  "flow-kit 兼容 · 档位 + 模块 + .specs 索引 + 阶段门禁",
               })}
             </p>
           </div>
@@ -694,7 +737,9 @@ export function ProjectFlowOrchestratorPanel({
             ))}
           </select>
           {selectedPreset && (
-            <p className="text-[10px] text-muted-foreground">{selectedPreset.description}</p>
+            <p className="text-[10px] text-muted-foreground">
+              {selectedPreset.description}
+            </p>
           )}
         </label>
 
@@ -737,7 +782,9 @@ export function ProjectFlowOrchestratorPanel({
           <label className="flex items-start gap-2 rounded-md border border-border/50 bg-muted/20 px-2 py-1.5 cursor-pointer">
             <Checkbox
               checked={strictSemantics}
-              onCheckedChange={(checked) => setStrictSemantics(checked === true)}
+              onCheckedChange={(checked) =>
+                setStrictSemantics(checked === true)
+              }
               className="mt-0.5"
             />
             <span className="space-y-0.5">
@@ -812,7 +859,9 @@ export function ProjectFlowOrchestratorPanel({
 
         <div className="rounded-md bg-muted/30 border border-border/50 p-2 space-y-2">
           <SectionToggle
-            label={t("flowOrchestrator.advancedDetails", { defaultValue: "高级详情：CI 命令与生成文件" })}
+            label={t("flowOrchestrator.advancedDetails", {
+              defaultValue: "高级详情：CI 命令与生成文件",
+            })}
             expanded={advancedDetailsExpanded}
             onToggle={() => setAdvancedDetailsExpanded((v) => !v)}
           />
@@ -851,8 +900,12 @@ export function ProjectFlowOrchestratorPanel({
                   disabled={restoring}
                   onClick={() => void handleRestoreLatestReceipt()}
                 >
-                  {restoring ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : null}
-                  {t("flowOrchestrator.rollbackLatest", { defaultValue: "恢复上次编排" })}
+                  {restoring ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : null}
+                  {t("flowOrchestrator.rollbackLatest", {
+                    defaultValue: "恢复上次编排",
+                  })}
                 </Button>
               </div>
             </>
@@ -863,7 +916,9 @@ export function ProjectFlowOrchestratorPanel({
       {/* A-1: Module multi-select */}
       <div className="rounded-lg border border-border/50 bg-background/30 p-3 space-y-2">
         <SectionToggle
-          label={t("flowOrchestrator.modules", { defaultValue: "高级：选择规则模块" })}
+          label={t("flowOrchestrator.modules", {
+            defaultValue: "高级：选择规则模块",
+          })}
           count={`${selectedModules.size}/${modules.length}`}
           expanded={modulesExpanded}
           onToggle={() => setModulesExpanded((v) => !v)}
@@ -898,7 +953,9 @@ export function ProjectFlowOrchestratorPanel({
       {resolvedStages.length > 0 && (
         <div className="rounded-lg border border-border/50 bg-background/30 p-3 space-y-2">
           <SectionToggle
-            label={t("flowOrchestrator.stages", { defaultValue: "高级：调整执行步骤" })}
+            label={t("flowOrchestrator.stages", {
+              defaultValue: "高级：调整执行步骤",
+            })}
             count={`${enabledStages.size}/${resolvedStages.length}`}
             expanded={stagesExpanded}
             onToggle={() => setStagesExpanded((v) => !v)}
@@ -927,13 +984,30 @@ export function ProjectFlowOrchestratorPanel({
 
       {/* Action buttons */}
       <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="secondary" disabled={scanning} onClick={() => void refreshScan()}>
-          {scanning ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={scanning}
+          onClick={() => void refreshScan()}
+        >
+          {scanning ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+          ) : null}
           {t("flowOrchestrator.rescan", { defaultValue: "刷新索引" })}
         </Button>
-        <Button size="sm" disabled={exporting || !index?.workspaceExists} onClick={() => void handleExportPreview()}>
-          {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <GitBranch className="h-3.5 w-3.5 mr-1" />}
-          {t("flowOrchestrator.saveProjectFlow", { defaultValue: "保存项目流程" })}
+        <Button
+          size="sm"
+          disabled={exporting || !index?.workspaceExists}
+          onClick={() => void handleExportPreview()}
+        >
+          {exporting ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+          ) : (
+            <GitBranch className="h-3.5 w-3.5 mr-1" />
+          )}
+          {t("flowOrchestrator.saveProjectFlow", {
+            defaultValue: "保存项目流程",
+          })}
         </Button>
         <Button
           size="sm"
@@ -946,7 +1020,9 @@ export function ProjectFlowOrchestratorPanel({
           ) : (
             <FileOutput className="h-3.5 w-3.5 mr-1" />
           )}
-          {t("flowOrchestrator.exportCiConfig", { defaultValue: "导出 CI 检查配置" })}
+          {t("flowOrchestrator.exportCiConfig", {
+            defaultValue: "导出 CI 检查配置",
+          })}
         </Button>
       </div>
 
@@ -954,14 +1030,19 @@ export function ProjectFlowOrchestratorPanel({
       <div className="space-y-2">
         <h4 className="text-xs font-semibold flex items-center gap-1.5">
           <ShieldCheck className="h-3.5 w-3.5" />
-          {t("flowOrchestrator.specsIndex", { defaultValue: ".specs 变更索引" })}
+          {t("flowOrchestrator.specsIndex", {
+            defaultValue: ".specs 变更索引",
+          })}
         </h4>
         {scanning && !index ? (
-          <p className="text-xs text-muted-foreground">{t("common.loading", { defaultValue: "加载中…" })}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("common.loading", { defaultValue: "加载中…" })}
+          </p>
         ) : index && index.changes.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             {t("flowOrchestrator.noChanges", {
-              defaultValue: "暂无 change 目录。复制 flow-kit 并在 .specs/<id>/ 下创建工件。",
+              defaultValue:
+                "暂无 change 目录。复制 flow-kit 并在 .specs/<id>/ 下创建工件。",
             })}
           </p>
         ) : (
@@ -972,7 +1053,8 @@ export function ProjectFlowOrchestratorPanel({
                 type="button"
                 className={cn(
                   "w-full text-left",
-                  selectedChangeId === c.changeId && "ring-1 ring-primary rounded-lg",
+                  selectedChangeId === c.changeId &&
+                    "ring-1 ring-primary rounded-lg",
                 )}
                 onClick={() => setSelectedChangeId(c.changeId)}
               >
@@ -986,11 +1068,15 @@ export function ProjectFlowOrchestratorPanel({
       {/* A-4: Dynamic Stage Gate */}
       <div className="rounded-lg border border-dashed border-border/60 p-3 space-y-2">
         <p className="text-[11px] font-medium">
-          {t("flowOrchestrator.stageGate", { defaultValue: "阶段门禁试算 (R2.7)" })}
+          {t("flowOrchestrator.stageGate", {
+            defaultValue: "阶段门禁试算 (R2.7)",
+          })}
         </p>
         <div className="flex flex-wrap gap-2 items-end">
           <label className="space-y-1 flex-1 min-w-[120px]">
-            <span className="text-[10px] text-muted-foreground">target stage</span>
+            <span className="text-[10px] text-muted-foreground">
+              target stage
+            </span>
             <select
               className="w-full h-8 rounded-md border border-input bg-background px-2 text-xs"
               value={targetStage}
@@ -999,7 +1085,8 @@ export function ProjectFlowOrchestratorPanel({
               {resolvedStages.length > 0
                 ? resolvedStages.map((s) => (
                     <option key={s} value={s}>
-                      {s} {stageNameMap.get(s) ? `(${stageNameMap.get(s)})` : ""}
+                      {s}{" "}
+                      {stageNameMap.get(s) ? `(${stageNameMap.get(s)})` : ""}
                     </option>
                   ))
                 : [
@@ -1018,8 +1105,17 @@ export function ProjectFlowOrchestratorPanel({
                   ))}
             </select>
           </label>
-          <Button size="sm" variant="outline" disabled={validating} onClick={() => void handleValidateGate()}>
-            {validating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("flowOrchestrator.checkGate", { defaultValue: "检查" })}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={validating}
+            onClick={() => void handleValidateGate()}
+          >
+            {validating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              t("flowOrchestrator.checkGate", { defaultValue: "检查" })
+            )}
           </Button>
         </div>
         {gateResult && (
@@ -1040,15 +1136,18 @@ export function ProjectFlowOrchestratorPanel({
               <p className="font-medium">
                 {gateResult.allowed
                   ? t("flowOrchestrator.gatePass", { defaultValue: "可通过" })
-                  : t("flowOrchestrator.gateBlock", { defaultValue: "缺少工件" })}
+                  : t("flowOrchestrator.gateBlock", {
+                      defaultValue: "缺少工件",
+                    })}
               </p>
-              {!gateResult.allowed && gateResult.missingArtifacts.length > 0 && (
-                <ul className="mt-1 list-disc list-inside text-[10px] opacity-90">
-                  {gateResult.missingArtifacts.map((m) => (
-                    <li key={m}>{m}</li>
-                  ))}
-                </ul>
-              )}
+              {!gateResult.allowed &&
+                gateResult.missingArtifacts.length > 0 && (
+                  <ul className="mt-1 list-disc list-inside text-[10px] opacity-90">
+                    {gateResult.missingArtifacts.map((m) => (
+                      <li key={m}>{m}</li>
+                    ))}
+                  </ul>
+                )}
             </div>
           </div>
         )}
@@ -1073,7 +1172,8 @@ export function ProjectFlowOrchestratorPanel({
         {orchestrationLog.length === 0 ? (
           <p className="text-[10px] text-muted-foreground">
             {t("flowOrchestrator.noActivity", {
-              defaultValue: "暂无编排操作。保存流程、生成自动检查配置或运行检查后会显示在这里。",
+              defaultValue:
+                "暂无编排操作。保存流程、生成自动检查配置或运行检查后会显示在这里。",
             })}
           </p>
         ) : (

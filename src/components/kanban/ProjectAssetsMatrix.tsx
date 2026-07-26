@@ -53,14 +53,54 @@ interface AssetColumn {
 }
 
 const ASSET_COLUMNS: AssetColumn[] = [
-  { checkName: "mcp_enabled", label: "MCP", safetyCritical: false, width: "w-[72px]" },
-  { checkName: "skills_configured", label: "Skills", safetyCritical: false, width: "w-[72px]" },
-  { checkName: "prompt_files", label: "Prompts", safetyCritical: false, width: "w-[72px]" },
-  { checkName: "commands_configured", label: "Cmds", safetyCritical: false, width: "w-[64px]" },
-  { checkName: "hooks_configured", label: "Hooks", safetyCritical: true, width: "w-[64px]" },
-  { checkName: "ignore_rules", label: "Ignore", safetyCritical: true, width: "w-[68px]" },
-  { checkName: "permissions", label: "Perms", safetyCritical: true, width: "w-[64px]" },
-  { checkName: "subagents_configured", label: "Subs", safetyCritical: false, width: "w-[64px]" },
+  {
+    checkName: "mcp_enabled",
+    label: "MCP",
+    safetyCritical: false,
+    width: "w-[72px]",
+  },
+  {
+    checkName: "skills_configured",
+    label: "Skills",
+    safetyCritical: false,
+    width: "w-[72px]",
+  },
+  {
+    checkName: "prompt_files",
+    label: "Prompts",
+    safetyCritical: false,
+    width: "w-[72px]",
+  },
+  {
+    checkName: "commands_configured",
+    label: "Cmds",
+    safetyCritical: false,
+    width: "w-[64px]",
+  },
+  {
+    checkName: "hooks_configured",
+    label: "Hooks",
+    safetyCritical: true,
+    width: "w-[64px]",
+  },
+  {
+    checkName: "ignore_rules",
+    label: "Ignore",
+    safetyCritical: true,
+    width: "w-[68px]",
+  },
+  {
+    checkName: "permissions",
+    label: "Perms",
+    safetyCritical: true,
+    width: "w-[64px]",
+  },
+  {
+    checkName: "subagents_configured",
+    label: "Subs",
+    safetyCritical: false,
+    width: "w-[64px]",
+  },
 ];
 
 // ── cell health determination ──────────────────────────
@@ -101,11 +141,7 @@ function getCellState(
   }
 
   // last resort: score
-  return item.score > 0
-    ? "normal"
-    : safetyCritical
-      ? "abnormal"
-      : "attention";
+  return item.score > 0 ? "normal" : safetyCritical ? "abnormal" : "attention";
 }
 
 // ── cell display helpers ──────────────────────────────
@@ -285,7 +321,9 @@ function cellDetailLabel(
       defaultValue: "当前目标 CLI 不支持此项",
     });
 
-  return item.detail || t("assetsMatrix.noData", { defaultValue: "暂无扫描数据" });
+  return (
+    item.detail || t("assetsMatrix.noData", { defaultValue: "暂无扫描数据" })
+  );
 }
 
 // ── main component ────────────────────────────────────
@@ -369,9 +407,7 @@ export function ProjectAssetsMatrix({
       const state = projectState.get(p.id)?.state;
       if (filterMode === "needs_action") {
         return (
-          state === "abnormal" ||
-          state === "attention" ||
-          state === "unscanned"
+          state === "abnormal" || state === "attention" || state === "unscanned"
         );
       }
       return state === filterMode;
@@ -684,8 +720,7 @@ function AssetDetailPanel({
 }) {
   const { project, column, item, state } = cell;
   const statusKind = getCellStatusKind(item, state);
-  const assetLabel =
-    GOVERNANCE_CHECK_LABELS[column.checkName] ?? column.label;
+  const assetLabel = GOVERNANCE_CHECK_LABELS[column.checkName] ?? column.label;
 
   return (
     <>
@@ -730,8 +765,7 @@ function AssetDetailPanel({
                 "bg-emerald-500/10 border border-emerald-500/20",
               state === "attention" &&
                 "bg-amber-500/10 border border-amber-500/20",
-              state === "abnormal" &&
-                "bg-red-500/10 border border-red-500/20",
+              state === "abnormal" && "bg-red-500/10 border border-red-500/20",
               state === "unscanned" &&
                 "bg-slate-500/10 border border-slate-500/20",
               state === "not_applicable" &&

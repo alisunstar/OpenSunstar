@@ -140,7 +140,11 @@ const UnifiedSkillsPanel = React.forwardRef<
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
     try {
-      const count = await batchToggleMutation.mutateAsync({ ids, app, enabled });
+      const count = await batchToggleMutation.mutateAsync({
+        ids,
+        app,
+        enabled,
+      });
       toast.success(
         enabled
           ? t("skills.batchEnableSuccess", { count, app })

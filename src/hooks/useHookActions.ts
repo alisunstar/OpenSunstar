@@ -55,7 +55,9 @@ export function useHookActions() {
         await hooksApi.toggleApp(hookId, app, enabled);
         await reload();
       } catch {
-        toast.error(t("hooks.toggleFailed", { defaultValue: "切换同步目标失败" }));
+        toast.error(
+          t("hooks.toggleFailed", { defaultValue: "切换同步目标失败" }),
+        );
       }
     },
     [reload, t],

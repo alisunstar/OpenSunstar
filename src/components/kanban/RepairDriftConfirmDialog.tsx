@@ -32,7 +32,11 @@ export interface RepairDriftConfirmDialogProps {
 }
 
 function assetLabel(payload: RepairDriftAssetConfirm): string {
-  return payload.label ?? GOVERNANCE_CHECK_LABELS[payload.checkName] ?? payload.checkName;
+  return (
+    payload.label ??
+    GOVERNANCE_CHECK_LABELS[payload.checkName] ??
+    payload.checkName
+  );
 }
 
 export function RepairDriftConfirmDialog({

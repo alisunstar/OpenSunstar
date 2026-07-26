@@ -249,7 +249,10 @@ export const teamConfigApi = {
     return invoke("connect_team_workspace", { path });
   },
 
-  validate(path: string, runSecurityScan?: boolean): Promise<TeamValidateResponse> {
+  validate(
+    path: string,
+    runSecurityScan?: boolean,
+  ): Promise<TeamValidateResponse> {
     return invoke("validate_team_workspace", { path, runSecurityScan });
   },
 
@@ -260,7 +263,7 @@ export const teamConfigApi = {
   getEffectiveState(
     path: string,
     targetApp: string,
-    projectId?: string
+    projectId?: string,
   ): Promise<EffectiveConfig> {
     return invoke("get_team_effective_state", { path, targetApp, projectId });
   },
@@ -279,7 +282,7 @@ export const teamConfigApi = {
     path: string,
     targetApp: string,
     projectRoot: string,
-    projectId?: string
+    projectId?: string,
   ): Promise<DeploymentPlan> {
     return invoke("generate_team_deployment_plan", {
       path,
@@ -294,7 +297,7 @@ export const teamConfigApi = {
     targetApp: string,
     projectRoot: string,
     projectId?: string,
-    dryRun?: boolean
+    dryRun?: boolean,
   ): Promise<DeploymentReceipt> {
     return invoke("execute_team_deployment", {
       path,
@@ -312,7 +315,7 @@ export const teamConfigApi = {
   rollback(
     receiptJson: string,
     driftJson: string,
-    projectRoot: string
+    projectRoot: string,
   ): Promise<RollbackReport> {
     return invoke("rollback_team_deployment", {
       receiptJson,
