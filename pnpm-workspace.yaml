@@ -1,6 +1,6 @@
-packages:
-  - control-plane
-
+# 单包仓库：不再声明 workspace 成员。
+# control-plane 已迁出到独立仓库 alisunstar/opensunstar-control-plane，
+# 本文件保留是因为 allowBuilds / onlyBuiltDependencies 仍为前端所需。
 allowBuilds:
   esbuild: false
   msw: false
