@@ -3339,6 +3339,16 @@
     "viewProject": "プロジェクトアセットを表示",
     "goRepair": "修復へ"
   },
+  "scope": {
+    "globalEnabled": "グローバルで有効",
+    "globalNotEnabled": "グローバルでは無効",
+    "activeProject": "プロジェクト：{{name}}",
+    "backToProject": "プロジェクトに戻る：{{name}}",
+    "globalScope": "グローバル",
+    "projectScope": "プロジェクト",
+    "globalToast": "{{app}} をグローバルで有効にしました",
+    "globalDisableToast": "{{app}} をグローバルで無効にしました"
+  },
   "cloudSyncDashboard": {
     "title": "クロスデバイス クラウド同期",
     "subtitle": "複数デバイス間で設定データを同期し、どこでも一貫した開発環境を維持",

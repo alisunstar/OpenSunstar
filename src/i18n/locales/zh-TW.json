@@ -3962,6 +3962,16 @@
     "viewProject": "查看項目資產",
     "goRepair": "去修復"
   },
+  "scope": {
+    "globalEnabled": "全域已啟用",
+    "globalNotEnabled": "全域未啟用",
+    "activeProject": "專案：{{name}}",
+    "backToProject": "返回專案：{{name}}",
+    "globalScope": "全域",
+    "projectScope": "專案層級",
+    "globalToast": "已為 {{app}} 全域啟用",
+    "globalDisableToast": "已為 {{app}} 全域停用"
+  },
   "cloudSyncDashboard": {
     "title": "跨設備雲同步",
     "subtitle": "配置數據在多台設備間即時同步，隨時隨地保持一致的開發環境",
