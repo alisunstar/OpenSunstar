@@ -484,7 +484,20 @@ pub async fn team_key_sync(
         encode_path(&org_id)?,
         device_id
     );
-    let response = authenticated_json(reqwest::Method::GET, &path, None).await?;
+    let response = match authenticated_json(reqwest::Method::GET, &path, None).await {
+        Ok(r) => r,
+        Err(e) => {
+            // C-3: 403 + membership_revoked → 离职，清除本地全部团队 Key
+            let err_str = e.to_string();
+            if err_str.contains("403") || err_str.contains("membership_revoked") {
+                let _ = crate::team_key::revoke_all_team_keys_for_org(&state.db, &org_id);
+                return Err(format!(
+                    "team_key_membership_revoked: 团队 membership 已移除，本机密钥已清除"
+                ));
+            }
+            return Err(err_str);
+        }
+    };
     let grants_response: GrantsResponse = serde_json::from_value(response)
         .map_err(|_| "team_key_sync_response_invalid".to_string())?;
 
@@ -543,12 +556,26 @@ pub async fn team_key_renew(
         "/v1/organizations/{}/keys/grants/renew",
         encode_path(&org_id)?
     );
-    let response = authenticated_json(
+    let response = match authenticated_json(
         reqwest::Method::POST,
         &path,
         Some(serde_json::json!({ "deviceId": device_id })),
     )
-    .await?;
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            // C-3: 403 + membership_revoked → 离职，清除本地全部团队 Key
+            let err_str = e.to_string();
+            if err_str.contains("403") || err_str.contains("membership_revoked") {
+                let _ = crate::team_key::revoke_all_team_keys_for_org(&state.db, &org_id);
+                return Err(format!(
+                    "team_key_membership_revoked: 团队 membership 已移除，本机密钥已清除"
+                ));
+            }
+            return Err(err_str);
+        }
+    };
 
     // Process rotated keys (plaintext only present when rotated=true)
     let db = &state.db;
@@ -598,7 +625,25 @@ pub async fn team_key_renew(
         }
     }
 
-    Ok(serde_json::json!({ "rotated": rotated_count, "detail": response }))
+    // C-1 修复：剥离 plaintext，仅返回元数据给前端
+    let slots: Vec<serde_json::Value> = response
+        .get("grants")
+        .and_then(|g| g.as_array())
+        .map(|grants| {
+            grants
+                .iter()
+                .filter(|g| g.get("rotated").and_then(|r| r.as_bool()).unwrap_or(false))
+                .map(|g| {
+                    serde_json::json!({
+                        "slotSlug": g.get("slotSlug").and_then(|s| s.as_str()).unwrap_or_default(),
+                        "versionSeq": g.get("versionSeq").and_then(|v| v.as_i64()).unwrap_or(0),
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+
+    Ok(serde_json::json!({ "rotated": rotated_count, "slots": slots }))
 }
 
 /// List all local team keys (metadata only, no plaintext).

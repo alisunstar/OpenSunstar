@@ -422,6 +422,15 @@ impl Database {
         // 32. Team Key Local 表（D16 团队 Key 下发 — 仅存引用，绝不存值）
         Self::create_team_key_local_table(conn)?;
 
+        // 33. Team Config 表（Git MVP Local Alpha — 工作区 + Release 快照）
+        Self::create_team_config_tables(conn)?;
+
+        // 34. Team Assignments 表（Git MVP M1 — 项目×Profile 分配）
+        Self::create_team_assignments_table(conn)?;
+
+        // 35. Team Audit Local 表（Git MVP M8 — 本地审计事件）
+        Self::create_team_audit_local_table(conn)?;
+
         Ok(())
     }
 
@@ -664,6 +673,27 @@ impl Database {
                         );
                         Self::migrate_v39_to_v40(conn)?;
                         Self::set_user_version(conn, 40)?;
+                    }
+                    40 => {
+                        log::info!(
+                            "Migrating database from v40 to v41 (team_workspaces + team_releases — Git MVP Local Alpha)"
+                        );
+                        Self::migrate_v40_to_v41(conn)?;
+                        Self::set_user_version(conn, 41)?;
+                    }
+                    41 => {
+                        log::info!(
+                            "Migrating database from v41 to v42 (team_assignments — Git MVP M1 project×profile)"
+                        );
+                        Self::migrate_v41_to_v42(conn)?;
+                        Self::set_user_version(conn, 42)?;
+                    }
+                    42 => {
+                        log::info!(
+                            "Migrating database from v42 to v43 (team_audit_local — Git MVP M8 local audit)"
+                        );
+                        Self::migrate_v42_to_v43(conn)?;
+                        Self::set_user_version(conn, 43)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -2476,6 +2506,97 @@ impl Database {
 
     fn migrate_v39_to_v40(conn: &Connection) -> Result<(), AppError> {
         Self::create_team_key_local_table(conn)
+    }
+
+    fn create_team_config_tables(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS team_workspaces (
+                workspace_id        TEXT PRIMARY KEY,
+                name                TEXT NOT NULL,
+                source_kind         TEXT NOT NULL,
+                source_path         TEXT NOT NULL,
+                branch              TEXT,
+                last_synced_commit  TEXT,
+                last_synced_at      INTEGER,
+                team_toml_snapshot  TEXT,
+                status              TEXT NOT NULL DEFAULT 'active',
+                created_at          INTEGER NOT NULL,
+                updated_at          INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_team_workspaces_status
+                ON team_workspaces(status);
+            CREATE INDEX IF NOT EXISTS idx_team_workspaces_path
+                ON team_workspaces(source_path);
+
+            CREATE TABLE IF NOT EXISTS team_releases (
+                release_id      TEXT PRIMARY KEY,
+                workspace_id    TEXT NOT NULL REFERENCES team_workspaces(workspace_id) ON DELETE CASCADE,
+                tag             TEXT NOT NULL,
+                commit_sha      TEXT,
+                manifest_json   TEXT NOT NULL,
+                created_at      INTEGER NOT NULL,
+                created_by      TEXT,
+                status          TEXT NOT NULL DEFAULT 'active'
+            );
+            CREATE INDEX IF NOT EXISTS idx_team_releases_workspace
+                ON team_releases(workspace_id);
+            CREATE INDEX IF NOT EXISTS idx_team_releases_tag
+                ON team_releases(workspace_id, tag);",
+        )
+        .map_err(|e| AppError::Database(format!("创建 team_config 表失败: {e}")))
+    }
+
+    fn migrate_v40_to_v41(conn: &Connection) -> Result<(), AppError> {
+        Self::create_team_config_tables(conn)
+    }
+
+    fn create_team_assignments_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS team_assignments (
+                assignment_id       TEXT PRIMARY KEY,
+                project_id          TEXT NOT NULL,
+                workspace_id        TEXT NOT NULL REFERENCES team_workspaces(workspace_id) ON DELETE CASCADE,
+                profile_id          TEXT NOT NULL,
+                status              TEXT NOT NULL DEFAULT 'active',
+                deployed_at         INTEGER,
+                deployed_release_id TEXT,
+                created_at          INTEGER NOT NULL,
+                updated_at          INTEGER NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_team_assignments_project_active
+                ON team_assignments(project_id) WHERE status = 'active';
+            CREATE INDEX IF NOT EXISTS idx_team_assignments_workspace
+                ON team_assignments(workspace_id);",
+        )
+        .map_err(|e| AppError::Database(format!("创建 team_assignments 表失败: {e}")))
+    }
+
+    fn migrate_v41_to_v42(conn: &Connection) -> Result<(), AppError> {
+        Self::create_team_assignments_table(conn)
+    }
+
+    fn create_team_audit_local_table(conn: &Connection) -> Result<(), AppError> {
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS team_audit_local (
+                event_id        TEXT PRIMARY KEY,
+                workspace_id    TEXT,
+                project_id      TEXT,
+                action          TEXT NOT NULL,
+                actor_ref       TEXT NOT NULL DEFAULT 'local-device',
+                details_json    TEXT,
+                success         INTEGER NOT NULL DEFAULT 1,
+                created_at      INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS idx_team_audit_local_workspace
+                ON team_audit_local(workspace_id, created_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_team_audit_local_action
+                ON team_audit_local(action, created_at DESC);",
+        )
+        .map_err(|e| AppError::Database(format!("创建 team_audit_local 表失败: {e}")))
+    }
+
+    fn migrate_v42_to_v43(conn: &Connection) -> Result<(), AppError> {
+        Self::create_team_audit_local_table(conn)
     }
 
     fn create_model_pricing_provenance_table(conn: &Connection) -> Result<(), AppError> {

@@ -88,6 +88,9 @@ pub enum Commands {
     /// 团队密钥管理 (D16)
     TeamKey(commands::team_key::TeamKeyArgs),
 
+    /// 团队配置管理 (Git MVP Local Alpha)
+    Team(commands::team::TeamArgs),
+
     /// 项目 Wiki / 知识基线管理
     Wiki(commands::wiki::WikiArgs),
 }
@@ -226,6 +229,12 @@ fn run_command(command: Commands, json: bool) -> Result<(), String> {
         Commands::TeamKey(args) => {
             let state = init_state_or_exit(json);
             commands::team_key::run(args, &state, json)
+        }
+
+        // team config: 需要 DB（team_workspaces 表）
+        Commands::Team(args) => {
+            let state = init_state_or_exit(json);
+            commands::team::run(args, &state, json)
         }
 
         // wiki: 本地离线命令，不需要 DB

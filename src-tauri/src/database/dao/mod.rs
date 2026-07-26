@@ -25,6 +25,7 @@ pub mod skills;
 pub mod stream_check;
 pub mod team_key;
 pub mod team_requirements;
+pub mod team_workspace;
 pub mod universal_providers;
 pub mod usage_rollup;
 

@@ -24,6 +24,8 @@ import {
 } from "@/lib/api/productAuth";
 import { cn } from "@/lib/utils";
 import { translateProductError } from "@/lib/productAuthErrors";
+import { TeamConfigPanel } from "./TeamConfigPanel";
+import { TeamDeployments } from "./TeamDeployments";
 
 type AccountState =
   | { kind: "loading" }
@@ -105,6 +107,7 @@ export function TeamCollaborationPage() {
   const [members, setMembers] = useState<TeamMembership[]>([]);
   const [pendingInvites, setPendingInvites] = useState<TeamInvite[]>([]);
   const [teamKeys, setTeamKeys] = useState<TeamKeyLocal[]>([]);
+  const [connectedSourcePath, setConnectedSourcePath] = useState("");
   const [teamDataError, setTeamDataError] = useState<string | null>(null);
 
   const loadSession = useCallback(async () => {
@@ -250,6 +253,28 @@ export function TeamCollaborationPage() {
         </section>
 
         <CollaborationRail session={session} />
+
+        {/* Local Alpha: 团队配置包（只读闭环，独立于云平台登录） */}
+        <section className="rounded-2xl border border-border/60 bg-card/75 p-6 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold">团队配置包</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              连接本地或 Git 团队配置源，浏览 Profile、编译有效配置、比对 Release 基线。
+            </p>
+          </div>
+          <TeamConfigPanel onConnected={setConnectedSourcePath} />
+        </section>
+
+        {/* Git MVP: 部署写入闭环 */}
+        <section className="rounded-2xl border border-border/60 bg-card/75 p-6 shadow-sm">
+          <div className="mb-4">
+            <h3 className="text-base font-semibold">团队部署</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              生成部署计划、确认写入、检测偏差、安全回滚。独立维度，按需选用。
+            </p>
+          </div>
+          <TeamDeployments sourcePath={connectedSourcePath} />
+        </section>
 
         {actionError && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/[0.04] px-4 py-3 text-sm text-destructive">

@@ -47,6 +47,7 @@ mod subscription;
 mod subscription_accounts;
 mod sync_support;
 mod system;
+mod team_config;
 mod toolchain;
 mod window;
 
@@ -111,6 +112,7 @@ pub use stream_check::*;
 pub use subscription::*;
 pub use subscription_accounts::*;
 pub use system::*;
+pub use team_config::*;
 pub use toolchain::*;
 pub use window::*;
 

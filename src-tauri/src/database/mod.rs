@@ -53,6 +53,7 @@ pub use dao::quick_start::{
 pub use dao::FailoverQueueItem;
 pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 pub(crate) use dao::team_key::TeamKeyLocal;
+pub(crate) use dao::team_workspace::{TeamAssignmentRow, TeamWorkspace};
 
 use crate::config::get_app_config_dir;
 use crate::error::AppError;
@@ -68,7 +69,7 @@ use std::time::{Duration, Instant};
 
 /// 当前 Schema 版本号
 /// 每次修改表结构时递增，并在 schema.rs 中添加相应的迁移逻辑
-pub(crate) const SCHEMA_VERSION: i32 = 40;
+pub(crate) const SCHEMA_VERSION: i32 = 43;
 
 /// 代理热路径计价查询的 TTL（全局默认倍率/来源 + model_pricing）。
 const PRICING_CACHE_TTL: Duration = Duration::from_secs(30);

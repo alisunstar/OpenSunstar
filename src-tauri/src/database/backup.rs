@@ -38,6 +38,10 @@ const SYNC_SENSITIVE_TABLES: &[&str] = &[
     "team_invites",
     "team_entitlements",
     "team_audit_events",
+    "team_workspaces",
+    "team_releases",
+    "team_assignments",
+    "team_audit_local",
 ];
 
 /// Tables whose local data is preserved (restored from local snapshot) during WebDAV import.

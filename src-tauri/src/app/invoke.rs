@@ -541,5 +541,22 @@ pub(super) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         commands::preview_project_wiki_init_cmd,
         commands::init_project_wiki_cmd,
         commands::map_project_wiki_changed_files_cmd,
+        // Team Config (Git MVP Local Alpha)
+        commands::connect_team_workspace,
+        commands::validate_team_workspace,
+        commands::list_team_profiles,
+        commands::get_team_effective_state,
+        commands::get_team_status,
+        commands::get_team_release_diff,
+        commands::assign_team_profile,
+        commands::get_team_assignment,
+        commands::unassign_team_profile,
+        // Git MVP M2: 部署计划
+        commands::generate_team_deployment_plan,
+        // Git MVP M3+M4: 部署执行 + 回执
+        commands::execute_team_deployment,
+        // Git MVP M5+M6: 偏差检测 + 回滚
+        commands::check_team_drift,
+        commands::rollback_team_deployment,
     ])
 }
