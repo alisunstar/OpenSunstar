@@ -79,7 +79,7 @@ OpenSunstar 提供 **两种可独立启动的入口**，共用 `~/.OpenSunstar/`
 | ---- | ---- |
 | **今日工作台** | 开机第一眼：待办、就绪度缺口、组合概览 |
 | **项目看板** | 多 Git 仓库阶段、提交活跃度、AI 组合报告 |
-| **AI 资产总览** | 项目 × 资产矩阵（MCP / Skills / Prompts / Cmd / Hooks …） |
+| **AI 资产总览** | 项目 × 资产矩阵（MCP / Skills / Prompts / Commands / Hooks …）与配置生效率 |
 | **项目 · AI 配置** | 按仓库启用/关联 Agent 资产，直达补齐 |
 
 #### 项目配置 — 方法论与编排

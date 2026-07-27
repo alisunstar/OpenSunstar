@@ -79,9 +79,9 @@ OpenSunstar ships **two independent entry points** that share the same data unde
 
 | Entry | Capability |
 | ----- | ---------- |
-| **Today Workspace** | First glance: todos, readiness gaps, portfolio overview |
-| **Project Board** | Multi-repo stages, commit activity, AI portfolio reports |
-| **AI Assets Overview** | Project × asset matrix (MCP / Skills / Prompts / Cmd / Hooks …) |
+| **Today** | First glance: todos, readiness gaps, portfolio overview |
+| **Project board** | Multi-repo stages, commit activity, AI portfolio reports |
+| **AI assets** | Project × asset matrix (MCP / Skills / Prompts / Commands / Hooks …) and config effectiveness |
 | **Project · AI Config** | Enable/link agent assets per repo, jump to fix gaps |
 
 #### Project Config — Methodology & Orchestration
@@ -130,7 +130,7 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 
 ### Core use cases (8 scenarios)
 
-1. **AI workspace governance** — Today Workspace, Project Board, AI Assets Overview, readiness scoring
+1. **AI workspace governance** — Today, Project board, AI assets, readiness scoring
 2. **Methodology & workflow orchestration** — framework detection, preset orchestration, custom Recipe, design contract
 3. **One-click API access** — curated Quick Connect for Claude Code / Desktop / Codex / Gemini
 4. **Cross-tool Agent sync** — 9 agent modules with bidirectional sync
@@ -158,7 +158,7 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | **Quick Connect** | 7+ curated presets (Official · CN · Aggregator · Custom); add more in Settings (incl. relays) |
 | **Methodology & Orchestration** | Framework detection · preset orchestration · custom Recipe · design contract |
 | **Agent configuration** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert |
-| **AI workspace** | Today Workspace · Project Board · AI Assets Overview · Agent Readiness |
+| **AI workspace** | Today · Project board · AI assets · Agent Readiness |
 | **Context & usage** | Context sessions · AI Tokens dashboard · budget alerts |
 | **Skills / MCP discovery** | skills.sh leaderboard · Smithery · ClawHub · ModelScope · GitHub |
 | **Secret storage** | OS Keychain first, SQLite atomic writes |
