@@ -33,7 +33,8 @@
       "lint": "运行 Lint 校验",
       "refresh": "刷新",
       "openInEditor": "在编辑器中打开",
-      "previewInit": "预览初始化"
+      "previewInit": "预览初始化",
+      "toggleQuality": "切换 quality 模式"
     },
     "changedFiles": {
       "coldStart": "Wiki 刚初始化，变更映射尚未生效",
@@ -47,7 +48,11 @@
       "passed": "Lint 通过",
       "failed": "Lint 失败：{{errors}} 个错误",
       "warnings": "{{count}} 个警告",
-      "qualityLevel": "质量等级：{{level}}"
+      "qualityLevel": "质量等级：{{level}}",
+      "errors": "错误",
+      "more": "还有 {{count}} 条",
+      "noFiles": "无 Wiki 文件可检查",
+      "summary": "{{files}} 文件 / {{errors}} 错误 / {{warnings}} 警告 / 等级 {{level}}"
     },
     "init": {
       "previewTitle": "Wiki 初始化预检",
@@ -56,6 +61,13 @@
       "confirm": "确认初始化",
       "success": "Wiki 初始化完成，已创建 {{count}} 个文件",
       "blocked": "安全审计阻断"
+    },
+    "changed": {
+      "affectedPages": "影响页面",
+      "changedFiles": "变更",
+      "coldStart": "冷启动态",
+      "title": "变更映射",
+      "unmapped": "未映射"
     }
   },
   "app": {
@@ -99,7 +111,14 @@
     "deleting": "删除中...",
     "auto": "自动",
     "enabled": "已开启",
-    "notSet": "未设置"
+    "notSet": "未设置",
+    "darkMode": "切换深色模式",
+    "lightMode": "切换浅色模式",
+    "next": "下一步",
+    "optional": "可选",
+    "previous": "上一页",
+    "retry": "重试",
+    "unknownError": "未知错误"
   },
   "firstRunNotice": {
     "title": "欢迎使用 OpenSunstar",
@@ -230,7 +249,12 @@
         "oauthHint": "Google 官方使用 OAuth 个人认证，无需填写 API Key。首次使用时会自动打开浏览器进行登录。",
         "apiKeyPlaceholder": "请输入 Gemini API Key"
       }
-    }
+    },
+    "activeProviderHint": "当前请求将使用此供应商",
+    "activeRouteHint": "当前请求正通过本地路由使用此供应商",
+    "copyName": "{{name}} 副本",
+    "refreshing": "正在刷新供应商列表…",
+    "routed": "路由中"
   },
   "claudeCode": {
     "needsRouting": "需要路由",
@@ -276,7 +300,8 @@
       "tooltip": {
         "active": "Claude Desktop 本地路由已开启 - {{address}}:{{port}}",
         "inactive": "开启 Claude Desktop 本地路由，用于需要模型映射或格式转换的供应商。当前配置地址：{{address}}:{{port}}"
-      }
+      },
+      "stopBlockedByTakeover": "其它应用正在使用代理接管。请先在设置中关闭对应应用接管，再停止本地路由。"
     }
   },
   "notifications": {
@@ -321,7 +346,8 @@
     "backfillWarning": "切换成功，但旧供应商配置回填失败，您手动修改的配置可能未保存",
     "windowControlFailed": "窗口控制失败：{{error}}",
     "officialBlockedByProxy": "本地路由模式下不能切换到官方供应商，使用路由访问官方 API 可能导致账号被封禁",
-    "proxyOfficialWarning": "当前供应商 {{name}} 是官方供应商，建议切换到第三方供应商后再使用本地路由"
+    "proxyOfficialWarning": "当前供应商 {{name}} 是官方供应商，建议切换到第三方供应商后再使用本地路由",
+    "proxyReasonClaudeDesktop": "使用 Claude Desktop 本地路由模式"
   },
   "confirm": {
     "deleteProvider": "删除供应商",
@@ -377,7 +403,17 @@
       "managedAccountsTitle": "托管账号",
       "managedAccountsDescription": "由 OpenSunstar 管理的账号登录，可绑定到对应 Provider 或本地代理链路。",
       "copilotDescription": "管理 GitHub Copilot 账号",
-      "codexOauthDescription": "管理 ChatGPT 账号"
+      "codexOauthDescription": "管理 ChatGPT 账号",
+      "defaultAccount": "默认",
+      "localCliProfile": "本机 CLI 当前会话",
+      "managedOauth": "OpenSunstar 托管 OAuth",
+      "noSubscriptionAccount": "尚未发现可用订阅账号",
+      "sourceLocal": "本机 CLI 当前会话",
+      "sourceManaged": "托管 OAuth",
+      "subscriptionAccountsDescription": "查看官方订阅的额度、重置时间与健康状态。仅托管的多账号支持默认标记；这里不绑定项目或第三方 API Key。",
+      "subscriptionAccountsFailed": "无法读取订阅账号状态，请刷新后重试。",
+      "subscriptionAccountsLoading": "正在并发读取订阅账号状态…",
+      "subscriptionAccountsTitle": "订阅账号"
     },
     "advanced": {
       "configDir": {
@@ -472,6 +508,10 @@
           "debug": "详细信息，包含 SSE 流和请求/响应详情",
           "trace": "全部日志，最详细"
         }
+      },
+      "aiProvider": {
+        "description": "配置项目看板的 AI 推理提供方（DeepSeek / GLM / 自定义）",
+        "title": "AI 模型路由"
       }
     },
     "language": "界面语言",
@@ -1173,7 +1213,8 @@
     "fetchModelsAuthFailed": "API Key 无效或无权限",
     "fetchModelsNotSupported": "该供应商不支持获取模型列表",
     "fetchModelsEndpointNotFound": "未找到可用的模型列表端点，请检查 Base URL 或确认供应商是否开放该接口",
-    "fetchModelsTimeout": "请求超时，请检查网络连接"
+    "fetchModelsTimeout": "请求超时，请检查网络连接",
+    "providerKeyStatusLoading": "正在加载供应商标识状态，请稍后再试"
   },
   "copilot": {
     "authSection": "GitHub Copilot 认证",
@@ -1291,20 +1332,37 @@
     "monthlyLimitInvalid": "月预算必须为非负数"
   },
   "onboarding": {
-    "welcomeTitle": "欢迎使用 OpenSunstar",
-    "welcomeDescription": "您的 AI 编程助手统一控制面板。让我们扫描系统中已有的配置。",
-    "scanning": "扫描中...",
-    "scanSystem": "扫描我的系统",
-    "skipForNow": "暂时跳过",
-    "scanResultsTitle": "扫描结果",
-    "scanResultsSummary": "在您的系统中找到 {{count}} 项配置",
-    "detectedProviders": "检测到的供应商",
+    "title": "欢迎使用工作区",
+    "dismiss": "关闭引导",
+    "prev": "上一步",
+    "next": "下一步",
+    "done": "知道了",
+    "step1": {
+      "title": "配置状态 — 一眼看全局",
+      "desc": "顶部汇总所有项目的 AI 配置状态：正常、需关注、异常、未扫描会分开显示。"
+    },
+    "step2": {
+      "title": "需处理项目 — 快速定位",
+      "desc": "需要关注的项目会列在下方，附带人可读的原因说明。点击「修复漂移」或「配置资产」即可直达操作。"
+    },
+    "step3": {
+      "title": "配置生效率 — 在「AI 资产总览」",
+      "desc": "配置不一致项目、生效率、已生效项等详细数据，切到「AI 资产总览」查看。将鼠标悬停在卡片上可查看说明。"
+    },
+    "addProvidersManually": "您可以在设置中手动添加供应商。",
     "apiKeyBadge": "API Key",
     "detectedMcpServers": "检测到的 MCP 服务器",
+    "detectedProviders": "检测到的供应商",
+    "getStarted": "开始使用",
     "mcpFromSource": "来自 {{source}}",
     "noConfigsFound": "未发现已有的 AI 工具配置。",
-    "addProvidersManually": "您可以在设置中手动添加供应商。",
-    "getStarted": "开始使用"
+    "scanning": "扫描中...",
+    "scanResultsSummary": "在您的系统中找到 {{count}} 项配置",
+    "scanResultsTitle": "扫描结果",
+    "scanSystem": "扫描我的系统",
+    "skipForNow": "暂时跳过",
+    "welcomeDescription": "您的 AI 编程助手统一控制面板。让我们扫描系统中已有的配置。",
+    "welcomeTitle": "欢迎使用 OpenSunstar"
   },
   "bridge": {
     "title": "桥接 Prompt",
@@ -1399,7 +1457,8 @@
     "reasoningEffortHint": "上游支持 low/high/max 等思考深度控制时启用。启用后会自动启用思考模式，并把 Codex 的 reasoning.effort 转成上游 Chat 参数。",
     "reasoningGroupTitle": "思考能力",
     "reasoningSectionHint": "预设供应商已自动配置；自定义供应商会按名称/地址自动推断。仅当自动识别不准时才需手动覆盖。",
-    "advancedSectionHint": "包含本地路由映射、模型映射、思考能力与自定义 User-Agent。供应商使用 Chat Completions 协议或非 GPT 模型时，需在此开启本地路由映射。"
+    "advancedSectionHint": "包含本地路由映射、模型映射、思考能力与自定义 User-Agent。供应商使用 Chat Completions 协议或非 GPT 模型时，需在此开启本地路由映射。",
+    "noCommonConfigToApply": "通用配置片段为空或没有可写入的内容"
   },
   "geminiConfig": {
     "envFile": "环境变量 (.env)",
@@ -1865,7 +1924,14 @@
       "install": "安装",
       "remotes": "连接方式",
       "website": "网站",
-      "repository": "仓库"
+      "repository": "仓库",
+      "hotSubtitle": "按安装量排序的热门 MCP 服务器（Smithery）",
+      "loadError": "加载 MCP 注册表失败",
+      "picksSubtitle": "经 Smithery 认证的高质量 MCP 服务器",
+      "tabHot": "安装热榜",
+      "tabPicks": "编辑精选",
+      "tabSearch": "搜索 MCP",
+      "verified": "认证"
     },
     "test": {
       "testConnection": "测试链接",
@@ -2041,7 +2107,9 @@
       "PostToolUse": "工具调用后",
       "Notification": "通知",
       "Stop": "停止"
-    }
+    },
+    "multiCliNote": "默认同步到 Claude Code；可通过列表项图标启用 Codex / Gemini CLI / Hermes。",
+    "toggleFailed": "切换同步目标失败"
   },
   "convert": {
     "title": "Convert",
@@ -2131,13 +2199,14 @@
       "allowedTools": "允许",
       "deniedTools": "拒绝",
       "autoApprove": "自动批准"
-    }
+    },
+    "multiCliNote": "默认同步到 Claude Code；保存后可在列表中切换 Codex、Gemini、OpenCode、OpenClaw 等目标。",
+    "toggleFailed": "切换同步目标失败"
   },
   "workspace": {
-    "title": "跨项目工作区",
-    "subtitle": "监控汇总项目风险、进度与 AI 配置状态，帮助你先处理关键问题",
+    "title": "工作区",
+    "subtitle": "汇总各项目 AI 配置状态与近期活跃度，帮你先看该看的",
     "sidebar": {
-      "section": "跨项目工作区",
       "currentProjectAssets": "{{name}} · AI 配置"
     },
     "tabs": {
@@ -2160,6 +2229,7 @@
       "configureAssets": "配置资产",
       "reasonReadiness": "就绪分 {{score}}/{{max}}",
       "reasonDrift": "配置不一致 {{count}} 项",
+      "reasonUnmanaged": "尚未纳入 OpenSunstar 管理",
       "reasonMcp": "未关联 MCP",
       "reasonSkills": "未配置 Skills",
       "reasonPrompts": "未关联 Prompts",
@@ -2171,7 +2241,8 @@
       "updatedAt": "更新于 {{time}}",
       "refreshing": "正在刷新…",
       "loading": "正在汇总项目就绪与资产数据…",
-      "mvpBehindHint": "{{count}} 个 MVP 项目进度低于 50%，建议优先推进。"
+      "mvpBehindHint": "{{count}} 个 MVP 项目进度低于 50%，建议优先推进。",
+      "activeSub": "共 {{commits}} 次提交 · 活跃度 {{tier}}"
     },
     "assetsMatrix": {
       "title": "AI 资产总览",
@@ -2491,7 +2562,10 @@
       "addFailed": "添加失败",
       "removeSuccess": "仓库 {{owner}}/{{name}} 已删除",
       "removeFailed": "删除失败",
-      "skillCount": "识别到 {{count}} 个技能"
+      "skillCount": "识别到 {{count}} 个技能",
+      "disable": "禁用",
+      "disabled": "已禁用",
+      "enable": "启用"
     },
     "search": "搜索技能",
     "searchPlaceholder": "搜索技能名称或仓库名称...",
@@ -2601,7 +2675,24 @@
       "successSingle": "技能 {{name}} 已安装",
       "successMultiple": "成功安装 {{count}} 个技能",
       "noSkillsFound": "ZIP 文件中未找到技能（需包含 SKILL.md 文件）"
-    }
+    },
+    "detail": "详情",
+    "info": {
+      "apps": "已启用应用",
+      "branch": "分支",
+      "directory": "目录",
+      "hash": "内容哈希",
+      "installedAt": "安装时间",
+      "updatedAt": "更新时间",
+      "viewReadme": "查看文档"
+    },
+    "modelscope": {
+      "loading": "正在搜索 ModelScope 技能中心...",
+      "openPage": "已打开 ModelScope 技能页面，请在页面中查看安装方式",
+      "poweredBy": "数据来源：ModelScope 魔塔社区",
+      "searchPlaceholder": "输入关键词搜索 ModelScope 技能中心..."
+    },
+    "resync": "修复同步"
   },
   "deeplink": {
     "confirmImport": "确认导入供应商配置",
@@ -2938,8 +3029,43 @@
       "compensated": "接入失败，已自动恢复到操作前状态",
       "recoveryRequired": "接入失败且自动恢复未完成，请执行恢复后重试",
       "noBaseUrl": "请填写 Base URL",
-      "noModel": "请填写默认模型"
-    }
+      "noModel": "请填写默认模型",
+      "customRequired": "请填写 Base URL 和默认模型",
+      "verifyRequired": "请先验证 API Key 和上游连接后再启用"
+    },
+    "addProvider": "新增供应商",
+    "addProviderHint": "从精选供应商开始，或添加自定义兼容接口。",
+    "audit": "查看审计记录",
+    "cannotDeleteCurrent": "当前使用中的供应商不能删除，请先切换到其他供应商。",
+    "configureProvider": "配置供应商",
+    "configureProviderHint": "只需填写必要信息；连接、写入与验证由系统自动处理。",
+    "connectAndEnable": "连接并启用",
+    "connectedProviders": "已接入供应商",
+    "connectedProvidersHint": "可直接切换当前供应商；高级能力在各供应商的设置中管理。",
+    "deleteProviderMessage": "将删除 {{name}} 的已保存配置。此操作不会删除供应商平台上的账户或 API Key。",
+    "enableUsage": "启用用量自动查询",
+    "history": {
+      "hint": "重启后仍可查看审计记录；成功操作可在安全守卫通过时撤销。",
+      "title": "最近接入操作"
+    },
+    "manageSubscriptionAccounts": "管理订阅账号",
+    "myProvidersHint": "拖动左侧手柄可排序；悬停供应商可进行编辑、复制、检测、用量配置或删除。",
+    "officialConnection": "官方接入",
+    "officialConnectionHint": "使用官方账户登录或订阅授权，无需配置中转服务。",
+    "officialLoginNotice": "官方供应商使用浏览器登录或订阅授权，不属于 API Key 快速接入流程。",
+    "openOfficialSite": "打开官网登录",
+    "operationNeedsAttention": "本次接入需要处理",
+    "proxySettings": "代理与故障设置",
+    "recovery": {
+      "action": "恢复未完成操作",
+      "title": "恢复未完成操作"
+    },
+    "saveUsage": "保存用量配置",
+    "usageConfigDescription": "为 {{name}} 保存查询脚本。默认复用该供应商已安全保存的连接凭据，不在此处重复录入密钥。",
+    "usageInterval": "自动查询间隔（分钟，0 为关闭）",
+    "usageScript": "查询脚本",
+    "workbenchSubtitle": "选择供应商并填写 API Key，其余由 OpenSunstar 自动完成。",
+    "workbenchTitle": "模型与供应商"
   },
   "migration": {
     "success": "配置迁移成功",
@@ -2997,21 +3123,28 @@
       "ok": "正常",
       "warn": "需关注",
       "alert": "异常",
+      "unconfigured": "尚未配置",
+      "unmanaged": "未纳管",
       "unscanned": "未扫描"
     },
     "reason": {
       "drifted": "{{count}} 处配置与预期不一致",
       "unscanned": "尚未完成 AI 配置状态扫描",
+      "unmanaged": "项目尚未纳入 OpenSunstar，不能判定为缺失",
+      "unconfigured": "尚未通过 OpenSunstar 关联任何 AI 资产",
+      "gaps": "待补齐：{{items}}",
       "detectedOnly": "{{items}} — 发现配置文件但未纳入管理",
       "globalOnly": "{{items}} — 使用全局默认配置",
       "noMcp": "未关联 MCP 服务器",
       "noSkills": "未配置 Skills",
-      "noPrompts": "未关联 Prompts",
-      "lowScore": "配置完整度低（{{score}} 分）"
+      "noPrompts": "未关联 Prompts"
     },
     "action": {
-      "repair": "查看修复",
+      "repair": "修复漂移",
+      "inspectDetail": "查看详情",
       "configure": "配置资产",
+      "setup": "去配置",
+      "adopt": "纳入管理",
       "inspect": "查看项目"
     }
   },
@@ -3204,7 +3337,8 @@
     },
     "server": {
       "started": "路由服务已启动 - {{address}}:{{port}}",
-      "startFailed": "启动路由服务失败: {{detail}}"
+      "startFailed": "启动路由服务失败: {{detail}}",
+      "stopped": "代理服务已停止"
     },
     "stoppedWithRestore": "路由服务已关闭，已恢复所有路由配置",
     "stopWithRestoreFailed": "停止失败: {{detail}}"
@@ -3529,10 +3663,14 @@
       "monitor": "运行监控",
       "aiModels": "AI模型",
       "cloudSync": "跨设备云同步",
-      "teamCollab": "团队协作配置"
+      "teamCollab": "团队协作配置",
+      "syncCollab": "同步与协作"
     },
-    "agentConfig": "跨Agent配置",
-    "planning": "规划中"
+    "agentConfig": "Agent 配置",
+    "planning": "规划中",
+    "addProject": "添加项目",
+    "collapse": "折叠侧边栏",
+    "expand": "展开侧边栏"
   },
   "kanban": {
     "subtitle": "以 AI 驱动的全局多视角，多项目组合矩阵：全生命周期管理、项目健康评估、动态成本监控",
@@ -3562,6 +3700,9 @@
       "projectAssets": "本项目启用的资产",
       "projectAssetsHint": "勾选后仅对当前项目生效；全局库在侧栏维护，项目关联仅存于本地数据库。"
     },
+    "score": {
+      "health": "健康评分"
+    },
     "readiness": {
       "title": "Agent 配置就绪",
       "loading": "正在评估配置就绪度…",
@@ -3571,13 +3712,17 @@
       "manage": "管理",
       "openAssetsTab": "打开 AI 资产配置",
       "completedSection": "已完成 {{count}} 项",
-      "badgeTooltip": "Agent 配置就绪 {{score}}/{{max}} · 点击查看详情",
+      "badgeHint": "点击查看详情",
       "scanEffective": "生效态扫描",
       "forApp": "按 {{app}} 计分",
       "status": {
         "global_only": "来源：全局基线",
         "detected_only": "来源：仓库探测",
-        "partial": "部分 CLI 支持"
+        "partial": "部分 CLI 支持",
+        "not_required": "当前目标 CLI 不支持此项，已从评分中排除",
+        "unmanaged": "项目尚未纳入 OpenSunstar，不能判定为缺失",
+        "unknown": "暂不能判定",
+        "unhealthy": "配置与预期不一致"
       },
       "effective": {
         "configured": "已配置",
@@ -3596,7 +3741,7 @@
       "repairNoop": "当前项无需修复"
     },
     "governance": {
-      "title": "治理总览",
+      "title": "配置生效率",
       "forApp": "目标 CLI：{{app}}",
       "scannedProjects": "已扫描项目",
       "ofTotal": "共 {{total}} 个",
@@ -3634,7 +3779,28 @@
       "repairAllSuccess": "已修复 {{count}} 项配置不一致并验证生效",
       "repairPartial": "已修复 {{fixed}} 项，仍有 {{remaining}} 项配置不一致",
       "repairNone": "未发现可修复的配置不一致项"
-    }
+    },
+    "empty": {
+      "description": "点击下方按钮或在侧边栏添加你的第一个项目",
+      "title": "暂无项目"
+    },
+    "openFolder": "打开目录",
+    "progress": "进度",
+    "remove": "移除项目",
+    "sortByDate": "日期",
+    "sortByName": "名称",
+    "stage": {
+      "mvp": {
+        "badge": "MVP"
+      },
+      "rapid": {
+        "badge": "已上线"
+      },
+      "stable": {
+        "badge": "稳定维护"
+      }
+    },
+    "viewDetail": "查看详情"
   },
   "projectConfig": {
     "hint": "为当前项目勾选要启用的 MCP、Skills 与 Prompts。全局资产库在侧栏 Agent 配置中维护。",
@@ -3680,7 +3846,8 @@
       "hooksClaudeOnly": "Hooks 当前仅 Claude Code 支持写回",
       "permissionsClaudeOnly": "Permissions 当前仅 Claude Code 支持写回",
       "hermesSubagents": "Hermes 不支持 Subagent 文件同步"
-    }
+    },
+    "scopeTitle": "当前作用域："
   },
   "board": {
     "summary": {
@@ -3732,9 +3899,8 @@
     "refresh": "刷新"
   },
   "methodology": {
-    "sidebarSection": "跨项目治理",
-    "sidebar": "项目治理",
-    "title": "项目治理",
+    "sidebar": "流程与方法论",
+    "title": "流程与方法论",
     "subtitle": "为项目建立可执行流程与治理检查；方法论识别作为可选诊断。",
     "scanAll": "扫描所有项目",
     "scanAllNoProjects": "请先添加项目再扫描",
@@ -3880,7 +4046,11 @@
     "installResult": "已安装",
     "filesCreated": "个文件已创建",
     "filesSkipped": "已跳过",
-    "exists": "已存在"
+    "exists": "已存在",
+    "confirmExport": "确认覆盖导出",
+    "confirmExportTitle": "确认覆盖导出设计规范",
+    "exportOverwriteBtn": "覆盖导出 DESIGN.md",
+    "verifyBtn": "验证项目产物"
   },
   "installConfirm": {
     "title": "确认安装到项目",
@@ -3897,7 +4067,10 @@
     "wouldOverwrite": "将覆盖为 (当前跳过)",
     "newContent": "新内容",
     "cancel": "取消",
-    "confirmInstall": "确认安装"
+    "confirmInstall": "确认安装",
+    "overwrite": "覆盖",
+    "toOverwrite": "将覆盖",
+    "willOverwrite": "将覆盖为"
   },
   "sync": {
     "waiting": "等待变更",
@@ -3909,25 +4082,6 @@
     "minutesAgo": "{{count}}分钟前",
     "hoursAgo": "{{count}}小时前",
     "daysAgo": "{{count}}天前"
-  },
-  "onboarding": {
-    "title": "欢迎使用工作区",
-    "dismiss": "关闭引导",
-    "prev": "上一步",
-    "next": "下一步",
-    "done": "知道了",
-    "step1": {
-      "title": "配置状态 — 一眼看全局",
-      "desc": "顶部汇总所有项目的 AI 配置状态：正常、需关注、异常、未扫描会分开显示。"
-    },
-    "step2": {
-      "title": "需处理项目 — 快速定位",
-      "desc": "需要关注的项目会列在下方，附带人可读的原因说明。点击「查看修复」或「配置资产」即可直达操作。"
-    },
-    "step3": {
-      "title": "治理总览 — 深入指标",
-      "desc": "配置不一致项目、生效率、已生效项等详细数据在这里展示。将鼠标悬停在卡片上可查看说明。"
-    }
   },
   "repairPreview": {
     "title": "配置修复预览",
@@ -3973,6 +4127,13 @@
     "cellCrit": "异常",
     "cellUnscanned": "未扫",
     "cellNA": "不适用",
+    "cellRecent": "有更新",
+    "cellStale": "无更新",
+    "colUpkeep": "维护度",
+    "colUpkeepTitle": "近 90 天项目资产关联更新",
+    "linkedCount": "OpenSunstar 已关联",
+    "linkedCountValue": "{{value}} 项",
+    "detailRecentUpdates": "统计近 90 天内是否有项目级 AI 资产配置变更",
     "safetyBadge": "安全关键",
     "noData": "暂无扫描数据",
     "scanPending": "尚未完成扫描，当前状态不能判定为正常。",
@@ -3985,6 +4146,7 @@
     "detailMissing": "未配置此项，如果不需要可忽略",
     "detailPartial": "部分配置，建议完善",
     "detailNA": "当前目标 CLI 不支持此项",
+    "detailUnmanaged": "项目尚未纳入 OpenSunstar，不能判定为缺失",
     "statusOk": "配置正常",
     "statusWarn": "需要关注",
     "statusCrit": "存在异常",
@@ -3996,6 +4158,12 @@
     "filePath": "配置文件路径",
     "viewProject": "查看项目资产",
     "goRepair": "去修复"
+  },
+  "portfolioNotice": {
+    "title": "部分数据没读到，下面的「未扫 / 未配置 / 缺失」不代表磁盘上真的缺失。",
+    "readinessFailed": "{{failed}}/{{total}} 个项目的就绪度读取失败",
+    "assetFailed": "资产统计失败：{{reason}}",
+    "retry": "重试"
   },
   "scope": {
     "globalEnabled": "全局已启用",
@@ -4026,5 +4194,215 @@
     "on": "开",
     "off": "关",
     "description": "云同步解决的是「空间轴」问题——配置在多台设备间保持一致。与项目环境快照（时间轴·版本回溯）互为补充，按需选用。"
+  },
+  "aiProvider": {
+    "apiUrl": "API 地址",
+    "configured": "已配置",
+    "custom": "自定义",
+    "customDescription": "兼容 OpenAI 格式的任意 API。填入端点地址、模型名和 API Key 即可。",
+    "customTitle": "自定义",
+    "description": "选择用于项目看板 AI 能力的模型提供方。DeepSeek 使用 deepseek-chat，GLM 使用智谱模型。密钥仅保存在本机。",
+    "model": "模型",
+    "saved": "DeepSeek 配置已保存",
+    "testConnection": "测试连接",
+    "title": "AI 提供方"
+  },
+  "flowOrchestrator": {
+    "activity": "最近编排操作",
+    "advancedDetails": "高级详情：CI 命令与生成文件",
+    "checkGate": "检查",
+    "ciSnippet": "GitHub Actions / 自动检查片段",
+    "ciSnippetCopied": "已复制 CI 门禁片段",
+    "confirmFlowConfig": "确认导出",
+    "confirmFlowConfigTitle": "确认导出 CI 检查配置",
+    "confirmProfile": "确认保存",
+    "confirmProfileTitle": "确认保存项目流程",
+    "exportCiConfig": "导出 CI 检查配置",
+    "exportOk": "已导出 .opensunstar/workflow.profile.json",
+    "flowConfigOk": "已导出 .opensunstar/flow-config.yaml (R9.6 安全阀已注入)",
+    "gateBlock": "缺少工件",
+    "gatePass": "可通过",
+    "loading": "加载流程预设…",
+    "loopHint": "先保存项目工作规则，再生成变更材料，最后接入自动检查；高级文件细节可在下方展开查看。",
+    "loopTitle": "让项目规则真正生效",
+    "missingArtifacts": "缺: {{list}}",
+    "modules": "高级：选择规则模块",
+    "noActivity": "暂无编排操作。保存流程、生成自动检查配置或运行检查后会显示在这里。",
+    "noChanges": "暂无 change 目录。复制 flow-kit 并在 .specs/<id>/ 下创建工件。",
+    "pathInvalid": "路径无效",
+    "pickChange": "请先选择 change",
+    "preset": "流程档位",
+    "projectType": "项目类型",
+    "r96Summary": "R9.6: max_retry={{retry}}, role_sep={{sep}}, diff_boundary={{diff}}",
+    "rescan": "刷新索引",
+    "rollbackLatest": "恢复上次编排",
+    "rollbackOk": "已恢复最近一次编排变更（{{count}} 个文件操作）",
+    "saveProjectFlow": "保存项目流程",
+    "specsIndex": ".specs 变更索引",
+    "stageGate": "阶段门禁试算 (R2.7)",
+    "stages": "高级：调整执行步骤",
+    "stepCi": "3. 接入门禁校验",
+    "stepCiDone": "自动检查规则已生成",
+    "stepCiTodo": "导出 CI 检查配置并复制命令",
+    "stepProfile": "1. 保存项目流程",
+    "stepProfileDone": "项目工作规则已保存",
+    "stepProfileTodo": "选择档位、模块和阶段后保存",
+    "stepSpecs": "2. 生成变更材料",
+    "stepSpecsDone": "已检测到 .specs 变更工件",
+    "stepSpecsTodo": "到“变更执行方案”生成 .specs",
+    "strictMode": "发现明显冲突时先拦住",
+    "strictModeHint": "默认开启。适合团队协作；探索期可关闭，先生成文件再人工确认。",
+    "subtitle": "flow-kit 兼容 · 档位 + 模块 + .specs 索引 + 阶段门禁",
+    "tasks": "任务 {{done}}/{{total}} 完成",
+    "title": "项目工作规则"
+  },
+  "projectEnvironment": {
+    "hint": "保存当前供应商、MCP、Skills 与 Prompt 激活状态；应用前预览差异，应用后写入验证回执并可回滚。",
+    "title": "项目环境快照"
+  },
+  "projects": {
+    "addDescription": "添加本地项目仓库到侧边栏，方便快速切换管理",
+    "addTitle": "添加项目",
+    "browseFolder": "浏览文件夹",
+    "descLabel": "项目描述",
+    "descPlaceholder": "简要描述项目用途、技术栈或当前目标",
+    "manualPathHint": "请手动输入项目路径",
+    "nameLabel": "项目名称",
+    "namePlaceholder": "例如：我的项目",
+    "pathLabel": "本地路径",
+    "pathPlaceholder": "例如：D:\\projects\\my-repo",
+    "validation": {
+      "nameRequired": "请输入项目名称",
+      "pathRequired": "请输入项目路径"
+    }
+  },
+  "shortcuts": {
+    "footer": "按 ? 或 Ctrl+/ 随时呼出此面板",
+    "general": "通用",
+    "goBack": "返回上一级 / 关闭弹窗",
+    "kanban": "看板总览",
+    "layout": "布局",
+    "navigation": "导航",
+    "sessions": "Context",
+    "showHelp": "显示/隐藏此面板",
+    "title": "键盘快捷键",
+    "toggleSidebar": "折叠/展开侧边栏",
+    "tokenStats": "AI Tokens"
+  },
+  "time": {
+    "daysAgo": "{{n}} 天前",
+    "hoursAgo": "{{n}} 小时前",
+    "justNow": "刚刚",
+    "minutesAgo": "{{n}} 分钟前"
+  },
+  "tokenStats": {
+    "description": "Token 用量统计与费用分析"
+  },
+  "projectAiConfig": {
+    "emptyProjects": "还没有添加项目，先添加一个再来配置 AI 资产。",
+    "orchestrationHint": "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
+    "orchestrationLink": "工作流编排",
+    "subtitle": "为单个项目落地 AI 资产：套用蓝图、检查就绪度、勾选生效的资产。侧栏「Agent 配置」管的是全局库，这里管它们在本项目上的关联。",
+    "switcher": "当前配置项目",
+    "title": "项目 · AI 配置"
+  },
+  "ai": {
+    "cost": {
+      "analysisCount": "{{calls}} 次分析",
+      "cachedFree": "¥0（缓存）",
+      "chartApiCalls": "API 调用",
+      "chartCost": "费用",
+      "chartNlQuery": "NL 问答",
+      "colCost": "费用",
+      "colCount": "次数",
+      "colTokens": "Token",
+      "colType": "类型",
+      "disclaimer": "费用为基于公开定价的估算，以供应商账单为准。",
+      "disclaimerCliSuffix": "CLI 代理用量见「设置 → 用量」。",
+      "disclaimerShort": "估算 · 以供应商账单为准",
+      "emptyRoi": "近 {{days}} 天尚无 AI 调用记录。触发摘要、风险分析或 NL 问答后将在此展示 ROI。",
+      "estimatedSuffix": "估算",
+      "lastCall": "本次",
+      "loadingRoi": "加载 ROI 数据…",
+      "monthTotal": "本月累计",
+      "monthTotalFailed": "本月累计查询失败（未知，不是 ¥0）",
+      "monthTotalLoading": "本月累计 统计中…",
+      "nlQueryCount": "{{queries}} 次问答",
+      "panelTitle": "AI 成本-价值追踪",
+      "projectRisks": "{{risks}} 项风险",
+      "projectScope": "{{projects}} 个项目",
+      "projectUseful": "{{useful}} 次有用",
+      "rangeDays": "{{days}} 天",
+      "roiReport": "AI 投入报告",
+      "sectionByProject": "按项目（消耗 ↔ 价值）",
+      "sectionByType": "按分析类型",
+      "statRisks": "发现风险",
+      "statTokens": "Token",
+      "statTotalSpend": "总投入",
+      "statUseful": "标记有用",
+      "stripTitle": "AI 成本透明",
+      "trendTitle": "每日 AI 投入趋势",
+      "unknownPricing": "单价未知"
+    },
+    "feedback": {
+      "groupLabel": "AI 反馈",
+      "markNotUseful": "标记为无用",
+      "markUseful": "标记为有用",
+      "notUseful": "无用",
+      "useful": "有用"
+    },
+    "insightType": {
+      "agentReadiness": "Agent 就绪度",
+      "health": "健康评分",
+      "nlQuery": "自然语言查询",
+      "portfolioSummary": "组合周报",
+      "progress": "进度估算",
+      "riskAnalysis": "风险分析",
+      "summary": "项目摘要",
+      "trendAnalysis": "趋势分析"
+    },
+    "query": {
+      "answerTitle": "AI 回答",
+      "costFailed": "成本统计查询失败（未知，不是 ¥0）",
+      "detailToggle": "近 {{days}} 天分析明细",
+      "guarding": "AI 正在守护",
+      "inputLabel": "向 AI 提问",
+      "notConfigured": "AI 问答与成本统计尚未启用 —— 在「设置 → AI 提供方」填入 API Key 后，这里会出现自然语言提问入口。",
+      "placeholder": "向 AI 提问，如：哪个项目最近不活跃？帮我生成本周总结",
+      "projectsUnit": "个项目",
+      "typeHealth": "健康",
+      "typeNlQuery": "问答",
+      "typeRisk": "风险",
+      "typeSummary": "摘要",
+      "typeTrend": "趋势",
+      "typeWeekly": "周报"
+    },
+    "risk": {
+      "analyze": "分析风险",
+      "analyzing": "正在分析风险…",
+      "levelHigh": "高风险",
+      "levelLow": "低风险",
+      "levelMedium": "中风险",
+      "none": "项目状态健康，暂未发现风险",
+      "sectionTitle": "风险分析",
+      "title": "AI 风险分析",
+      "typeActivity": "活跃度",
+      "typeConcentration": "集中度",
+      "typeSchedule": "进度",
+      "typeTechDebt": "技术债"
+    },
+    "weekly": {
+      "analyzing": "正在分析 {{projects}} 个项目数据…",
+      "cached": "缓存",
+      "copied": "已复制",
+      "copyFailed": "复制失败",
+      "copySuccess": "周报已复制到剪贴板",
+      "dialogTitle": "AI 智能周报",
+      "errorGenerate": "周报生成失败，请稍后重试。",
+      "errorNoProvider": "未配置 AI 提供方，请先在设置中配置 AI Key。",
+      "generate": "生成周报",
+      "windowDays": "{{days}}天",
+      "windowHint": "· 近 {{days}} 天数据"
+    }
   }
 }

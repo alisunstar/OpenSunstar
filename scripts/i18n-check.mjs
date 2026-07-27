@@ -7,10 +7,16 @@
  *   node scripts/i18n-check.mjs --strict            # fail on any missing/extra keys
  *   node scripts/i18n-check.mjs --report-only       # always exit 0 (print summary)
  *   node scripts/i18n-check.mjs --write-baseline    # refresh docs/i18n/baseline.json
- *   node scripts/i18n-check.mjs --source en         # source locale (default: en)
+ *   node scripts/i18n-check.mjs --source zh         # source locale (default: zh)
  *   node scripts/i18n-check.mjs --locale ja,zh-TW   # limit compared locales
  *
  * See docs/i18n/README.md for workflow and conventions.
+ *
+ * 源语言为什么是 zh 而不是 en：本仓的文案实际是中文先行，`zh.json` 最全，
+ * `en.json` 是它的严格子集。以 en 为源时，只有中文有的那几百个 key 全部落在
+ * 比对范围之外 —— 这个脚本因此长期报「zh 缺 0 个」，而真实缺口在另外三份里。
+ * 新增文案的入口是源码 `defaultValue` → `pnpm i18n:sync` 写进 zh.json，
+ * 所以 zh 才是唯一的事实来源。
  */
 
 import fs from "node:fs";
@@ -34,7 +40,7 @@ const getFlagValue = (name) => {
   return undefined;
 };
 
-const sourceLocale = getFlagValue("--source") ?? "en";
+const sourceLocale = getFlagValue("--source") ?? "zh";
 const localeFilter = getFlagValue("--locale")
   ?.split(",")
   .map((s) => s.trim())
@@ -157,6 +163,9 @@ function main() {
 
   if (writeBaseline) {
     const baseline = {
+      $comment:
+        "各语言相对源语言的缺口棘轮：只许降不许升。补完翻译后跑 pnpm i18n:baseline 收紧。" +
+        " 注意 source 字段 —— 换过源语言的话，新旧数字不可直接比较。",
       source: sourceLocale,
       generatedAt: new Date().toISOString().slice(0, 10),
       sourceKeyCount: sourceKeys.size,

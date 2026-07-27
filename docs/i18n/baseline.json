@@ -1,18 +1,19 @@
 {
-  "source": "en",
+  "$comment": "各语言相对源语言的缺口棘轮：只许降不许升。补完翻译后跑 pnpm i18n:baseline 收紧。 注意 source 字段 —— 换过源语言的话，新旧数字不可直接比较。",
+  "source": "zh",
   "generatedAt": "2026-07-26",
-  "sourceKeyCount": 3377,
+  "sourceKeyCount": 3674,
   "locales": {
+    "en": {
+      "missing": 274,
+      "extra": 0
+    },
     "ja": {
-      "missing": 503,
+      "missing": 783,
       "extra": 34
     },
-    "zh": {
-      "missing": 0,
-      "extra": 53
-    },
     "zh-TW": {
-      "missing": 0,
+      "missing": 273,
       "extra": 36
     }
   }

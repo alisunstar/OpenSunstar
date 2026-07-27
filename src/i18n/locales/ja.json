@@ -1876,8 +1876,11 @@
     }
   },
   "workspace": {
-    "title": "クロスプロジェクト ワークスペース",
+    "title": "ワークスペース",
     "manage": "ワークスペース",
+    "dashboard": {
+      "activeSub": "コミット {{commits}} 件 · 活動度 {{tier}}"
+    },
     "files": {
       "agents": "エージェントの操作指示とルール",
       "soul": "エージェントの人格とコミュニケーションスタイル",
@@ -1915,10 +1918,15 @@
       "searchFailed": "検索に失敗しました",
       "matchCount": "{{count}}件一致"
     },
-    "subtitle": "プロジェクトのリスク、進捗、AI設定状態を一元管理し、重要な問題に優先的に対応",
+    "subtitle": "各プロジェクトの AI 設定状態と最近の活動状況をまとめ、見るべきものから見せます",
     "sidebar": {
-      "section": "クロスプロジェクト ワークスペース",
       "currentProjectAssets": "{{name}} · AI 設定"
+    },
+    "tabs": {
+      "label": "ワークスペースビュー",
+      "dashboard": "今日のワークスペース",
+      "board": "プロジェクトボード",
+      "assetsMatrix": "AI アセット一覧"
     }
   },
   "openclaw": {
@@ -2517,21 +2525,28 @@
       "ok": "正常",
       "warn": "要確認",
       "alert": "異常",
+      "unconfigured": "未設定",
+      "unmanaged": "管理対象外",
       "unscanned": "未スキャン"
     },
     "reason": {
       "drifted": "{{count}} 件の設定が期待状態と不一致",
       "unscanned": "AI 設定状態のスキャンがまだ完了していません",
+      "unmanaged": "プロジェクトが OpenSunstar の管理対象ではないため、欠落とは判断できません",
+      "unconfigured": "OpenSunstar 経由で AI アセットがまだ連携されていません",
+      "gaps": "未完了：{{items}}",
       "detectedOnly": "{{items}} — 設定ファイルが検出されましたが管理されていません",
       "globalOnly": "{{items}} — グローバルデフォルト設定を使用",
       "noMcp": "MCP サーバーが未連携",
       "noSkills": "Skills が未設定",
-      "noPrompts": "Prompts が未連携",
-      "lowScore": "設定の完全度が低い（{{score}} 点）"
+      "noPrompts": "Prompts が未連携"
     },
     "action": {
-      "repair": "確認して修復",
+      "repair": "ドリフトを修復",
+      "inspectDetail": "詳細を表示",
       "configure": "アセットを設定",
+      "setup": "設定する",
+      "adopt": "管理を開始",
       "inspect": "プロジェクトを表示"
     }
   },
@@ -3060,9 +3075,8 @@
     "refresh": "更新"
   },
   "methodology": {
-    "sidebarSection": "クロスプロジェクト ガバナンス",
-    "sidebar": "プロジェクトガバナンス",
-    "title": "プロジェクトガバナンス",
+    "sidebar": "ワークフローと方法論",
+    "title": "ワークフローと方法論",
     "subtitle": "方法論、プリセット編成、カスタム編成、デザイン契約——4つの独立した設定ディメンション。必要に応じて選択でき、順序依存はありません。フレームワーク検出は読み取り専用で、プロジェクトファイルを変更しません。",
     "scanAll": "全プロジェクトをスキャン",
     "scanAllNoProjects": "スキャンする前にプロジェクトを追加してください",
@@ -3231,14 +3245,15 @@
     "kanban": "プロジェクトAIカンバン",
     "tokenStats": "AI Tokens",
     "syncBackup": "同期バックアップ",
-    "agentConfig": "クロスAgent設定",
+    "agentConfig": "Agent 設定",
     "planning": "計画中",
     "section": {
       "projects": "プロジェクト",
       "monitor": "モニタリング",
       "aiModels": "AIモデル",
       "cloudSync": "クロスデバイス クラウド同期",
-      "teamCollab": "チームコラボ設定"
+      "teamCollab": "チームコラボ設定",
+      "syncCollab": "同期とコラボレーション"
     }
   },
   "sync": {
@@ -3264,11 +3279,11 @@
     },
     "step2": {
       "title": "対応が必要なプロジェクト — すばやく特定",
-      "desc": "確認が必要なプロジェクトが、分かりやすい理由説明つきで下に表示されます。「確認して修復」または「アセットを設定」をクリックして直接操作できます。"
+      "desc": "確認が必要なプロジェクトが、分かりやすい理由説明つきで下に表示されます。「ドリフトを修復」または「アセットを設定」をクリックして直接操作できます。"
     },
     "step3": {
-      "title": "ガバナンス概要 — 詳細指標",
-      "desc": "設定不一致のプロジェクト、有効化率、有効化アイテムなどの詳細データを表示します。カードにマウスを乗せると説明が表示されます。"
+      "title": "設定有効化率 — 「AI アセット一覧」にあります",
+      "desc": "設定不一致のプロジェクト、有効化率、有効化アイテムなどの詳細データは「AI アセット一覧」タブにあります。カードにマウスを乗せると説明が表示されます。"
     }
   },
   "repairPreview": {
@@ -3315,6 +3330,13 @@
     "cellCrit": "異常",
     "cellUnscanned": "未スキャン",
     "cellNA": "対象外",
+    "cellRecent": "更新あり",
+    "cellStale": "更新なし",
+    "colUpkeep": "メンテナンス",
+    "colUpkeepTitle": "直近 90 日間のプロジェクトアセット更新",
+    "linkedCount": "OpenSunstar で連携済み",
+    "linkedCountValue": "{{value}} 件",
+    "detailRecentUpdates": "直近 90 日間にプロジェクト単位の AI アセット設定変更があったかを判定",
     "safetyBadge": "セキュリティ重要",
     "noData": "スキャンデータなし",
     "scanPending": "スキャンが完了していないため、正常とは判断できません。",
@@ -3368,5 +3390,112 @@
     "on": "オン",
     "off": "オフ",
     "description": "クラウド同期は空間軸（デバイス間の一貫性）を解決します。プロジェクト環境スナップショット（時間軸・バージョンロールバック）と相互補完、必要に応じて使用。"
+  },
+  "projectAiConfig": {
+    "title": "プロジェクト · AI 設定",
+    "subtitle": "単一プロジェクトに AI アセットを適用します：ブループリントの適用、準備状況の確認、有効にするアセットの選択。サイドバーの「Agent 設定」はグローバルライブラリを管理し、このページはそれらを本プロジェクトへ関連付けます。",
+    "switcher": "設定対象のプロジェクト",
+    "emptyProjects": "プロジェクトがまだありません。追加してから AI アセットを設定してください。",
+    "orchestrationLink": "ワークフロー編成",
+    "orchestrationHint": "ステージ・プリセット・変更実行プランは「ワークフローと方法論」で設定します。現在のプロジェクトを引き継いで移動します。"
+  },
+  "ai": {
+    "cost": {
+      "analysisCount": "分析 {{calls}} 件",
+      "cachedFree": "¥0（キャッシュ）",
+      "chartApiCalls": "API 呼び出し",
+      "chartCost": "費用",
+      "chartNlQuery": "NL 質問応答",
+      "colCost": "費用",
+      "colCount": "回数",
+      "colTokens": "トークン",
+      "colType": "種類",
+      "disclaimer": "費用は公開価格に基づく概算です。プロバイダーの請求書が正となります。",
+      "disclaimerCliSuffix": "CLI エージェントの使用量は「設定 → 使用量」を参照してください。",
+      "disclaimerShort": "概算 · 請求書が正",
+      "emptyRoi": "過去 {{days}} 日間に AI 呼び出しの記録がありません。要約・リスク分析・NL 質問応答を実行すると ROI がここに表示されます。",
+      "estimatedSuffix": "概算",
+      "lastCall": "今回",
+      "loadingRoi": "ROI データを読み込み中…",
+      "monthTotal": "今月累計",
+      "monthTotalFailed": "今月累計の取得に失敗（不明であり ¥0 ではありません）",
+      "monthTotalLoading": "今月累計 集計中…",
+      "nlQueryCount": "質問応答 {{queries}} 件",
+      "panelTitle": "AI コスト・価値トラッキング",
+      "projectRisks": "リスク {{risks}} 件",
+      "projectScope": "{{projects}} プロジェクト",
+      "projectUseful": "有用 {{useful}} 件",
+      "rangeDays": "{{days}} 日",
+      "roiReport": "AI 投入レポート",
+      "sectionByProject": "プロジェクト別（コスト ↔ 価値）",
+      "sectionByType": "分析種類別",
+      "statRisks": "検出リスク",
+      "statTokens": "トークン",
+      "statTotalSpend": "総投入",
+      "statUseful": "有用マーク",
+      "stripTitle": "AI コスト可視化",
+      "trendTitle": "日次 AI 投入トレンド",
+      "unknownPricing": "単価不明"
+    },
+    "feedback": {
+      "groupLabel": "AI フィードバック",
+      "markNotUseful": "役に立たないとマーク",
+      "markUseful": "役に立つとマーク",
+      "notUseful": "役に立たない",
+      "useful": "役に立つ"
+    },
+    "insightType": {
+      "agentReadiness": "Agent 準備度",
+      "health": "ヘルススコア",
+      "nlQuery": "自然言語クエリ",
+      "portfolioSummary": "ポートフォリオ週報",
+      "progress": "進捗見積り",
+      "riskAnalysis": "リスク分析",
+      "summary": "プロジェクト要約",
+      "trendAnalysis": "トレンド分析"
+    },
+    "query": {
+      "answerTitle": "AI の回答",
+      "costFailed": "コスト集計の取得に失敗（不明であり ¥0 ではありません）",
+      "detailToggle": "過去 {{days}} 日の分析内訳",
+      "guarding": "AI が見守り中",
+      "inputLabel": "AI に質問",
+      "notConfigured": "AI 質問応答とコスト集計は未有効です —— 「設定 → AI プロバイダー」に API キーを入力すると、ここに自然言語での質問入力欄が表示されます。",
+      "placeholder": "AI に質問 — 例：最近動きのないプロジェクトは？今週のまとめを作って",
+      "projectsUnit": "プロジェクト",
+      "typeHealth": "健康",
+      "typeNlQuery": "質問",
+      "typeRisk": "リスク",
+      "typeSummary": "要約",
+      "typeTrend": "トレンド",
+      "typeWeekly": "週報"
+    },
+    "risk": {
+      "analyze": "リスクを分析",
+      "analyzing": "リスクを分析中…",
+      "levelHigh": "高リスク",
+      "levelLow": "低リスク",
+      "levelMedium": "中リスク",
+      "none": "プロジェクトは健全です。リスクは検出されていません",
+      "sectionTitle": "リスク分析",
+      "title": "AI リスク分析",
+      "typeActivity": "活動度",
+      "typeConcentration": "集中度",
+      "typeSchedule": "スケジュール",
+      "typeTechDebt": "技術的負債"
+    },
+    "weekly": {
+      "analyzing": "{{projects}} 件のプロジェクトデータを分析中…",
+      "cached": "キャッシュ",
+      "copied": "コピー済み",
+      "copyFailed": "コピーに失敗しました",
+      "copySuccess": "週報をクリップボードにコピーしました",
+      "dialogTitle": "AI 週次レポート",
+      "errorGenerate": "週報の生成に失敗しました。しばらくしてから再試行してください。",
+      "errorNoProvider": "AI プロバイダーが未設定です。先に設定で AI キーを登録してください。",
+      "generate": "週報を生成",
+      "windowDays": "{{days}}日",
+      "windowHint": "· 過去 {{days}} 日のデータ"
+    }
   }
 }

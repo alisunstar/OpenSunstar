@@ -53,6 +53,12 @@ jobs:
       - name: Check formatting
         run: pnpm format:check
 
+      # 两道检查方向不同，缺一不可：
+      #   i18n:sync  —— 源码 defaultValue → zh.json（新文案有没有落盘）
+      #   i18n:check —— zh.json → 其余三种语言（翻译有没有跟上）
+      - name: i18n source-to-zh sync
+        run: pnpm i18n:sync:check
+
       - name: i18n key alignment
         run: pnpm i18n:check
 

@@ -10,6 +10,28 @@ type Language = "zh" | "zh-TW" | "en" | "ja";
 
 const DEFAULT_LANGUAGE: Language = "zh";
 
+/**
+ * 回落链按「哪份最全」排，而不是一律回落英文。
+ *
+ * 本产品的文案实际是中文先行：`zh.json` 3600+ 键最全，`en` 是它的严格子集，
+ * `ja` 少 500+ 键。原来一律 `fallbackLng: "en"` 的后果是：ja 缺的键去问 en，
+ * en 也没有 → i18next 直接把 **key 字符串**渲染到界面上（形如
+ * `kanban.governance.title`）。全仓 ~1300 处 `t()` 没写 defaultValue，
+ * 这些位置一个兜底都没有。
+ *
+ * 所以每条链的末端都必须是 `zh` —— 它是唯一保证有值的那份。宁可让日语用户
+ * 看到一句中文，也好过看到一个点号分隔的变量名。`coverage.test.ts` 钉死这条。
+ *
+ * 各语言的缺口由 `pnpm i18n:check` 的 baseline 棘轮盯着往下走；这里只保证
+ * 在补齐之前界面不出现裸 key。
+ */
+export const FALLBACK_CHAINS: Record<string, Language[]> = {
+  "zh-TW": ["zh", "en"],
+  ja: ["en", "zh"],
+  en: ["zh"],
+  default: ["zh", "en"],
+};
+
 const getInitialLanguage = (): Language => {
   if (typeof window !== "undefined") {
     try {
@@ -79,7 +101,8 @@ const resources = {
 i18n.use(initReactI18next).init({
   resources,
   lng: getInitialLanguage(), // 根据本地存储或系统语言选择默认语言
-  fallbackLng: "en", // 如果缺少中文翻译则退回英文
+
+  fallbackLng: FALLBACK_CHAINS,
 
   interpolation: {
     escapeValue: false, // React 已经默认转义

@@ -2068,10 +2068,9 @@
     }
   },
   "workspace": {
-    "title": "Cross-project Workspace",
-    "subtitle": "Monitor project risk, progress, and AI config status so you can handle key issues first",
+    "title": "Workspace",
+    "subtitle": "AI config status and recent activity across your projects, so you see what matters first",
     "sidebar": {
-      "section": "Cross-project Workspace",
       "currentProjectAssets": "{{name}} · AI assets"
     },
     "tabs": {
@@ -2094,6 +2093,7 @@
       "configureAssets": "Configure assets",
       "reasonReadiness": "Readiness {{score}}/{{max}}",
       "reasonDrift": "{{count}} config mismatch item(s)",
+      "reasonUnmanaged": "Not yet managed by OpenSunstar",
       "reasonMcp": "No MCP linked",
       "reasonSkills": "No Skills",
       "reasonPrompts": "No Prompts linked",
@@ -2105,10 +2105,11 @@
       "updatedAt": "Updated {{time}}",
       "refreshing": "Refreshing…",
       "loading": "Loading readiness and asset data…",
-      "mvpBehindHint": "{{count}} MVP project(s) below 50% progress — consider prioritizing."
+      "mvpBehindHint": "{{count}} MVP project(s) below 50% progress — consider prioritizing.",
+      "activeSub": "{{commits}} commits · activity {{tier}}"
     },
     "assetsMatrix": {
-      "title": "AI asset overview",
+      "title": "AI assets",
       "subtitle": "Per-project MCP / Skills / Prompts links and readiness",
       "loading": "Summarizing project AI assets…",
       "project": "Project",
@@ -2923,21 +2924,28 @@
       "ok": "OK",
       "warn": "Needs attention",
       "alert": "Abnormal",
+      "unconfigured": "Not configured",
+      "unmanaged": "Not managed",
       "unscanned": "Not scanned"
     },
     "reason": {
       "drifted": "{{count}} config item(s) inconsistent with expected state",
       "unscanned": "AI configuration status scan has not completed",
+      "unmanaged": "Project is not managed by OpenSunstar yet, so nothing can be judged as missing",
+      "unconfigured": "No AI assets linked through OpenSunstar yet",
+      "gaps": "To complete: {{items}}",
       "detectedOnly": "{{items}} — config files found but not managed",
       "globalOnly": "{{items}} — using global default config",
       "noMcp": "No MCP server linked",
       "noSkills": "No Skills configured",
-      "noPrompts": "No Prompts linked",
-      "lowScore": "Low configuration completeness ({{score}} pts)"
+      "noPrompts": "No Prompts linked"
     },
     "action": {
-      "repair": "View & fix",
+      "repair": "Repair drift",
+      "inspectDetail": "View details",
       "configure": "Configure assets",
+      "setup": "Set up",
+      "adopt": "Start managing",
       "inspect": "View project"
     }
   },
@@ -3450,14 +3458,15 @@
     "kanban": "AI Kanban Board",
     "tokenStats": "AI Tokens",
     "syncBackup": "Sync Backup",
-    "agentConfig": "Cross-agent Config",
+    "agentConfig": "Agent Config",
     "planning": "Coming Soon",
     "section": {
       "projects": "Projects",
       "monitor": "Monitoring",
       "aiModels": "AI Models",
       "cloudSync": "Cross-device Cloud Sync",
-      "teamCollab": "Team Collaboration"
+      "teamCollab": "Team Collaboration",
+      "syncCollab": "Sync & Collaboration"
     }
   },
   "kanban": {
@@ -3488,6 +3497,9 @@
       "projectAssets": "Assets enabled for this project",
       "projectAssetsHint": "Selections apply to this project only; global library is in the sidebar; links are stored locally."
     },
+    "score": {
+      "health": "Health score"
+    },
     "readiness": {
       "title": "Agent readiness",
       "loading": "Assessing configuration readiness…",
@@ -3497,13 +3509,17 @@
       "manage": "Manage",
       "openAssetsTab": "Open AI assets",
       "completedSection": "{{count}} completed",
-      "badgeTooltip": "Agent readiness {{score}}/{{max}} · click for details",
+      "badgeHint": "click for details",
       "scanEffective": "Effective-state scan",
       "forApp": "Scored for {{app}}",
       "status": {
         "global_only": "Source: global baseline",
         "detected_only": "Source: repo detected",
-        "partial": "Partial CLI support"
+        "partial": "Partial CLI support",
+        "not_required": "Not supported by the current target CLI; excluded from scoring",
+        "unmanaged": "Project is not managed by OpenSunstar yet, so this cannot be judged as missing",
+        "unknown": "Cannot be determined yet",
+        "unhealthy": "Config does not match the expected state"
       },
       "effective": {
         "configured": "Configured",
@@ -3521,7 +3537,7 @@
       "repairNoop": "No repair needed for this item"
     },
     "governance": {
-      "title": "Governance overview",
+      "title": "Config effectiveness",
       "forApp": "Target CLI: {{app}}",
       "scannedProjects": "Scanned projects",
       "ofTotal": "{{total}} total",
@@ -3657,9 +3673,8 @@
     "refresh": "Refresh"
   },
   "methodology": {
-    "sidebarSection": "Cross-project Governance",
-    "sidebar": "Project Governance",
-    "title": "Project Governance",
+    "sidebar": "Workflow & Methodology",
+    "title": "Workflow & Methodology",
     "subtitle": "Build executable workflows and governance checks for projects. Methodology detection is optional diagnostics.",
     "scanAll": "Scan all projects",
     "scanAllNoProjects": "Add a project first to scan",
@@ -3847,11 +3862,11 @@
     },
     "step2": {
       "title": "Projects needing action — quick locate",
-      "desc": "Projects that need attention are listed below with human-readable reasons. Click \"View & fix\" or \"Configure assets\" to jump straight to the action."
+      "desc": "Projects that need attention are listed below with human-readable reasons. Click \"Repair drift\" or \"Configure assets\" to jump straight to the action."
     },
     "step3": {
-      "title": "Governance overview — deep dive",
-      "desc": "Projects with config mismatch, effective rate, effective items and other detailed metrics are shown here. Hover over a card for details."
+      "title": "Config effectiveness — on \"AI assets\"",
+      "desc": "Projects with config mismatch, effective rate, effective items and other detailed metrics live on the \"AI assets\" tab. Hover over a card for details."
     }
   },
   "repairPreview": {
@@ -3898,6 +3913,13 @@
     "cellCrit": "Abnormal",
     "cellUnscanned": "Unscanned",
     "cellNA": "N/A",
+    "cellRecent": "Recent",
+    "cellStale": "Stale",
+    "colUpkeep": "Upkeep",
+    "colUpkeepTitle": "Project asset changes in the last 90 days",
+    "linkedCount": "Linked in OpenSunstar",
+    "linkedCountValue": "{{value}} item(s)",
+    "detailRecentUpdates": "Tracks whether any project-level AI asset config changed in the last 90 days",
     "safetyBadge": "Safety-critical",
     "noData": "No scan data available",
     "scanPending": "Scan has not completed; this cannot be considered OK yet.",
@@ -3921,6 +3943,12 @@
     "filePath": "Config file path",
     "viewProject": "View project assets",
     "goRepair": "Go to repair"
+  },
+  "portfolioNotice": {
+    "title": "Some data failed to load. The \"unscanned / unconfigured / missing\" states below may not reflect what is actually on disk.",
+    "readinessFailed": "Readiness lookup failed for {{failed}}/{{total}} projects",
+    "assetFailed": "Asset summary failed: {{reason}}",
+    "retry": "Retry"
   },
   "scope": {
     "globalEnabled": "Globally enabled",
@@ -3951,5 +3979,112 @@
     "on": "On",
     "off": "Off",
     "description": "Cloud sync addresses the spatial axis — keeping config consistent across devices. Complements project environment snapshots (temporal axis · version rollback). Use as needed."
+  },
+  "projectAiConfig": {
+    "title": "Project · AI Setup",
+    "subtitle": "Land AI assets on a single project: apply a blueprint, check readiness, and pick which assets take effect. The sidebar's Agent Config manages the global library; this page manages how those assets attach to this project.",
+    "switcher": "Project being configured",
+    "emptyProjects": "No projects yet. Add one before configuring AI assets.",
+    "orchestrationLink": "Workflow orchestration",
+    "orchestrationHint": "Stages, presets and change-execution plans live under Workflow & Methodology; opening it carries the current project along."
+  },
+  "ai": {
+    "cost": {
+      "analysisCount": "{{calls}} analyses",
+      "cachedFree": "¥0 (cached)",
+      "chartApiCalls": "API calls",
+      "chartCost": "Cost",
+      "chartNlQuery": "NL queries",
+      "colCost": "Cost",
+      "colCount": "Count",
+      "colTokens": "Tokens",
+      "colType": "Type",
+      "disclaimer": "Costs are estimates based on public pricing; your provider's invoice is authoritative.",
+      "disclaimerCliSuffix": "For CLI agent usage, see Settings → Usage.",
+      "disclaimerShort": "Estimate · provider invoice is authoritative",
+      "emptyRoi": "No AI calls in the last {{days}} days. Run a summary, a risk analysis or an NL query and the ROI will show up here.",
+      "estimatedSuffix": "est.",
+      "lastCall": "This call",
+      "loadingRoi": "Loading ROI data…",
+      "monthTotal": "This month",
+      "monthTotalFailed": "Could not load this month's total (unknown — not ¥0)",
+      "monthTotalLoading": "This month — calculating…",
+      "nlQueryCount": "{{queries}} queries",
+      "panelTitle": "AI cost & value tracking",
+      "projectRisks": "{{risks}} risks",
+      "projectScope": "{{projects}} projects",
+      "projectUseful": "{{useful}} marked useful",
+      "rangeDays": "{{days}} days",
+      "roiReport": "AI spend report",
+      "sectionByProject": "By project (spend ↔ value)",
+      "sectionByType": "By analysis type",
+      "statRisks": "Risks found",
+      "statTokens": "Tokens",
+      "statTotalSpend": "Total spend",
+      "statUseful": "Marked useful",
+      "stripTitle": "AI cost transparency",
+      "trendTitle": "Daily AI spend trend",
+      "unknownPricing": "Pricing unknown"
+    },
+    "feedback": {
+      "groupLabel": "AI feedback",
+      "markNotUseful": "Mark as not useful",
+      "markUseful": "Mark as useful",
+      "notUseful": "Not useful",
+      "useful": "Useful"
+    },
+    "insightType": {
+      "agentReadiness": "Agent readiness",
+      "health": "Health score",
+      "nlQuery": "NL query",
+      "portfolioSummary": "Portfolio weekly",
+      "progress": "Progress estimate",
+      "riskAnalysis": "Risk analysis",
+      "summary": "Project summary",
+      "trendAnalysis": "Trend analysis"
+    },
+    "query": {
+      "answerTitle": "AI answer",
+      "costFailed": "Could not load cost stats (unknown — not ¥0)",
+      "detailToggle": "Analysis breakdown, last {{days}} days",
+      "guarding": "AI is watching",
+      "inputLabel": "Ask AI",
+      "notConfigured": "AI queries and cost tracking are off — add an API key under Settings → AI provider and the natural-language input will appear here.",
+      "placeholder": "Ask AI — e.g. which project has gone quiet? Draft this week's summary",
+      "projectsUnit": "projects",
+      "typeHealth": "Health",
+      "typeNlQuery": "Q&A",
+      "typeRisk": "Risk",
+      "typeSummary": "Summary",
+      "typeTrend": "Trend",
+      "typeWeekly": "Weekly"
+    },
+    "risk": {
+      "analyze": "Analyze risks",
+      "analyzing": "Analyzing risks…",
+      "levelHigh": "High risk",
+      "levelLow": "Low risk",
+      "levelMedium": "Medium risk",
+      "none": "Project looks healthy — no risks found",
+      "sectionTitle": "Risk analysis",
+      "title": "AI risk analysis",
+      "typeActivity": "Activity",
+      "typeConcentration": "Concentration",
+      "typeSchedule": "Schedule",
+      "typeTechDebt": "Tech debt"
+    },
+    "weekly": {
+      "analyzing": "Analyzing data from {{projects}} projects…",
+      "cached": "cached",
+      "copied": "Copied",
+      "copyFailed": "Copy failed",
+      "copySuccess": "Weekly report copied to clipboard",
+      "dialogTitle": "AI weekly report",
+      "errorGenerate": "Could not generate the weekly report. Please try again later.",
+      "errorNoProvider": "No AI provider configured. Add an AI key in Settings first.",
+      "generate": "Weekly report",
+      "windowDays": "{{days}}d",
+      "windowHint": "· last {{days}} days"
+    }
   }
 }

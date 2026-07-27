@@ -1905,7 +1905,7 @@
     }
   },
   "workspace": {
-    "title": "跨專案工作區",
+    "title": "工作區",
     "manage": "Workspace",
     "files": {
       "agents": "Agent 操作指令和規則",
@@ -1944,9 +1944,8 @@
       "searchFailed": "搜尋失敗",
       "matchCount": "{{count}} 處相符"
     },
-    "subtitle": "監控彙總項目風險、進度與 AI 配置狀態，幫助你先處理關鍵問題",
+    "subtitle": "彙總各項目 AI 配置狀態與近期活躍度，幫你先看該看的",
     "sidebar": {
-      "section": "跨專案工作區",
       "currentProjectAssets": "{{name}} · AI 配置"
     },
     "tabs": {
@@ -1969,6 +1968,7 @@
       "configureAssets": "配置資產",
       "reasonReadiness": "就緒分 {{score}}/{{max}}",
       "reasonDrift": "配置不一致 {{count}} 項",
+      "reasonUnmanaged": "尚未納入 OpenSunstar 管理",
       "reasonMcp": "未關聯 MCP",
       "reasonSkills": "未配置 Skills",
       "reasonPrompts": "未關聯 Prompts",
@@ -1980,7 +1980,8 @@
       "updatedAt": "更新於 {{time}}",
       "refreshing": "正在刷新…",
       "loading": "正在彙總項目就緒與資產數據…",
-      "mvpBehindHint": "{{count}} 個 MVP 項目進度低於 50%，建議優先推進。"
+      "mvpBehindHint": "{{count}} 個 MVP 項目進度低於 50%，建議優先推進。",
+      "activeSub": "共 {{commits}} 次提交 · 活躍度 {{tier}}"
     },
     "assetsMatrix": {
       "title": "AI 資產總覽",
@@ -2554,21 +2555,28 @@
       "ok": "正常",
       "warn": "需關注",
       "alert": "異常",
+      "unconfigured": "尚未配置",
+      "unmanaged": "未納管",
       "unscanned": "未掃描"
     },
     "reason": {
       "drifted": "{{count}} 處配置與預期不一致",
       "unscanned": "尚未完成 AI 配置狀態掃描",
+      "unmanaged": "項目尚未納入 OpenSunstar，不能判定為缺失",
+      "unconfigured": "尚未透過 OpenSunstar 關聯任何 AI 資產",
+      "gaps": "待補齊：{{items}}",
       "detectedOnly": "{{items}} — 發現配置文件但未納入管理",
       "globalOnly": "{{items}} — 使用全局預設配置",
       "noMcp": "未關聯 MCP 伺服器",
       "noSkills": "未配置 Skills",
-      "noPrompts": "未關聯 Prompts",
-      "lowScore": "配置完整度低（{{score}} 分）"
+      "noPrompts": "未關聯 Prompts"
     },
     "action": {
-      "repair": "查看修復",
+      "repair": "修復漂移",
+      "inspectDetail": "查看詳情",
       "configure": "配置資產",
+      "setup": "去配置",
+      "adopt": "納入管理",
       "inspect": "查看項目"
     }
   },
@@ -3097,9 +3105,8 @@
     "refresh": "重新整理"
   },
   "methodology": {
-    "sidebarSection": "跨專案治理",
-    "sidebar": "專案治理",
-    "title": "專案治理",
+    "sidebar": "流程與方法論",
+    "title": "流程與方法論",
     "subtitle": "方法論、流程預設、自訂編排、設計合約——四個獨立配置維度，按需選用，無先後依賴。框架偵測為唯讀，不修改專案檔案。",
     "scanAll": "掃描所有專案",
     "scanAllNoProjects": "請先新增專案再掃描",
@@ -3268,14 +3275,15 @@
     "syncBackup": "同步備份",
     "kanban": "項目AI看板",
     "tokenStats": "AI Tokens",
-    "agentConfig": "跨Agent配置",
+    "agentConfig": "Agent 配置",
     "planning": "規劃中",
     "section": {
       "projects": "項目",
       "monitor": "運行監控",
       "aiModels": "AI模型",
       "cloudSync": "跨設備雲同步",
-      "teamCollab": "團隊協作配置"
+      "teamCollab": "團隊協作配置",
+      "syncCollab": "同步與協作"
     }
   },
   "sync": {
@@ -3726,6 +3734,9 @@
       "projectAssets": "本項目啟用的資產",
       "projectAssetsHint": "勾選後僅對當前項目生效；全局庫在側欄維護，項目關聯僅存於本地數據庫。"
     },
+    "score": {
+      "health": "健康評分"
+    },
     "readiness": {
       "title": "Agent 配置就緒",
       "loading": "正在評估配置就緒度…",
@@ -3735,13 +3746,17 @@
       "manage": "管理",
       "openAssetsTab": "打開 AI 資產配置",
       "completedSection": "已完成 {{count}} 項",
-      "badgeTooltip": "Agent 配置就緒 {{score}}/{{max}} · 點擊查看詳情",
+      "badgeHint": "點擊查看詳情",
       "scanEffective": "生效態掃描",
       "forApp": "按 {{app}} 計分",
       "status": {
         "global_only": "來源：全局基線",
         "detected_only": "來源：倉庫探測",
-        "partial": "部分 CLI 支持"
+        "partial": "部分 CLI 支持",
+        "not_required": "當前目標 CLI 不支持此項，已從評分中排除",
+        "unmanaged": "項目尚未納入 OpenSunstar，不能判定為缺失",
+        "unknown": "暫不能判定",
+        "unhealthy": "配置與預期不一致"
       },
       "effective": {
         "configured": "已配置",
@@ -3759,7 +3774,7 @@
       "repairNoop": "當前項無需修復"
     },
     "governance": {
-      "title": "治理總覽",
+      "title": "配置生效率",
       "forApp": "目標 CLI：{{app}}",
       "scannedProjects": "已掃描項目",
       "ofTotal": "共 {{total}} 個",
@@ -3887,11 +3902,11 @@
     },
     "step2": {
       "title": "需處理項目 — 快速定位",
-      "desc": "需要關注的項目會列在下方，附帶人可讀的原因說明。點擊「查看修復」或「配置資產」即可直達操作。"
+      "desc": "需要關注的項目會列在下方，附帶人可讀的原因說明。點擊「修復漂移」或「配置資產」即可直達操作。"
     },
     "step3": {
-      "title": "治理總覽 — 深入指標",
-      "desc": "配置不一致項目、生效率、已生效項等詳細數據在這裡展示。將滑鼠懸停在卡片上可查看說明。"
+      "title": "配置生效率 — 在「AI 資產總覽」",
+      "desc": "配置不一致項目、生效率、已生效項等詳細數據，切到「AI 資產總覽」查看。將滑鼠懸停在卡片上可查看說明。"
     }
   },
   "repairPreview": {
@@ -3938,6 +3953,13 @@
     "cellCrit": "異常",
     "cellUnscanned": "未掃",
     "cellNA": "不適用",
+    "cellRecent": "有更新",
+    "cellStale": "無更新",
+    "colUpkeep": "維護度",
+    "colUpkeepTitle": "近 90 天專案資產關聯更新",
+    "linkedCount": "OpenSunstar 已關聯",
+    "linkedCountValue": "{{value}} 項",
+    "detailRecentUpdates": "統計近 90 天內是否有專案級 AI 資產配置變更",
     "safetyBadge": "安全關鍵",
     "noData": "暫無掃描數據",
     "scanPending": "尚未完成掃描，當前狀態不能判定為正常。",
@@ -3950,6 +3972,7 @@
     "detailMissing": "未配置此項，如果不需要可忽略",
     "detailPartial": "部分配置，建議完善",
     "detailNA": "當前目標 CLI 不支持此項",
+    "detailUnmanaged": "項目尚未納入 OpenSunstar，不能判定為缺失",
     "statusOk": "配置正常",
     "statusWarn": "需要關注",
     "statusCrit": "存在異常",
@@ -3961,6 +3984,12 @@
     "filePath": "配置文件路徑",
     "viewProject": "查看項目資產",
     "goRepair": "去修復"
+  },
+  "portfolioNotice": {
+    "title": "部分資料沒讀到，下面的「未掃 / 未設定 / 缺失」不代表磁碟上真的缺失。",
+    "readinessFailed": "{{failed}}/{{total}} 個專案的就緒度讀取失敗",
+    "assetFailed": "資產統計失敗：{{reason}}",
+    "retry": "重試"
   },
   "scope": {
     "globalEnabled": "全域已啟用",
@@ -3991,5 +4020,112 @@
     "on": "開",
     "off": "關",
     "description": "雲同步解決的是「空間軸」問題——配置在多台設備間保持一致。與專案環境快照（時間軸·版本回溯）互為補充，按需選用。"
+  },
+  "projectAiConfig": {
+    "title": "專案 · AI 配置",
+    "subtitle": "為單一專案落地 AI 資產：套用藍圖、檢查就緒度、勾選生效的資產。側欄「Agent 配置」管的是全域資產庫，這裡管它們在本專案上的關聯。",
+    "switcher": "目前配置專案",
+    "emptyProjects": "還沒有加入專案，先加入一個再來配置 AI 資產。",
+    "orchestrationLink": "工作流程編排",
+    "orchestrationHint": "階段、預設與變更執行方案在「流程與方法論」裡配置，會帶著目前專案跳過去。"
+  },
+  "ai": {
+    "cost": {
+      "analysisCount": "{{calls}} 次分析",
+      "cachedFree": "¥0（快取）",
+      "chartApiCalls": "API 呼叫",
+      "chartCost": "費用",
+      "chartNlQuery": "NL 問答",
+      "colCost": "費用",
+      "colCount": "次數",
+      "colTokens": "Token",
+      "colType": "類型",
+      "disclaimer": "費用為基於公開定價的估算，以供應商帳單為準。",
+      "disclaimerCliSuffix": "CLI 代理用量見「設定 → 用量」。",
+      "disclaimerShort": "估算 · 以供應商帳單為準",
+      "emptyRoi": "近 {{days}} 天尚無 AI 呼叫記錄。觸發摘要、風險分析或 NL 問答後將在此展示 ROI。",
+      "estimatedSuffix": "估算",
+      "lastCall": "本次",
+      "loadingRoi": "載入 ROI 資料…",
+      "monthTotal": "本月累計",
+      "monthTotalFailed": "本月累計查詢失敗（未知，不是 ¥0）",
+      "monthTotalLoading": "本月累計 統計中…",
+      "nlQueryCount": "{{queries}} 次問答",
+      "panelTitle": "AI 成本-價值追蹤",
+      "projectRisks": "{{risks}} 項風險",
+      "projectScope": "{{projects}} 個專案",
+      "projectUseful": "{{useful}} 次有用",
+      "rangeDays": "{{days}} 天",
+      "roiReport": "AI 投入報告",
+      "sectionByProject": "按專案（消耗 ↔ 價值）",
+      "sectionByType": "按分析類型",
+      "statRisks": "發現風險",
+      "statTokens": "Token",
+      "statTotalSpend": "總投入",
+      "statUseful": "標記有用",
+      "stripTitle": "AI 成本透明",
+      "trendTitle": "每日 AI 投入趨勢",
+      "unknownPricing": "單價未知"
+    },
+    "feedback": {
+      "groupLabel": "AI 回饋",
+      "markNotUseful": "標記為無用",
+      "markUseful": "標記為有用",
+      "notUseful": "無用",
+      "useful": "有用"
+    },
+    "insightType": {
+      "agentReadiness": "Agent 就緒度",
+      "health": "健康評分",
+      "nlQuery": "自然語言查詢",
+      "portfolioSummary": "組合週報",
+      "progress": "進度估算",
+      "riskAnalysis": "風險分析",
+      "summary": "專案摘要",
+      "trendAnalysis": "趨勢分析"
+    },
+    "query": {
+      "answerTitle": "AI 回答",
+      "costFailed": "成本統計查詢失敗（未知，不是 ¥0）",
+      "detailToggle": "近 {{days}} 天分析明細",
+      "guarding": "AI 正在守護",
+      "inputLabel": "向 AI 提問",
+      "notConfigured": "AI 問答與成本統計尚未啟用 —— 在「設定 → AI 供應方」填入 API Key 後，這裡會出現自然語言提問入口。",
+      "placeholder": "向 AI 提問，如：哪個專案最近不活躍？幫我產生本週總結",
+      "projectsUnit": "個專案",
+      "typeHealth": "健康",
+      "typeNlQuery": "問答",
+      "typeRisk": "風險",
+      "typeSummary": "摘要",
+      "typeTrend": "趨勢",
+      "typeWeekly": "週報"
+    },
+    "risk": {
+      "analyze": "分析風險",
+      "analyzing": "正在分析風險…",
+      "levelHigh": "高風險",
+      "levelLow": "低風險",
+      "levelMedium": "中風險",
+      "none": "專案狀態健康，暫未發現風險",
+      "sectionTitle": "風險分析",
+      "title": "AI 風險分析",
+      "typeActivity": "活躍度",
+      "typeConcentration": "集中度",
+      "typeSchedule": "進度",
+      "typeTechDebt": "技術債"
+    },
+    "weekly": {
+      "analyzing": "正在分析 {{projects}} 個專案資料…",
+      "cached": "快取",
+      "copied": "已複製",
+      "copyFailed": "複製失敗",
+      "copySuccess": "週報已複製到剪貼簿",
+      "dialogTitle": "AI 智慧週報",
+      "errorGenerate": "週報產生失敗，請稍後重試。",
+      "errorNoProvider": "未設定 AI 供應方，請先在設定中設定 AI Key。",
+      "generate": "產生週報",
+      "windowDays": "{{days}}天",
+      "windowHint": "· 近 {{days}} 天資料"
+    }
   }
 }
