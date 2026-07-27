@@ -87,7 +87,13 @@ export function GovernanceDashboard({
             id="governance-dashboard-title"
             className="text-sm font-semibold text-foreground"
           >
-            {t("kanban.governance.title", { defaultValue: "治理总览" })}
+            {/*
+             * 「治理总览」→「配置生效率」（审查报告 §2.5）。旧名与
+             * `MethodologyPage` 的「项目治理」零共享代码，却让「治理」一个词
+             * 扛着两个无关语义；而这块面板从头到尾只回答一件事：**写下去的
+             * 配置有多少真的生效了**（生效率 / 已生效项 / 配置不一致项目）。
+             */}
+            {t("kanban.governance.title", { defaultValue: "配置生效率" })}
           </h2>
         </div>
         <span className="text-[11px] text-muted-foreground">

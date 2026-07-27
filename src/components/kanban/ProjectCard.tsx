@@ -6,10 +6,8 @@ import {
   ChevronDown,
   Shield,
 } from "lucide-react";
-import {
-  readinessMaxScore,
-  readinessScoreTone,
-} from "@/lib/readinessConstants";
+import { readinessScoreTone } from "@/lib/readinessConstants";
+import { projectScoreTitle } from "@/lib/kanban/projectScores";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,17 +17,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { StageKey } from "@/hooks/useProjectStages";
-import type { Project } from "@/types/project";
+import type { ProjectView } from "@/types/projectView";
 
 interface ProjectCardProps {
-  project: Project;
-  stage: StageKey;
-  progress?: number; // undefined=未设置, 仅 MVP 阶段显示
-  aiSummary?: string | null; // AI 生成的一句话摘要
-  aiSummaryLoading?: boolean; // AI 摘要加载中
-  healthScore?: number | null; // AI 健康评分 (0-100)
-  agentReadiness?: number | null; // Agent 配置就绪度 (0-100)
-  agentDriftCount?: number;
+  /**
+   * 这个项目在组合视图里的那一行（审查报告 §6.1）。
+   *
+   * 此前是 8 个平行 prop（project / stage / progress / aiSummary /
+   * aiSummaryLoading / healthScore / agentReadiness / agentDriftCount），由
+   * `StageSection` 逐个 `xxxMap.get(project.id)` 现拼 —— 同一个 id 写八遍，
+   * 写错一遍就是一张张冠李戴的卡片，而且类型完全查不出来。
+   */
+  view: ProjectView;
   onClick: () => void;
   onRemove: () => void;
   onOpenFolder?: () => void;
@@ -96,20 +95,25 @@ function relativeTime(
 // ── 组件 ──────────────────────────────────────────
 
 export function ProjectCard({
-  project,
-  stage,
-  progress,
-  aiSummary,
-  aiSummaryLoading,
-  healthScore,
-  agentReadiness,
-  agentDriftCount = 0,
+  view,
   onClick,
   onRemove,
   onOpenFolder,
   onStageChange,
 }: ProjectCardProps) {
   const { t } = useTranslation();
+  const {
+    project,
+    stage,
+    progress,
+    aiSummary,
+    aiSummaryLoading,
+    aiHealthScore: healthScore,
+    readiness,
+  } = view;
+  // 两个分数在同一个对象里各占一个字段，看得见它们不是一回事（§5.2）。
+  const agentReadiness = readiness?.score;
+  const agentDriftCount = readiness?.driftCount ?? 0;
   const style = STAGE_STYLE[stage];
   const folderName = project.path.split(/[/\\]/).pop() || project.path;
   const dirPath =
@@ -301,6 +305,12 @@ export function ProjectCard({
           <span className="text-[10px] text-muted-foreground/50 font-mono truncate flex-1">
             {dirPath}
           </span>
+          {/*
+            并排的两个 0-100 分数来源毫不相干：左边是 AI 给的工程健康度，
+            右边是配置扫描出来的就绪分。名字统一由 `projectScoreTitle` 出
+            （审查报告 §5.2），别在这里手写 —— 手写过一次，就写成了
+            「健康评分: 88/100」和「Agent 配置就绪 42/100」两种格式。
+          */}
           {typeof healthScore === "number" && (
             <span
               className={cn(
@@ -311,7 +321,7 @@ export function ProjectCard({
                     ? "text-amber-500"
                     : "text-red-400",
               )}
-              title={`健康评分: ${healthScore}/100`}
+              title={projectScoreTitle("aiHealth", healthScore, t)}
             >
               <span
                 className={cn(
@@ -332,10 +342,10 @@ export function ProjectCard({
                 "shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums",
                 readinessScoreTone(agentReadiness),
               )}
-              title={t("kanban.readiness.badgeTooltip", {
-                score: agentReadiness,
-                max: readinessMaxScore(),
-                defaultValue: `Agent 配置就绪 ${agentReadiness}/100 · 点击查看详情`,
+              title={projectScoreTitle("agentReadiness", agentReadiness, t, {
+                hint: t("kanban.readiness.badgeHint", {
+                  defaultValue: "点击查看详情",
+                }),
               })}
             >
               <Shield className="h-3 w-3" />

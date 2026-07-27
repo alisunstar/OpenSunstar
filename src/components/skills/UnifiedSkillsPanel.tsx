@@ -863,7 +863,17 @@ const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
             size="icon"
             className="h-7 w-7 hover:text-blue-500 hover:bg-blue-100 dark:hover:text-blue-400 dark:hover:bg-blue-500/10"
             onClick={onInfo}
-            title={t("skills.info", { defaultValue: "详情" })}
+            /*
+             * 不能叫 `skills.info` —— 下面详情面板的字段标签占着 `skills.info.*`
+             * 这个命名空间（目录 / 分支 / 安装时间 …）。同一个前缀在 i18next 里
+             * 不能既是字符串又是对象：JSON 里写成字符串，7 个字段标签就永远查不到；
+             * 写成对象，这句 tooltip 就查不到。
+             *
+             * 今天两边都还没进任何 locale 文件，全靠 defaultValue 兜底，所以看不出
+             * 问题 —— 一旦翻译（这正是 i18n 基建要做的事）必然有一边失效。
+             * 由 `pnpm i18n:sync` 的形状检查守着。
+             */
+            title={t("skills.detail", { defaultValue: "详情" })}
           >
             <Info size={14} />
           </Button>

@@ -143,6 +143,19 @@ export function Sidebar({
     onNavigate("kanban");
   };
 
+  /*
+   * 有选中项目时走 `onOpenProjectAssets`（它会顺手把「当前项目」钉到这一个），
+   * 没有就直接导航 —— 页面自己会认领第一个项目。两条路的落点是同一页，
+   * 区别只在「带不带项目一起过去」。
+   */
+  const openProjectAiConfig = useCallback(() => {
+    if (activeProject && onOpenProjectAssets) {
+      onOpenProjectAssets(activeProject.id);
+      return;
+    }
+    onNavigate("projectAiConfig");
+  }, [activeProject, onOpenProjectAssets, onNavigate]);
+
   // ── 折叠状态 ──────────────────────────────
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
@@ -221,6 +234,17 @@ export function Sidebar({
               collapsed
             />
             <SidebarItem
+              icon={<Sparkles className="w-4 h-4" />}
+              label=""
+              active={activeView === "projectAiConfig"}
+              onClick={openProjectAiConfig}
+              accent={activeView === "projectAiConfig"}
+              collapsed
+              title={t("projectAiConfig.title", {
+                defaultValue: "项目 · AI 配置",
+              })}
+            />
+            <SidebarItem
               icon={<Cpu className="w-4 h-4" />}
               label=""
               active={aiModelActive}
@@ -261,12 +285,16 @@ export function Sidebar({
           </div>
         ) : (
           <>
-            <SectionLabel>
-              {t("workspace.sidebar.section", { defaultValue: "跨项目工作区" })}
-            </SectionLabel>
+            {/*
+             * 这里此前有一个 SectionLabel「跨项目工作区」，底下只挂着同名的
+             * 一个菜单项 —— 同一个词连印两遍，中间什么也没有（审查报告 §2.3）。
+             * 分组层存在的意义是「底下有好几个东西需要归拢」，只有一个孩子时
+             * 它不表达任何信息，只是把真分组之间的间距撑大一倍。四处同样的
+             * 空嵌套一并删掉，只保留下面「AI模型」「同步与协作」两个真分组。
+             */}
             <SidebarMenu
               icon={<LayoutGrid className="w-4 h-4" />}
-              label={t("workspace.title", { defaultValue: "跨项目工作区" })}
+              label={t("workspace.title", { defaultValue: "工作区" })}
               defaultOpen
               active={workspaceActive}
             >
@@ -312,19 +340,6 @@ export function Sidebar({
                   onRemove={() => onProjectRemove?.(project.id)}
                 />
               ))}
-              {activeProject && onOpenProjectAssets && (
-                <SidebarItem
-                  icon={<Sparkles className="w-4 h-4" />}
-                  label={t("workspace.sidebar.currentProjectAssets", {
-                    name: activeProject.name,
-                    defaultValue: `${activeProject.name} · AI 配置`,
-                  })}
-                  active={false}
-                  onClick={() => onOpenProjectAssets(activeProject.id)}
-                  indent
-                  accent
-                />
-              )}
               <SidebarItem
                 icon={<Plus className="w-4 h-4" />}
                 label={t("sidebar.addProject", { defaultValue: "添加项目" })}
@@ -334,20 +349,46 @@ export function Sidebar({
               />
             </SidebarMenu>
 
-            {/* ▸ 工作流与治理（独立一级分组，与工作区/Agent配置/AI模型并列） */}
-            <SectionLabel>
-              {t("methodology.sidebarSection", { defaultValue: "跨项目治理" })}
-            </SectionLabel>
+            {/*
+             * 「项目 · AI 配置」升格成一级页之前，这里挂的是一个缩进的
+             * `${activeProject.name} · AI 配置` —— 只有选中项目时才出现，
+             * 而且藏在「工作区」子项里。它当年是抽屉第二个 Tab 的快捷方式，
+             * 层级跟着落点走。落点现在是一级页，入口就得跟上来：常驻、不缩进、
+             * 没选项目也能点（页面会自己认领第一个项目）。
+             *
+             * 位置也是有意的：紧挨「工作区」之下 —— 先看整体（今日工作台 /
+             * 看板 / 资产总览），再进单项目配置，最后才是「流程与方法论」和
+             * 全局的「Agent 配置」。作用域从宽到窄再到全局库。
+             */}
+            <SidebarItem
+              icon={<Sparkles className="w-4 h-4" />}
+              label={t("projectAiConfig.title", {
+                defaultValue: "项目 · AI 配置",
+              })}
+              active={activeView === "projectAiConfig"}
+              onClick={openProjectAiConfig}
+              badge={
+                activeProject ? (
+                  <span className="max-w-[88px] truncate text-[10px] text-muted-foreground/70">
+                    {activeProject.name}
+                  </span>
+                ) : undefined
+              }
+            />
+
+            {/*
+             * 「治理」此前扛着两个无关语义：这里的方法论识别，和
+             * `GovernanceDashboard` 的配置生效率统计 —— 两者零共享代码
+             * （§2.5）。各自改成说人话的名字之后，「治理」这个词从界面上消失，
+             * 也就不会再有人以为它们是一回事。
+             */}
             <SidebarItem
               icon={<BookOpen className="w-4 h-4" />}
-              label={t("methodology.sidebar", { defaultValue: "工作流与治理" })}
+              label={t("methodology.sidebar", { defaultValue: "流程与方法论" })}
               active={activeView === "methodology"}
               onClick={() => onNavigate("methodology")}
             />
 
-            <SectionLabel>
-              {t("sidebar.agentConfig", { defaultValue: "跨Agent配置" })}
-            </SectionLabel>
             {/* 项目作用域提示条：当有选中项目时显示，提醒用户 Agent 配置是全局操作 */}
             {activeProject && (
               <div className="mx-2 mb-1.5 px-2 py-1 rounded-md bg-accent/50 text-[10px] flex items-center gap-1.5 truncate">
@@ -360,9 +401,20 @@ export function Sidebar({
                 </span>
               </div>
             )}
+            {/*
+             * 「Agent 配置」vs「AI 资产总览」这对名字暗示的是「编辑 vs 查看」，
+             * 但两边的实体集合完全相同（8 类）。真实边界是**作用域**：这里是
+             * 全局库的增删改，工作区里那个 Tab 是项目级的关联落地。
+             *
+             * 审查报告 §2.5 建议改名成「资产库 / 项目落地」把作用域写进名字，
+             * 一度也这么改了；产品决定保留沿用已久的旧名（老用户的肌肉记忆比
+             * 命名的自解释性更贵），只去掉「跨Agent配置」的「跨」字前缀 ——
+             * 它和「跨项目工作区」的「跨」一样，是在描述实现而不是用户的事。
+             * 作用域这层意思因此仍然只活在下面这句 hint 和文档里，是已知欠账。
+             */}
             <SidebarMenu
               icon={<LayoutDashboard className="w-4 h-4" />}
-              label={t("sidebar.agentConfig", { defaultValue: "跨Agent配置" })}
+              label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
               defaultOpen={false}
               active={agentConfigActive}
             >
@@ -459,9 +511,18 @@ export function Sidebar({
               onClick={() => onNavigate("tokenStats")}
             />
 
-            {/* ▸ 跨设备云同步 */}
+            {/*
+             * ▸ 同步与协作
+             *
+             * 此前这里是 SectionLabel「跨设备云同步」+ 同名的唯一一个菜单项，
+             * 而「团队协作配置」**没有自己的 SectionLabel**，于是它在视觉上
+             * 被吞进了上一组（§2.3 附带的真 bug）。修法不是给它单独补一个标题
+             * ——那又是第五个空嵌套——是承认这两条本来就是一类东西（把配置搬到
+             * 别处：一个搬到自己的另一台设备，一个搬到队友那里），给它们一个
+             * 共同的家。顺带这个标题还负责终结上面的「AI模型」分组。
+             */}
             <SectionLabel>
-              {t("sidebar.section.cloudSync", { defaultValue: "跨设备云同步" })}
+              {t("sidebar.section.syncCollab", { defaultValue: "同步与协作" })}
             </SectionLabel>
             <SidebarItem
               icon={<Cloud className="w-4 h-4" />}
@@ -471,8 +532,6 @@ export function Sidebar({
               active={activeView === "cloudSync"}
               onClick={() => onNavigate("cloudSync")}
             />
-
-            {/* ▸ 团队协作配置 */}
             <SidebarItem
               icon={<Users className="w-4 h-4" />}
               label={t("sidebar.section.teamCollab", {

@@ -15,6 +15,7 @@ export type PageView =
   | "skillsDiscovery"
   | "sessions"
   | "kanban"
+  | "projectAiConfig"
   | "tokenStats"
   | "methodology"
   | "cloudSync"
@@ -54,6 +55,7 @@ export const VALID_VIEWS: readonly PageView[] = [
   "skillsDiscovery",
   "sessions",
   "kanban",
+  "projectAiConfig",
   "tokenStats",
   "methodology",
   "cloudSync",
@@ -92,6 +94,19 @@ export const PAGE_META: Record<PageView, PageMeta> = {
   },
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
+  /**
+   * 「项目 · AI 配置」原先是项目详情抽屉里的第二个 Tab。抽屉宽 480px，而这块
+   * 是全页最重的**动手操作**界面（套蓝图、逐项看就绪度、在 8 类资产里勾选），
+   * 塞在这个宽度里既看不全也点不准 —— 所以升格成侧栏一级页。
+   *
+   * 它和侧栏「Agent 配置」正好是同一批实体（8 类）的两个作用域：那边是全局库
+   * 的增删改，这边是这些资产在**某一个项目**上的落地。这层区别在名字里写死了
+   * （「项目 ·」前缀），不再只活在文档里。
+   */
+  projectAiConfig: {
+    titleKey: "projectAiConfig.title",
+    defaultTitle: "项目 · AI 配置",
+  },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   methodology: {
     titleKey: "methodology.title",

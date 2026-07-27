@@ -38,7 +38,6 @@ import {
   buildSubscriptionAccountsIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
-import type { ProjectDetailTab } from "@/types/projectDetail";
 import {
   getInitialWorkspaceTab,
   persistWorkspaceTab,
@@ -57,8 +56,6 @@ function App() {
     getInitialWorkspaceTab,
   );
   const [detailIntentKey, setDetailIntentKey] = useState(0);
-  const [detailIntentTab, setDetailIntentTab] =
-    useState<ProjectDetailTab>("overview");
   const [targetApp, setTargetApp] = useState(getInitialApp);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
@@ -131,10 +128,9 @@ function App() {
         ? null
         : {
             projectId: selectedProjectId,
-            tab: detailIntentTab,
             key: detailIntentKey,
           },
-    [detailIntentKey, detailIntentTab, selectedProjectId],
+    [detailIntentKey, selectedProjectId],
   );
 
   const openWorkspace = useCallback(
@@ -150,18 +146,19 @@ function App() {
       setSelectedProjectId(projectId);
       handleNavigate("kanban");
       setWorkspaceTab("board");
-      setDetailIntentTab("overview");
       setDetailIntentKey((key) => key + 1);
     },
     [handleNavigate],
   );
+  /*
+   * 「配置 AI 资产」以前是：跳到工作区 → 强行把 Tab 切到「项目看板」→ 弹抽屉
+   * → 抽屉再切到第二个 Tab。四步里有三步是为了把用户搬到那个 480px 的抽屉
+   * 跟前，而且会顺手改掉他当前正在看的 Tab。现在它是一个一级页面，直接去。
+   */
   const handleOpenProjectAssets = useCallback(
     (projectId: string) => {
       setSelectedProjectId(projectId);
-      handleNavigate("kanban");
-      setWorkspaceTab("board");
-      setDetailIntentTab("aiAssets");
-      setDetailIntentKey((key) => key + 1);
+      handleNavigate("projectAiConfig");
     },
     [handleNavigate],
   );
@@ -189,9 +186,13 @@ function App() {
     currentView === "prompts" || currentView === "sessions";
   const showBackButton =
     currentView === "mcpDiscovery" || currentView === "skillsDiscovery";
-  const hideContentHeader = ["settings", "tokenStats", "kanban"].includes(
-    currentView,
-  );
+  const hideContentHeader = [
+    "settings",
+    "tokenStats",
+    "kanban",
+    // 这一页自带标题栏（含项目切换器），外层再画一条就是两行标题。
+    "projectAiConfig",
+  ].includes(currentView);
   const dragBarHeight = DEFAULT_DRAG_BAR_HEIGHT;
   const needsCustomTitlebar =
     dragBarHeight > 0 || (settings?.useAppWindowControls ?? false);
@@ -311,6 +312,8 @@ function App() {
                   onOpenAiProviderSettings={openAiProviderSettings}
                   onWorkspaceTabChange={setWorkspaceTab}
                   onProjectClick={handleProjectClick}
+                  onOpenProjectAiConfig={handleOpenProjectAssets}
+                  onSelectProject={setSelectedProjectId}
                   onProjectRemove={handleRemoveProject}
                   onAddProject={() => setAddProjectOpen(true)}
                   onClearProjectSelection={() => setSelectedProjectId(null)}

@@ -50,7 +50,13 @@ vi.mock("@/hooks/kanban/usePortfolioAIAnalysis", () => ({
 }));
 
 vi.mock("@/hooks/kanban/useAgentReadinessBatch", () => ({
-  useAgentReadinessBatch: () => ({ agentReadinessMap: new Map() }),
+  useAgentReadinessBatch: () => ({
+    agentReadinessMap: new Map(),
+    loading: false,
+    // 必须跟真 hook 的返回形状一致：漏掉它会让 PortfolioDataNotice 拿到
+    // undefined，替身的失真会伪装成产品行为。
+    failedCount: 0,
+  }),
 }));
 
 describe("KanbanPage empty state", () => {
@@ -61,6 +67,7 @@ describe("KanbanPage empty state", () => {
       <KanbanPage
         projects={[]}
         onProjectClick={vi.fn()}
+        onOpenProjectAiConfig={vi.fn()}
         onProjectRemove={vi.fn()}
         onAddProject={onAddProject}
       />,
@@ -86,6 +93,7 @@ describe("KanbanPage empty state", () => {
       <KanbanPage
         projects={[]}
         onProjectClick={vi.fn()}
+        onOpenProjectAiConfig={vi.fn()}
         onProjectRemove={vi.fn()}
         onAddProject={onAddProject}
       />,

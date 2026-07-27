@@ -11,6 +11,7 @@ import UnifiedMcpPanel from "@/components/mcp/UnifiedMcpPanel";
 import { MethodologyPage } from "@/components/methodology/MethodologyPage";
 import PermissionsPanel from "@/components/permissions/PermissionsPanel";
 import PromptPanel from "@/components/prompts/PromptPanel";
+import { ProjectAiConfigPage } from "@/components/projects/ProjectAiConfigPage";
 import { QuickStartPage } from "@/components/quickStart/QuickStartPage";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
 import { SettingsPageContent } from "@/components/settings/SettingsPage";
@@ -43,6 +44,14 @@ interface AppPageRouterProps {
   onOpenAiProviderSettings: () => void;
   onWorkspaceTabChange: (tab: WorkspaceTab) => void;
   onProjectClick: (projectId: string) => void;
+  /**
+   * 去「项目 · AI 配置」页配这个项目（会顺手把「当前项目」钉到它）。
+   * 和 `onProjectClick`（开抽屉看概览）是两个动作、两个落点 —— 它们以前
+   * 挤在同一个回调里靠 `{ assetsTab: true }` 分流。
+   */
+  onOpenProjectAiConfig: (projectId: string) => void;
+  /** 只改「当前项目」，不跳页 —— 供「项目 · AI 配置」页内的切换器使用。 */
+  onSelectProject: (projectId: string) => void;
   onProjectRemove: (projectId: string) => void;
   onAddProject: () => void;
   onClearProjectSelection: () => void;
@@ -65,6 +74,8 @@ export function AppPageRouter({
   onOpenAiProviderSettings,
   onWorkspaceTabChange,
   onProjectClick,
+  onOpenProjectAiConfig,
+  onSelectProject,
   onProjectRemove,
   onAddProject,
   onClearProjectSelection,
@@ -152,6 +163,7 @@ export function AppPageRouter({
           onWorkspaceTabChange={onWorkspaceTabChange}
           targetApp={effectiveTargetApp}
           onProjectClick={(project) => onProjectClick(project.id)}
+          onOpenProjectAiConfig={onOpenProjectAiConfig}
           onProjectRemove={onProjectRemove}
           onAddProject={onAddProject}
           onClearSelection={onClearProjectSelection}
@@ -160,10 +172,26 @@ export function AppPageRouter({
           onProjectsReload={onProjectsReload}
         />
       );
+    case "projectAiConfig":
+      return (
+        <ProjectAiConfigPage
+          projects={projects}
+          selectedProjectId={selectedProjectId}
+          onSelectProject={onSelectProject}
+          onNavigate={onNavigate}
+          onAddProject={onAddProject}
+          targetApp={effectiveTargetApp}
+        />
+      );
     case "tokenStats":
       return <TokenStatsPage />;
     case "methodology":
-      return <MethodologyPage projects={projects} />;
+      return (
+        <MethodologyPage
+          projects={projects}
+          initialProjectId={selectedProjectId}
+        />
+      );
     case "cloudSync":
       return (
         <CloudSyncDashboard

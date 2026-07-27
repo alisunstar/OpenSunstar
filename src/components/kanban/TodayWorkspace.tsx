@@ -2,38 +2,46 @@ import { useMemo } from "react";
 
 import { useTranslation } from "react-i18next";
 
-import {
-  AlertTriangle,
-  ArrowRight,
-  Clock,
-  Loader2,
-  Shield,
-  Sparkles,
-  TrendingUp,
-} from "lucide-react";
-
-import { Button } from "@/components/ui/button";
+import { Clock, Loader2 } from "lucide-react";
 
 import type { Project } from "@/types/project";
 
 import type { StageKey } from "@/hooks/useProjectStages";
 
-import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
-
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 
 import { cn } from "@/lib/utils";
 
-import { SummaryCard } from "./SummaryCard";
+import {
+  classifyReadinessLevel,
+  shouldShowReadinessScore,
+} from "@/lib/portfolioHealth";
 
 import {
-  AGENT_READINESS_MAX,
-  isReadinessOk,
-  readinessScoreTone,
-} from "@/lib/readinessConstants";
+  PORTFOLIO_OVERVIEW_WINDOW_OPTIONS,
+  formatCompactNumber,
+  type PortfolioOverviewWindowDays,
+} from "@/lib/portfolioMetrics";
+
+import { SummaryCard } from "./SummaryCard";
+
+import { AGENT_READINESS_MAX, isReadinessOk } from "@/lib/readinessConstants";
 
 const MVP_PROGRESS_WARN = 50;
 
+/**
+ * 「今日工作台」的摘要区：一句话交代范围 + 一排指标卡。
+ *
+ * 它以前还挂着一份「建议优先处理」列表 —— 而同一个 Tab 里 `PortfolioHealthSummary`
+ * 已经在画一份「需要动手的项目」列表。两份列表读同一个 `agentReadinessMap`，却
+ * 各自算各自的理由、各自排各自的序、各自截断在 8 条和 6 条，于是同一个项目在
+ * 上下两块里能给出不一样的说法。这正是审查报告 §3.1 那类重复挂载：不是「显示了
+ * 两次」，是「两处开始说不一样的话」。
+ *
+ * 保留的是 `PortfolioHealthSummary`（它有交通灯分级、有修复入口、有六档状态），
+ * 删掉的是这里这份。相应地，本组件不再需要 `assetMap`，也不再需要任何项目级
+ * 动作回调 —— 它现在只出数，不出列表。
+ */
 export interface TodayWorkspaceProps {
   projects: Project[];
 
@@ -43,25 +51,34 @@ export interface TodayWorkspaceProps {
 
   agentReadinessMap: Map<string, AgentReadinessBatchEntry>;
 
-  assetMap: Map<string, ProjectAssetCounts>;
-
-  commits7dMap: Map<string, number>;
+  /**
+   * 已按 `overviewWindowDays` 选好口径的提交数（见
+   * `usePortfolioDerivedMetrics.ts:124-126`）。这里刻意不叫 `commits7dMap`：
+   * 之前固定读 7 天数据却用 `overviewWindowDays` 渲染标签，切到 30 天只有标题
+   * 变了、数字没变（审查报告 §4.1）。窗口选择只允许有一个来源。
+   */
+  commitsInWindowMap: Map<string, number>;
 
   overviewWindowDays: number;
+
+  /**
+   * 窗口切换器跟着「近 N 天活跃」卡一起搬到这里。它原来挂在下方「项目总览」
+   * 标题旁，而受它影响的指标同时分布在上下两排卡里 —— 改一个开关，屏幕上两个
+   * 相隔半屏的区块一起变，中间还夹着两块与窗口无关的面板。
+   */
+  onOverviewWindowDaysChange: (days: PortfolioOverviewWindowDays) => void;
+
+  totalCodeLines: number;
+
+  totalCommitsInWindow: number;
+
+  averageActivityLabel: string;
+
+  averageActivityColor: string;
 
   lastUpdatedAt?: number | null;
 
   isRefreshing?: boolean;
-
-  onOpenProject: (project: Project, options?: { assetsTab?: boolean }) => void;
-}
-
-interface AttentionItem {
-  project: Project;
-
-  reasons: string[];
-
-  readiness: number | null;
 }
 
 function formatDashboardUpdatedAt(
@@ -113,17 +130,23 @@ export function TodayWorkspace({
 
   agentReadinessMap,
 
-  assetMap,
-
-  commits7dMap,
+  commitsInWindowMap,
 
   overviewWindowDays,
+
+  onOverviewWindowDaysChange,
+
+  totalCodeLines,
+
+  totalCommitsInWindow,
+
+  averageActivityLabel,
+
+  averageActivityColor,
 
   lastUpdatedAt,
 
   isRefreshing,
-
-  onOpenProject,
 }: TodayWorkspaceProps) {
   const { t } = useTranslation();
 
@@ -132,33 +155,29 @@ export function TodayWorkspace({
 
     let readinessCount = 0;
 
-    let lowReadiness = 0;
-
-    let missingMcp = 0;
-
     let activeProjects = 0;
 
     let mvpBehind = 0;
 
-    const attention: AttentionItem[] = [];
-
     for (const project of projects) {
       const readinessEntry = agentReadinessMap.get(project.id);
-      const readiness = readinessEntry?.score;
+
+      // 未纳管 / 未扫描的项目：后端 classify_unmanaged_readiness
+      // （agent_readiness.rs:387-413）已把分数归零并改判 status，此时零值是
+      // 「不能判定」而不是「等于 0」，CLI 侧干脆给 `score: None`
+      // （cli_api.rs:404）。把它当低分算进平均就是拿「还没配」冒充「坏了」——
+      // 与 PortfolioHealthSummary 保持同一口径。
+      const level = classifyReadinessLevel(readinessEntry);
+      const judgeable = shouldShowReadinessScore(level);
+      const readiness = judgeable ? readinessEntry?.score : undefined;
 
       if (typeof readiness === "number") {
         readinessSum += readiness;
 
         readinessCount += 1;
-
-        if (!isReadinessOk(readiness)) lowReadiness += 1;
       }
 
-      const assets = assetMap.get(project.id);
-
-      if (!assets || assets.mcp === 0) missingMcp += 1;
-
-      const commits = commits7dMap.get(project.id) ?? 0;
+      const commits = commitsInWindowMap.get(project.id) ?? 0;
 
       if (commits > 0) activeProjects += 1;
 
@@ -173,146 +192,43 @@ export function TodayWorkspace({
       ) {
         mvpBehind += 1;
       }
-
-      const reasons: string[] = [];
-
-      if (typeof readiness === "number" && !isReadinessOk(readiness)) {
-        reasons.push(
-          t("workspace.dashboard.reasonReadiness", {
-            score: readiness,
-
-            max: AGENT_READINESS_MAX,
-
-            defaultValue: `就绪分 ${readiness}/${AGENT_READINESS_MAX}`,
-          }),
-        );
-      }
-
-      if (readinessEntry && readinessEntry.driftCount > 0) {
-        reasons.push(
-          t("workspace.dashboard.reasonDrift", {
-            count: readinessEntry.driftCount,
-
-            defaultValue: `配置不一致 ${readinessEntry.driftCount} 项`,
-          }),
-        );
-      }
-
-      if (!assets || assets.mcp === 0) {
-        reasons.push(
-          t("workspace.dashboard.reasonMcp", {
-            defaultValue: "未关联 MCP",
-          }),
-        );
-      }
-
-      if (!assets || assets.skills === 0) {
-        reasons.push(
-          t("workspace.dashboard.reasonSkills", {
-            defaultValue: "未配置 Skills",
-          }),
-        );
-      }
-
-      if (!assets || assets.prompts === 0) {
-        reasons.push(
-          t("workspace.dashboard.reasonPrompts", {
-            defaultValue: "未关联 Prompts",
-          }),
-        );
-      }
-
-      if (
-        stage === "mvp" &&
-        typeof progress === "number" &&
-        progress < MVP_PROGRESS_WARN
-      ) {
-        reasons.push(
-          t("workspace.dashboard.reasonProgress", {
-            progress,
-
-            defaultValue: `MVP 进度 ${progress}%`,
-          }),
-        );
-      }
-
-      if (reasons.length > 0) {
-        attention.push({
-          project,
-
-          reasons,
-
-          readiness: readiness ?? null,
-        });
-      }
     }
-
-    attention.sort((a, b) => {
-      const ar = a.readiness ?? 999;
-
-      const br = b.readiness ?? 999;
-
-      return ar - br;
-    });
 
     return {
       avgReadiness:
         readinessCount > 0 ? Math.round(readinessSum / readinessCount) : null,
 
-      lowReadiness,
-
-      missingMcp,
-
       activeProjects,
 
       mvpBehind,
-
-      attention: attention.slice(0, 8),
     };
-  }, [
-    projects,
-
-    agentReadinessMap,
-
-    assetMap,
-
-    commits7dMap,
-
-    progressMap,
-
-    getStage,
-
-    t,
-  ]);
+  }, [projects, agentReadinessMap, commitsInWindowMap, progressMap, getStage]);
 
   const showLoadingPlaceholder =
-    Boolean(isRefreshing) &&
-    agentReadinessMap.size === 0 &&
-    assetMap.size === 0;
+    Boolean(isRefreshing) && agentReadinessMap.size === 0;
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-primary/5 via-card/40 to-card/20 p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          {/*
+           * 这里原来还有一个 `<h3>今日工作台</h3>`，正上方的 Tab 按钮已经写着
+           * 「今日工作台」—— 同一个词在一屏里连着出现两次，第二次不带任何新
+           * 信息。留下副标题：它说的是「范围」，Tab 名说的是「你在哪儿」。
+           */}
+          <p className="text-xs text-muted-foreground max-w-xl">
+            {t("workspace.dashboard.subtitle", {
+              count: projects.length,
 
-              {t("workspace.dashboard.title", { defaultValue: "今日工作台" })}
-            </h3>
+              days: overviewWindowDays,
 
-            <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-              {t("workspace.dashboard.subtitle", {
-                count: projects.length,
+              defaultValue: `共 ${projects.length} 个项目 · 优先关注进度与 AI 资产配置`,
+            })}
+          </p>
+        </div>
 
-                days: overviewWindowDays,
-
-                defaultValue: `共 ${projects.length} 个项目 · 优先关注进度与 AI 资产配置`,
-              })}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2 text-[11px] text-muted-foreground shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
             {isRefreshing ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
@@ -333,6 +249,31 @@ export function TodayWorkspace({
               </>
             ) : null}
           </div>
+
+          <div
+            className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/20 p-0.5"
+            role="group"
+            aria-label={t("board.summary.windowLabel", {
+              defaultValue: "Git 活跃统计周期",
+            })}
+          >
+            {PORTFOLIO_OVERVIEW_WINDOW_OPTIONS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors",
+                  overviewWindowDays === days
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+                onClick={() => onOverviewWindowDaysChange(days)}
+                aria-pressed={overviewWindowDays === days}
+              >
+                {days} {t("board.summary.daysUnit", { defaultValue: "天" })}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -346,20 +287,29 @@ export function TodayWorkspace({
         </div>
       ) : (
         <>
+          {/*
+           * 一排卡，不是两排。
+           *
+           * 这个 Tab 以前有两排四张：上排（待关注 / 平均就绪分 / 缺 MCP /
+           * 近 N 天活跃）和下排（总项目数 / 总代码行数 / 平均活跃度 /
+           * 近 N 天提交），中间隔着两块面板。八张里有三张在回答同一个问题：
+           * 「近 N 天活跃」数的是有提交的项目数、「近 N 天提交」数的是提交
+           * 总数、「平均活跃度」是把提交数分档 —— 而「近 N 天提交」的数值
+           * 恰好就是「平均活跃度」那张卡的副标题，同一个数字在相邻两张卡上
+           * 各画一次。现在三张合成一张：主数是活跃项目数，提交总数与活跃档
+           * 落在副标题里。
+           *
+           * 另外两张删掉的是「待关注项目」和「缺 MCP 项目」：前者被下方
+           * `PortfolioHealthSummary` 的交通灯分级完全覆盖（它还多给了四档
+           * 状态和修复入口），后者把 8 类资产里的一类单独提成头条指标 ——
+           * 缺哪类资产是逐项目的事，那份清单也在下面那块里。
+           */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryCard
-              label={t("workspace.dashboard.attentionCount", {
-                defaultValue: "待关注项目",
+              label={t("board.summary.totalProjects", {
+                defaultValue: "总项目数",
               })}
-              value={String(stats.attention.length)}
-              color={
-                stats.attention.length > 0
-                  ? "text-amber-500"
-                  : "text-emerald-500"
-              }
-              sub={t("workspace.dashboard.attentionHint", {
-                defaultValue: "就绪不足或资产缺失",
-              })}
+              value={String(projects.length)}
             />
 
             <SummaryCard
@@ -382,25 +332,39 @@ export function TodayWorkspace({
             />
 
             <SummaryCard
-              label={t("workspace.dashboard.missingMcp", {
-                defaultValue: "缺 MCP 项目",
-              })}
-              value={String(stats.missingMcp)}
-              color={
-                stats.missingMcp > 0 ? "text-amber-500" : "text-foreground"
-              }
-            />
-
-            <SummaryCard
               label={t("workspace.dashboard.activeProjects", {
                 days: overviewWindowDays,
 
                 defaultValue: `近 ${overviewWindowDays} 天活跃`,
               })}
               value={String(stats.activeProjects)}
-              sub={t("workspace.dashboard.activeHint", {
-                defaultValue: "有 Git 提交",
+              unit={`/${projects.length}`}
+              // 活跃档只写在文字里，不靠颜色单独承载：颜色是强调，不是信息。
+              color={averageActivityColor}
+              // 插值变量刻意不叫 `count`：i18next 把 `count` 当复数选择器，
+              // 会去找 `activeSub_one` / `activeSub_other`，为一句没有复数
+              // 变化的中文凭空引入一套复数键。这里只是个数字，就叫 commits。
+              sub={t("workspace.dashboard.activeSub", {
+                commits: totalCommitsInWindow,
+
+                tier: averageActivityLabel,
+
+                defaultValue: "共 {{commits}} 次提交 · 活跃度 {{tier}}",
               })}
+            />
+
+            <SummaryCard
+              label={t("board.summary.totalCodeLines", {
+                defaultValue: "总代码行数",
+              })}
+              value={
+                totalCodeLines > 0 ? formatCompactNumber(totalCodeLines) : "—"
+              }
+              unit={
+                totalCodeLines > 0
+                  ? t("board.summary.linesUnit", { defaultValue: "行" })
+                  : undefined
+              }
             />
           </div>
 
@@ -413,75 +377,6 @@ export function TodayWorkspace({
               })}
             </p>
           )}
-
-          <div className="rounded-xl border border-border/60 bg-card/30 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="h-4 w-4 text-amber-500" />
-
-              <h4 className="text-sm font-semibold text-foreground">
-                {t("workspace.dashboard.queueTitle", {
-                  defaultValue: "建议优先处理",
-                })}
-              </h4>
-            </div>
-
-            {stats.attention.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">
-                {t("workspace.dashboard.allGood", {
-                  defaultValue: "各项目配置状态良好，可直接进入迭代。",
-                })}
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {stats.attention.map(({ project, reasons, readiness }) => (
-                  <div
-                    key={project.id}
-                    className="group flex flex-wrap items-center gap-2 rounded-lg border border-border/50 bg-background/50 px-3 py-2.5 transition-colors hover:border-primary/30 hover:bg-primary/5"
-                  >
-                    <div className="flex-1 min-w-[180px]">
-                      <p className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                        {project.name}
-                      </p>
-
-                      <p className="text-[11px] text-muted-foreground mt-0.5">
-                        {reasons.join(" · ")}
-                      </p>
-                    </div>
-
-                    {typeof readiness === "number" && (
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1 text-[10px] font-semibold tabular-nums shrink-0",
-
-                          readinessScoreTone(readiness),
-                        )}
-                      >
-                        <Shield className="h-3 w-3" />
-                        {readiness}/{AGENT_READINESS_MAX}
-                      </span>
-                    )}
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 text-xs shrink-0 opacity-90 group-hover:opacity-100"
-                      onClick={() =>
-                        onOpenProject(project, { assetsTab: true })
-                      }
-                    >
-                      <Sparkles className="h-3 w-3 mr-1" />
-
-                      {t("workspace.dashboard.configureAssets", {
-                        defaultValue: "配置资产",
-                      })}
-
-                      <ArrowRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </>
       )}
     </div>

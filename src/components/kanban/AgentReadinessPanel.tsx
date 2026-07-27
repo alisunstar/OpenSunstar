@@ -15,7 +15,10 @@ import {
 
 import { Button } from "@/components/ui/button";
 
-import type { AgentReadinessResult } from "@/api/aiInsight";
+import type {
+  AgentReadinessResult,
+  ReadinessItemStatus,
+} from "@/api/aiInsight";
 
 import type { PageView } from "@/app/navigation";
 
@@ -30,15 +33,34 @@ import {
   readinessMaxScore,
   readinessScoreTone,
 } from "@/lib/readinessConstants";
+import { projectScoreLabel } from "@/lib/kanban/projectScores";
 import {
   effectiveBadgeTone,
   hasEffectiveScan,
   resolveConfiguredState,
 } from "@/lib/readinessEffective";
+import { isIndeterminateStatus } from "@/lib/portfolioHealth";
 import {
   RepairDriftConfirmDialog,
   type RepairDriftAssetConfirm,
 } from "./RepairDriftConfirmDialog";
+
+/**
+ * 条目状态的补充说明，覆盖 `agent_readiness.rs:11-19` 的全部 9 个取值。
+ * `ready` / `missing` 由 detail 本身表达，不需要额外一行。
+ *
+ * 缺键就会把 `not_required`、`unmanaged` 这类 wire 值原样渲染给用户
+ * （旧实现的三元兜底 `: item.status` 正是如此）。
+ */
+const STATUS_HINT: Partial<Record<ReadinessItemStatus, string>> = {
+  global_only: "来源：全局基线",
+  detected_only: "来源：仓库探测",
+  partial: "部分 CLI 支持",
+  not_required: "当前目标 CLI 不支持此项，已从评分中排除",
+  unmanaged: "项目尚未纳入 OpenSunstar，不能判定为缺失",
+  unknown: "暂不能判定",
+  unhealthy: "配置与预期不一致",
+};
 
 export interface AgentReadinessPanelProps {
   data: AgentReadinessResult | null;
@@ -236,6 +258,13 @@ export function AgentReadinessPanel({
 
     const done = !incomplete;
 
+    // 不可判定态既不是「已完成」也不是「缺失」，不能用 ✓/✗ 表态。
+    // not_required 拿满分（agent_readiness.rs:85-87）打上 ✓ 会谎报已生效；
+    // unmanaged/unknown 计零打上 ✗ 会谎报缺失。
+    const indeterminate = isIndeterminateStatus(item.status);
+
+    const statusHint = item.status ? STATUS_HINT[item.status] : undefined;
+
     return (
       <div
         key={item.check_name}
@@ -252,10 +281,12 @@ export function AgentReadinessPanel({
             className={cn(
               "mt-0.5",
 
-              item.score > 0 ? "text-emerald-500" : "text-muted-foreground/40",
+              !indeterminate && item.score > 0
+                ? "text-emerald-500"
+                : "text-muted-foreground/40",
             )}
           >
-            {item.score > 0 ? "✓" : "✗"}
+            {indeterminate ? "—" : item.score > 0 ? "✓" : "✗"}
           </span>
 
           <div className="flex-1 min-w-0">
@@ -272,22 +303,13 @@ export function AgentReadinessPanel({
             <p className="text-[11px] text-muted-foreground/70 mt-0.5 leading-relaxed">
               {item.detail}
 
-              {item.status &&
-                item.status !== "ready" &&
-                item.status !== "missing" && (
-                  <span className="block mt-0.5 text-[10px] text-blue-600/80 dark:text-blue-400/80">
-                    {t(`kanban.readiness.status.${item.status}`, {
-                      defaultValue:
-                        item.status === "global_only"
-                          ? "来源：全局基线"
-                          : item.status === "detected_only"
-                            ? "来源：仓库探测"
-                            : item.status === "partial"
-                              ? "部分 CLI 支持"
-                              : item.status,
-                    })}
-                  </span>
-                )}
+              {statusHint && (
+                <span className="block mt-0.5 text-[10px] text-blue-600/80 dark:text-blue-400/80">
+                  {t(`kanban.readiness.status.${item.status}`, {
+                    defaultValue: statusHint,
+                  })}
+                </span>
+              )}
             </p>
 
             {renderEffectiveBadges(item)}
@@ -325,7 +347,8 @@ export function AgentReadinessPanel({
           <Shield className="h-4 w-4 text-primary shrink-0" />
 
           <h3 className="text-sm font-semibold text-foreground">
-            {t("kanban.readiness.title", { defaultValue: "Agent 配置就绪" })}
+            {/* 名字与卡片/清单/矩阵四处同源（审查报告 §5.2） */}
+            {projectScoreLabel("agentReadiness", t)}
           </h3>
 
           {data.target_app && (

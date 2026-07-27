@@ -30,6 +30,11 @@ export function CommitTrendChart({
   aiInsight,
   projectId,
 }: CommitTrendChartProps) {
+  // Hook 必须无条件调用，且排在所有提前 return 之前（Rules of Hooks）。
+  // 扫描完成前 weeklyCommits 是空的，完成后才填充 —— 空数据帧少调一个 Hook
+  // 会让 useId 在数据到达时被重新 mount，SVG 的 `url(#...)` 引用跟着漂移。
+  const gradientId = useId();
+
   if (!weeklyCommits || weeklyCommits.length === 0) {
     return (
       <div className="mt-3 rounded-lg border border-border/50 p-3">
@@ -40,8 +45,6 @@ export function CommitTrendChart({
       </div>
     );
   }
-
-  const gradientId = useId();
 
   // 构建图表数据（从旧到新: W12 → W1）
   const data = weeklyCommits.map((count, i) => ({

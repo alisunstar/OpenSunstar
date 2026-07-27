@@ -111,6 +111,12 @@ function presetLabelKey(presetId: string): string {
 
 interface MethodologyPageProps {
   projects: Project[];
+  /**
+   * 从「项目 · AI 配置」跳过来时带上的当前项目。那一页刻意不再挂第二份
+   * `ProjectFlowOrchestratorPanel`（避免第三个挂载点），只给一个入口 ——
+   * 如果跳过来还要用户再选一遍项目，这个入口就不如原来抽屉里那份好用。
+   */
+  initialProjectId?: string | null;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -429,7 +435,10 @@ function DetectionMatrix({
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
 
-export function MethodologyPage({ projects }: MethodologyPageProps) {
+export function MethodologyPage({
+  projects,
+  initialProjectId,
+}: MethodologyPageProps) {
   const { t } = useTranslation();
   const [descriptors, setDescriptors] = useState<SddDescriptorSummary[]>([]);
   const [allDetections, setAllDetections] = useState<AllDetections>({});
@@ -439,7 +448,9 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
   const [activeTab, setActiveTab] = useState("rulesContext");
 
   // Tab 2 orchestration: selected project for flow config
-  const [orchestrationProjectId, setOrchestrationProjectId] = useState("");
+  const [orchestrationProjectId, setOrchestrationProjectId] = useState(
+    () => initialProjectId ?? "",
+  );
   const [orchestrationInitialPreset, setOrchestrationInitialPreset] = useState<
     string | undefined
   >();
@@ -646,7 +657,14 @@ export function MethodologyPage({ projects }: MethodologyPageProps) {
           <div className="space-y-3">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
-              {t("methodology.title", { defaultValue: "工作流与治理" })}
+              {/*
+               * 「项目治理」→「流程与方法论」（审查报告 §2.5）。旧名与
+               * `GovernanceDashboard`「治理总览」零共享代码（本文件的 import
+               * 里没有 `readinessBatch` / `governanceStats`），却让「治理」
+               * 一个词扛着两个无关语义；侧栏分组名「跨项目治理」与菜单名
+               * 「项目治理」更是只差一个「跨」字。
+               */}
+              {t("methodology.title", { defaultValue: "流程与方法论" })}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {t("methodology.subtitle", {

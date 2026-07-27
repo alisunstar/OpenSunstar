@@ -13,17 +13,19 @@ import {
 import { ProjectCard } from "./ProjectCard";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { Project } from "@/types/project";
-import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
+import type { ProjectView } from "@/types/projectView";
 
 interface StageSectionProps {
   stage: StageKey;
-  projects: Project[];
-  stages: Map<string, StageKey>;
-  progressMap: Map<string, number>;
-  aiSummaryMap?: Map<string, string>;
-  aiLoadingMap?: Map<string, boolean>;
-  aiHealthMap?: Map<string, number>;
-  agentReadinessMap?: Map<string, AgentReadinessBatchEntry>;
+  /**
+   * 本阶段的项目视图（审查报告 §6.1）。
+   *
+   * 此前是 `projects` 加五张平行 Map（stages / progressMap / aiSummaryMap /
+   * aiLoadingMap / aiHealthMap / agentReadinessMap）：本组件只是把它们逐个
+   * `.get(project.id)` 再喂给 `ProjectCard`，自己一个字段都不用。这种「只为
+   * 转手而存在的 prop」正是 20 个 prop 长出来的方式。
+   */
+  views: ProjectView[];
   onProjectClick: (project: Project) => void;
   onProjectRemove: (projectId: string) => void;
   onStageChange: (projectId: string, stage: StageKey) => void;
@@ -58,13 +60,7 @@ const STAGE_CONFIG: Record<
 
 export function StageSection({
   stage,
-  projects,
-  stages,
-  progressMap,
-  aiSummaryMap,
-  aiLoadingMap,
-  aiHealthMap,
-  agentReadinessMap,
+  views,
   onProjectClick,
   onProjectRemove,
   onStageChange,
@@ -76,11 +72,15 @@ export function StageSection({
   const cfg = STAGE_CONFIG[stage];
 
   const sorted = useMemo(() => {
-    return [...projects].sort((a, b) => {
-      if (sortBy === "name") return a.name.localeCompare(b.name);
-      return new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime();
+    return [...views].sort((a, b) => {
+      if (sortBy === "name")
+        return a.project.name.localeCompare(b.project.name);
+      return (
+        new Date(b.project.addedAt).getTime() -
+        new Date(a.project.addedAt).getTime()
+      );
     });
-  }, [projects, sortBy]);
+  }, [views, sortBy]);
 
   return (
     <section className="space-y-3">
@@ -101,7 +101,7 @@ export function StageSection({
             {t(cfg.titleKey, { defaultValue: cfg.titleDefault })}
           </h2>
           <span className="text-xs text-muted-foreground tabular-nums">
-            {projects.length}
+            {views.length}
           </span>
           <ChevronDown
             className={cn(
@@ -112,7 +112,7 @@ export function StageSection({
         </button>
 
         {/* 排序 */}
-        {projects.length > 1 && (
+        {views.length > 1 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -157,25 +157,16 @@ export function StageSection({
               </div>
             ) : (
               <div className="grid gap-3 grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3">
-                {sorted.map((project) => (
+                {sorted.map((view) => (
                   <ProjectCard
-                    key={project.id}
-                    project={project}
-                    stage={stages.get(project.id) ?? "mvp"}
-                    progress={progressMap.get(project.id)}
-                    aiSummary={aiSummaryMap?.get(project.id)}
-                    aiSummaryLoading={aiLoadingMap?.get(project.id)}
-                    healthScore={aiHealthMap?.get(project.id)}
-                    agentReadiness={agentReadinessMap?.get(project.id)?.score}
-                    agentDriftCount={
-                      agentReadinessMap?.get(project.id)?.driftCount
-                    }
-                    onClick={() => onProjectClick(project)}
-                    onRemove={() => onProjectRemove(project.id)}
-                    onStageChange={(s) => onStageChange(project.id, s)}
+                    key={view.id}
+                    view={view}
+                    onClick={() => onProjectClick(view.project)}
+                    onRemove={() => onProjectRemove(view.id)}
+                    onStageChange={(s) => onStageChange(view.id, s)}
                     onOpenFolder={
                       onOpenFolder
-                        ? () => onOpenFolder(project.path)
+                        ? () => onOpenFolder(view.project.path)
                         : undefined
                     }
                   />
