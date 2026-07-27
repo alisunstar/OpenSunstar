@@ -1,12 +1,21 @@
-import { useCallback, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
 import {
+  Activity,
   AlertTriangle,
   Check,
   ChevronRight,
   Clock,
   Globe2,
+  History,
   Loader2,
   Minus,
   Search,
@@ -19,6 +28,7 @@ import type { StageKey } from "@/hooks/useProjectStages";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 import type { AgentReadinessItem } from "@/api/aiInsight";
 import { readinessScoreTone } from "@/lib/readinessConstants";
+import { projectScoreTitle } from "@/lib/kanban/projectScores";
 import { GOVERNANCE_CHECK_LABELS } from "@/lib/governanceStats";
 import { cn } from "@/lib/utils";
 import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
@@ -43,13 +53,26 @@ type CellStatusKind =
   | "partial"
   | "unscanned"
   | "not_applicable"
-  | "attention";
+  | "attention"
+  | "active"
+  | "stale";
 
 interface AssetColumn {
   checkName: string;
   label: string;
   safetyCritical: boolean;
   width: string;
+  /**
+   * `asset` 是磁盘上的资产，有生效态可比对；`metric` 是维护度指标，只有
+   * 「是/否」，没有可写回磁盘的东西（`project_config_sync.rs:310` 明确拒绝
+   * 修复它）。两者的判定逻辑不能共用，见 `getCellState`。
+   */
+  kind: "asset" | "metric";
+  /**
+   * 该列在 `ProjectAllAssetCounts` 里的计数字段。metric 列没有可数实体，
+   * 因此为空 —— 「维护度：3 个」不是一句人话。
+   */
+  countKey?: keyof ProjectAssetCounts;
 }
 
 const ASSET_COLUMNS: AssetColumn[] = [
@@ -58,58 +81,142 @@ const ASSET_COLUMNS: AssetColumn[] = [
     label: "MCP",
     safetyCritical: false,
     width: "w-[72px]",
+    kind: "asset",
+    countKey: "mcp",
   },
   {
     checkName: "skills_configured",
     label: "Skills",
     safetyCritical: false,
     width: "w-[72px]",
+    kind: "asset",
+    countKey: "skills",
   },
   {
     checkName: "prompt_files",
     label: "Prompts",
     safetyCritical: false,
     width: "w-[72px]",
+    kind: "asset",
+    countKey: "prompts",
   },
   {
     checkName: "commands_configured",
-    label: "Cmds",
+    label: "Commands",
     safetyCritical: false,
-    width: "w-[64px]",
+    width: "w-[86px]",
+    kind: "asset",
+    countKey: "commands",
   },
   {
     checkName: "hooks_configured",
     label: "Hooks",
     safetyCritical: true,
     width: "w-[64px]",
+    kind: "asset",
+    countKey: "hooks",
   },
   {
     checkName: "ignore_rules",
     label: "Ignore",
     safetyCritical: true,
     width: "w-[68px]",
+    kind: "asset",
+    countKey: "ignore",
   },
   {
     checkName: "permissions",
-    label: "Perms",
+    label: "Permissions",
     safetyCritical: true,
-    width: "w-[64px]",
+    width: "w-[98px]",
+    kind: "asset",
+    countKey: "permissions",
   },
   {
     checkName: "subagents_configured",
-    label: "Subs",
+    label: "Subagents",
     safetyCritical: false,
-    width: "w-[64px]",
+    width: "w-[92px]",
+    kind: "asset",
+    countKey: "subagents",
+  },
+  /**
+   * 第 9 项（审查报告 §5.3）。`agent_readiness.rs:339-358` 一直在给它计
+   * 9 分，矩阵却只有 8 列 ——「8 格全绿但只有 91 分」在界面上无处解释。
+   */
+  {
+    checkName: "recent_updates",
+    label: "维护度",
+    safetyCritical: false,
+    width: "w-[72px]",
+    kind: "metric",
   },
 ];
 
+/** 只有资产列参与「这个项目状态如何」的聚合，理由见 `projectState`。 */
+const AGGREGATED_COLUMNS = ASSET_COLUMNS.filter((c) => c.kind === "asset");
+
+/**
+ * 表头文案与 tooltip。
+ *
+ * 8 个资产列是产品名（MCP / Skills / Hooks…），各语言通用，不进 i18n；
+ * 「维护度」是普通名词，硬编码会把中文漏进 en/ja 界面。
+ *
+ * 三个缩写列已改回全称（审查报告 §2.5）：`Cmds` / `Perms` / `Subs` 是为了
+ * 迁就 `w-[64px]` 硬编码列宽才砍出来的，而侧栏里同一批实体一直写的是全称
+ * （`Sidebar.tsx` 的 Commands / Permissions / Subagents）—— 同一个东西在
+ * 两个界面上两个名字。列宽随之放宽到能装下全称，`w-[64px]` 不再出现。
+ */
+function columnHeader(
+  col: AssetColumn,
+  t: TFunction,
+): { text: string; title: string } {
+  if (col.kind === "metric") {
+    return {
+      text: t("assetsMatrix.colUpkeep", { defaultValue: "维护度" }),
+      title: t("assetsMatrix.colUpkeepTitle", {
+        defaultValue: "近 90 天项目资产关联更新",
+      }),
+    };
+  }
+  return {
+    text: col.label,
+    title: GOVERNANCE_CHECK_LABELS[col.checkName] ?? col.label,
+  };
+}
+
 // ── cell health determination ──────────────────────────
+
+/**
+ * 维护度只有两种结局：近 90 天动过（满分）或没动过（0 分）。
+ *
+ * 它必须绕开资产列的整套判定：`asset_effective_state.rs:1627-1633` 给它写死
+ * `effective_state: "not_applicable"`，走资产分支会让「有更新」落进
+ * 「不适用」那条灰色分支 —— 那 9 分就更没人看得懂了。
+ *
+ * 「没更新」是琥珀色而不是红色：项目 90 天没改配置是一个事实，不是一个缺陷。
+ */
+function getMetricCellState(item: AgentReadinessItem): CellState {
+  switch (item.status) {
+    case "ready":
+      return "normal";
+    case "missing":
+      return "attention";
+    case "not_required":
+      return "not_applicable";
+    default:
+      // unmanaged / unknown / 其余：不可判定，一律按未判定处理
+      return "unscanned";
+  }
+}
 
 function getCellState(
   item: AgentReadinessItem | undefined,
-  safetyCritical: boolean,
+  column: Pick<AssetColumn, "kind" | "safetyCritical">,
 ): CellState {
   if (!item) return "unscanned";
+  if (column.kind === "metric") return getMetricCellState(item);
+  const safetyCritical = column.safetyCritical;
 
   // effective_state is the most authoritative signal
   if (item.effective_state) {
@@ -127,6 +234,8 @@ function getCellState(
   }
 
   // fall back to readiness status
+  // 必须穷举 agent_readiness.rs:11-19 的全部 9 个取值：漏一个就会落到下面
+  // `score > 0` 的兜底，把「不适用」渲染成绿色、把「不可判定」渲染成红色。
   switch (item.status) {
     case "ready":
       return "normal";
@@ -134,8 +243,16 @@ function getCellState(
     case "global_only":
     case "detected_only":
       return "attention";
-    case "not_applicable":
+    case "not_required":
+      // 目标 CLI 不支持此项，后端给满分并从评分中排除（agent_readiness.rs:85-87）
       return "not_applicable";
+    case "unhealthy":
+      // 检出漂移时由 asset_effective_state.rs:1667 覆写
+      return "abnormal";
+    case "unmanaged":
+    case "unknown":
+      // 零计数不能证明缺失（agent_readiness.rs:387-413），一律按未判定处理
+      return "unscanned";
     case "missing":
       return safetyCritical ? "abnormal" : "attention";
   }
@@ -149,8 +266,23 @@ function getCellState(
 function getCellStatusKind(
   item: AgentReadinessItem | undefined,
   state: CellState,
+  column: Pick<AssetColumn, "kind"> = { kind: "asset" },
 ): CellStatusKind {
   if (!item) return "unscanned";
+
+  // 维护度不说「已生效 / 缺失」——它没有生效态，也没有东西可缺
+  if (column.kind === "metric") {
+    switch (state) {
+      case "normal":
+        return "active";
+      case "attention":
+        return "stale";
+      case "not_applicable":
+        return "not_applicable";
+      default:
+        return "unscanned";
+    }
+  }
 
   switch (item.effective_state) {
     case "effective":
@@ -177,8 +309,13 @@ function getCellStatusKind(
       return "detected";
     case "partial":
       return "partial";
-    case "not_applicable":
+    case "not_required":
       return "not_applicable";
+    case "unhealthy":
+      return "mismatch";
+    case "unmanaged":
+    case "unknown":
+      return "unscanned";
   }
 
   switch (state) {
@@ -215,6 +352,10 @@ function cellStatusLabel(kind: CellStatusKind, t: TFunction): string {
       return t("assetsMatrix.cellNA", { defaultValue: "不适用" });
     case "attention":
       return t("assetsMatrix.cellWarn", { defaultValue: "需关注" });
+    case "active":
+      return t("assetsMatrix.cellRecent", { defaultValue: "有更新" });
+    case "stale":
+      return t("assetsMatrix.cellStale", { defaultValue: "无更新" });
   }
 }
 
@@ -252,6 +393,10 @@ function CellStatusIcon({ kind }: { kind: CellStatusKind }) {
       return <Clock className="h-3 w-3 shrink-0" />;
     case "not_applicable":
       return <Minus className="h-3 w-3 shrink-0" />;
+    case "active":
+      return <Activity className="h-3 w-3 shrink-0" />;
+    case "stale":
+      return <History className="h-3 w-3 shrink-0" />;
   }
 }
 
@@ -259,13 +404,25 @@ function CellStatusIcon({ kind }: { kind: CellStatusKind }) {
 
 function cellDetailLabel(
   item: AgentReadinessItem | undefined,
-  safetyCritical: boolean,
+  column: Pick<AssetColumn, "kind" | "safetyCritical">,
   t: TFunction,
 ): string {
   if (!item)
     return t("assetsMatrix.scanPending", {
       defaultValue: "尚未完成扫描，当前状态不能判定为正常。",
     });
+
+  // 维护度的后端 detail 已经是完整的一句话（agent_readiness.rs:348-352），
+  // 直接透传比再包一层「不适用」准确
+  if (column.kind === "metric")
+    return (
+      item.detail ||
+      t("assetsMatrix.detailRecentUpdates", {
+        defaultValue: "统计近 90 天内是否有项目级 AI 资产配置变更",
+      })
+    );
+
+  const safetyCritical = column.safetyCritical;
 
   if (item.effective_state === "effective")
     return t("assetsMatrix.detailEffective", {
@@ -292,6 +449,31 @@ function cellDetailLabel(
         defaultValue: "当前目标 CLI 不支持此项",
       })
     );
+  // 不可判定态优先于「缺失」类文案：未纳管时零计数不是缺失的证据
+  // （agent_readiness.rs:387-413）。后端已给出解释性 detail，优先透传。
+  if (item.status === "unmanaged" || item.status === "unknown")
+    return (
+      item.detail ||
+      t("assetsMatrix.detailUnmanaged", {
+        defaultValue: "项目尚未纳入 OpenSunstar，不能判定为缺失",
+      })
+    );
+  // 目标 CLI 不支持此项，后端给满分并附带说明（agent_readiness.rs:85-87）
+  if (item.status === "not_required")
+    return (
+      item.detail ||
+      t("assetsMatrix.detailNA", {
+        defaultValue: "当前目标 CLI 不支持此项",
+      })
+    );
+  if (item.status === "unhealthy")
+    return (
+      item.effective_detail ||
+      item.detail ||
+      t("assetsMatrix.detailDrifted", {
+        defaultValue: "配置与预期不一致，可能需要修复",
+      })
+    );
   if (item.status === "global_only")
     return t("assetsMatrix.detailGlobal", {
       defaultValue: "使用全局默认配置，项目级未自定义",
@@ -312,10 +494,6 @@ function cellDetailLabel(
     return t("assetsMatrix.detailPartial", {
       defaultValue: "部分配置，建议完善",
     });
-  if (item.status === "not_applicable")
-    return t("assetsMatrix.detailNA", {
-      defaultValue: "当前目标 CLI 不支持此项",
-    });
   if (item.effective_state === "not_applicable")
     return t("assetsMatrix.detailNA", {
       defaultValue: "当前目标 CLI 不支持此项",
@@ -331,11 +509,22 @@ function cellDetailLabel(
 export interface ProjectAssetsMatrixProps {
   projects: Project[];
   getStage: (projectId: string) => StageKey;
-  progressMap?: Map<string, number>;
   agentReadinessMap: Map<string, AgentReadinessBatchEntry>;
+  /**
+   * 各项目「通过 OpenSunstar 关联了多少」的计数。注意它回答的不是磁盘上
+   * 有几个 —— 缺省或计数为 0 都不构成「缺失」的证据（审查报告 §5.4）。
+   */
   assetMap?: Map<string, ProjectAssetCounts>;
   loading?: boolean;
-  onOpenProject: (project: Project, options?: { assetsTab?: boolean }) => void;
+  /** 点项目名 → 打开项目详情抽屉（概览）。 */
+  onOpenProject: (project: Project) => void;
+  /**
+   * 单元格详情里的「查看项目资产」→ 去「项目 · AI 配置」页。
+   *
+   * 这两件事以前挤在同一个 `onOpenProject(project, { assetsTab?: boolean })`
+   * 里，靠一个 boolean 分流。落点已经是两个页面了，回调也就该是两个。
+   */
+  onOpenProjectAiConfig: (project: Project) => void;
 }
 
 interface SelectedCell {
@@ -343,6 +532,8 @@ interface SelectedCell {
   column: AssetColumn;
   item: AgentReadinessItem | undefined;
   state: CellState;
+  /** 该格对应的已关联数量；undefined = 没取到，不等于 0 */
+  count: number | undefined;
 }
 
 const STAGE_LABEL: Record<StageKey, string> = {
@@ -355,20 +546,48 @@ export function ProjectAssetsMatrix({
   projects,
   getStage,
   agentReadinessMap,
+  assetMap,
   loading,
   onOpenProject,
+  onOpenProjectAiConfig,
 }: ProjectAssetsMatrixProps) {
   const { t } = useTranslation();
   const [filterMode, setFilterMode] = useState<MatrixFilter>("all");
   const [selectedCell, setSelectedCell] = useState<SelectedCell | null>(null);
 
-  // find readiness item by check_name for a given project
+  /**
+   * projectId → checkName → item 的两级索引（审查报告 §6.5）。
+   *
+   * 原来 `getItem` 是 `details.find(...)` 线性查找，而整张表要算三遍
+   * （projectState → projectStateCounts → 渲染），复杂度 O(P×C×D)。
+   * 索引把每次查找摊平成 O(1)，建索引本身只在 `agentReadinessMap` 变化时
+   * 跑一次 O(P×D)。
+   */
+  const readinessIndex = useMemo(() => {
+    const index = new Map<string, Map<string, AgentReadinessItem>>();
+    for (const [projectId, entry] of agentReadinessMap) {
+      const byCheck = new Map<string, AgentReadinessItem>();
+      for (const detail of entry.details)
+        byCheck.set(detail.check_name, detail);
+      index.set(projectId, byCheck);
+    }
+    return index;
+  }, [agentReadinessMap]);
+
   const getItem = useCallback(
-    (projectId: string, checkName: string): AgentReadinessItem | undefined => {
-      const entry = agentReadinessMap.get(projectId);
-      return entry?.details.find((d) => d.check_name === checkName);
-    },
-    [agentReadinessMap],
+    (projectId: string, checkName: string): AgentReadinessItem | undefined =>
+      readinessIndex.get(projectId)?.get(checkName),
+    [readinessIndex],
+  );
+
+  /**
+   * 取该格「已关联多少」。返回 undefined 有两种含义，都不是 0：
+   * 该列没有可数实体（维护度），或这一轮根本没取到 assetMap。
+   */
+  const getCount = useCallback(
+    (projectId: string, column: AssetColumn): number | undefined =>
+      column.countKey ? assetMap?.get(projectId)?.[column.countKey] : undefined,
+    [assetMap],
   );
 
   // compute per-project state summary for filtering
@@ -382,9 +601,12 @@ export function ProjectAssetsMatrix({
         unscanned: 0,
         not_applicable: 0,
       };
-      for (const col of ASSET_COLUMNS) {
+      // 只聚合资产列：「需处理」回答的是「今天该动哪个项目」，而「90 天没改
+      // 过配置」是一个事实、不是一个缺陷。把维护度算进去会让所有稳定项目
+      // 永远挂在告警里 —— 正是第一梯队刚修掉的那种狼来了。
+      for (const col of AGGREGATED_COLUMNS) {
         const item = getItem(project.id, col.checkName);
-        counts[getCellState(item, col.safetyCritical)] += 1;
+        counts[getCellState(item, col)] += 1;
       }
       const state: CellState =
         counts.abnormal > 0
@@ -470,10 +692,16 @@ export function ProjectAssetsMatrix({
   const handleCellClick = useCallback(
     (project: Project, column: AssetColumn) => {
       const item = getItem(project.id, column.checkName);
-      const state = getCellState(item, column.safetyCritical);
-      setSelectedCell({ project, column, item, state });
+      const state = getCellState(item, column);
+      setSelectedCell({
+        project,
+        column,
+        item,
+        state,
+        count: getCount(project.id, column),
+      });
     },
-    [getItem],
+    [getItem, getCount],
   );
 
   const handleCloseDetail = useCallback(() => setSelectedCell(null), []);
@@ -528,9 +756,21 @@ export function ProjectAssetsMatrix({
               {t("assetsMatrix.unscanned", { defaultValue: "未扫描" })}
             </span>
           </div>
+          {/*
+           * 这一排原来是 `role="tablist"` + `role="tab"`（审查报告 §7）。
+           *
+           * 它们不是 Tab：Tab 的含义是「切换到另一块内容」，读屏器据此承诺
+           * 存在一个对应的 tabpanel，并且用户会按方向键在 Tab 之间走。这里
+           * 既没有 tabpanel（切的是同一张表格的行），方向键也什么都不做 ——
+           * 一个说到做不到的 role 比没有 role 更坏。
+           *
+           * 它们的真身是一组互斥的筛选开关，因此 `role="group"` +
+           * `aria-pressed`：读屏器念「全部，已按下，按钮」，字字属实，
+           * 也不需要额外的键盘逻辑（button 本来就走 Tab 键 + Enter/Space）。
+           */}
           <div
             className="inline-flex rounded-md border border-border/60 bg-background/60 p-0.5"
-            role="tablist"
+            role="group"
             aria-label={t("assetsMatrix.filterLabel", {
               defaultValue: "项目状态筛选",
             })}
@@ -541,10 +781,10 @@ export function ProjectAssetsMatrix({
                 <button
                   key={option.id}
                   type="button"
-                  role="tab"
-                  aria-selected={active}
+                  aria-pressed={active}
                   className={cn(
                     "h-7 rounded px-2.5 text-[11px] font-medium tabular-nums transition-colors",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     active
                       ? "bg-card text-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -574,26 +814,44 @@ export function ProjectAssetsMatrix({
       <div className="overflow-x-auto">
         <table className="w-full min-w-[800px] text-xs">
           <thead>
+            {/*
+             * `scope` 不是装饰：读屏器在表格导航模式下靠它把「当前格子」和
+             * 「它属于哪一列 / 哪一行」关联起来。没有 scope 时，一个孤立的
+             * 「已生效」被念出来，用户不知道是哪个项目的哪一项。
+             */}
             <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
-              <th className="text-left font-medium px-4 py-2.5 sticky left-0 bg-muted/20 z-10 min-w-[140px]">
+              <th
+                scope="col"
+                className="text-left font-medium px-4 py-2.5 sticky left-0 bg-muted/20 z-10 min-w-[140px]"
+              >
                 {t("assetsMatrix.project", { defaultValue: "项目" })}
               </th>
-              <th className="text-center font-medium px-2 py-2.5 w-12">
+              <th
+                scope="col"
+                className="text-center font-medium px-2 py-2.5 w-12"
+              >
                 {t("assetsMatrix.stage", { defaultValue: "阶段" })}
               </th>
-              {ASSET_COLUMNS.map((col) => (
-                <th
-                  key={col.checkName}
-                  className={cn(
-                    "text-center font-medium px-1 py-2.5",
-                    col.width,
-                  )}
-                  title={GOVERNANCE_CHECK_LABELS[col.checkName] ?? col.label}
-                >
-                  {col.label}
-                </th>
-              ))}
-              <th className="text-center font-medium px-2 py-2.5 w-14">
+              {ASSET_COLUMNS.map((col) => {
+                const header = columnHeader(col, t);
+                return (
+                  <th
+                    key={col.checkName}
+                    scope="col"
+                    className={cn(
+                      "text-center font-medium px-1 py-2.5",
+                      col.width,
+                    )}
+                    title={header.title}
+                  >
+                    {header.text}
+                  </th>
+                );
+              })}
+              <th
+                scope="col"
+                className="text-center font-medium px-2 py-2.5 w-14"
+              >
                 {t("assetsMatrix.score", { defaultValue: "分数" })}
               </th>
             </tr>
@@ -622,15 +880,30 @@ export function ProjectAssetsMatrix({
                   key={project.id}
                   className="border-b border-border/30 hover:bg-muted/10 transition-colors"
                 >
-                  {/* project name — click opens project detail */}
-                  <td
-                    className="px-4 py-2 sticky left-0 bg-card/95 z-10 cursor-pointer"
-                    onClick={() => onOpenProject(project)}
+                  {/*
+                   * 项目名格子 —— 点开项目详情。
+                   *
+                   * 两处都不是样式改动（审查报告 §7）：
+                   * 1. `<td>` → `<th scope="row">`：这一格是整行的行头，读屏器
+                   *    在表格里横向走的时候会自动带上它，右边 9 个格子才有主语。
+                   * 2. `<p onClick>` → `<button>`：原来整个 `<td>` 挂 onClick，
+                   *    键盘走不到、读屏器不报「可点击」，鼠标之外的用户看得见
+                   *    但打不开。用原生 button 而不是给 `<td>` 加
+                   *    `role="button" tabIndex={0}` —— 后者会把这一格从「表格
+                   *    单元」变成「按钮」，表格结构当场散掉。
+                   */}
+                  <th
+                    scope="row"
+                    className="px-4 py-2 sticky left-0 bg-card/95 z-10 text-left font-normal"
                   >
-                    <p className="font-medium text-foreground truncate max-w-[160px] hover:underline">
+                    <button
+                      type="button"
+                      onClick={() => onOpenProject(project)}
+                      className="font-medium text-foreground truncate max-w-[160px] hover:underline text-left rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
                       {project.name}
-                    </p>
-                  </td>
+                    </button>
+                  </th>
 
                   {/* stage */}
                   <td className="text-center px-2 py-2 text-muted-foreground">
@@ -640,20 +913,30 @@ export function ProjectAssetsMatrix({
                   {/* asset cells */}
                   {ASSET_COLUMNS.map((col) => {
                     const item = getItem(project.id, col.checkName);
-                    const state = getCellState(item, col.safetyCritical);
-                    const statusKind = getCellStatusKind(item, state);
+                    const state = getCellState(item, col);
+                    const statusKind = getCellStatusKind(item, state, col);
+                    const count = getCount(project.id, col);
                     return (
                       <td
                         key={col.checkName}
-                        className={cn(
-                          "text-center px-1 py-1.5 cursor-pointer",
-                          "hover:brightness-110 transition-all",
-                        )}
-                        onClick={() => handleCellClick(project, col)}
+                        className="text-center px-1 py-1.5"
                       >
-                        <div
+                        {/*
+                         * onClick 从 `<td>` 挪到这个 button 上（审查报告 §7）。
+                         *
+                         * `aria-label` 把主语补回来：格子里可见的只有「已生效」
+                         * 三个字，读屏器把焦点停在这里时念出的就是这三个字 ——
+                         * 哪个项目、哪一项，全靠这条标签。行头 + 列头只在**表格
+                         * 导航模式**下自动播报，而绝大多数人是按 Tab 走过来的。
+                         */}
+                        <button
+                          type="button"
+                          onClick={() => handleCellClick(project, col)}
+                          aria-label={`${project.name} · ${columnHeader(col, t).title} · ${cellStatusLabel(statusKind, t)}`}
                           className={cn(
                             "inline-flex min-w-[56px] items-center justify-center gap-1 px-1.5 py-1 rounded text-[11px] leading-none font-medium",
+                            "hover:brightness-110 transition-all",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                             cellClasses(state),
                           )}
                         >
@@ -661,12 +944,19 @@ export function ProjectAssetsMatrix({
                           <span className="truncate">
                             {cellStatusLabel(statusKind, t)}
                           </span>
-                        </div>
+                          {/* 只在 > 0 时出数：0 与「没取到」在界面上必须同样
+                              沉默，否则就是替后端下了「缺失」的结论 */}
+                          {count !== undefined && count > 0 && (
+                            <span className="tabular-nums opacity-70">
+                              {count}
+                            </span>
+                          )}
+                        </button>
                       </td>
                     );
                   })}
 
-                  {/* readiness score */}
+                  {/* readiness score —— 名字由 `projectScoreTitle` 统一给（§5.2） */}
                   <td className="text-center px-2 py-2">
                     {typeof score === "number" ? (
                       <span
@@ -674,6 +964,7 @@ export function ProjectAssetsMatrix({
                           "inline-flex items-center gap-0.5 font-semibold tabular-nums",
                           readinessScoreTone(score),
                         )}
+                        title={projectScoreTitle("agentReadiness", score, t)}
                       >
                         <Shield className="h-3 w-3" />
                         {score}
@@ -695,7 +986,7 @@ export function ProjectAssetsMatrix({
           cell={selectedCell}
           onClose={handleCloseDetail}
           onViewProject={() => {
-            onOpenProject(selectedCell.project, { assetsTab: true });
+            onOpenProjectAiConfig(selectedCell.project);
             setSelectedCell(null);
           }}
           t={t}
@@ -718,9 +1009,68 @@ function AssetDetailPanel({
   onViewProject: () => void;
   t: TFunction;
 }) {
-  const { project, column, item, state } = cell;
-  const statusKind = getCellStatusKind(item, state);
-  const assetLabel = GOVERNANCE_CHECK_LABELS[column.checkName] ?? column.label;
+  const { project, column, item, state, count } = cell;
+  const statusKind = getCellStatusKind(item, state, column);
+  // metric 列走 i18n，资产列沿用产品名（`columnHeader` 里说明了理由）
+  const assetLabel =
+    column.kind === "metric"
+      ? columnHeader(column, t).text
+      : (GOVERNANCE_CHECK_LABELS[column.checkName] ?? column.label);
+
+  const panelRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
+
+  /**
+   * 这块面板原来是一个纯 `<div>`（审查报告 §7）：没有 dialog 语义、Esc
+   * 关不掉、焦点留在背后那张表上、关闭后焦点掉回 `<body>`。
+   *
+   * 三件事在这一个 effect 里做完，因为它们是同一件事的三个面：**焦点在
+   * 打开期间必须待在这块面板里**。
+   *
+   * 没有直接换成 `@/components/ui/dialog`（Radix）：那套是居中弹窗，
+   * 这块是右侧滑出的 slide-over，Radix 的定位与进出场动画得整体覆写，
+   * 改动面比这个 effect 大得多。同样的欠账也在 `ProjectDetailSheet` 上，
+   * 产品已明确「拆完再改，本轮不动」—— 两处将来一起换。
+   */
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    // 打开时把焦点送进面板：否则读屏器还停在表格上，念不到刚弹出的内容。
+    panelRef.current?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = panel.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      // 焦点环：不闭合的话 Tab 会走到背后那张表上，而那张表此刻被遮罩盖着，
+      // 视觉上焦点就凭空消失了。
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      // 关闭后焦点回到打开它的那个格子，而不是掉回 <body> 从头再 Tab 一遍。
+      previouslyFocused?.focus?.();
+    };
+  }, [onClose]);
 
   return (
     <>
@@ -728,14 +1078,25 @@ function AssetDetailPanel({
       <div
         className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[1px]"
         onClick={onClose}
+        aria-hidden="true"
       />
       {/* panel */}
-      <div className="fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-card border-l border-border shadow-xl flex flex-col animate-in slide-in-from-right duration-200">
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="fixed inset-y-0 right-0 z-50 w-full max-w-sm bg-card border-l border-border shadow-xl flex flex-col animate-in slide-in-from-right duration-200 focus:outline-none"
+      >
         {/* header */}
         <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
           <div>
             <p className="text-xs text-muted-foreground">{project.name}</p>
-            <h3 className="text-sm font-semibold text-foreground mt-0.5">
+            <h3
+              id={titleId}
+              className="text-sm font-semibold text-foreground mt-0.5"
+            >
               {assetLabel}
               {column.safetyCritical && (
                 <span className="ml-2 inline-flex items-center gap-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
@@ -792,10 +1153,31 @@ function AssetDetailPanel({
                 {cellStatusLabel(statusKind, t)}
               </p>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                {cellDetailLabel(item, column.safetyCritical, t)}
+                {cellDetailLabel(item, column, t)}
               </p>
             </div>
           </div>
+
+          {/* 已关联数量。措辞必须点明口径：这是 OpenSunstar 里的关联数，
+              不是磁盘上扫到的数量，两者可以不一致（审查报告 §5.4）。
+              0 也照常展示 —— 详情页有空间把话说完整，格子里没有。 */}
+          {count !== undefined && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">
+                {t("assetsMatrix.linkedCount", {
+                  defaultValue: "OpenSunstar 已关联",
+                })}
+              </p>
+              <p className="text-xs text-foreground/80 tabular-nums">
+                {t("assetsMatrix.linkedCountValue", {
+                  // 刻意不叫 `count`：那是 i18next 的复数魔法键，会去找
+                  // `_one`/`_other` 变体，中文根本不需要这套。
+                  value: count,
+                  defaultValue: `${count} 项`,
+                })}
+              </p>
+            </div>
+          )}
 
           {/* state detail */}
           {item?.effective_detail && (
