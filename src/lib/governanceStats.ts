@@ -1,6 +1,13 @@
 import type { Project } from "@/types/project";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 
+/**
+ * 必须与 `agent_readiness.rs` 产出的 9 项一一对应。
+ *
+ * 第 9 项 `recent_updates` 之前不在表里（审查报告 §5.3），于是它在任何按
+ * check_name 取名字的地方都会退化成裸的 snake_case 键名。它权重 9、计进总分，
+ * 只是没有磁盘生效态可比对，因此永远不会出现在 `driftByCheck` 里。
+ */
 export const GOVERNANCE_CHECK_LABELS: Record<string, string> = {
   mcp_enabled: "MCP",
   skills_configured: "Skills",
@@ -10,6 +17,7 @@ export const GOVERNANCE_CHECK_LABELS: Record<string, string> = {
   ignore_rules: "Ignore",
   permissions: "Permissions",
   subagents_configured: "Subagents",
+  recent_updates: "维护度",
 };
 
 export interface GovernancePortfolioStats {
