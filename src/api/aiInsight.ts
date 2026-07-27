@@ -21,6 +21,13 @@ export interface AIInsightResult {
   model_used: string;
   tokens_used: number;
   cost_estimate: number;
+  /**
+   * `cost_estimate` 的单价是否命中后端定价表。
+   *
+   * `false` = 金额是兜底猜的，界面应显示「单价未知」而非精确数字。
+   * 可选是为了兼容不返回该字段的旧后端 —— 缺省按「已知」处理。
+   */
+  pricing_known?: boolean;
   is_cached: boolean;
   created_at: number;
 }
@@ -120,6 +127,8 @@ export interface NLQueryResult {
   answer: string;
   tokens_used: number;
   cost_estimate: number;
+  /** 见 {@link AIInsightResult.pricing_known} */
+  pricing_known?: boolean;
   query_log_id?: number | null;
 }
 
@@ -129,6 +138,8 @@ export interface WeeklyReportResult {
   content: string;
   tokens_used: number;
   cost_estimate: number;
+  /** 见 {@link AIInsightResult.pricing_known} */
+  pricing_known?: boolean;
   is_cached: boolean;
 }
 
@@ -152,15 +163,32 @@ export interface AgentReadinessResult {
   evaluated_at?: number | null;
   /** 计分所依据的目标 CLI */
   target_app?: string | null;
+  /**
+   * managed | unmanaged —— 与 CLI `os project readiness` 口径一致
+   * （`src-tauri/src/cli_api.rs:403`）。unmanaged 表示该路径未纳入 OpenSunstar，
+   * 此时 score 不具备判定意义。
+   */
+  assessment_state?: string | null;
 }
 
+/**
+ * 与 Rust `src-tauri/src/ai/agent_readiness.rs:11-19` 的常量一一对应（共 9 个）。
+ *
+ * 注意 `not_required` 不能写成 `not_applicable`：后者是 `effective_state` 的取值
+ * （见 `ai/asset_effective_state.rs:38`），两套枚举同名不同义。
+ * `unmanaged` / `unknown` 表示「零计数不能证明缺失」，不得当作缺口计。
+ * `unhealthy` 由 `asset_effective_state.rs:1667` 在检出漂移时覆写。
+ */
 export type ReadinessItemStatus =
   | "ready"
   | "partial"
   | "global_only"
   | "detected_only"
-  | "not_applicable"
-  | "missing";
+  | "missing"
+  | "unhealthy"
+  | "unmanaged"
+  | "unknown"
+  | "not_required";
 
 export interface AgentReadinessItem {
   check_name: string;

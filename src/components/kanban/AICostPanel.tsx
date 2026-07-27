@@ -26,9 +26,11 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { useTranslation } from "react-i18next";
 import { useAICost } from "@/contexts/AICostContext";
 import { useAIRoiReport } from "@/hooks/useAIRoiReport";
 import {
+  aiCostDisclaimerFull,
   formatAiCostYuan,
   formatAiTokens,
   insightTypeLabel,
@@ -42,21 +44,25 @@ interface AICostPanelProps {
 const RANGE_OPTIONS = [7, 30, 90] as const;
 
 export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
+  const { t, i18n } = useTranslation();
   const [rangeDays, setRangeDays] =
     useState<(typeof RANGE_OPTIONS)[number]>(30);
   const { refreshToken, bumpRefresh } = useAICost();
   const { report, loading, error } = useAIRoiReport(rangeDays, refreshToken);
 
   const chartData =
-    report?.trends.map((t) => ({
-      label: new Date(t.bucket_start * 1000).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-      }),
-      cost: t.cost,
-      tokens: t.tokens,
-      calls: t.api_calls,
-      nl: t.nl_answers,
+    report?.trends.map((point) => ({
+      // 第一个参数原来是 `undefined`，即「跟浏览器语言走」。于是切到 en 之后
+      // 整页文案是英文、横轴刻度还是「7月27日」—— 这类不一致比全篇没翻译更
+      // 显眼。这里改成跟应用语言走。
+      label: new Date(point.bucket_start * 1000).toLocaleDateString(
+        i18n.language,
+        { month: "short", day: "numeric" },
+      ),
+      cost: point.cost,
+      tokens: point.tokens,
+      calls: point.api_calls,
+      nl: point.nl_answers,
     })) ?? [];
 
   return (
@@ -65,11 +71,11 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
         <DialogHeader className="relative pr-12">
           <DialogTitle className="flex items-center gap-2 text-base">
             <BarChart3 className="h-4 w-4 text-primary" />
-            AI 成本-价值追踪
+            {t("ai.cost.panelTitle", { defaultValue: "AI 成本-价值追踪" })}
           </DialogTitle>
           <DialogClose
             className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm p-1.5 text-muted-foreground opacity-70 ring-offset-background transition-opacity hover:opacity-100 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-            aria-label="关闭"
+            aria-label={t("common.close", { defaultValue: "关闭" })}
           >
             <X className="h-4 w-4" />
           </DialogClose>
@@ -84,7 +90,9 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
               className="h-7 text-xs"
               onClick={() => setRangeDays(d)}
             >
-              {d} 天
+              {/* 变量名不能叫 `count` —— i18next 会把它当复数选择器，转而去找
+                  `_one` / `_other` 后缀的键，结果是整条文案回退成裸 key。 */}
+              {t("ai.cost.rangeDays", { days: d, defaultValue: "{{days}} 天" })}
             </Button>
           ))}
           <Button
@@ -93,7 +101,7 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
             className="ml-auto h-7 text-xs"
             onClick={() => bumpRefresh()}
           >
-            刷新
+            {t("common.refresh", { defaultValue: "刷新" })}
           </Button>
         </div>
 
@@ -101,7 +109,9 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
           {loading && (
             <div className="flex items-center justify-center py-16 gap-2 text-muted-foreground">
               <Loader2 className="h-5 w-5 animate-spin" />
-              <span className="text-sm">加载 ROI 数据…</span>
+              <span className="text-sm">
+                {t("ai.cost.loadingRoi", { defaultValue: "加载 ROI 数据…" })}
+              </span>
             </div>
           )}
 
@@ -121,22 +131,26 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                 <div className="mt-3 flex flex-wrap gap-3 text-[11px]">
                   <StatChip
                     icon={<Coins className="h-3 w-3" />}
-                    label="总投入"
+                    label={t("ai.cost.statTotalSpend", {
+                      defaultValue: "总投入",
+                    })}
                     value={formatAiCostYuan(report.totals.cost)}
                   />
                   <StatChip
                     icon={<Sparkles className="h-3 w-3" />}
-                    label="Token"
+                    label={t("ai.cost.statTokens", { defaultValue: "Token" })}
                     value={formatAiTokens(report.totals.tokens)}
                   />
                   <StatChip
                     icon={<AlertTriangle className="h-3 w-3" />}
-                    label="发现风险"
+                    label={t("ai.cost.statRisks", { defaultValue: "发现风险" })}
                     value={String(report.totals.risks_found)}
                   />
                   <StatChip
                     icon={<ThumbsUp className="h-3 w-3" />}
-                    label="标记有用"
+                    label={t("ai.cost.statUseful", {
+                      defaultValue: "标记有用",
+                    })}
                     value={String(report.totals.useful_feedback)}
                   />
                 </div>
@@ -146,7 +160,9 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
               {chartData.length > 0 && (
                 <div className="rounded-xl border border-border/50 bg-card/30 p-3">
                   <p className="text-xs font-medium text-muted-foreground mb-2">
-                    每日 AI 投入趋势
+                    {t("ai.cost.trendTitle", {
+                      defaultValue: "每日 AI 投入趋势",
+                    })}
                   </p>
                   <ResponsiveContainer width="100%" height={200}>
                     <AreaChart data={chartData}>
@@ -157,10 +173,26 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                         contentStyle={{ fontSize: 12 }}
                         formatter={(value, name) => {
                           const n = Number(value ?? 0);
+                          // `name` 是 recharts 的 dataKey，不是文案 —— 这几个
+                          // 字符串必须保持英文原样，翻译只发生在返回值里。
                           if (name === "cost")
-                            return [formatAiCostYuan(n), "费用"];
-                          if (name === "calls") return [n, "API 调用"];
-                          return [n, "NL 问答"];
+                            return [
+                              formatAiCostYuan(n),
+                              t("ai.cost.chartCost", { defaultValue: "费用" }),
+                            ];
+                          if (name === "calls")
+                            return [
+                              n,
+                              t("ai.cost.chartApiCalls", {
+                                defaultValue: "API 调用",
+                              }),
+                            ];
+                          return [
+                            n,
+                            t("ai.cost.chartNlQuery", {
+                              defaultValue: "NL 问答",
+                            }),
+                          ];
                         }}
                       />
                       <Area
@@ -177,20 +209,26 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
 
               {/* 按类型 */}
               {report.by_type.length > 0 && (
-                <Section title="按分析类型">
+                <Section
+                  title={t("ai.cost.sectionByType", {
+                    defaultValue: "按分析类型",
+                  })}
+                >
                   <div className="overflow-x-auto">
                     <table className="w-full text-[11px]">
                       <thead>
                         <tr className="text-muted-foreground/60 border-b border-border/40">
-                          <th className="text-left py-1.5 font-medium">类型</th>
-                          <th className="text-right py-1.5 font-medium">
-                            次数
+                          <th className="text-left py-1.5 font-medium">
+                            {t("ai.cost.colType", { defaultValue: "类型" })}
                           </th>
                           <th className="text-right py-1.5 font-medium">
-                            Token
+                            {t("ai.cost.colCount", { defaultValue: "次数" })}
                           </th>
                           <th className="text-right py-1.5 font-medium">
-                            费用
+                            {t("ai.cost.colTokens", { defaultValue: "Token" })}
+                          </th>
+                          <th className="text-right py-1.5 font-medium">
+                            {t("ai.cost.colCost", { defaultValue: "费用" })}
                           </th>
                         </tr>
                       </thead>
@@ -201,7 +239,7 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                             className="border-b border-border/20"
                           >
                             <td className="py-1.5">
-                              {insightTypeLabel(row.insight_type)}
+                              {insightTypeLabel(row.insight_type, t)}
                             </td>
                             <td className="py-1.5 text-right tabular-nums">
                               {row.count}
@@ -222,7 +260,11 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
 
               {/* 按项目 — CTO 视角 */}
               {report.by_project.length > 0 && (
-                <Section title="按项目（消耗 ↔ 价值）">
+                <Section
+                  title={t("ai.cost.sectionByProject", {
+                    defaultValue: "按项目（消耗 ↔ 价值）",
+                  })}
+                >
                   <div className="space-y-2">
                     {report.by_project.map((p) => (
                       <div
@@ -239,15 +281,28 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
                           </span>
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-muted-foreground/70">
-                          <span>{p.insight_count} 次分析</span>
+                          {/* 复用成本条那条键：同一个口径（一次 AI 调用算一次
+                              分析），译文变了必须两处一起变，这正是复用要的。 */}
+                          <span>
+                            {t("ai.cost.analysisCount", {
+                              calls: p.insight_count,
+                              defaultValue: "{{calls}} 次分析",
+                            })}
+                          </span>
                           {p.risk_count > 0 && (
                             <span className="text-amber-500/90">
-                              {p.risk_count} 项风险
+                              {t("ai.cost.projectRisks", {
+                                risks: p.risk_count,
+                                defaultValue: "{{risks}} 项风险",
+                              })}
                             </span>
                           )}
                           {p.useful_count > 0 && (
                             <span className="text-emerald-500/90">
-                              {p.useful_count} 次有用
+                              {t("ai.cost.projectUseful", {
+                                useful: p.useful_count,
+                                defaultValue: "{{useful}} 次有用",
+                              })}
                             </span>
                           )}
                         </div>
@@ -269,14 +324,18 @@ export function AICostPanel({ open, onOpenChange }: AICostPanelProps) {
               {report.by_type.length === 0 &&
                 report.by_project.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    近 {rangeDays} 天尚无 AI 调用记录。触发摘要、风险分析或 NL
-                    问答后将在此展示 ROI。
+                    {t("ai.cost.emptyRoi", {
+                      days: rangeDays,
+                      defaultValue:
+                        "近 {{days}} 天尚无 AI 调用记录。触发摘要、风险分析或 NL 问答后将在此展示 ROI。",
+                    })}
                   </p>
                 )}
 
+              {/* 这句话曾经只在这里有，现在它是全站共用的函数：
+                  成本条、NL 问答栏、周报都指向同一份口径、同一批译文。 */}
               <p className="text-[10px] text-muted-foreground/40 text-center pb-2">
-                费用为基于公开定价的估算，以供应商账单为准。CLI 代理用量见「设置
-                → 用量」。
+                {aiCostDisclaimerFull(t)}
               </p>
             </>
           )}

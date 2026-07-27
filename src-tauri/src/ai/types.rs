@@ -83,10 +83,21 @@ pub struct AIInsightResult {
     pub tokens_used: u32,
     /// 预估成本（CNY）
     pub cost_estimate: f64,
+    /// `cost_estimate` 的单价是否命中定价表。
+    ///
+    /// `false` 表示金额是兜底猜的，界面应显示「单价未知」而不是一个精确数字
+    /// （`ai::client::lookup_model_pricing`）。
+    #[serde(default = "default_pricing_known")]
+    pub pricing_known: bool,
     /// 是否来自缓存
     pub is_cached: bool,
     /// 创建时间戳
     pub created_at: i64,
+}
+
+/// 缺省视为「单价已知」：老数据里没有这个字段，不该因此被打上不可信标记。
+fn default_pricing_known() -> bool {
+    true
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,6 +186,9 @@ pub struct NLQueryResult {
     pub tokens_used: u32,
     /// 预估成本（CNY）
     pub cost_estimate: f64,
+    /// `cost_estimate` 的单价是否命中定价表，见 [`AIInsightResult::pricing_known`]
+    #[serde(default = "default_pricing_known")]
+    pub pricing_known: bool,
     /// ai_query_log 行 id（用于反馈）
     #[serde(default)]
     pub query_log_id: Option<i64>,
@@ -190,6 +204,9 @@ pub struct WeeklyReportResult {
     pub tokens_used: u32,
     /// 预估成本（CNY）
     pub cost_estimate: f64,
+    /// `cost_estimate` 的单价是否命中定价表，见 [`AIInsightResult::pricing_known`]
+    #[serde(default = "default_pricing_known")]
+    pub pricing_known: bool,
     /// 是否来自缓存
     pub is_cached: bool,
 }
@@ -275,6 +292,10 @@ pub struct AgentReadinessResult {
     /// 计分所依据的目标 CLI（claude / codex / gemini / opencode 等）
     #[serde(default)]
     pub target_app: Option<String>,
+    /// `managed` | `unmanaged` —— 与 CLI `os project readiness` 同口径
+    /// （见 `cli_api.rs:403`）。unmanaged 时零计数不能证明缺失，score 不具判定意义。
+    #[serde(default)]
+    pub assessment_state: Option<String>,
 }
 
 fn default_readiness_max_score() -> u32 {

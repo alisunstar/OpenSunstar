@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { FileText, Loader2, Copy, Check, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { AIFeedbackButtons } from "./AIFeedbackButtons";
 import {
@@ -19,6 +20,7 @@ import {
 } from "@/api/aiInsight";
 import { PORTFOLIO_COMMIT_WINDOW_DAYS } from "@/lib/portfolioMetrics";
 import { useAICostOptional } from "@/contexts/AICostContext";
+import { aiCostDisclaimer, formatAiCostWithPricing } from "@/lib/aiCostFormat";
 
 interface AIWeeklyReportProps {
   projectContexts: ProjectContextInput[];
@@ -32,6 +34,7 @@ export function AIWeeklyReport({
   projectContexts,
   aiConfigured,
 }: AIWeeklyReportProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState<WeeklyReportResult | null>(null);
@@ -50,7 +53,11 @@ export function AIWeeklyReport({
 
     const config = await buildProviderConfig();
     if (!config) {
-      setError("未配置 AI 提供方，请先在设置中配置 AI Key。");
+      setError(
+        t("ai.weekly.errorNoProvider", {
+          defaultValue: "未配置 AI 提供方，请先在设置中配置 AI Key。",
+        }),
+      );
       setLoading(false);
       return;
     }
@@ -63,9 +70,14 @@ export function AIWeeklyReport({
         tokens: result.tokens_used,
         insightType: "portfolio_summary",
         isCached: result.is_cached,
+        pricingKnown: result.pricing_known !== false,
       });
     } else {
-      setError("周报生成失败，请稍后重试。");
+      setError(
+        t("ai.weekly.errorGenerate", {
+          defaultValue: "周报生成失败，请稍后重试。",
+        }),
+      );
     }
     setLoading(false);
   };
@@ -75,10 +87,12 @@ export function AIWeeklyReport({
     try {
       await copyText(report.content);
       setCopied(true);
-      toast.success("周报已复制到剪贴板");
+      toast.success(
+        t("ai.weekly.copySuccess", { defaultValue: "周报已复制到剪贴板" }),
+      );
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      toast.error("复制失败");
+      toast.error(t("ai.weekly.copyFailed", { defaultValue: "复制失败" }));
     }
   };
 
@@ -92,9 +106,14 @@ export function AIWeeklyReport({
         disabled={projectContexts.length === 0}
       >
         <FileText className="w-4 h-4 mr-1" />
-        生成周报
+        {t("ai.weekly.generate", { defaultValue: "生成周报" })}
         <span className="text-[10px] text-muted-foreground/60 ml-1 tabular-nums">
-          ({PORTFOLIO_COMMIT_WINDOW_DAYS}天)
+          (
+          {t("ai.weekly.windowDays", {
+            days: PORTFOLIO_COMMIT_WINDOW_DAYS,
+            defaultValue: "{{days}}天",
+          })}
+          )
         </span>
       </Button>
 
@@ -104,19 +123,22 @@ export function AIWeeklyReport({
           <DialogHeader className="relative pr-12">
             <DialogTitle className="flex items-center gap-2 text-base">
               <FileText className="w-4.5 h-4.5 text-primary" />
-              AI 智能周报
+              {t("ai.weekly.dialogTitle", { defaultValue: "AI 智能周报" })}
               <span className="text-[10px] text-muted-foreground/50 font-normal ml-1">
-                · 近 {PORTFOLIO_COMMIT_WINDOW_DAYS} 天数据
+                {t("ai.weekly.windowHint", {
+                  days: PORTFOLIO_COMMIT_WINDOW_DAYS,
+                  defaultValue: "· 近 {{days}} 天数据",
+                })}
               </span>
               {report?.is_cached && (
                 <span className="text-[10px] text-muted-foreground/50 font-normal ml-2">
-                  (缓存)
+                  ({t("ai.weekly.cached", { defaultValue: "缓存" })})
                 </span>
               )}
             </DialogTitle>
             <DialogClose
               className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm p-1.5 text-muted-foreground opacity-70 ring-offset-background transition-opacity hover:opacity-100 hover:bg-muted/50 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-              aria-label="关闭"
+              aria-label={t("common.close", { defaultValue: "关闭" })}
             >
               <X className="h-4 w-4" />
             </DialogClose>
@@ -127,7 +149,10 @@ export function AIWeeklyReport({
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <Loader2 className="w-6 h-6 animate-spin text-primary/60" />
                 <p className="text-sm text-muted-foreground/60">
-                  正在分析 {projectContexts.length} 个项目数据...
+                  {t("ai.weekly.analyzing", {
+                    projects: projectContexts.length,
+                    defaultValue: "正在分析 {{projects}} 个项目数据…",
+                  })}
                 </p>
               </div>
             )}
@@ -157,11 +182,13 @@ export function AIWeeklyReport({
                     : "—"}
                 </span>
                 {report.cost_estimate > 0 && (
-                  <span className="tabular-nums">
-                    ¥
-                    {report.cost_estimate < 0.01
-                      ? report.cost_estimate.toFixed(4)
-                      : report.cost_estimate.toFixed(2)}
+                  <span className="tabular-nums" title={aiCostDisclaimer(t)}>
+                    {formatAiCostWithPricing(
+                      report.cost_estimate,
+                      report.pricing_known,
+                      t,
+                    )}{" "}
+                    {t("ai.cost.estimatedSuffix", { defaultValue: "估算" })}
                   </span>
                 )}
                 <AIFeedbackButtons
@@ -179,12 +206,12 @@ export function AIWeeklyReport({
                   {copied ? (
                     <>
                       <Check className="w-3.5 h-3.5 mr-1 text-emerald-500" />
-                      已复制
+                      {t("ai.weekly.copied", { defaultValue: "已复制" })}
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5 mr-1" />
-                      复制
+                      {t("common.copy", { defaultValue: "复制" })}
                     </>
                   )}
                 </Button>
@@ -195,7 +222,7 @@ export function AIWeeklyReport({
                   className="h-8 text-xs"
                 >
                   <X className="w-3.5 h-3.5 mr-1" />
-                  关闭
+                  {t("common.close", { defaultValue: "关闭" })}
                 </Button>
               </div>
             </div>

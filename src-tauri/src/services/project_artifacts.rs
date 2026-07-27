@@ -617,6 +617,7 @@ mod tests {
             is_cached: false,
             evaluated_at: Some(1),
             target_app: Some("claude".to_string()),
+            assessment_state: Some("managed".to_string()),
         };
         let md = render_agent_context_hints(&result);
         assert!(md.contains("Agent Context Hints"));
@@ -645,6 +646,7 @@ mod tests {
             is_cached: false,
             evaluated_at: Some(1),
             target_app: Some("openclaw".to_string()),
+            assessment_state: Some("managed".to_string()),
         };
 
         let markdown = render_agent_context_hints(&result);

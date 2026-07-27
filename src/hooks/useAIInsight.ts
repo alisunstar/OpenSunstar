@@ -230,6 +230,8 @@ interface UseNLQueryReturn {
   isLoading: boolean;
   error: string | null;
   costEstimate: number;
+  /** `costEstimate` 的单价是否命中后端定价表，见 `NLQueryResult.pricing_known` */
+  pricingKnown: boolean;
   queryLogId: number | null;
   ask: (query: string, contexts: ProjectContextInput[]) => void | Promise<void>;
 }
@@ -243,6 +245,7 @@ export function useNLQuery(): UseNLQueryReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [costEstimate, setCostEstimate] = useState(0);
+  const [pricingKnown, setPricingKnown] = useState(true);
   const [queryLogId, setQueryLogId] = useState<number | null>(null);
   const abortRef = useRef(false);
   const costCtx = useAICostOptional();
@@ -257,6 +260,7 @@ export function useNLQuery(): UseNLQueryReturn {
       setError(null);
       setAnswer(null);
       setCostEstimate(0);
+      setPricingKnown(true);
       setQueryLogId(null);
 
       queryProjectsNL(config, contexts, query).then((result) => {
@@ -265,12 +269,14 @@ export function useNLQuery(): UseNLQueryReturn {
           if (result) {
             setAnswer(result.answer);
             setCostEstimate(result.cost_estimate);
+            setPricingKnown(result.pricing_known !== false);
             setQueryLogId(result.query_log_id ?? null);
             costCtx?.recordCall({
               cost: result.cost_estimate,
               tokens: result.tokens_used,
               insightType: "nl_query",
               isCached: false,
+              pricingKnown: result.pricing_known !== false,
             });
           } else {
             setError("查询失败，请稍后重试");
@@ -287,7 +293,15 @@ export function useNLQuery(): UseNLQueryReturn {
     };
   }, []);
 
-  return { answer, isLoading, error, costEstimate, queryLogId, ask };
+  return {
+    answer,
+    isLoading,
+    error,
+    costEstimate,
+    pricingKnown,
+    queryLogId,
+    ask,
+  };
 }
 
 // ── F-P2-1: Agent 配置就绪度 Hook ──────────────────

@@ -4,6 +4,7 @@
 
 import { useState, useCallback } from "react";
 import { ThumbsUp, ThumbsDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { submitInsightFeedback, submitAIQueryFeedback } from "@/api/aiInsight";
 import { useAICostOptional } from "@/contexts/AICostContext";
 
@@ -25,6 +26,7 @@ export function AIFeedbackButtons({
   className = "",
   onSubmitted,
 }: AIFeedbackButtonsProps) {
+  const { t } = useTranslation();
   const costCtx = useAICostOptional();
   const [feedback, setFeedback] = useState<"useful" | "not_useful" | null>(
     null,
@@ -73,15 +75,17 @@ export function AIFeedbackButtons({
     <span
       className={`inline-flex items-center gap-1 opacity-60 hover:opacity-100 ${className}`}
       role="group"
-      aria-label="AI 反馈"
+      aria-label={t("ai.feedback.groupLabel", { defaultValue: "AI 反馈" })}
     >
+      {/* 这两个按钮只有图标，`aria-label` 是读屏器唯一能念出来的东西 ——
+          它漏翻译比可见文案漏翻译更隐蔽：界面看上去完全正常。 */}
       <button
         type="button"
         className={`${btnBase} ${feedback === "useful" ? "bg-emerald-500/20 text-emerald-400" : "text-zinc-400"}`}
         onClick={() => handleClick("useful")}
         disabled={submitting}
-        title="有用"
-        aria-label="标记为有用"
+        title={t("ai.feedback.useful", { defaultValue: "有用" })}
+        aria-label={t("ai.feedback.markUseful", { defaultValue: "标记为有用" })}
         aria-pressed={feedback === "useful"}
       >
         <ThumbsUp size={13} />
@@ -91,8 +95,10 @@ export function AIFeedbackButtons({
         className={`${btnBase} ${feedback === "not_useful" ? "bg-red-500/20 text-red-400" : "text-zinc-400"}`}
         onClick={() => handleClick("not_useful")}
         disabled={submitting}
-        title="无用"
-        aria-label="标记为无用"
+        title={t("ai.feedback.notUseful", { defaultValue: "无用" })}
+        aria-label={t("ai.feedback.markNotUseful", {
+          defaultValue: "标记为无用",
+        })}
         aria-pressed={feedback === "not_useful"}
       >
         <ThumbsDown size={13} />

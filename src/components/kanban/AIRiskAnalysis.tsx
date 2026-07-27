@@ -7,6 +7,8 @@ import {
   Clock,
   Loader2,
 } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Button } from "@/components/ui/button";
 import { AIFeedbackButtons } from "./AIFeedbackButtons";
 import type { AIRiskResult, RiskItem } from "@/api/aiInsight";
@@ -28,24 +30,37 @@ const riskIcons: Record<string, React.ReactNode> = {
   schedule: <Clock className="h-3.5 w-3.5" />,
 };
 
-const riskLabels: Record<string, string> = {
-  activity: "活跃度",
-  concentration: "集中度",
-  tech_debt: "技术债",
-  schedule: "进度",
-};
-
 const levelColors: Record<string, string> = {
   high: "text-red-500 bg-red-500/10 border-red-500/20",
   medium: "text-amber-500 bg-amber-500/10 border-amber-500/20",
   low: "text-emerald-500 bg-emerald-500/10 border-emerald-500/20",
 };
 
-const levelLabels: Record<string, string> = {
-  high: "高风险",
-  medium: "中风险",
-  low: "低风险",
-};
+/**
+ * 标签表以前是模块级中文常量，和 `levelColors` 并排放着 —— 看上去对称，
+ * 实则一个是编译期样式、一个是运行期文案，切语言时只有后者该变。
+ *
+ * 两个 `?? 原值` 是刻意的：`risk_type` / `level` 都是后端枚举，前端认不出
+ * 时原样回显，而不是回退成「未知风险」把新枚举藏起来。
+ */
+function riskTypeLabel(type: string, t: TFunction): string {
+  const labels: Record<string, string> = {
+    activity: t("ai.risk.typeActivity", { defaultValue: "活跃度" }),
+    concentration: t("ai.risk.typeConcentration", { defaultValue: "集中度" }),
+    tech_debt: t("ai.risk.typeTechDebt", { defaultValue: "技术债" }),
+    schedule: t("ai.risk.typeSchedule", { defaultValue: "进度" }),
+  };
+  return labels[type] ?? type;
+}
+
+function riskLevelLabel(level: string, t: TFunction): string {
+  const labels: Record<string, string> = {
+    high: t("ai.risk.levelHigh", { defaultValue: "高风险" }),
+    medium: t("ai.risk.levelMedium", { defaultValue: "中风险" }),
+    low: t("ai.risk.levelLow", { defaultValue: "低风险" }),
+  };
+  return labels[level] ?? level;
+}
 
 /**
  * 风险分析面板 — 在项目详情抽屉中渲染。
@@ -58,6 +73,8 @@ export function AIRiskAnalysis({
   hasLoaded,
   projectId,
 }: AIRiskAnalysisProps) {
+  const { t } = useTranslation();
+
   // ── 未触发首次分析 ──
   if (!hasLoaded && !isLoading) {
     return (
@@ -65,7 +82,7 @@ export function AIRiskAnalysis({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
             <Shield className="h-3.5 w-3.5" />
-            <span>AI 风险分析</span>
+            <span>{t("ai.risk.title", { defaultValue: "AI 风险分析" })}</span>
           </div>
           <Button
             variant="ghost"
@@ -74,7 +91,7 @@ export function AIRiskAnalysis({
             onClick={onRefresh}
           >
             <AlertTriangle className="h-3 w-3 mr-1" />
-            分析风险
+            {t("ai.risk.analyze", { defaultValue: "分析风险" })}
           </Button>
         </div>
       </div>
@@ -87,7 +104,9 @@ export function AIRiskAnalysis({
       <div className="mt-4 rounded-lg border border-border/50 p-3">
         <div className="flex items-center gap-2 text-xs text-muted-foreground/60 mb-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          <span>正在分析风险...</span>
+          <span>
+            {t("ai.risk.analyzing", { defaultValue: "正在分析风险…" })}
+          </span>
         </div>
         <div className="space-y-2">
           {[1, 2, 3].map((i) => (
@@ -113,12 +132,12 @@ export function AIRiskAnalysis({
         <div className="flex items-center gap-2">
           <Shield className="h-3.5 w-3.5 text-muted-foreground/50" />
           <span className="text-xs font-medium text-foreground/80">
-            风险分析
+            {t("ai.risk.sectionTitle", { defaultValue: "风险分析" })}
           </span>
           <span
             className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${overallColor}`}
           >
-            {levelLabels[data.overall_risk] ?? data.overall_risk}
+            {riskLevelLabel(data.overall_risk, t)}
           </span>
         </div>
         <Button
@@ -127,7 +146,7 @@ export function AIRiskAnalysis({
           className="h-6 text-[10px] px-2 text-muted-foreground/50"
           onClick={onRefresh}
         >
-          刷新
+          {t("common.refresh", { defaultValue: "刷新" })}
         </Button>
         {projectId && (
           <AIFeedbackButtons
@@ -147,14 +166,16 @@ export function AIRiskAnalysis({
       {data.risks.length > 0 ? (
         <div className="space-y-1.5">
           {data.risks.map((risk, i) => (
-            <RiskCard key={i} risk={risk} />
+            <RiskCard key={i} risk={risk} t={t} />
           ))}
         </div>
       ) : (
         <div className="flex items-center gap-2 rounded-md bg-emerald-500/5 p-2.5">
           <Shield className="h-3.5 w-3.5 text-emerald-500/60" />
           <span className="text-[11px] text-emerald-600/80">
-            项目状态健康，暂未发现风险
+            {t("ai.risk.none", {
+              defaultValue: "项目状态健康，暂未发现风险",
+            })}
           </span>
         </div>
       )}
@@ -162,10 +183,12 @@ export function AIRiskAnalysis({
   );
 }
 
-function RiskCard({ risk }: { risk: RiskItem }) {
+// `t` 由父组件传下来，而不是在这里再调一次 `useTranslation()`：
+// 这张卡在一次渲染里可能出现十几张，共用父级那一份即可。
+function RiskCard({ risk, t }: { risk: RiskItem; t: TFunction }) {
   const color = levelColors[risk.level] ?? levelColors.low;
   const icon = riskIcons[risk.risk_type] ?? riskIcons.activity;
-  const label = riskLabels[risk.risk_type] ?? risk.risk_type;
+  const label = riskTypeLabel(risk.risk_type, t);
 
   return (
     <div className="rounded-md border border-border/40 bg-card/50 p-2.5">
@@ -177,7 +200,7 @@ function RiskCard({ risk }: { risk: RiskItem }) {
         <span
           className={`ml-auto inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-medium ${color}`}
         >
-          {levelLabels[risk.level] ?? risk.level}
+          {riskLevelLabel(risk.level, t)}
         </span>
       </div>
       <p className="text-[11px] text-muted-foreground/60 leading-relaxed">

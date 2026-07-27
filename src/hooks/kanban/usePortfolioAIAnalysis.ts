@@ -110,6 +110,7 @@ export function usePortfolioAIAnalysis({
               tokens: insight.tokens_used,
               insightType: "summary",
               isCached: insight.is_cached,
+              pricingKnown: insight.pricing_known !== false,
             });
           }
           if (typeof health?.score === "number") {
@@ -130,6 +131,7 @@ export function usePortfolioAIAnalysis({
                 tokens: trend.tokens_used,
                 insightType: "trend_analysis",
                 isCached: trend.is_cached,
+                pricingKnown: trend.pricing_known !== false,
               });
             }
           }

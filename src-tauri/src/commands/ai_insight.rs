@@ -5,15 +5,15 @@
 use tauri::State;
 
 use crate::ai::agent_readiness::{
-    compute_readiness_items, detect_repo_mcp_file, readiness_item_is_actionable_gap,
-    ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
+    classify_unmanaged_readiness, compute_readiness_items, detect_repo_mcp_file,
+    readiness_item_is_actionable_gap, ReadinessCheckInput, AGENT_READINESS_MAX_SCORE,
 };
 use crate::ai::asset_effective_state::{
     merge_effective_into_details, scan_effective_states, EffectiveScanContext, EffectiveScanResult,
     RepairAssetDriftResult, RepairPreviewItem, RepairPreviewResult, RepairProjectDriftResult,
     DRIFTED,
 };
-use crate::ai::client::{estimate_cost, AIClient};
+use crate::ai::client::{estimate_cost, is_model_pricing_known, AIClient};
 use crate::ai::project_id::{resolve_canonical_project_id, PORTFOLIO_PROJECT_ID};
 use crate::ai::prompts;
 use crate::ai::types::{
@@ -228,7 +228,8 @@ pub async fn get_ai_insight(
             content: cached.content,
             model_used: cached.model_used.unwrap_or_default(),
             tokens_used: cached.tokens_used as u32,
-            cost_estimate: 0.0, // 缓存命中无额外成本
+            cost_estimate: 0.0,  // 缓存命中无额外成本
+            pricing_known: true, // 没花钱就没有可误判的单价
             is_cached: true,
             created_at: cached.created_at,
         });
@@ -288,6 +289,7 @@ pub async fn get_ai_insight(
 
     Ok(AIInsightResult {
         content,
+        pricing_known: is_model_pricing_known(&model_used),
         model_used,
         tokens_used: total_tokens,
         cost_estimate: cost,
@@ -438,6 +440,7 @@ pub async fn generate_weekly_report(
             content: "# 周报\n\n暂无项目数据，请先在看板中添加项目。".to_string(),
             tokens_used: 0,
             cost_estimate: 0.0,
+            pricing_known: true, // 没调用 AI，无单价可言
             is_cached: false,
         });
     }
@@ -461,6 +464,7 @@ pub async fn generate_weekly_report(
             content: cached.content,
             tokens_used: cached.tokens_used as u32,
             cost_estimate: 0.0,
+            pricing_known: true, // 缓存命中无额外成本
             is_cached: true,
         });
     }
@@ -503,6 +507,7 @@ pub async fn generate_weekly_report(
         content,
         tokens_used: total_tokens,
         cost_estimate: cost,
+        pricing_known: is_model_pricing_known(&provider_config.model),
         is_cached: false,
     })
 }
@@ -878,6 +883,7 @@ pub async fn query_projects_nl(
             answer: "当前没有可分析的项目数据，请先在看板中添加项目。".to_string(),
             tokens_used: 0,
             cost_estimate: 0.0,
+            pricing_known: true, // 没调用 AI，无单价可言
             query_log_id: None,
         });
     }
@@ -936,6 +942,7 @@ pub async fn query_projects_nl(
         answer,
         tokens_used: pt + ct,
         cost_estimate: cost,
+        pricing_known: is_model_pricing_known(&provider_config.model),
         query_log_id: Some(query_log_id),
     })
 }
@@ -1091,6 +1098,10 @@ fn compute_agent_readiness_input_hash(
     #[derive(Serialize)]
     struct ReadinessHashInput<'a> {
         project_path: &'a str,
+        /// 结果依赖纳管状态：未纳管时 `classify_unmanaged_readiness` 会把所有
+        /// 条目置零改判，因此必须进指纹。登记项目本身不改变任何计数与时间戳，
+        /// 少了这一位就会在 TTL 内持续命中「未纳管」的旧缓存。
+        managed: bool,
         mcp_count: u32,
         skills_count: u32,
         prompt_db_count: u32,
@@ -1141,6 +1152,7 @@ fn compute_agent_readiness_input_hash(
 
     let payload = ReadinessHashInput {
         project_path,
+        managed: sqlite_id.is_some(),
         mcp_count,
         skills_count,
         prompt_db_count,
@@ -1187,6 +1199,9 @@ pub async fn get_agent_readiness_score(
     // 通过 path 桥接查找 SQLite project_id（用于 junction 表与 hash）
     let sqlite_id = db.get_project_id_by_path(&project_path).ok().flatten();
     let sqlite_id_ref = sqlite_id.as_deref();
+    // 与 CLI `cli_api.rs:104` 同一判据：未登记进 SQLite 即为未纳管
+    let managed = sqlite_id.is_some();
+    let assessment_state = Some(if managed { "managed" } else { "unmanaged" }.to_string());
 
     let project_target_app = sqlite_id_ref
         .and_then(|id| db.get_project(id).ok().flatten())
@@ -1206,6 +1221,12 @@ pub async fn get_agent_readiness_score(
             parsed.is_cached = true;
             if parsed.evaluated_at.is_none() {
                 parsed.evaluated_at = Some(cached.created_at);
+            }
+            // 纳管状态取当下事实，不吃缓存：项目可能在缓存写入后才被登记
+            parsed.assessment_state = assessment_state.clone();
+            if !managed {
+                classify_unmanaged_readiness(&mut parsed.details);
+                parsed.score = parsed.details.iter().map(|item| item.score).sum();
             }
             if do_scan {
                 let scan = scan_effective_states(
@@ -1294,6 +1315,12 @@ pub async fn get_agent_readiness_score(
         target_app: effective_target_app.clone(),
     });
 
+    // 未纳管仓库：零计数不是缺失的证据。与 CLI `cli_api.rs:175-177` 同序——
+    // 先重分类，再叠加生效态扫描。
+    if !managed {
+        classify_unmanaged_readiness(&mut details);
+    }
+
     if do_scan {
         let scan = scan_effective_states(
             &state,
@@ -1374,6 +1401,7 @@ pub async fn get_agent_readiness_score(
         is_cached: false,
         evaluated_at: Some(now),
         target_app: effective_target_app.clone(),
+        assessment_state: assessment_state.clone(),
     };
 
     // 5. 缓存结果（24h TTL；不缓存生效态字段，避免磁盘漂移导致陈旧）
@@ -1695,4 +1723,31 @@ pub async fn submit_ai_query_feedback(
     }
     db.update_query_feedback(query_log_id, &feedback)
         .map_err(|e| e.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_db() -> Database {
+        Database::memory().expect("memory db")
+    }
+
+    /// 就绪度结果依赖 `managed`（未纳管时全部条目被 `classify_unmanaged_readiness`
+    /// 置零改判），因此 `managed` 必须进入缓存指纹。否则「登记项目」这一动作
+    /// 不改变任何计数与时间戳，指纹不变 → 命中旧缓存 → 刚登记的项目在 24h TTL
+    /// 内一直显示「未纳管」。
+    #[test]
+    fn input_hash_distinguishes_managed_from_unmanaged() {
+        let db = test_db();
+        let path = "E:/projects/alpha";
+
+        let unmanaged = compute_agent_readiness_input_hash(&db, path, None, Some("claude"));
+        let managed = compute_agent_readiness_input_hash(&db, path, Some("proj-1"), Some("claude"));
+
+        assert_ne!(
+            unmanaged, managed,
+            "纳管状态必须改变输入指纹，否则登记项目后仍会命中未纳管的缓存"
+        );
+    }
 }

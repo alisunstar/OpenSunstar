@@ -7,6 +7,12 @@ export interface AgentReadinessBatchEntry {
   /** Unix 秒；来自 evaluated_at 或生效态扫描 */
   scannedAt: number | null;
   details: AgentReadinessItem[];
+  /**
+   * `managed` | `unmanaged`，与 CLI `os project readiness` 同口径
+   * （`src-tauri/src/cli_api.rs:403`）。unmanaged 时零计数不能证明缺失，
+   * score 不具判定意义，不得据此告警。
+   */
+  assessmentState?: string | null;
 }
 
 export function countDriftItems(details: AgentReadinessItem[]): number {

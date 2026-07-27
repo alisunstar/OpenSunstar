@@ -10,6 +10,19 @@ export type ProjectAssetCounts = ProjectAllAssetCounts;
 
 export type PortfolioAssetSummaryMap = Map<string, ProjectAssetCounts>;
 
+/**
+ * 把异常压成一行可展示的原因。
+ *
+ * 刻意保留原始 message 而不是统一替换成「加载失败，请重试」：审查报告 §5.6
+ * 指出全站错误都被折叠成同一句话，429 限流、401 密钥失效、IPC 超时在界面上
+ * 无法区分。原因串由这里产出，人话由调用方（UI）补。
+ */
+function describeError(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err) return err;
+  return String(err);
+}
+
 async function loadAssetMap(
   projects: Project[],
 ): Promise<PortfolioAssetSummaryMap> {
@@ -39,6 +52,14 @@ export function usePortfolioAssetSummary(
 
   const [loading, setLoading] = useState(false);
 
+  /**
+   * 加载失败的原因；null 表示「这一轮数据是可信的」。
+   *
+   * 之前异常只进 `console.warn`，assetMap 保持为空 —— 矩阵满屏「未扫」，
+   * 与「确实没配置」在界面上完全一样（审查报告 §5.6）。
+   */
+  const [error, setError] = useState<string | null>(null);
+
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
 
   const projectIdsKey = useMemo(
@@ -51,6 +72,8 @@ export function usePortfolioAssetSummary(
     if (projects.length === 0) {
       setAssetMap(new Map());
 
+      setError(null);
+
       return;
     }
 
@@ -60,8 +83,12 @@ export function usePortfolioAssetSummary(
       setAssetMap(await loadAssetMap(projects));
 
       setLastUpdatedAt(Date.now());
+
+      setError(null);
     } catch (err) {
       console.warn("[usePortfolioAssetSummary] load failed", err);
+
+      setError(describeError(err));
     } finally {
       setLoading(false);
     }
@@ -73,6 +100,8 @@ export function usePortfolioAssetSummary(
     const run = async () => {
       if (projects.length === 0) {
         setAssetMap(new Map());
+
+        setError(null);
 
         return;
       }
@@ -86,9 +115,13 @@ export function usePortfolioAssetSummary(
           setAssetMap(next);
 
           setLastUpdatedAt(Date.now());
+
+          setError(null);
         }
       } catch (err) {
         console.warn("[usePortfolioAssetSummary] load failed", err);
+
+        if (!cancelled) setError(describeError(err));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -101,5 +134,5 @@ export function usePortfolioAssetSummary(
     };
   }, [projectIdsKey, refreshToken, projects]);
 
-  return { assetMap, loading, lastUpdatedAt, refresh };
+  return { assetMap, loading, error, lastUpdatedAt, refresh };
 }
