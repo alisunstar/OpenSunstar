@@ -144,7 +144,8 @@ pub fn sync_orchestration_agent_context(project_path: &str) -> Result<(), AppErr
     let has_wiki = root.join("wiki/index.md").is_file();
     let has_wiki_profile = dot.join("wiki/profile.json").is_file();
 
-    if !has_profile && !has_flow_config && !has_recipe_dir && !has_specs && !has_design && !has_wiki {
+    if !has_profile && !has_flow_config && !has_recipe_dir && !has_specs && !has_design && !has_wiki
+    {
         return Ok(());
     }
 

@@ -54,17 +54,6 @@ pub use drift::{
     detect_drift, execute_rollback, DriftEntry, DriftReport, DriftStatus, DriftSummary,
     RollbackReport, RollbackStepResult, RollbackSummary,
 };
-pub use git_runner::GitRunner;
-pub use parser::{
-    build_credential_slots, build_policies, build_profiles, parse_team_package, parse_team_toml,
-    TeamTomlError,
-};
-pub use release::{generate_lock, validate_lock, LockValidationError};
-pub use repository::{connect_team_source, ConnectError, ConnectResult, ConnectWarning};
-pub use validator::{
-    validate_team_package, validate_team_package_dir, ValidationCode, ValidationIssue,
-    ValidationOptions, ValidationReport,
-};
 pub use effective_state::{
     compile_effective_config, CompilerInput, ConflictCode, EffectiveConfig, EffectiveConflict,
     EffectiveDecision, EffectiveItem, PersonalOverride, PersonalPreference, ProjectAssetInput,
@@ -73,6 +62,13 @@ pub use effective_state::{
 pub use executor::{
     execute_deployment_plan, DeploymentReceipt, ExecuteOptions, ReceiptSummary, StepReceipt,
 };
+pub use git_runner::GitRunner;
+pub use parser::{
+    build_credential_slots, build_policies, build_profiles, parse_team_package, parse_team_toml,
+    TeamTomlError,
+};
+pub use release::{generate_lock, validate_lock, LockValidationError};
+pub use repository::{connect_team_source, ConnectError, ConnectResult, ConnectWarning};
 pub use requirements::{
     resolve_requirement_sources, PolicyAction, RequirementKey, RequirementResolution,
     RequirementResolutionPlan, RequirementSource, ResolutionConflict,
@@ -80,4 +76,8 @@ pub use requirements::{
 pub use security::{
     enforce_team_package_security, validate_team_package_security, TeamPackageSecurityFinding,
     TeamPackageSecurityReport,
+};
+pub use validator::{
+    validate_team_package, validate_team_package_dir, ValidationCode, ValidationIssue,
+    ValidationOptions, ValidationReport,
 };

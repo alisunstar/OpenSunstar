@@ -933,8 +933,14 @@ pub fn cli_project_context(state: &AppState, project_path: &str) -> Result<Proje
     // 6. Wiki baseline (best-effort, non-blocking)
     let wiki_scan = crate::services::project_wiki::scan_project_wiki(&project_path, "cli").ok();
     let has_wiki = wiki_scan.as_ref().is_some_and(|s| s.exists);
-    let wiki_status = wiki_scan.as_ref().map(|s| s.base_status.clone()).unwrap_or_else(|| "missing".to_string());
-    let wiki_quality_level = wiki_scan.as_ref().map(|s| s.quality_level.clone()).unwrap_or_else(|| "N/A".to_string());
+    let wiki_status = wiki_scan
+        .as_ref()
+        .map(|s| s.base_status.clone())
+        .unwrap_or_else(|| "missing".to_string());
+    let wiki_quality_level = wiki_scan
+        .as_ref()
+        .map(|s| s.quality_level.clone())
+        .unwrap_or_else(|| "N/A".to_string());
     let wiki_page_count = wiki_scan.as_ref().map(|s| s.page_count).unwrap_or(0);
 
     Ok(ProjectContext {

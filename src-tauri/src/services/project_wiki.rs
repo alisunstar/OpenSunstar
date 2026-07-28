@@ -26,18 +26,28 @@ const TMPL_LOG: &str = include_str!("../../assets/recipes/wiki/log.md.tmpl");
 const TMPL_SCHEMA: &str = include_str!("../../assets/recipes/wiki/SCHEMA.md.tmpl");
 const TMPL_OVERVIEW: &str = include_str!("../../assets/recipes/wiki/overview.md.tmpl");
 const TMPL_SOURCE_MAP: &str = include_str!("../../assets/recipes/wiki/source-map.md.tmpl");
-const TMPL_CONFIG_CACHE: &str = include_str!("../../assets/recipes/wiki/components/config-and-cache.md.tmpl");
-const TMPL_EXTERNAL_DEP: &str = include_str!("../../assets/recipes/wiki/components/external-dependencies.md.tmpl");
-const TMPL_AUTH_IDENTITY: &str = include_str!("../../assets/recipes/wiki/flows/auth-and-identity.md.tmpl");
-const TMPL_BUSINESS_FLOWS: &str = include_str!("../../assets/recipes/wiki/flows/business-flows.md.tmpl");
-const TMPL_FIELD_PROP: &str = include_str!("../../assets/recipes/wiki/flows/field-propagation.md.tmpl");
-const TMPL_HTTP_ENDPOINTS: &str = include_str!("../../assets/recipes/wiki/apis/http-endpoints.md.tmpl");
-const TMPL_REQUEST_TROUBLESHOOT: &str = include_str!("../../assets/recipes/wiki/runbooks/request-troubleshooting.md.tmpl");
-const TMPL_IDL_SOURCE: &str = include_str!("../../assets/recipes/wiki/questions/idl-source-location.md.tmpl");
-const TMPL_OPS_METADATA: &str = include_str!("../../assets/recipes/wiki/questions/operations-metadata.md.tmpl");
+const TMPL_CONFIG_CACHE: &str =
+    include_str!("../../assets/recipes/wiki/components/config-and-cache.md.tmpl");
+const TMPL_EXTERNAL_DEP: &str =
+    include_str!("../../assets/recipes/wiki/components/external-dependencies.md.tmpl");
+const TMPL_AUTH_IDENTITY: &str =
+    include_str!("../../assets/recipes/wiki/flows/auth-and-identity.md.tmpl");
+const TMPL_BUSINESS_FLOWS: &str =
+    include_str!("../../assets/recipes/wiki/flows/business-flows.md.tmpl");
+const TMPL_FIELD_PROP: &str =
+    include_str!("../../assets/recipes/wiki/flows/field-propagation.md.tmpl");
+const TMPL_HTTP_ENDPOINTS: &str =
+    include_str!("../../assets/recipes/wiki/apis/http-endpoints.md.tmpl");
+const TMPL_REQUEST_TROUBLESHOOT: &str =
+    include_str!("../../assets/recipes/wiki/runbooks/request-troubleshooting.md.tmpl");
+const TMPL_IDL_SOURCE: &str =
+    include_str!("../../assets/recipes/wiki/questions/idl-source-location.md.tmpl");
+const TMPL_OPS_METADATA: &str =
+    include_str!("../../assets/recipes/wiki/questions/operations-metadata.md.tmpl");
 const TMPL_QUERIES_KEEP: &str = include_str!("../../assets/recipes/wiki/queries/.gitkeep");
 const TMPL_DECISIONS_KEEP: &str = include_str!("../../assets/recipes/wiki/decisions/.gitkeep");
-const TMPL_SCRIPTS_REF_README: &str = include_str!("../../assets/recipes/wiki/scripts/reference/README.md.tmpl");
+const TMPL_SCRIPTS_REF_README: &str =
+    include_str!("../../assets/recipes/wiki/scripts/reference/README.md.tmpl");
 
 // ── 常量 ──────────────────────────────────────
 
@@ -261,10 +271,7 @@ pub fn scan_project_wiki(project_path: &str, project_id: &str) -> Result<WikiSca
     let content_sha256 = compute_wiki_content_hash(&wiki_root, &pages)?;
     let latest_mtime = pages.iter().map(|p| p.mtime).max();
     let source_ref_count = count_source_refs(&root, &pages);
-    let question_count = pages
-        .iter()
-        .filter(|p| p.page_type == "question")
-        .count() as u32;
+    let question_count = pages.iter().filter(|p| p.page_type == "question").count() as u32;
 
     // 读取上次 lint 结果
     let last_lint = read_last_lint_result(&root);
@@ -444,7 +451,8 @@ pub fn run_wiki_lint(
         }
 
         let fm_text = frontmatter.clone().unwrap_or_default();
-        let yaml: serde_yaml::Value = serde_yaml::from_str(&fm_text).unwrap_or(serde_yaml::Value::Null);
+        let yaml: serde_yaml::Value =
+            serde_yaml::from_str(&fm_text).unwrap_or(serde_yaml::Value::Null);
         let map = match &yaml {
             serde_yaml::Value::Mapping(m) => m,
             _ => {
@@ -477,8 +485,20 @@ pub fn run_wiki_lint(
         }
 
         // S006: type 枚举
-        let valid_types = ["overview", "component", "flow", "api", "runbook", "query", "question", "decision"];
-        if let Some(t) = map.get(&serde_yaml::Value::String("type".into())).and_then(|v| v.as_str()) {
+        let valid_types = [
+            "overview",
+            "component",
+            "flow",
+            "api",
+            "runbook",
+            "query",
+            "question",
+            "decision",
+        ];
+        if let Some(t) = map
+            .get(&serde_yaml::Value::String("type".into()))
+            .and_then(|v| v.as_str())
+        {
             if !valid_types.contains(&t) {
                 errors.push(WikiLintIssue {
                     rule_id: "S006".to_string(),
@@ -492,7 +512,10 @@ pub fn run_wiki_lint(
 
         // S007: status 枚举
         let valid_statuses = ["active", "draft", "retired"];
-        if let Some(s) = map.get(&serde_yaml::Value::String("status".into())).and_then(|v| v.as_str()) {
+        if let Some(s) = map
+            .get(&serde_yaml::Value::String("status".into()))
+            .and_then(|v| v.as_str())
+        {
             if !valid_statuses.contains(&s) {
                 errors.push(WikiLintIssue {
                     rule_id: "S007".to_string(),
@@ -508,7 +531,10 @@ pub fn run_wiki_lint(
         for (line_num, line) in body.lines().enumerate() {
             for cap in REGEX_MD_LINK.captures_iter(line) {
                 let link = cap.get(1).map(|m| m.as_str()).unwrap_or("");
-                if link.starts_with("http://") || link.starts_with("https://") || link.starts_with("#") {
+                if link.starts_with("http://")
+                    || link.starts_with("https://")
+                    || link.starts_with("#")
+                {
                     continue;
                 }
                 let resolved = resolve_wiki_link(&wiki_root, full_path, link);
@@ -540,7 +566,10 @@ pub fn run_wiki_lint(
         }
 
         // S010: source_files 指向文件不存在（跳过 glob 模式）
-        if let Some(sources) = map.get(&serde_yaml::Value::String("source_files".into())).and_then(|v| v.as_sequence()) {
+        if let Some(sources) = map
+            .get(&serde_yaml::Value::String("source_files".into()))
+            .and_then(|v| v.as_sequence())
+        {
             for src in sources.iter().filter_map(|v| v.as_str()) {
                 if src.contains('*') {
                     continue; // glob 模式跳过
@@ -621,10 +650,7 @@ pub fn run_wiki_lint(
 }
 
 /// 预览 Wiki 初始化（safe install 预检）
-pub fn preview_wiki_init(
-    project_path: &str,
-    project_id: &str,
-) -> Result<WikiInitPlan, AppError> {
+pub fn preview_wiki_init(project_path: &str, project_id: &str) -> Result<WikiInitPlan, AppError> {
     let root = PathBuf::from(project_path);
     if !root.is_dir() {
         return Err(AppError::Message(format!(
@@ -702,8 +728,9 @@ pub fn init_project_wiki(
 
         // 创建父目录
         if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| AppError::Message(format!("创建目录失败 {}: {e}", parent.display())))?;
+            fs::create_dir_all(parent).map_err(|e| {
+                AppError::Message(format!("创建目录失败 {}: {e}", parent.display()))
+            })?;
         }
 
         let content = render_template(source_template, &vars);
@@ -724,8 +751,9 @@ pub fn init_project_wiki(
             "changed_files_threshold": DEFAULT_CHANGED_FILES_THRESHOLD,
         });
         if let Some(parent) = profile_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| AppError::Message(format!("创建目录失败 {}: {e}", parent.display())))?;
+            fs::create_dir_all(parent).map_err(|e| {
+                AppError::Message(format!("创建目录失败 {}: {e}", parent.display()))
+            })?;
         }
         let profile_json = serde_json::to_string_pretty(&profile)
             .map_err(|e| AppError::Message(format!("序列化 profile.json 失败: {e}")))?;
@@ -814,8 +842,7 @@ pub fn map_wiki_changed_files(
     }
 
     // 正常态：执行映射
-    let changed_set: std::collections::HashSet<&str> =
-        changed.iter().map(|s| s.as_str()).collect();
+    let changed_set: std::collections::HashSet<&str> = changed.iter().map(|s| s.as_str()).collect();
     let mut affected_pages = Vec::new();
     let mut mapped_files = std::collections::HashSet::new();
 
@@ -859,9 +886,7 @@ pub fn map_wiki_changed_files(
 
 /// Markdown 链接正则：匹配 [text](path) 中的 path
 static REGEX_MD_LINK: once_cell::sync::Lazy<regex::Regex> =
-    once_cell::sync::Lazy::new(|| {
-        regex::Regex::new(r"\[[^\]]*\]\(([^)]+)\)").unwrap()
-    });
+    once_cell::sync::Lazy::new(|| regex::Regex::new(r"\[[^\]]*\]\(([^)]+)\)").unwrap());
 
 /// 模板变量
 struct TemplateVars {
@@ -887,12 +912,18 @@ fn get_template_list() -> Vec<(&'static str, &'static str)> {
         ("wiki/overview.md", TMPL_OVERVIEW),
         ("wiki/source-map.md", TMPL_SOURCE_MAP),
         ("wiki/components/config-and-cache.md", TMPL_CONFIG_CACHE),
-        ("wiki/components/external-dependencies.md", TMPL_EXTERNAL_DEP),
+        (
+            "wiki/components/external-dependencies.md",
+            TMPL_EXTERNAL_DEP,
+        ),
         ("wiki/flows/auth-and-identity.md", TMPL_AUTH_IDENTITY),
         ("wiki/flows/business-flows.md", TMPL_BUSINESS_FLOWS),
         ("wiki/flows/field-propagation.md", TMPL_FIELD_PROP),
         ("wiki/apis/http-endpoints.md", TMPL_HTTP_ENDPOINTS),
-        ("wiki/runbooks/request-troubleshooting.md", TMPL_REQUEST_TROUBLESHOOT),
+        (
+            "wiki/runbooks/request-troubleshooting.md",
+            TMPL_REQUEST_TROUBLESHOOT,
+        ),
         ("wiki/questions/idl-source-location.md", TMPL_IDL_SOURCE),
         ("wiki/questions/operations-metadata.md", TMPL_OPS_METADATA),
         ("wiki/queries/.gitkeep", TMPL_QUERIES_KEEP),
@@ -975,15 +1006,8 @@ fn resolve_wiki_link(wiki_root: &Path, source_file: &Path, link: &str) -> PathBu
 }
 
 /// Quality 规则检查（Q001-Q010）
-fn check_quality_rules(
-    page_type: &str,
-    body: &str,
-    file: &str,
-    warnings: &mut Vec<WikiLintIssue>,
-) {
-    let has_section = |section: &str| {
-        body.contains(&format!("## {}", section))
-    };
+fn check_quality_rules(page_type: &str, body: &str, file: &str, warnings: &mut Vec<WikiLintIssue>) {
+    let has_section = |section: &str| body.contains(&format!("## {}", section));
 
     match page_type {
         "api" => {
@@ -1136,9 +1160,7 @@ fn compute_quality_level_from_wiki(wiki_root: &Path, project_root: &Path) -> Str
     }
 
     // L2: L1 + 至少 1 component + 1 flow + 1 api
-    let l2 = coverage.component_pages >= 1
-        && coverage.flow_pages >= 1
-        && coverage.api_pages >= 1;
+    let l2 = coverage.component_pages >= 1 && coverage.flow_pages >= 1 && coverage.api_pages >= 1;
     if !l2 {
         return "L1".to_string();
     }
@@ -1309,10 +1331,7 @@ fn compute_core_page_coverage(root: &Path, pages: &[WikiPageInfo]) -> WikiCorePa
 }
 
 /// 计算 wiki 目录内容的 SHA-256 hash
-fn compute_wiki_content_hash(
-    wiki_root: &Path,
-    pages: &[WikiPageInfo],
-) -> Result<String, AppError> {
+fn compute_wiki_content_hash(wiki_root: &Path, pages: &[WikiPageInfo]) -> Result<String, AppError> {
     let mut hasher = Sha256::new();
 
     // 对路径排序后逐文件更新 hash
@@ -1405,9 +1424,7 @@ fn determine_quality_level(coverage: &WikiCorePageCoverage, base_status: &str) -
     }
 
     // L2: L1 + 至少 1 个 component + 1 个 flow + 1 个 api
-    let l2 = coverage.component_pages >= 1
-        && coverage.flow_pages >= 1
-        && coverage.api_pages >= 1;
+    let l2 = coverage.component_pages >= 1 && coverage.flow_pages >= 1 && coverage.api_pages >= 1;
     if !l2 {
         return "L1".to_string();
     }
@@ -1529,7 +1546,11 @@ mod tests {
         let tmp = TempDir::new().unwrap();
         let wiki_dir = tmp.path().join("wiki");
         fs::create_dir_all(&wiki_dir).unwrap();
-        fs::write(wiki_dir.join("index.md"), "---\ntype: overview\nstatus: draft\n---\n# Test").unwrap();
+        fs::write(
+            wiki_dir.join("index.md"),
+            "---\ntype: overview\nstatus: draft\n---\n# Test",
+        )
+        .unwrap();
 
         let result = scan_project_wiki(tmp.path().to_str().unwrap(), "test-project").unwrap();
         assert!(result.exists);
@@ -1556,7 +1577,10 @@ mod tests {
 
     #[test]
     fn test_parse_frontmatter_fields() {
-        let fm = Some("title: Test Page\ntype: component\nstatus: active\nsource_files:\n  - src/main.rs".to_string());
+        let fm = Some(
+            "title: Test Page\ntype: component\nstatus: active\nsource_files:\n  - src/main.rs"
+                .to_string(),
+        );
         let (page_type, status, source_files, title) = parse_frontmatter_fields(&fm);
         assert_eq!(page_type, "component");
         assert_eq!(status, "active");

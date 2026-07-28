@@ -89,9 +89,8 @@ pub fn parse_team_package(
 // ─── 内部转换 ─────────────────────────────────────────────────────────────────
 
 fn build_profile_asset(asset_ref: &TomlAssetRef) -> Result<ProfileAsset, TeamTomlError> {
-    let asset_type = AssetType::from_str(&asset_ref.asset_type).ok_or_else(|| {
-        TeamTomlError::InvalidAssetType(asset_ref.asset_type.clone())
-    })?;
+    let asset_type = AssetType::from_str(&asset_ref.asset_type)
+        .ok_or_else(|| TeamTomlError::InvalidAssetType(asset_ref.asset_type.clone()))?;
 
     // content_ref: 优先使用 path，其次使用内联 content 的虚拟引用
     let content_ref = if let Some(path) = &asset_ref.path {
@@ -186,7 +185,10 @@ impl std::fmt::Display for TeamTomlError {
             Self::InvalidAssetType(t) => write!(f, "team_toml_invalid_asset_type: {t}"),
             Self::InvalidAction(a) => write!(f, "team_toml_invalid_action: {a}"),
             Self::MissingContentRef(id) => {
-                write!(f, "team_toml_missing_content_ref: asset '{id}' has neither path nor content")
+                write!(
+                    f,
+                    "team_toml_missing_content_ref: asset '{id}' has neither path nor content"
+                )
             }
         }
     }
@@ -281,13 +283,21 @@ required = false
         assert_eq!(profile.assets.len(), 3);
 
         // 验证 MCP 资产只对 claude_code
-        let mcp = profile.assets.iter().find(|a| a.asset_id == "github-mcp").unwrap();
+        let mcp = profile
+            .assets
+            .iter()
+            .find(|a| a.asset_id == "github-mcp")
+            .unwrap();
         assert_eq!(mcp.asset_type, AssetType::Mcp);
         assert_eq!(mcp.target_apps, Some(vec![TargetApp::ClaudeCode]));
         assert_eq!(mcp.risk_level, Some(RiskLevel::RequiresTrust));
 
         // 验证 prompt 资产对所有工具
-        let prompt = profile.assets.iter().find(|a| a.asset_id == "backend-system").unwrap();
+        let prompt = profile
+            .assets
+            .iter()
+            .find(|a| a.asset_id == "backend-system")
+            .unwrap();
         assert_eq!(prompt.target_apps, None);
         assert_eq!(prompt.risk_level, Some(RiskLevel::Safe));
     }

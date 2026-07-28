@@ -494,22 +494,20 @@ pub fn export_baseline_snapshot(
         }
     };
 
-    let wiki_summary = match crate::services::project_wiki::scan_project_wiki(
-        &project.path,
-        &project.id,
-    ) {
-        Ok(scan) => Some(BaselineWikiSummary {
-            base_status: scan.base_status,
-            quality_level: scan.quality_level,
-            page_count: scan.page_count,
-            source_ref_count: scan.source_ref_count,
-            question_count: scan.question_count,
-            latest_mtime: scan.latest_mtime,
-            content_sha256: scan.content_sha256,
-            last_lint_passed: scan.last_lint_passed,
-        }),
-        Err(_) => None,
-    };
+    let wiki_summary =
+        match crate::services::project_wiki::scan_project_wiki(&project.path, &project.id) {
+            Ok(scan) => Some(BaselineWikiSummary {
+                base_status: scan.base_status,
+                quality_level: scan.quality_level,
+                page_count: scan.page_count,
+                source_ref_count: scan.source_ref_count,
+                question_count: scan.question_count,
+                latest_mtime: scan.latest_mtime,
+                content_sha256: scan.content_sha256,
+                last_lint_passed: scan.last_lint_passed,
+            }),
+            Err(_) => None,
+        };
 
     let snapshot = BaselineSnapshot {
         version: BASELINE_SNAPSHOT_VERSION,

@@ -137,7 +137,11 @@ pub enum WarningCode {
 pub fn is_deployable(asset_type: &AssetType) -> bool {
     matches!(
         asset_type,
-        AssetType::Prompt | AssetType::Rule | AssetType::Skill | AssetType::Ignore | AssetType::Permission
+        AssetType::Prompt
+            | AssetType::Rule
+            | AssetType::Skill
+            | AssetType::Ignore
+            | AssetType::Permission
     )
 }
 
@@ -195,8 +199,7 @@ pub fn resolve_target_absolute_path(
     asset_id: &str,
     target_app: &TargetApp,
 ) -> Option<PathBuf> {
-    resolve_target_relative_path(asset_type, asset_id, target_app)
-        .map(|rel| project_root.join(rel))
+    resolve_target_relative_path(asset_type, asset_id, target_app).map(|rel| project_root.join(rel))
 }
 
 // ─── 当前状态扫描 ──────────────────────────────────────────────────────────────
@@ -283,10 +286,7 @@ fn hash_directory(dir: &Path) -> String {
 /// # 确定性保证
 /// 相同的 (config, project_root 文件状态) 输入必须产出相同的 plan_sha256。
 /// steps 按 (asset_type, asset_id) 排序后序列化计算哈希。
-pub fn generate_deployment_plan(
-    config: &EffectiveConfig,
-    project_root: &Path,
-) -> DeploymentPlan {
+pub fn generate_deployment_plan(config: &EffectiveConfig, project_root: &Path) -> DeploymentPlan {
     let mut steps: Vec<DeploymentStep> = Vec::new();
     let mut warnings: Vec<PlanWarning> = Vec::new();
 
@@ -323,12 +323,10 @@ pub fn generate_deployment_plan(
 }
 
 /// 为单个 EffectiveItem 构建部署步骤
-fn build_step(
-    item: &EffectiveItem,
-    target_app: &TargetApp,
-    project_root: &Path,
-) -> DeploymentStep {
-    let risk_level = item.risk_level.unwrap_or_else(|| inherent_risk(&item.asset_type));
+fn build_step(item: &EffectiveItem, target_app: &TargetApp, project_root: &Path) -> DeploymentStep {
+    let risk_level = item
+        .risk_level
+        .unwrap_or_else(|| inherent_risk(&item.asset_type));
 
     let target_path = resolve_target_relative_path(&item.asset_type, &item.asset_id, target_app)
         .unwrap_or_else(|| format!("<unsupported:{:?}>", target_app));
@@ -430,8 +428,7 @@ fn build_step(
                     explanation,
                 }
             } else {
-                let explanation =
-                    format!("{type_str} '{id_str}' 被策略拒绝且目标不存在，无需操作");
+                let explanation = format!("{type_str} '{id_str}' 被策略拒绝且目标不存在，无需操作");
                 DeploymentStep {
                     asset_type: item.asset_type.clone(),
                     asset_id: item.asset_id.clone(),
@@ -471,10 +468,7 @@ fn collect_warnings(item: &EffectiveItem, step: &DeploymentStep, warnings: &mut 
             asset_type: item.asset_type.clone(),
             asset_id: item.asset_id.clone(),
             code: WarningCode::RequiresTrust,
-            message: format!(
-                "MCP 服务器 '{}' 需要首次显式信任后才能使用",
-                item.asset_id
-            ),
+            message: format!("MCP 服务器 '{}' 需要首次显式信任后才能使用", item.asset_id),
         });
     }
 
@@ -636,7 +630,11 @@ mod tests {
             Some(".claudeignore".to_string())
         );
         assert_eq!(
-            resolve_target_relative_path(&AssetType::Permission, "allow-read", &TargetApp::ClaudeCode),
+            resolve_target_relative_path(
+                &AssetType::Permission,
+                "allow-read",
+                &TargetApp::ClaudeCode
+            ),
             Some(".claude/settings.json".to_string())
         );
     }
@@ -731,7 +729,12 @@ mod tests {
         fs::write(tmp.path().join(".claudeignore"), b"to be removed").unwrap();
 
         let config = make_config(
-            vec![make_item(AssetType::Ignore, "secrets", EffectiveDecision::Denied, None)],
+            vec![make_item(
+                AssetType::Ignore,
+                "secrets",
+                EffectiveDecision::Denied,
+                None,
+            )],
             TargetApp::ClaudeCode,
         );
 
@@ -757,15 +760,28 @@ mod tests {
         assert_eq!(plan.steps[0].action, DeploymentAction::DisplayOnly);
         assert_eq!(plan.summary.display_only_count, 1);
         // MCP 应产生 RequiresTrust 警告
-        assert!(plan.warnings.iter().any(|w| w.code == WarningCode::RequiresTrust));
+        assert!(plan
+            .warnings
+            .iter()
+            .any(|w| w.code == WarningCode::RequiresTrust));
     }
 
     #[test]
     fn plan_sha256_is_deterministic() {
         let tmp = TempDir::new().unwrap();
         let items = vec![
-            make_item(AssetType::Prompt, "b-second", EffectiveDecision::Enabled, Some("h1")),
-            make_item(AssetType::Ignore, "a-first", EffectiveDecision::Enabled, Some("h2")),
+            make_item(
+                AssetType::Prompt,
+                "b-second",
+                EffectiveDecision::Enabled,
+                Some("h1"),
+            ),
+            make_item(
+                AssetType::Ignore,
+                "a-first",
+                EffectiveDecision::Enabled,
+                Some("h2"),
+            ),
         ];
         let config = make_config(items, TargetApp::ClaudeCode);
 
@@ -782,11 +798,21 @@ mod tests {
     fn plan_sha256_changes_with_different_input() {
         let tmp = TempDir::new().unwrap();
         let config_a = make_config(
-            vec![make_item(AssetType::Ignore, "x", EffectiveDecision::Enabled, Some("h1"))],
+            vec![make_item(
+                AssetType::Ignore,
+                "x",
+                EffectiveDecision::Enabled,
+                Some("h1"),
+            )],
             TargetApp::ClaudeCode,
         );
         let config_b = make_config(
-            vec![make_item(AssetType::Ignore, "x", EffectiveDecision::Enabled, Some("h2"))],
+            vec![make_item(
+                AssetType::Ignore,
+                "x",
+                EffectiveDecision::Enabled,
+                Some("h2"),
+            )],
             TargetApp::ClaudeCode,
         );
 
@@ -798,7 +824,11 @@ mod tests {
     #[test]
     fn skill_directory_hashing() {
         let tmp = TempDir::new().unwrap();
-        let skill_dir = tmp.path().join(".claude").join("skills").join("code-review");
+        let skill_dir = tmp
+            .path()
+            .join(".claude")
+            .join("skills")
+            .join("code-review");
         fs::create_dir_all(&skill_dir).unwrap();
         fs::write(skill_dir.join("SKILL.md"), b"# Code Review Skill").unwrap();
         fs::write(skill_dir.join("config.json"), b"{}").unwrap();

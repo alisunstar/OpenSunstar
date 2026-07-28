@@ -238,9 +238,7 @@ fn run_command(command: Commands, json: bool) -> Result<(), String> {
         }
 
         // wiki: 本地离线命令，不需要 DB
-        Commands::Wiki(args) => {
-            commands::wiki::run(args, json)
-        }
+        Commands::Wiki(args) => commands::wiki::run(args, json),
     };
 
     result

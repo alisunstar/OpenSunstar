@@ -258,7 +258,10 @@ fn run_validate(path: &str, skip_security: bool, json: bool) -> Result<(), Strin
             println!("  WARN  [{}] {}", w.code.as_str(), w.message);
         }
         if let Some(sec) = &report.security {
-            println!("  security: {} files scanned, blocked={}", sec.files_scanned, sec.blocked);
+            println!(
+                "  security: {} files scanned, blocked={}",
+                sec.files_scanned, sec.blocked
+            );
         }
     }
 
@@ -406,7 +409,11 @@ fn run_diff(path: &str, json: bool) -> Result<(), String> {
             diff.base_ref, diff.summary.total_files_base
         );
         for entry in &diff.added {
-            println!("  + {} (new, {} bytes)", entry.path, entry.new_size.unwrap_or(0));
+            println!(
+                "  + {} (new, {} bytes)",
+                entry.path,
+                entry.new_size.unwrap_or(0)
+            );
         }
         for entry in &diff.removed {
             println!("  - {} (removed)", entry.path);
@@ -471,7 +478,8 @@ fn run_assign(
                 existing.profile_id
             ));
         }
-        let result = serde_json::json!({ "assignmentId": existing.assignment_id, "changed": false });
+        let result =
+            serde_json::json!({ "assignmentId": existing.assignment_id, "changed": false });
         output::print_result(&result, json);
         return Ok(());
     }
@@ -480,7 +488,15 @@ fn run_assign(
     let assignment_id = generate_assignment_id(project_id, workspace_id);
     state
         .db
-        .upsert_team_assignment(&assignment_id, project_id, workspace_id, profile_id, "active", now, now)
+        .upsert_team_assignment(
+            &assignment_id,
+            project_id,
+            workspace_id,
+            profile_id,
+            "active",
+            now,
+            now,
+        )
         .map_err(|e| e.to_string())?;
 
     let result = serde_json::json!({ "assignmentId": assignment_id, "changed": true });
@@ -600,7 +616,12 @@ fn run_plan(
             println!();
             println!("  warnings:");
             for w in &plan.warnings {
-                println!("    ⚠ [{}:{}] {}", w.asset_type.as_str(), w.asset_id, w.message);
+                println!(
+                    "    ⚠ [{}:{}] {}",
+                    w.asset_type.as_str(),
+                    w.asset_id,
+                    w.message
+                );
             }
         }
     }
@@ -699,10 +720,7 @@ fn run_deploy(
     if receipt.summary.all_success {
         Ok(())
     } else {
-        Err(format!(
-            "{} step(s) failed",
-            receipt.summary.failure_count
-        ))
+        Err(format!("{} step(s) failed", receipt.summary.failure_count))
     }
 }
 
@@ -728,7 +746,10 @@ fn run_drift(receipt_path: &str, project_root: &str, json: bool) -> Result<(), S
         output::print_result(&report, true);
     } else {
         if !report.summary.has_drift {
-            println!("✓ no drift detected ({} assets checked)", report.summary.total_checked);
+            println!(
+                "✓ no drift detected ({} assets checked)",
+                report.summary.total_checked
+            );
         } else {
             println!(
                 "⚠ drift detected: {} drifted, {} clean, {} unknown",
@@ -738,7 +759,11 @@ fn run_drift(receipt_path: &str, project_root: &str, json: bool) -> Result<(), S
             );
             for entry in &report.entries {
                 if entry.status.is_drifted() {
-                    let backup_note = if entry.has_backup { " (rollback available)" } else { "" };
+                    let backup_note = if entry.has_backup {
+                        " (rollback available)"
+                    } else {
+                        ""
+                    };
                     println!(
                         "  {} [{}:{}] → {} [{}]{}",
                         entry.status.as_str(),
@@ -785,8 +810,8 @@ fn run_rollback(
 
     // 加载或自动检测偏差
     let drift: DriftReport = if let Some(dp) = drift_path {
-        let dc = std::fs::read_to_string(&dp)
-            .map_err(|e| format!("cannot read drift file: {e}"))?;
+        let dc =
+            std::fs::read_to_string(&dp).map_err(|e| format!("cannot read drift file: {e}"))?;
         serde_json::from_str(&dc).map_err(|e| format!("invalid drift JSON: {e}"))?
     } else {
         detect_drift(&receipt, proj_root)
@@ -794,7 +819,10 @@ fn run_rollback(
 
     if !drift.summary.has_drift {
         if json {
-            output::print_result(&serde_json::json!({ "message": "no drift, nothing to rollback" }), true);
+            output::print_result(
+                &serde_json::json!({ "message": "no drift, nothing to rollback" }),
+                true,
+            );
         } else {
             println!("✓ no drift detected, nothing to rollback");
         }

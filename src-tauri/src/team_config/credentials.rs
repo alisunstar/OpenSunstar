@@ -79,18 +79,13 @@ pub fn credential_entry_key(workspace_id: &str, slot_id: &str) -> String {
 ///
 /// 将密钥值存入 OS Keychain（或加密回退存储）。
 /// 绑定后可通过 `verify_credential` 验证可访问性。
-pub fn bind_credential(
-    workspace_id: &str,
-    slot_id: &str,
-    value: &str,
-) -> Result<(), String> {
+pub fn bind_credential(workspace_id: &str, slot_id: &str, value: &str) -> Result<(), String> {
     if value.is_empty() {
         return Err("凭证值不能为空".to_string());
     }
 
     let entry_key = credential_entry_key(workspace_id, slot_id);
-    crate::keychain::store_secret(&entry_key, value)
-        .map_err(|e| format!("存储凭证失败: {e}"))
+    crate::keychain::store_secret(&entry_key, value).map_err(|e| format!("存储凭证失败: {e}"))
 }
 
 /// 解绑凭证（从 keychain 真正移除）
@@ -99,8 +94,7 @@ pub fn bind_credential(
 /// 离职成员或凭证轮换场景下，旧值不再残留。
 pub fn unbind_credential(workspace_id: &str, slot_id: &str) -> Result<(), String> {
     let entry_key = credential_entry_key(workspace_id, slot_id);
-    crate::keychain::delete_secret(&entry_key)
-        .map_err(|e| format!("解绑凭证失败: {e}"))
+    crate::keychain::delete_secret(&entry_key).map_err(|e| format!("解绑凭证失败: {e}"))
 }
 
 /// 验证单个凭证是否可访问
@@ -216,10 +210,7 @@ mod tests {
     #[test]
     fn batch_status_check() {
         let ws = "ws_batch_test";
-        let slots = vec![
-            make_slot("key_a", true),
-            make_slot("key_b", false),
-        ];
+        let slots = vec![make_slot("key_a", true), make_slot("key_b", false)];
 
         // 绑定 key_a
         bind_credential(ws, "key_a", "value_a").unwrap();
@@ -233,10 +224,7 @@ mod tests {
     #[test]
     fn summary_all_required_bound() {
         let ws = "ws_summary_test";
-        let slots = vec![
-            make_slot("req_key", true),
-            make_slot("opt_key", false),
-        ];
+        let slots = vec![make_slot("req_key", true), make_slot("opt_key", false)];
 
         bind_credential(ws, "req_key", "secret").unwrap();
 

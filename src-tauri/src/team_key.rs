@@ -96,9 +96,7 @@ pub fn store_team_key(
         status: "active".to_string(),
     })?;
 
-    log::info!(
-        "Team key stored: slot={slot_slug} org={org_id} version={version_seq}"
-    );
+    log::info!("Team key stored: slot={slot_slug} org={org_id} version={version_seq}");
     Ok(())
 }
 
@@ -107,13 +105,11 @@ pub fn store_team_key(
 /// Looks up the slot in team_key_local, verifies status is active and grant
 /// not expired, then reads the plaintext from OS Keychain.
 pub fn resolve_team_key(db: &Database, slot_slug: &str) -> Result<String, AppError> {
-    let team_key = db
-        .get_team_key(slot_slug)?
-        .ok_or_else(|| {
-            AppError::Config(format!(
-                "team-key://{slot_slug} 无法解析：本机未持有该团队 Key，请执行 team key sync"
-            ))
-        })?;
+    let team_key = db.get_team_key(slot_slug)?.ok_or_else(|| {
+        AppError::Config(format!(
+            "team-key://{slot_slug} 无法解析：本机未持有该团队 Key，请执行 team key sync"
+        ))
+    })?;
 
     if team_key.status == "revoked" {
         return Err(AppError::Config(format!(
@@ -139,12 +135,11 @@ pub fn resolve_team_key(db: &Database, slot_slug: &str) -> Result<String, AppErr
 
     // Resolve from Keychain
     let entry_key = team_key_entry_key(&team_key.org_id, slot_slug);
-    keychain::get_secret(&entry_key)?
-        .ok_or_else(|| {
-            AppError::Config(format!(
-                "team-key://{slot_slug} Keychain 条目丢失，请执行 team key sync 重新下发"
-            ))
-        })
+    keychain::get_secret(&entry_key)?.ok_or_else(|| {
+        AppError::Config(format!(
+            "team-key://{slot_slug} Keychain 条目丢失，请执行 team key sync 重新下发"
+        ))
+    })
 }
 
 /// Resolve a value that might be a `team-key://` reference.
@@ -223,10 +218,7 @@ pub fn check_grant_expiry(db: &Database) -> Result<u32, AppError> {
         if key.status == "active" && now_ms > key.grant_expires {
             db.update_team_key_status(&key.slot_slug, "expired")?;
             expired_count += 1;
-            log::info!(
-                "Team key grant expired locally: slot={}",
-                key.slot_slug
-            );
+            log::info!("Team key grant expired locally: slot={}", key.slot_slug);
         }
     }
 
@@ -255,8 +247,16 @@ mod tests {
 
     fn store_test_key(db: &Database, org: &str, slot: &str, plaintext: &str, expiry: i64) {
         store_team_key(
-            db, org, slot, "api_key", Some("https://api.example.com"),
-            plaintext, 1, "", "grant_001", expiry,
+            db,
+            org,
+            slot,
+            "api_key",
+            Some("https://api.example.com"),
+            plaintext,
+            1,
+            "",
+            "grant_001",
+            expiry,
         )
         .expect("store_team_key 应成功");
     }
@@ -313,8 +313,16 @@ mod tests {
 
         // 模拟轮换：version_seq + 1，新 plaintext
         store_team_key(
-            &db, "org_1", "slot-v", "api_key", None,
-            "new-key-rotated", 2, "", "grant_002", future_expiry(),
+            &db,
+            "org_1",
+            "slot-v",
+            "api_key",
+            None,
+            "new-key-rotated",
+            2,
+            "",
+            "grant_002",
+            future_expiry(),
         )
         .unwrap();
 
@@ -330,7 +338,13 @@ mod tests {
     #[test]
     fn plaintext_never_in_database() {
         let db = test_db();
-        store_test_key(&db, "org_1", "secret-slot", "sk-SUPER-SECRET", future_expiry());
+        store_test_key(
+            &db,
+            "org_1",
+            "secret-slot",
+            "sk-SUPER-SECRET",
+            future_expiry(),
+        );
 
         // DB 行中不应包含明文
         let row = db.get_team_key("secret-slot").unwrap().unwrap();
@@ -346,7 +360,8 @@ mod tests {
     fn resolve_revoked_key_fails() {
         let db = test_db();
         store_test_key(&db, "org_1", "revoked-slot", "sk-val", future_expiry());
-        db.update_team_key_status("revoked-slot", "revoked").unwrap();
+        db.update_team_key_status("revoked-slot", "revoked")
+            .unwrap();
 
         let err = resolve_team_key(&db, "revoked-slot").unwrap_err();
         assert!(err.to_string().contains("已被撤销"));
@@ -356,7 +371,8 @@ mod tests {
     fn resolve_expired_key_fails() {
         let db = test_db();
         store_test_key(&db, "org_1", "expired-slot", "sk-val", future_expiry());
-        db.update_team_key_status("expired-slot", "expired").unwrap();
+        db.update_team_key_status("expired-slot", "expired")
+            .unwrap();
 
         let err = resolve_team_key(&db, "expired-slot").unwrap_err();
         assert!(err.to_string().contains("已过期"));
@@ -460,18 +476,25 @@ mod tests {
 
         assert_eq!(db.get_team_key("fresh").unwrap().unwrap().status, "active");
         assert_eq!(db.get_team_key("stale").unwrap().unwrap().status, "expired");
-        assert_eq!(db.get_team_key("also-stale").unwrap().unwrap().status, "expired");
+        assert_eq!(
+            db.get_team_key("also-stale").unwrap().unwrap().status,
+            "expired"
+        );
     }
 
     #[test]
     fn check_grant_expiry_skips_already_revoked() {
         let db = test_db();
         store_test_key(&db, "org_1", "revoked-stale", "val", past_expiry());
-        db.update_team_key_status("revoked-stale", "revoked").unwrap();
+        db.update_team_key_status("revoked-stale", "revoked")
+            .unwrap();
 
         let expired = check_grant_expiry(&db).unwrap();
         assert_eq!(expired, 0); // revoked 不算 expired
-        assert_eq!(db.get_team_key("revoked-stale").unwrap().unwrap().status, "revoked");
+        assert_eq!(
+            db.get_team_key("revoked-stale").unwrap().unwrap().status,
+            "revoked"
+        );
     }
 
     // ─── resolve_any_value 统一入口 ────────────────────────────────────────────
@@ -511,8 +534,16 @@ mod tests {
         let sha = crate::team_config::release::sha256_of_content(plaintext.as_bytes());
 
         store_team_key(
-            &db, "org_1", "verified-slot", "api_key", None,
-            plaintext, 1, &sha, "grant_v", future_expiry(),
+            &db,
+            "org_1",
+            "verified-slot",
+            "api_key",
+            None,
+            plaintext,
+            1,
+            &sha,
+            "grant_v",
+            future_expiry(),
         )
         .unwrap();
 
@@ -523,8 +554,16 @@ mod tests {
     fn store_with_mismatched_sha256_rejected() {
         let db = test_db();
         let result = store_team_key(
-            &db, "org_1", "bad-hash-slot", "api_key", None,
-            "sk-actual-value", 1, "wrong_hash_value", "grant_x", future_expiry(),
+            &db,
+            "org_1",
+            "bad-hash-slot",
+            "api_key",
+            None,
+            "sk-actual-value",
+            1,
+            "wrong_hash_value",
+            "grant_x",
+            future_expiry(),
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("完整性校验失败"));
@@ -534,8 +573,16 @@ mod tests {
     fn store_empty_plaintext_rejected() {
         let db = test_db();
         let result = store_team_key(
-            &db, "org_1", "empty-slot", "api_key", None,
-            "", 1, "", "grant_y", future_expiry(),
+            &db,
+            "org_1",
+            "empty-slot",
+            "api_key",
+            None,
+            "",
+            1,
+            "",
+            "grant_y",
+            future_expiry(),
         );
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("下发值为空"));

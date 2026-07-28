@@ -50,10 +50,10 @@ pub(crate) use dao::proxy::{
 pub use dao::quick_start::{
     QuickStartOperation, QuickStartOperationEvent, QuickStartOperationStatus,
 };
-pub use dao::FailoverQueueItem;
-pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 pub(crate) use dao::team_key::TeamKeyLocal;
 pub(crate) use dao::team_workspace::{TeamAssignmentRow, TeamWorkspace};
+pub use dao::FailoverQueueItem;
+pub use dao::{Project, ProjectConfigLink, ProjectPromptLink};
 
 use crate::config::get_app_config_dir;
 use crate::error::AppError;

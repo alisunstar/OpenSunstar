@@ -166,10 +166,7 @@ pub fn diff_manifests(
 ///
 /// 扫描 `dir` 下所有文件计算 SHA-256，与 lock.manifests 比对。
 /// 用于检测"自上次 Release 以来有哪些本地变更"。
-pub fn diff_lock_vs_directory(
-    lock: &ReleaseLock,
-    dir: &Path,
-) -> Result<ReleaseDiff, String> {
+pub fn diff_lock_vs_directory(lock: &ReleaseLock, dir: &Path) -> Result<ReleaseDiff, String> {
     let current_manifests = scan_directory_manifests(dir)?;
     Ok(diff_manifests(
         &lock.release_id,
@@ -205,8 +202,8 @@ fn scan_recursive(
     dir: &Path,
     entries: &mut Vec<LockManifestEntry>,
 ) -> Result<(), String> {
-    let read_dir = std::fs::read_dir(dir)
-        .map_err(|e| format!("读取目录失败 {}: {e}", dir.display()))?;
+    let read_dir =
+        std::fs::read_dir(dir).map_err(|e| format!("读取目录失败 {}: {e}", dir.display()))?;
 
     for entry in read_dir {
         let entry = entry.map_err(|e| format!("目录条目错误: {e}"))?;

@@ -224,7 +224,10 @@ fn e2e_parse_compile_lock_git_full_pipeline() {
         .items
         .iter()
         .find(|i| i.asset_id == "github-mcp");
-    assert!(mcp_item.is_some(), "github-mcp should be visible for Claude Code");
+    assert!(
+        mcp_item.is_some(),
+        "github-mcp should be visible for Claude Code"
+    );
     assert_eq!(mcp_item.unwrap().decision, EffectiveDecision::Enabled);
 
     // backend-system 被 required（policy 覆盖 profile 的 recommended）
@@ -267,15 +270,24 @@ fn e2e_parse_compile_lock_git_full_pipeline() {
     let config_codex = compile_effective_config(&input_codex);
 
     // github-mcp 对 Codex 不可见（targets = ["claude_code"]）
-    let mcp_codex = config_codex.items.iter().find(|i| i.asset_id == "github-mcp");
+    let mcp_codex = config_codex
+        .items
+        .iter()
+        .find(|i| i.asset_id == "github-mcp");
     assert!(
         mcp_codex.is_none(),
         "github-mcp should NOT be visible for Codex"
     );
 
     // backend-system 对 Codex 仍然 required（policy targets 包含 codex）
-    let prompt_codex = config_codex.items.iter().find(|i| i.asset_id == "backend-system");
-    assert!(prompt_codex.is_some(), "backend-system should be visible for Codex");
+    let prompt_codex = config_codex
+        .items
+        .iter()
+        .find(|i| i.asset_id == "backend-system");
+    assert!(
+        prompt_codex.is_some(),
+        "backend-system should be visible for Codex"
+    );
     assert_eq!(prompt_codex.unwrap().decision, EffectiveDecision::Enabled);
 
     // 两个目标的 config_sha256 应不同（资产集不同）
@@ -286,19 +298,16 @@ fn e2e_parse_compile_lock_git_full_pipeline() {
 
     // ═══ Phase 5: 生成并校验 lock.json ═══
     let runner = GitRunner::new(dir.path());
-    let head_commit = runner
-        .show_file("team.toml")
-        .ok()
-        .and_then(|_| {
-            // 获取 HEAD commit SHA
-            Command::new("git")
-                .args(["rev-parse", "HEAD"])
-                .current_dir(dir.path())
-                .output()
-                .ok()
-                .filter(|o| o.status.success())
-                .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
-        });
+    let head_commit = runner.show_file("team.toml").ok().and_then(|_| {
+        // 获取 HEAD commit SHA
+        Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .current_dir(dir.path())
+            .output()
+            .ok()
+            .filter(|o| o.status.success())
+            .map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string())
+    });
 
     let release = make_release(head_commit);
     let lock = generate_lock(&release, dir.path(), None).expect("generate lock");
@@ -309,7 +318,11 @@ fn e2e_parse_compile_lock_git_full_pipeline() {
 
     // 校验通过
     let validation = validate_lock(&lock, dir.path());
-    assert!(validation.is_ok(), "lock validation should pass: {:?}", validation);
+    assert!(
+        validation.is_ok(),
+        "lock validation should pass: {:?}",
+        validation
+    );
 
     // ═══ Phase 6: GitRunner 安全检查 ═══
     let state = runner.safety_state();
@@ -359,8 +372,11 @@ fn e2e_dirty_worktree_blocks_pull() {
     init_git_repo(dir.path());
 
     // 制造脏工作树
-    fs::write(dir.path().join("prompts/backend.md"), "modified but not committed")
-        .expect("dirty");
+    fs::write(
+        dir.path().join("prompts/backend.md"),
+        "modified but not committed",
+    )
+    .expect("dirty");
 
     let runner = GitRunner::new(dir.path());
     let state = runner.safety_state();

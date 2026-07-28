@@ -151,8 +151,7 @@ pub fn validate_team_package(
         None
     };
 
-    let passed = errors.is_empty()
-        && security.as_ref().map(|s| !s.blocked).unwrap_or(true);
+    let passed = errors.is_empty() && security.as_ref().map(|s| !s.blocked).unwrap_or(true);
 
     ValidationReport {
         errors,
@@ -224,10 +223,7 @@ fn validate_schema(
             if asset.path.is_none() && asset.content.is_none() {
                 errors.push(ValidationIssue {
                     code: ValidationCode::MissingAssetContentRef,
-                    message: format!(
-                        "asset '{}' has neither path nor content",
-                        asset.id
-                    ),
+                    message: format!("asset '{}' has neither path nor content", asset.id),
                     location: Some(format!("profiles[{idx}].assets")),
                 });
             }
@@ -270,7 +266,10 @@ fn validate_asset_refs(
         for asset in &profile.assets {
             if let Some(path_str) = &asset.path {
                 // 路径穿越检测
-                if path_str.contains("..") || path_str.starts_with('/') || path_str.starts_with('\\') {
+                if path_str.contains("..")
+                    || path_str.starts_with('/')
+                    || path_str.starts_with('\\')
+                {
                     errors.push(ValidationIssue {
                         code: ValidationCode::PathTraversal,
                         message: format!(
@@ -345,7 +344,10 @@ fn validate_policies(
 
     for policy in &team_toml.policies {
         let key = (policy.asset_type.clone(), policy.pattern.clone());
-        action_map.entry(key).or_default().push(policy.action.clone());
+        action_map
+            .entry(key)
+            .or_default()
+            .push(policy.action.clone());
     }
 
     for ((asset_type, pattern), actions) in &action_map {

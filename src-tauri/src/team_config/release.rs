@@ -138,8 +138,8 @@ fn collect_recursive(
     dir: &Path,
     entries: &mut Vec<LockManifestEntry>,
 ) -> Result<(), String> {
-    let read_dir = std::fs::read_dir(dir)
-        .map_err(|e| format!("读取目录失败 {}: {e}", dir.display()))?;
+    let read_dir =
+        std::fs::read_dir(dir).map_err(|e| format!("读取目录失败 {}: {e}", dir.display()))?;
 
     for entry in read_dir {
         let entry = entry.map_err(|e| format!("目录条目错误: {e}"))?;
@@ -238,12 +238,18 @@ impl std::fmt::Display for LockValidationError {
                 path,
                 expected,
                 actual,
-            } => write!(f, "lock_content_tampered: {path} (expected {expected}, got {actual})"),
+            } => write!(
+                f,
+                "lock_content_tampered: {path} (expected {expected}, got {actual})"
+            ),
             Self::SizeMismatch {
                 path,
                 expected,
                 actual,
-            } => write!(f, "lock_size_mismatch: {path} (expected {expected}, got {actual})"),
+            } => write!(
+                f,
+                "lock_size_mismatch: {path} (expected {expected}, got {actual})"
+            ),
             Self::IoError(path, err) => write!(f, "lock_io_error: {path}: {err}"),
         }
     }
@@ -270,8 +276,11 @@ mod tests {
 
     fn setup_release_dir() -> tempfile::TempDir {
         let dir = tempfile::tempdir().expect("temp dir");
-        fs::write(dir.path().join("team.toml"), "[team]\nname = \"Test Team\"\nversion = \"1.0.0\"")
-            .expect("write team.toml");
+        fs::write(
+            dir.path().join("team.toml"),
+            "[team]\nname = \"Test Team\"\nversion = \"1.0.0\"",
+        )
+        .expect("write team.toml");
         fs::create_dir_all(dir.path().join("prompts")).expect("mkdir prompts");
         fs::write(
             dir.path().join("prompts/backend.md"),
@@ -322,14 +331,13 @@ mod tests {
         let lock = generate_lock(&release, dir.path(), None).expect("generate lock");
 
         // 篡改文件
-        fs::write(
-            dir.path().join("prompts/backend.md"),
-            "# TAMPERED CONTENT",
-        )
-        .expect("tamper");
+        fs::write(dir.path().join("prompts/backend.md"), "# TAMPERED CONTENT").expect("tamper");
 
         let result = validate_lock(&lock, dir.path());
-        assert!(matches!(result, Err(LockValidationError::ContentMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(LockValidationError::ContentMismatch { .. })
+        ));
     }
 
     #[test]
@@ -355,7 +363,10 @@ mod tests {
         lock.lock_sha256 = "deadbeef".to_string();
 
         let result = validate_lock(&lock, dir.path());
-        assert!(matches!(result, Err(LockValidationError::DigestMismatch { .. })));
+        assert!(matches!(
+            result,
+            Err(LockValidationError::DigestMismatch { .. })
+        ));
     }
 
     #[test]

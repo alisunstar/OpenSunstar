@@ -226,7 +226,10 @@ pub fn compile_effective_config(input: &CompilerInput) -> EffectiveConfig {
 
     // 从项目级收集
     for project_asset in &input.project_assets {
-        let key = (project_asset.asset_type.clone(), project_asset.asset_id.clone());
+        let key = (
+            project_asset.asset_type.clone(),
+            project_asset.asset_id.clone(),
+        );
         asset_groups.entry(key).or_default().push(CandidateEntry {
             tier: project_asset.source_tier,
             source_id: format!("project:{}", project_asset.asset_id),
@@ -273,12 +276,8 @@ pub fn compile_effective_config(input: &CompilerInput) -> EffectiveConfig {
 
     // 2. 对每组应用解析规则
     for ((asset_type, asset_id), candidates) in &asset_groups {
-        let (item, item_conflicts) = resolve_asset_group(
-            asset_type,
-            asset_id,
-            candidates,
-            &input.personal_overrides,
-        );
+        let (item, item_conflicts) =
+            resolve_asset_group(asset_type, asset_id, candidates, &input.personal_overrides);
         items.push(item);
         conflicts.extend(item_conflicts);
     }
@@ -363,9 +362,7 @@ fn resolve_asset_group(
             asset_id: asset_id.to_string(),
             code: ConflictCode::PolicyContradiction,
             source_ids: sorted.iter().map(|c| c.source_id.clone()).collect(),
-            message: format!(
-                "资产 {asset_id} 同时被 require 和 deny，无法自动决策"
-            ),
+            message: format!("资产 {asset_id} 同时被 require 和 deny，无法自动决策"),
         });
         EffectiveDecision::Conflicted
     } else if has_deny {
@@ -458,8 +455,8 @@ fn format_explanation(entry: &CandidateEntry) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::domain::{ProfileAsset, RiskLevel};
+    use super::*;
 
     fn backend_profile() -> TeamProfile {
         TeamProfile {

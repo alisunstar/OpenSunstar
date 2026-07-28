@@ -109,8 +109,8 @@ fn run_init(
     let name = derive_project_name(project_path, &project_name);
 
     if dry_run {
-        let plan = project_wiki::preview_wiki_init(project_path, "cli")
-            .map_err(|e| e.to_string())?;
+        let plan =
+            project_wiki::preview_wiki_init(project_path, "cli").map_err(|e| e.to_string())?;
 
         if json {
             output::print_result(&plan, true);
@@ -145,8 +145,8 @@ fn run_init(
         }
     }
 
-    let result = project_wiki::init_project_wiki(project_path, "cli", &name)
-        .map_err(|e| e.to_string())?;
+    let result =
+        project_wiki::init_project_wiki(project_path, "cli", &name).map_err(|e| e.to_string())?;
 
     if json {
         output::print_result(&result, true);
@@ -170,8 +170,7 @@ fn run_init(
 }
 
 fn run_status(project_path: &str, json: bool) -> Result<(), String> {
-    let result = project_wiki::scan_project_wiki(project_path, "cli")
-        .map_err(|e| e.to_string())?;
+    let result = project_wiki::scan_project_wiki(project_path, "cli").map_err(|e| e.to_string())?;
 
     if json {
         output::print_result(&result, true);
@@ -191,23 +190,25 @@ fn run_status(project_path: &str, json: bool) -> Result<(), String> {
         }
         println!("核心页面覆盖:");
         let c = &result.core_page_coverage;
-        println!("  index: {}  overview: {}  source-map: {}  log: {}  SCHEMA: {}",
-            yn(c.has_index), yn(c.has_overview), yn(c.has_source_map),
-            yn(c.has_log), yn(c.has_schema));
-        println!("  component: {}  flow: {}  api: {}  runbook: {}",
-            c.component_pages, c.flow_pages, c.api_pages, c.runbook_pages);
+        println!(
+            "  index: {}  overview: {}  source-map: {}  log: {}  SCHEMA: {}",
+            yn(c.has_index),
+            yn(c.has_overview),
+            yn(c.has_source_map),
+            yn(c.has_log),
+            yn(c.has_schema)
+        );
+        println!(
+            "  component: {}  flow: {}  api: {}  runbook: {}",
+            c.component_pages, c.flow_pages, c.api_pages, c.runbook_pages
+        );
     }
     Ok(())
 }
 
-fn run_lint(
-    project_path: &str,
-    quality: bool,
-    strict: bool,
-    json: bool,
-) -> Result<(), String> {
-    let result = project_wiki::run_wiki_lint(project_path, "cli", quality)
-        .map_err(|e| e.to_string())?;
+fn run_lint(project_path: &str, quality: bool, strict: bool, json: bool) -> Result<(), String> {
+    let result =
+        project_wiki::run_wiki_lint(project_path, "cli", quality).map_err(|e| e.to_string())?;
 
     if json {
         output::print_result(&result, true);
@@ -216,11 +217,15 @@ fn run_lint(
         if s.total_files == 0 {
             println!("Wiki 未初始化或无 .md 文件。");
         } else if s.passed {
-            println!("✓ Lint 通过（{} 文件，{} 警告，等级 {}）",
-                s.total_files, s.warning_count, s.quality_level);
+            println!(
+                "✓ Lint 通过（{} 文件，{} 警告，等级 {}）",
+                s.total_files, s.warning_count, s.quality_level
+            );
         } else {
-            println!("✗ Lint 失败（{} 文件，{} 错误，{} 警告）",
-                s.total_files, s.error_count, s.warning_count);
+            println!(
+                "✗ Lint 失败（{} 文件，{} 错误，{} 警告）",
+                s.total_files, s.error_count, s.warning_count
+            );
         }
 
         if !result.errors.is_empty() {
@@ -250,8 +255,8 @@ fn run_lint(
 }
 
 fn run_inventory(project_path: &str, json: bool) -> Result<(), String> {
-    let result = project_wiki::build_wiki_inventory(project_path, "cli")
-        .map_err(|e| e.to_string())?;
+    let result =
+        project_wiki::build_wiki_inventory(project_path, "cli").map_err(|e| e.to_string())?;
 
     if json {
         output::print_result(&result, true);
@@ -259,10 +264,18 @@ fn run_inventory(project_path: &str, json: bool) -> Result<(), String> {
         println!("Wiki 未初始化或无页面。");
     } else {
         println!("Wiki Inventory（{} 个页面）", result.pages.len());
-        println!("{:<50} {:<12} {:<10} {:<6}", "PATH", "TYPE", "STATUS", "SOURCES");
+        println!(
+            "{:<50} {:<12} {:<10} {:<6}",
+            "PATH", "TYPE", "STATUS", "SOURCES"
+        );
         for p in &result.pages {
-            println!("{:<50} {:<12} {:<10} {:<6}",
-                p.path, p.page_type, p.status, p.source_files.len());
+            println!(
+                "{:<50} {:<12} {:<10} {:<6}",
+                p.path,
+                p.page_type,
+                p.status,
+                p.source_files.len()
+            );
         }
     }
     Ok(())
@@ -280,14 +293,17 @@ fn run_changed(
             .collect::<Vec<_>>()
     });
 
-    let result = project_wiki::map_wiki_changed_files(project_path, files)
-        .map_err(|e| e.to_string())?;
+    let result =
+        project_wiki::map_wiki_changed_files(project_path, files).map_err(|e| e.to_string())?;
 
     if json {
         output::print_result(&result, true);
     } else if result.cold_start {
         println!("⚠ 冷启动态：changed-files 映射暂不生效");
-        println!("  有效 source_pages: {}/{}", result.effective_source_pages, result.threshold);
+        println!(
+            "  有效 source_pages: {}/{}",
+            result.effective_source_pages, result.threshold
+        );
         if let Some(g) = &result.guidance {
             println!("  {g}");
         }
@@ -311,5 +327,9 @@ fn run_changed(
 }
 
 fn yn(b: bool) -> &'static str {
-    if b { "✓" } else { "✗" }
+    if b {
+        "✓"
+    } else {
+        "✗"
+    }
 }

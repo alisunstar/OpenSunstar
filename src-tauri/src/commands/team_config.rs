@@ -9,10 +9,9 @@ use tauri::State;
 use crate::database::TeamWorkspace;
 use crate::store::AppState;
 use crate::team_config::{
-    compile_effective_config, connect_team_source, diff_lock_vs_directory,
-    generate_assignment_id, parse_team_package, validate_assignment,
-    CompilerInput, ConnectResult, EffectiveConfig, ReleaseDiff, TargetApp, TeamProfile,
-    ValidationOptions, ValidationReport,
+    compile_effective_config, connect_team_source, diff_lock_vs_directory, generate_assignment_id,
+    parse_team_package, validate_assignment, CompilerInput, ConnectResult, EffectiveConfig,
+    ReleaseDiff, TargetApp, TeamProfile, ValidationOptions, ValidationReport,
 };
 
 // ─── 响应类型 ─────────────────────────────────────────────────────────────────
@@ -138,8 +137,8 @@ pub fn validate_team_workspace(
         check_asset_files: true,
     };
 
-    let report: ValidationReport = crate::team_config::validate_team_package_dir(path, &options)
-        .map_err(|e| e.to_string())?;
+    let report: ValidationReport =
+        crate::team_config::validate_team_package_dir(path, &options).map_err(|e| e.to_string())?;
 
     Ok(TeamValidateResponse {
         passed: report.passed,
@@ -173,8 +172,7 @@ pub fn list_team_profiles(
     _app_state: State<'_, AppState>,
 ) -> Result<Vec<TeamProfileSummary>, String> {
     let path = std::path::Path::new(&path);
-    let content =
-        std::fs::read_to_string(path.join("team.toml")).map_err(|e| e.to_string())?;
+    let content = std::fs::read_to_string(path.join("team.toml")).map_err(|e| e.to_string())?;
     let (profiles, _, _) = parse_team_package(&content).map_err(|e| e.to_string())?;
 
     Ok(profiles
@@ -198,8 +196,7 @@ pub fn get_team_effective_state(
     _app_state: State<'_, AppState>,
 ) -> Result<EffectiveConfig, String> {
     let path = std::path::Path::new(&path);
-    let content =
-        std::fs::read_to_string(path.join("team.toml")).map_err(|e| e.to_string())?;
+    let content = std::fs::read_to_string(path.join("team.toml")).map_err(|e| e.to_string())?;
     let (profiles, policies, _) = parse_team_package(&content).map_err(|e| e.to_string())?;
 
     let input = CompilerInput {
@@ -392,7 +389,10 @@ pub fn generate_team_deployment_plan(
     let project_root = std::path::Path::new(&project_root);
 
     if !project_root.is_dir() {
-        return Err(format!("项目路径不存在或不是目录: {}", project_root.display()));
+        return Err(format!(
+            "项目路径不存在或不是目录: {}",
+            project_root.display()
+        ));
     }
 
     // 编译有效配置
@@ -412,7 +412,10 @@ pub fn generate_team_deployment_plan(
     let config = compile_effective_config(&input);
 
     // 生成部署计划
-    Ok(crate::team_config::generate_deployment_plan(&config, project_root))
+    Ok(crate::team_config::generate_deployment_plan(
+        &config,
+        project_root,
+    ))
 }
 
 /// 执行部署计划（M3+M4：写入 + 回执验证）
@@ -510,5 +513,9 @@ pub fn rollback_team_deployment(
     let drift: crate::team_config::DriftReport =
         serde_json::from_str(&drift_json).map_err(|e| format!("解析偏差报告失败: {e}"))?;
 
-    Ok(crate::team_config::execute_rollback(&receipt, &drift, project_root))
+    Ok(crate::team_config::execute_rollback(
+        &receipt,
+        &drift,
+        project_root,
+    ))
 }

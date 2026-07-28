@@ -149,11 +149,7 @@ impl Database {
             .map_err(|e| AppError::Database(e.to_string()))
     }
 
-    pub fn update_team_key_status(
-        &self,
-        slot_slug: &str,
-        status: &str,
-    ) -> Result<(), AppError> {
+    pub fn update_team_key_status(&self, slot_slug: &str, status: &str) -> Result<(), AppError> {
         let conn = lock_conn!(self.conn);
         conn.execute(
             "UPDATE team_key_local SET status = ?2 WHERE slot_slug = ?1",

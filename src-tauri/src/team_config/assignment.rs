@@ -152,12 +152,21 @@ mod tests {
 
     #[test]
     fn status_roundtrip() {
-        assert_eq!(AssignmentStatus::from_str("active"), AssignmentStatus::Active);
+        assert_eq!(
+            AssignmentStatus::from_str("active"),
+            AssignmentStatus::Active
+        );
         assert_eq!(
             AssignmentStatus::from_str("suspended"),
             AssignmentStatus::Suspended
         );
-        assert_eq!(AssignmentStatus::from_str("removed"), AssignmentStatus::Removed);
-        assert_eq!(AssignmentStatus::from_str("unknown"), AssignmentStatus::Active);
+        assert_eq!(
+            AssignmentStatus::from_str("removed"),
+            AssignmentStatus::Removed
+        );
+        assert_eq!(
+            AssignmentStatus::from_str("unknown"),
+            AssignmentStatus::Active
+        );
     }
 }

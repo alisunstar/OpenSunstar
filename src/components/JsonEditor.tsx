@@ -180,9 +180,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       sizingTheme,
       jsonLinter,
       // 暗色主题经 compartment 注入，切换时热替换不重建编辑器
-      themeCompartment.current.of(
-        darkMode ? [oneDark, darkOverrideTheme] : [],
-      ),
+      themeCompartment.current.of(darkMode ? [oneDark, darkOverrideTheme] : []),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           const newValue = update.state.doc.toString();

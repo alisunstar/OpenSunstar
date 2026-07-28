@@ -92,7 +92,11 @@ pub enum SlotAction {
     },
 }
 
-pub fn run(args: TeamKeyArgs, state: &open_sunstar_lib::AppState, json: bool) -> Result<(), String> {
+pub fn run(
+    args: TeamKeyArgs,
+    state: &open_sunstar_lib::AppState,
+    json: bool,
+) -> Result<(), String> {
     match args.action {
         TeamKeyAction::List { org_id } => run_list(state, org_id, json),
         TeamKeyAction::Status { slot } => run_status(state, slot, json),
@@ -106,7 +110,9 @@ pub fn run(args: TeamKeyArgs, state: &open_sunstar_lib::AppState, json: bool) ->
                 endpoint,
                 value,
                 value_file,
-            } => run_slot_create(state, &org_id, &slug, &name, &provider, endpoint, value, value_file, json),
+            } => run_slot_create(
+                state, &org_id, &slug, &name, &provider, endpoint, value, value_file, json,
+            ),
             SlotAction::Rotate {
                 org_id,
                 slug,
@@ -137,7 +143,10 @@ fn run_list(
     } else if keys.is_empty() {
         println!("本机暂无团队密钥。运行 `os team key sync --org-id <ID>` 从控制面同步。");
     } else {
-        println!("{:<20} {:<12} {:<8} {:<10} {}", "SLOT", "PROVIDER", "VERSION", "STATUS", "GRANT_EXPIRES");
+        println!(
+            "{:<20} {:<12} {:<8} {:<10} {}",
+            "SLOT", "PROVIDER", "VERSION", "STATUS", "GRANT_EXPIRES"
+        );
         for key in &keys {
             let expires = chrono::DateTime::from_timestamp_millis(key.grant_expires)
                 .map(|dt| dt.format("%Y-%m-%d %H:%M").to_string())
@@ -157,8 +166,8 @@ fn run_status(
     json: bool,
 ) -> Result<(), String> {
     // Check grant expiry first
-    let expired = open_sunstar_lib::team_key::check_grant_expiry(&state.db)
-        .map_err(|e| e.to_string())?;
+    let expired =
+        open_sunstar_lib::team_key::check_grant_expiry(&state.db).map_err(|e| e.to_string())?;
     if expired > 0 && !json {
         eprintln!("⚠ {expired} 个团队密钥 grant 已过期，请运行 `os team key sync` 续期");
     }
@@ -202,8 +211,13 @@ fn run_status(
                 let active = keys.iter().filter(|k| k.status == "active").count();
                 let expired_count = keys.iter().filter(|k| k.status == "expired").count();
                 let revoked = keys.iter().filter(|k| k.status == "revoked").count();
-                println!("团队密钥状态: {} active, {} expired, {} revoked (共 {} 个)",
-                    active, expired_count, revoked, keys.len());
+                println!(
+                    "团队密钥状态: {} active, {} expired, {} revoked (共 {} 个)",
+                    active,
+                    expired_count,
+                    revoked,
+                    keys.len()
+                );
             }
         }
     }
@@ -212,11 +226,7 @@ fn run_status(
 
 // ─── Network commands (require control plane) ──────────────────────────────────
 
-fn run_sync(
-    state: &open_sunstar_lib::AppState,
-    org_id: &str,
-    json: bool,
-) -> Result<(), String> {
+fn run_sync(state: &open_sunstar_lib::AppState, org_id: &str, json: bool) -> Result<(), String> {
     let rt = tokio::runtime::Runtime::new().map_err(|e| format!("tokio_runtime_failed: {e}"))?;
     let result = rt.block_on(async {
         let base_url = control_plane_url()?;
@@ -229,9 +239,7 @@ fn run_sync(
             .map_err(|_| "team_key_client_failed".to_string())?;
 
         // Fetch grants
-        let url = format!(
-            "{base_url}/v1/organizations/{org_id}/keys/grants?device_id={device_id}"
-        );
+        let url = format!("{base_url}/v1/organizations/{org_id}/keys/grants?device_id={device_id}");
         let response = client
             .get(&url)
             .bearer_auth(&access_token)
@@ -240,7 +248,10 @@ fn run_sync(
             .map_err(|_| "team_key_control_plane_unavailable".to_string())?;
 
         if !response.status().is_success() {
-            return Err(format!("team_key_sync_failed_{}", response.status().as_u16()));
+            return Err(format!(
+                "team_key_sync_failed_{}",
+                response.status().as_u16()
+            ));
         }
 
         let body: serde_json::Value = response
@@ -248,19 +259,44 @@ fn run_sync(
             .await
             .map_err(|_| "team_key_response_invalid".to_string())?;
 
-        let grants = body.get("grants").and_then(|g| g.as_array()).cloned().unwrap_or_default();
+        let grants = body
+            .get("grants")
+            .and_then(|g| g.as_array())
+            .cloned()
+            .unwrap_or_default();
         let mut synced = 0u32;
         let mut grant_ids: Vec<String> = Vec::new();
 
         for grant in &grants {
-            let slot_slug = grant.get("slotSlug").and_then(|s| s.as_str()).unwrap_or_default();
-            let plaintext = grant.get("plaintext").and_then(|p| p.as_str()).unwrap_or_default();
-            let provider_kind = grant.get("providerKind").and_then(|p| p.as_str()).unwrap_or("custom");
+            let slot_slug = grant
+                .get("slotSlug")
+                .and_then(|s| s.as_str())
+                .unwrap_or_default();
+            let plaintext = grant
+                .get("plaintext")
+                .and_then(|p| p.as_str())
+                .unwrap_or_default();
+            let provider_kind = grant
+                .get("providerKind")
+                .and_then(|p| p.as_str())
+                .unwrap_or("custom");
             let endpoint_url = grant.get("endpointUrl").and_then(|e| e.as_str());
-            let version_seq = grant.get("versionSeq").and_then(|v| v.as_i64()).unwrap_or(0);
-            let value_sha256 = grant.get("valueSha256").and_then(|v| v.as_str()).unwrap_or_default();
-            let grant_id = grant.get("grantId").and_then(|g| g.as_str()).unwrap_or_default();
-            let expires_at = grant.get("expiresAt").and_then(|e| e.as_str()).unwrap_or_default();
+            let version_seq = grant
+                .get("versionSeq")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let value_sha256 = grant
+                .get("valueSha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let grant_id = grant
+                .get("grantId")
+                .and_then(|g| g.as_str())
+                .unwrap_or_default();
+            let expires_at = grant
+                .get("expiresAt")
+                .and_then(|e| e.as_str())
+                .unwrap_or_default();
 
             if slot_slug.is_empty() || plaintext.is_empty() {
                 continue;
@@ -414,8 +450,14 @@ fn run_slot_rotate(
     if json {
         output::print_result(&result, true);
     } else {
-        let new_seq = result.get("newVersionSeq").and_then(|v| v.as_i64()).unwrap_or(0);
-        let devices_old = result.get("devicesHoldingOld").and_then(|v| v.as_i64()).unwrap_or(0);
+        let new_seq = result
+            .get("newVersionSeq")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let devices_old = result
+            .get("devicesHoldingOld")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
         println!("✓ 槽位 '{slug}' 已轮转到版本 v{new_seq}");
         if devices_old > 0 {
             println!("  ⚠ {devices_old} 台设备仍持有旧版本 Key（24h 宽限期内自动切换）");
@@ -439,9 +481,7 @@ fn run_rotation_status(
             .build()
             .map_err(|_| "team_key_client_failed".to_string())?;
 
-        let url = format!(
-            "{base_url}/v1/organizations/{org_id}/keys/slots/{slug}/rotation-status"
-        );
+        let url = format!("{base_url}/v1/organizations/{org_id}/keys/slots/{slug}/rotation-status");
         let response = client
             .get(&url)
             .bearer_auth(&access_token)
@@ -463,16 +503,28 @@ fn run_rotation_status(
     if json {
         output::print_result(&result, true);
     } else {
-        let total = result.get("totalDevices").and_then(|v| v.as_i64()).unwrap_or(0);
-        let acked = result.get("ackedDevices").and_then(|v| v.as_i64()).unwrap_or(0);
-        let version = result.get("activeVersionSeq").and_then(|v| v.as_i64()).unwrap_or(0);
+        let total = result
+            .get("totalDevices")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let acked = result
+            .get("ackedDevices")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let version = result
+            .get("activeVersionSeq")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
         println!("槽位 '{slug}' 轮转状态 (当前版本 v{version}):");
         println!("  已确认: {acked}/{total} 台设备");
         if let Some(pending) = result.get("pendingDevices").and_then(|p| p.as_array()) {
             if !pending.is_empty() {
                 println!("  待切换:");
                 for device in pending {
-                    let device_id = device.get("deviceId").and_then(|d| d.as_str()).unwrap_or("?");
+                    let device_id = device
+                        .get("deviceId")
+                        .and_then(|d| d.as_str())
+                        .unwrap_or("?");
                     let user_id = device.get("userId").and_then(|u| u.as_str()).unwrap_or("?");
                     println!("    - device={device_id} user={user_id}");
                 }
@@ -487,23 +539,22 @@ fn run_rotation_status(
 fn resolve_key_value(value: Option<String>, value_file: Option<String>) -> Result<String, String> {
     match (value, value_file) {
         (Some(v), _) => Ok(v),
-        (None, Some(path)) => {
-            std::fs::read_to_string(&path)
-                .map(|s| s.trim().to_string())
-                .map_err(|e| format!("team_key_file_read_failed: {e}"))
+        (None, Some(path)) => std::fs::read_to_string(&path)
+            .map(|s| s.trim().to_string())
+            .map_err(|e| format!("team_key_file_read_failed: {e}")),
+        (None, None) => {
+            Err("team_key_value_required: 需要 --value 或 --value-file 参数".to_string())
         }
-        (None, None) => Err("team_key_value_required: 需要 --value 或 --value-file 参数".to_string()),
     }
 }
 
 fn control_plane_url() -> Result<String, String> {
     let raw = std::env::var("OPENSUNSTAR_CONTROL_PLANE_URL")
         .ok()
-        .or_else(|| {
-            option_env!("OPENSUNSTAR_CONTROL_PLANE_URL_DEFAULT").map(str::to_string)
-        })
+        .or_else(|| option_env!("OPENSUNSTAR_CONTROL_PLANE_URL_DEFAULT").map(str::to_string))
         .ok_or_else(|| {
-            "team_key_control_plane_not_configured: 设置 OPENSUNSTAR_CONTROL_PLANE_URL 环境变量".to_string()
+            "team_key_control_plane_not_configured: 设置 OPENSUNSTAR_CONTROL_PLANE_URL 环境变量"
+                .to_string()
         })?;
     Ok(raw.trim_end_matches('/').to_string())
 }
@@ -512,8 +563,8 @@ fn load_access_token() -> Result<String, String> {
     let session_json = open_sunstar_lib::keychain::get_secret("product/auth/session-v1")
         .map_err(|e| format!("team_key_session_read_failed: {e}"))?
         .ok_or_else(|| "team_key_not_logged_in: 请先在 GUI 中登录产品账户".to_string())?;
-    let session: serde_json::Value = serde_json::from_str(&session_json)
-        .map_err(|_| "team_key_session_invalid".to_string())?;
+    let session: serde_json::Value =
+        serde_json::from_str(&session_json).map_err(|_| "team_key_session_invalid".to_string())?;
     session
         .get("access_token")
         .and_then(|t| t.as_str())

@@ -613,16 +613,37 @@ pub async fn team_key_renew(
 
     if let Some(grants) = response.get("grants").and_then(|g| g.as_array()) {
         for grant in grants {
-            let is_rotated = grant.get("rotated").and_then(|r| r.as_bool()).unwrap_or(false);
+            let is_rotated = grant
+                .get("rotated")
+                .and_then(|r| r.as_bool())
+                .unwrap_or(false);
             if !is_rotated {
                 continue;
             }
-            let slot_slug = grant.get("slotSlug").and_then(|s| s.as_str()).unwrap_or_default();
-            let plaintext = grant.get("plaintext").and_then(|p| p.as_str()).unwrap_or_default();
-            let version_seq = grant.get("versionSeq").and_then(|v| v.as_i64()).unwrap_or(0);
-            let value_sha256 = grant.get("valueSha256").and_then(|v| v.as_str()).unwrap_or_default();
-            let grant_id = grant.get("grantId").and_then(|g| g.as_str()).unwrap_or_default();
-            let expires_at = grant.get("expiresAt").and_then(|e| e.as_str()).unwrap_or_default();
+            let slot_slug = grant
+                .get("slotSlug")
+                .and_then(|s| s.as_str())
+                .unwrap_or_default();
+            let plaintext = grant
+                .get("plaintext")
+                .and_then(|p| p.as_str())
+                .unwrap_or_default();
+            let version_seq = grant
+                .get("versionSeq")
+                .and_then(|v| v.as_i64())
+                .unwrap_or(0);
+            let value_sha256 = grant
+                .get("valueSha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or_default();
+            let grant_id = grant
+                .get("grantId")
+                .and_then(|g| g.as_str())
+                .unwrap_or_default();
+            let expires_at = grant
+                .get("expiresAt")
+                .and_then(|e| e.as_str())
+                .unwrap_or_default();
 
             if slot_slug.is_empty() || plaintext.is_empty() {
                 continue;
@@ -634,7 +655,10 @@ pub async fn team_key_renew(
 
             // Look up existing key for provider_kind/endpoint_url
             let existing = db.get_team_key(slot_slug).map_err(|e| e.to_string())?;
-            let provider_kind = existing.as_ref().map(|k| k.provider_kind.as_str()).unwrap_or("custom");
+            let provider_kind = existing
+                .as_ref()
+                .map(|k| k.provider_kind.as_str())
+                .unwrap_or("custom");
             let endpoint_url = existing.as_ref().and_then(|k| k.endpoint_url.as_deref());
 
             crate::team_key::store_team_key(
@@ -681,10 +705,7 @@ pub async fn team_key_renew(
 pub fn team_key_list(
     state: tauri::State<'_, crate::store::AppState>,
 ) -> Result<Vec<crate::database::TeamKeyLocal>, String> {
-    state
-        .db
-        .list_all_team_keys()
-        .map_err(|e| e.to_string())
+    state.db.list_all_team_keys().map_err(|e| e.to_string())
 }
 
 /// Get status of a single team key slot.
@@ -693,10 +714,7 @@ pub fn team_key_status(
     state: tauri::State<'_, crate::store::AppState>,
     slot_slug: String,
 ) -> Result<Option<crate::database::TeamKeyLocal>, String> {
-    state
-        .db
-        .get_team_key(&slot_slug)
-        .map_err(|e| e.to_string())
+    state.db.get_team_key(&slot_slug).map_err(|e| e.to_string())
 }
 
 #[cfg(test)]

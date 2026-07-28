@@ -313,7 +313,8 @@ fn run_validate(
                 }
                 if scan.quality_level == "N/A" || scan.quality_level.is_empty() {
                     governance_warnings.push(
-                        "Wiki quality level not assessed (run `os wiki lint` to evaluate)".to_string(),
+                        "Wiki quality level not assessed (run `os wiki lint` to evaluate)"
+                            .to_string(),
                     );
                 }
             }

@@ -76,13 +76,13 @@ pub use mcp::{
     sync_single_server_to_codex, sync_single_server_to_gemini,
 };
 pub use provider::{Provider, ProviderMeta};
+pub use services::project_wiki;
 pub use services::{
     simple_connect,
     skill::{migrate_skills_to_ssot, ImportSkillSelection},
     ConfigService, EndpointLatency, McpService, PromptService, ProviderService, ProxyService,
     SkillService, SpeedtestService,
 };
-pub use services::project_wiki;
 pub use settings::{update_settings, AppSettings};
 pub use store::AppState;
 

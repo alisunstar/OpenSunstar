@@ -368,10 +368,7 @@ fn rollback_step(step: &StepReceipt, project_root: &Path) -> RollbackStepResult 
 
     if !backup_path.exists() {
         return RollbackStepResult {
-            error: Some(format!(
-                "备份文件不存在: {}",
-                backup_path.display()
-            )),
+            error: Some(format!("备份文件不存在: {}", backup_path.display())),
             ..base
         };
     }
@@ -385,7 +382,9 @@ fn rollback_step(step: &StepReceipt, project_root: &Path) -> RollbackStepResult 
             let mut parts = Vec::new();
             for c in p.components() {
                 match c {
-                    Component::ParentDir => { parts.pop(); }
+                    Component::ParentDir => {
+                        parts.pop();
+                    }
                     Component::CurDir => {}
                     other => parts.push(other),
                 }
@@ -396,7 +395,8 @@ fn rollback_step(step: &StepReceipt, project_root: &Path) -> RollbackStepResult 
             return RollbackStepResult {
                 error: Some(format!(
                     "路径遍历检测: {} 逃逸出 {}",
-                    step.target_path, project_root.display()
+                    step.target_path,
+                    project_root.display()
                 )),
                 ..base
             };
@@ -491,7 +491,11 @@ fn compute_rollback_summary(results: &[RollbackStepResult]) -> RollbackSummary {
         } else {
             summary.failure_count += 1;
             summary.all_success = false;
-            if r.error.as_ref().map(|e| e.contains("备份")).unwrap_or(false) {
+            if r.error
+                .as_ref()
+                .map(|e| e.contains("备份"))
+                .unwrap_or(false)
+            {
                 summary.skipped_no_backup += 1;
             }
         }
@@ -512,7 +516,10 @@ mod tests {
     use tempfile::TempDir;
 
     fn make_receipt(steps: Vec<StepReceipt>) -> DeploymentReceipt {
-        let success_count = steps.iter().filter(|s| s.success && s.action.is_write()).count();
+        let success_count = steps
+            .iter()
+            .filter(|s| s.success && s.action.is_write())
+            .count();
         DeploymentReceipt {
             project_id: "proj_test".to_string(),
             target_app: "claude_code".to_string(),
@@ -573,8 +580,7 @@ mod tests {
     fn detect_modified_file() {
         let project = TempDir::new().unwrap();
         fs::write(project.path().join(".claudeignore"), b"original").unwrap();
-        let original_sha =
-            crate::team_config::release::sha256_of_content(b"original");
+        let original_sha = crate::team_config::release::sha256_of_content(b"original");
 
         let receipt = make_receipt(vec![make_write_step(
             AssetType::Ignore,
@@ -622,8 +628,7 @@ mod tests {
 
         // 当前文件被修改
         fs::write(project.path().join(".claudeignore"), b"tampered").unwrap();
-        let original_sha =
-            crate::team_config::release::sha256_of_content(b"original content");
+        let original_sha = crate::team_config::release::sha256_of_content(b"original content");
 
         let receipt = make_receipt(vec![make_write_step(
             AssetType::Ignore,

@@ -112,9 +112,9 @@ impl GitRunner {
     pub fn pull_ff_only(&self) -> Result<GitOutput, GitAbortReason> {
         let state = self.safety_state();
         if !state.can_pull() {
-            return Err(state
-                .abort_reason
-                .unwrap_or(GitAbortReason::Other("cannot pull: safety check failed".into())));
+            return Err(state.abort_reason.unwrap_or(GitAbortReason::Other(
+                "cannot pull: safety check failed".into(),
+            )));
         }
         if !state.can_fast_forward {
             return Err(GitAbortReason::Other(

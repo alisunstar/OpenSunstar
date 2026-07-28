@@ -77,7 +77,10 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_team_workspace(&self, workspace_id: &str) -> Result<Option<TeamWorkspace>, AppError> {
+    pub fn get_team_workspace(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Option<TeamWorkspace>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -109,7 +112,10 @@ impl Database {
         Ok(result)
     }
 
-    pub fn get_team_workspace_by_path(&self, source_path: &str) -> Result<Option<TeamWorkspace>, AppError> {
+    pub fn get_team_workspace_by_path(
+        &self,
+        source_path: &str,
+    ) -> Result<Option<TeamWorkspace>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -213,7 +219,10 @@ impl Database {
         Ok(())
     }
 
-    pub fn get_latest_team_release(&self, workspace_id: &str) -> Result<Option<TeamRelease>, AppError> {
+    pub fn get_latest_team_release(
+        &self,
+        workspace_id: &str,
+    ) -> Result<Option<TeamRelease>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -299,13 +308,24 @@ impl Database {
                 profile_id = excluded.profile_id,
                 status = excluded.status,
                 updated_at = excluded.updated_at",
-            params![assignment_id, project_id, workspace_id, profile_id, status, created_at, updated_at],
+            params![
+                assignment_id,
+                project_id,
+                workspace_id,
+                profile_id,
+                status,
+                created_at,
+                updated_at
+            ],
         )
         .map_err(|e| AppError::Database(format!("upsert team_assignments 失败: {e}")))?;
         Ok(())
     }
 
-    pub fn get_active_team_assignment(&self, project_id: &str) -> Result<Option<TeamAssignmentRow>, AppError> {
+    pub fn get_active_team_assignment(
+        &self,
+        project_id: &str,
+    ) -> Result<Option<TeamAssignmentRow>, AppError> {
         let conn = lock_conn!(self.conn);
         let mut stmt = conn
             .prepare(
@@ -423,7 +443,16 @@ impl Database {
                 event_id, workspace_id, project_id, action,
                 actor_ref, details_json, success, created_at
             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            params![event_id, workspace_id, project_id, action, actor_ref, details_json, success as i32, created_at],
+            params![
+                event_id,
+                workspace_id,
+                project_id,
+                action,
+                actor_ref,
+                details_json,
+                success as i32,
+                created_at
+            ],
         )
         .map_err(|e| AppError::Database(format!("insert team_audit_local 失败: {e}")))?;
         Ok(())

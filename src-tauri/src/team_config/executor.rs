@@ -396,12 +396,7 @@ fn read_asset_content(step: &DeploymentStep, team_root: &Path) -> Result<String,
             let entries: Vec<_> = std::fs::read_dir(&asset_path)
                 .map_err(|e| e.to_string())?
                 .flatten()
-                .filter(|e| {
-                    e.path()
-                        .extension()
-                        .map(|ext| ext == "md")
-                        .unwrap_or(false)
-                })
+                .filter(|e| e.path().extension().map(|ext| ext == "md").unwrap_or(false))
                 .collect();
             if let Some(entry) = entries.first() {
                 std::fs::read_to_string(entry.path()).map_err(|e| e.to_string())
@@ -421,10 +416,7 @@ fn read_asset_content(step: &DeploymentStep, team_root: &Path) -> Result<String,
                 return std::fs::read_to_string(&with_ext).map_err(|e| e.to_string());
             }
         }
-        Err(format!(
-            "资产文件不存在: assets/{}",
-            step.asset_id
-        ))
+        Err(format!("资产文件不存在: assets/{}", step.asset_id))
     }
 }
 
@@ -445,8 +437,11 @@ fn write_asset(
             } else {
                 String::new()
             };
-            let merged =
-                crate::services::marker_merge::inject_markdown_section(&existing, &section_id, content);
+            let merged = crate::services::marker_merge::inject_markdown_section(
+                &existing,
+                &section_id,
+                content,
+            );
             ensure_parent_dir(target_abs)?;
             std::fs::write(target_abs, &merged).map_err(|e| e.to_string())?;
             Ok((target_abs.to_path_buf(), merged.into_bytes()))
@@ -561,11 +556,7 @@ fn remove_permission_json(target: &Path, asset_id: &str) -> Result<(), String> {
 }
 
 /// 合并权限到 JSON 设置文件，返回实际写入的字节
-fn merge_permission_json(
-    target: &Path,
-    asset_id: &str,
-    content: &str,
-) -> Result<Vec<u8>, String> {
+fn merge_permission_json(target: &Path, asset_id: &str, content: &str) -> Result<Vec<u8>, String> {
     ensure_parent_dir(target)?;
 
     let mut settings: serde_json::Value = if target.is_file() {
@@ -696,12 +687,15 @@ fn verify_write(
     match &step.asset_type {
         AssetType::Skill => {
             if target_abs.is_dir() {
-                Some(super::deployment::scan_current_sha256(
-                    target_abs.parent()?.parent()?,
-                    &step.asset_type,
-                    &step.asset_id,
-                    target_app,
-                ).unwrap_or_default())
+                Some(
+                    super::deployment::scan_current_sha256(
+                        target_abs.parent()?.parent()?,
+                        &step.asset_type,
+                        &step.asset_id,
+                        target_app,
+                    )
+                    .unwrap_or_default(),
+                )
             } else {
                 None
             }
@@ -763,11 +757,26 @@ mod tests {
             target_app: TargetApp::ClaudeCode,
             summary: PlanSummary {
                 total_assets: steps.len(),
-                create_count: steps.iter().filter(|s| s.action == DeploymentAction::Create).count(),
-                update_count: steps.iter().filter(|s| s.action == DeploymentAction::Update).count(),
-                remove_count: steps.iter().filter(|s| s.action == DeploymentAction::Remove).count(),
-                skip_count: steps.iter().filter(|s| s.action == DeploymentAction::Skip).count(),
-                display_only_count: steps.iter().filter(|s| s.action == DeploymentAction::DisplayOnly).count(),
+                create_count: steps
+                    .iter()
+                    .filter(|s| s.action == DeploymentAction::Create)
+                    .count(),
+                update_count: steps
+                    .iter()
+                    .filter(|s| s.action == DeploymentAction::Update)
+                    .count(),
+                remove_count: steps
+                    .iter()
+                    .filter(|s| s.action == DeploymentAction::Remove)
+                    .count(),
+                skip_count: steps
+                    .iter()
+                    .filter(|s| s.action == DeploymentAction::Skip)
+                    .count(),
+                display_only_count: steps
+                    .iter()
+                    .filter(|s| s.action == DeploymentAction::DisplayOnly)
+                    .count(),
                 write_count,
                 has_high_risk: false,
             },
@@ -911,7 +920,11 @@ mod tests {
 
         fs::create_dir_all(team_pkg.path().join("assets").join("code-review")).unwrap();
         fs::write(
-            team_pkg.path().join("assets").join("code-review").join("SKILL.md"),
+            team_pkg
+                .path()
+                .join("assets")
+                .join("code-review")
+                .join("SKILL.md"),
             "# Code Review Skill\nReview code carefully.",
         )
         .unwrap();
@@ -976,8 +989,18 @@ mod tests {
         let team_pkg = TempDir::new().unwrap();
 
         let plan = make_plan(vec![
-            make_step(AssetType::Mcp, "server", DeploymentAction::DisplayOnly, ".mcp.json"),
-            make_step(AssetType::Ignore, "x", DeploymentAction::Skip, ".claudeignore"),
+            make_step(
+                AssetType::Mcp,
+                "server",
+                DeploymentAction::DisplayOnly,
+                ".mcp.json",
+            ),
+            make_step(
+                AssetType::Ignore,
+                "x",
+                DeploymentAction::Skip,
+                ".claudeignore",
+            ),
         ]);
 
         let options = ExecuteOptions {
@@ -1068,10 +1091,7 @@ mod tests {
         let receipt = execute_deployment_plan(&plan, project.path(), &options);
         assert!(receipt.summary.all_success, "{:?}", receipt.steps[0].error);
 
-        assert!(
-            settings_path.is_file(),
-            "共享配置文件不得被整体删除"
-        );
+        assert!(settings_path.is_file(), "共享配置文件不得被整体删除");
         let after: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(&settings_path).unwrap()).unwrap();
         assert_eq!(after["userSetting"], "keep me", "用户自有配置必须保留");

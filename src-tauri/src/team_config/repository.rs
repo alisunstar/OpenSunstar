@@ -48,8 +48,14 @@ pub enum ConnectWarning {
 impl std::fmt::Display for ConnectWarning {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::DirtyWorktree => write!(f, "git worktree is not clean; pull will be blocked until committed"),
-            Self::Diverged => write!(f, "local branch has diverged from remote; pull will be blocked"),
+            Self::DirtyWorktree => write!(
+                f,
+                "git worktree is not clean; pull will be blocked until committed"
+            ),
+            Self::Diverged => write!(
+                f,
+                "local branch has diverged from remote; pull will be blocked"
+            ),
             Self::NoRemote => write!(f, "no remote 'origin' configured; sync unavailable"),
             Self::MissingVersion => write!(f, "team.toml [team].version is not set"),
             Self::MissingName => write!(f, "team.toml [team].name is not set"),
@@ -78,7 +84,10 @@ impl std::fmt::Display for ConnectError {
             Self::PathNotFound(p) => write!(f, "connect_path_not_found: {p}"),
             Self::NotADirectory(p) => write!(f, "connect_not_a_directory: {p}"),
             Self::TeamTomlNotFound(p) => {
-                write!(f, "connect_team_toml_not_found: {p}/team.toml does not exist")
+                write!(
+                    f,
+                    "connect_team_toml_not_found: {p}/team.toml does not exist"
+                )
             }
             Self::TeamTomlParseError(msg) => write!(f, "connect_team_toml_parse_error: {msg}"),
             Self::TeamTomlReadError(msg) => write!(f, "connect_team_toml_read_error: {msg}"),
@@ -226,9 +235,7 @@ fn collect_warnings(
 /// 生成工作空间 ID（基于路径的确定性标识）
 fn generate_workspace_id(path: &Path) -> String {
     use sha2::{Digest, Sha256};
-    let canonical = path
-        .canonicalize()
-        .unwrap_or_else(|_| path.to_path_buf());
+    let canonical = path.canonicalize().unwrap_or_else(|_| path.to_path_buf());
     let hash = Sha256::digest(canonical.to_string_lossy().as_bytes());
     let hex: String = hash[..8].iter().map(|b| format!("{b:02x}")).collect();
     format!("ws_{hex}")
