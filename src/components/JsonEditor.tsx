@@ -3,20 +3,53 @@ import { EditorView, basicSetup } from "codemirror";
 import { json } from "@codemirror/lang-json";
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { placeholder } from "@codemirror/view";
 import { linter, Diagnostic } from "@codemirror/lint";
 import { useTranslation } from "react-i18next";
 import { Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { formatJSON } from "@/utils/formatters";
+import { useIsDark } from "@/components/theme-provider";
+
+// 暗色模式下的强制覆盖层：保证边框/ gutter 等读设计 token，不被 oneDark 吃掉
+const darkOverrideTheme = EditorView.theme({
+  ".cm-editor": {
+    border: "1px solid hsl(var(--border))",
+    borderRadius: "0.5rem",
+    background: "transparent",
+  },
+  ".cm-editor.cm-focused": {
+    outline: "none",
+    borderColor: "hsl(var(--primary))",
+  },
+  ".cm-scroller": {
+    background: "transparent",
+  },
+  ".cm-gutters": {
+    background: "transparent",
+    borderRight: "1px solid hsl(var(--border))",
+    color: "hsl(var(--muted-foreground))",
+  },
+  ".cm-selectionBackground, .cm-content ::selection": {
+    background: "hsl(var(--primary) / 0.18)",
+  },
+  ".cm-selectionMatch": {
+    background: "hsl(var(--primary) / 0.12)",
+  },
+  ".cm-activeLine": {
+    background: "hsl(var(--primary) / 0.08)",
+  },
+  ".cm-activeLineGutter": {
+    background: "hsl(var(--primary) / 0.08)",
+  },
+});
 
 interface JsonEditorProps {
   id?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
-  darkMode?: boolean;
   rows?: number;
   showValidation?: boolean;
   language?: "json" | "javascript";
@@ -28,7 +61,6 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   value,
   onChange,
   placeholder: placeholderText = "",
-  darkMode = false,
   rows = 12,
   showValidation = true,
   language = "json",
@@ -37,6 +69,11 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
   const { t } = useTranslation();
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // 主题从 ThemeProvider 自取，不再依赖调用方 prop drilling
+  const darkMode = useIsDark();
+  // 主题扩展用 Compartment 包裹：切换时 reconfigure 热替换（A1），
+  // 不重建编辑器，光标/撤销历史/滚动位置全部保留
+  const themeCompartment = useRef(new Compartment());
 
   // JSON linter 函数
   const jsonLinter = useMemo(
@@ -142,6 +179,10 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       baseTheme,
       sizingTheme,
       jsonLinter,
+      // 暗色主题经 compartment 注入，切换时热替换不重建编辑器
+      themeCompartment.current.of(
+        darkMode ? [oneDark, darkOverrideTheme] : [],
+      ),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           const newValue = update.state.doc.toString();
@@ -149,45 +190,6 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
         }
       }),
     ];
-
-    // 如果启用深色模式，添加深色主题
-    if (darkMode) {
-      extensions.push(oneDark);
-      // 在 oneDark 之后强制覆盖边框样式
-      extensions.push(
-        EditorView.theme({
-          ".cm-editor": {
-            border: "1px solid hsl(var(--border))",
-            borderRadius: "0.5rem",
-            background: "transparent",
-          },
-          ".cm-editor.cm-focused": {
-            outline: "none",
-            borderColor: "hsl(var(--primary))",
-          },
-          ".cm-scroller": {
-            background: "transparent",
-          },
-          ".cm-gutters": {
-            background: "transparent",
-            borderRight: "1px solid hsl(var(--border))",
-            color: "hsl(var(--muted-foreground))",
-          },
-          ".cm-selectionBackground, .cm-content ::selection": {
-            background: "hsl(var(--primary) / 0.18)",
-          },
-          ".cm-selectionMatch": {
-            background: "hsl(var(--primary) / 0.12)",
-          },
-          ".cm-activeLine": {
-            background: "hsl(var(--primary) / 0.08)",
-          },
-          ".cm-activeLineGutter": {
-            background: "hsl(var(--primary) / 0.08)",
-          },
-        }),
-      );
-    }
 
     // 创建初始状态
     const state = EditorState.create({
@@ -208,7 +210,18 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
       view.destroy();
       viewRef.current = null;
     };
-  }, [darkMode, rows, height, language, jsonLinter]); // 依赖项中不包含 onChange 和 placeholder，避免不必要的重建
+    // darkMode 不在依赖中：主题切换走下方 reconfigure，编辑器不重建
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rows, height, language, jsonLinter]); // 依赖项中不包含 onChange 和 placeholder，避免不必要的重建
+
+  // 主题热切换：只重配 compartment，保留输入现场
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: themeCompartment.current.reconfigure(
+        darkMode ? [oneDark, darkOverrideTheme] : [],
+      ),
+    });
+  }, [darkMode]);
 
   // 当 value 从外部改变时更新编辑器内容
   useEffect(() => {
@@ -265,7 +278,7 @@ const JsonEditor: React.FC<JsonEditorProps> = ({
         <button
           type="button"
           onClick={handleFormat}
-          className={`${isFullHeight ? "mt-2 flex-shrink-0" : "mt-2"} inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors`}
+          className={`${isFullHeight ? "mt-2 flex-shrink-0" : "mt-2"} inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary transition-colors`}
         >
           <Wand2 className="w-3.5 h-3.5" />
           {t("common.format", { defaultValue: "格式化" })}

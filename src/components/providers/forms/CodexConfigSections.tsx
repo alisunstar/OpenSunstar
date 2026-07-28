@@ -43,22 +43,6 @@ export const CodexAuthSection: React.FC<CodexAuthSectionProps> = ({
   isProxyTakeover = false,
 }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   const handleChange = (newValue: string) => {
     onChange(newValue);
@@ -80,7 +64,6 @@ export const CodexAuthSection: React.FC<CodexAuthSectionProps> = ({
         value={value}
         onChange={handleChange}
         placeholder={t("codexConfig.authJsonPlaceholder")}
-        darkMode={isDarkMode}
         rows={6}
         showValidation={true}
         language="json"
@@ -132,22 +115,6 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
   isProxyTakeover = false,
 }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Mirror value prop to local state (same pattern as CommonConfigEditor)
   const [localValue, setLocalValue] = useState(value);
@@ -363,7 +330,6 @@ export const CodexConfigSection: React.FC<CodexConfigSectionProps> = ({
         value={localValue}
         onChange={handleLocalChange}
         placeholder=""
-        darkMode={isDarkMode}
         rows={8}
         showValidation={false}
         language="javascript"

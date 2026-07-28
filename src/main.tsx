@@ -7,6 +7,7 @@ import "./index.css";
 import i18n from "./i18n";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
+import { MotionConfig } from "framer-motion";
 import { queryClient } from "@/lib/query";
 import { Toaster } from "@/components/ui/sonner";
 import { listen } from "@tauri-apps/api/event";
@@ -90,10 +91,13 @@ async function bootstrap() {
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme="system" storageKey="OpenSunstar-theme">
-          <UpdateProvider>
-            <App />
-            <Toaster />
-          </UpdateProvider>
+          {/* reducedMotion="user"：跟随系统「减少动态效果」偏好全局降级 framer-motion 动画 */}
+          <MotionConfig reducedMotion="user">
+            <UpdateProvider>
+              <App />
+              <Toaster />
+            </UpdateProvider>
+          </MotionConfig>
         </ThemeProvider>
       </QueryClientProvider>
     </React.StrictMode>,

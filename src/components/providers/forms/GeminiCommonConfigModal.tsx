@@ -23,23 +23,7 @@ export const GeminiCommonConfigModal: React.FC<
   GeminiCommonConfigModalProps
 > = ({ isOpen, onClose, value, onSave, error, onExtract, isExtracting }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -137,7 +121,6 @@ export const GeminiCommonConfigModal: React.FC<
           placeholder={`{
   "GEMINI_MODEL": "gemini-3.5-flash"
 }`}
-          darkMode={isDarkMode}
           rows={16}
           showValidation={true}
           language="json"

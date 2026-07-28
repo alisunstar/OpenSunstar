@@ -4,6 +4,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useSyncExternalStore,
 } from "react";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -151,4 +152,27 @@ export function useTheme() {
     throw new Error("useTheme must be used within a ThemeProvider");
   }
   return context;
+}
+
+const SYSTEM_DARK_QUERY = "(prefers-color-scheme: dark)";
+
+function subscribeSystemDark(callback: () => void) {
+  const mediaQuery = window.matchMedia(SYSTEM_DARK_QUERY);
+  mediaQuery.addEventListener("change", callback);
+  return () => mediaQuery.removeEventListener("change", callback);
+}
+
+function getSystemDark() {
+  return window.matchMedia(SYSTEM_DARK_QUERY).matches;
+}
+
+/**
+ * 解析后的实际明暗状态（theme === "system" 时跟随系统并监听系统切换）。
+ * 供需要命令式判断明暗的组件使用（如 CodeMirror 编辑器），
+ * 避免各调用方自行 prop drilling darkMode。
+ */
+export function useIsDark(): boolean {
+  const { theme } = useTheme();
+  const systemDark = useSyncExternalStore(subscribeSystemDark, getSystemDark);
+  return theme === "dark" || (theme === "system" && systemDark);
 }

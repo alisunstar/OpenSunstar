@@ -5,6 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>OpenSunstar - 扩展管理器</title>
     <link rel="icon" href="./assets/icons/app-icon-64.png" type="image/png" />
+    <script>
+      // anti-FOUC：React 挂载前同步恢复主题，避免暗色用户启动白闪
+      (function () {
+        try {
+          var t = localStorage.getItem("OpenSunstar-theme") || "system";
+          var dark =
+            t === "dark" ||
+            (t === "system" &&
+              matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.add(dark ? "dark" : "light");
+          document.documentElement.style.background = dark
+            ? "#1f1f24"
+            : "#ffffff";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

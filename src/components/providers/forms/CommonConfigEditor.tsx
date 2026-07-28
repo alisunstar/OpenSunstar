@@ -36,22 +36,6 @@ export function CommonConfigEditor({
   isExtracting,
 }: CommonConfigEditorProps) {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   // Mirror value prop to local state so checkbox toggles and JsonEditor stay in sync
   // (parent uses form.getValues which doesn't trigger re-renders)
@@ -256,7 +240,6 @@ export function CommonConfigEditor({
     "ANTHROPIC_AUTH_TOKEN": "your-api-key-here"
   }
 }`}
-          darkMode={isDarkMode}
           rows={14}
           showValidation={true}
           language="json"
@@ -336,7 +319,6 @@ export function CommonConfigEditor({
     "ANTHROPIC_BASE_URL": "https://your-api-endpoint.com"
   }
 }`}
-            darkMode={isDarkMode}
             rows={16}
             showValidation={true}
             language="json"

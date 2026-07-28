@@ -4,29 +4,30 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 ring-offset-background disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        // 主按钮：蓝底白字（对应旧版 primary）
-        default:
-          "bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700",
-        // 危险按钮：红底白字（对应旧版 danger）
+        // 主按钮：语义 token，--primary 在浅色/暗色下均保证白字对比度 ≥4.5:1
+        default: "bg-primary text-primary-foreground hover:bg-primary-hover",
+        // 危险按钮
         destructive:
-          "bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700",
+          "bg-destructive text-destructive-foreground hover:bg-destructive-hover",
         // 轮廓按钮
         outline:
-          "border border-border-default bg-background text-muted-foreground hover:bg-gray-100 hover:text-gray-900 hover:border-border-hover dark:hover:bg-gray-800 dark:hover:text-gray-100",
-        // 次按钮：灰色（对应旧版 secondary）
+          "border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground",
+        // 次按钮
         secondary:
-          "text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-gray-200",
-        // 幽灵按钮（对应旧版 ghost）
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        // 幽灵按钮
         ghost:
-          "text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800",
-        // MCP 专属按钮：祖母绿
-        mcp: "bg-emerald-500 text-white hover:bg-emerald-600 dark:bg-emerald-600 dark:hover:bg-emerald-700",
+          "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        // 【例外变体】MCP/安装动作按钮：emerald 品牌色。
+        // 注意：这是基座中唯一带业务语义的变体——MCP 管理是本产品核心域，
+        // emerald 已是事实品牌色。此为例外而非常态，新业务色不得再进入基座。
+        mcp: "bg-mcp text-mcp-foreground hover:bg-mcp-hover",
         // 链接按钮
-        link: "text-blue-500 underline-offset-4 hover:underline dark:text-blue-400",
+        link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2",

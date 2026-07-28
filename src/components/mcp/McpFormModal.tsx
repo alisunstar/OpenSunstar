@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Save, Plus, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
@@ -115,22 +115,6 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [isWizardOpen, setIsWizardOpen] = useState(false);
   const [idError, setIdError] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   const useToml = useTomlFormat;
 
@@ -696,7 +680,6 @@ const McpFormModal: React.FC<McpFormModalProps> = ({
                       ? t("mcp.form.tomlPlaceholder")
                       : t("mcp.form.jsonPlaceholder")
                   }
-                  darkMode={isDarkMode}
                   rows={12}
                   showValidation={!useToml}
                   language={useToml ? "javascript" : "json"}

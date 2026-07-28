@@ -237,7 +237,7 @@ function App() {
           <main className="flex-1 min-h-0 flex flex-col overflow-y-auto">
             {!hideContentHeader && (
               <div
-                className="sticky top-0 z-10 shrink-0 flex items-center justify-between gap-4 px-6 py-2.5 border-b border-border/30 bg-background/90 backdrop-blur-sm"
+                className="sticky top-0 z-10 shrink-0 flex items-center justify-between gap-4 px-6 py-2.5 border-b border-border/30 bg-background/90 backdrop-blur-sm [@media(max-height:640px)]:py-1.5"
                 style={{ WebkitAppRegion: "no-drag" } as React.CSSProperties}
               >
                 <div className="flex items-center gap-3 min-w-0">
@@ -264,7 +264,7 @@ function App() {
                       <ChevronRight className="h-3 w-3" />
                     </button>
                   )}
-                  <h1 className="text-sm font-semibold text-foreground truncate">
+                  <h1 className="text-base font-semibold text-foreground truncate">
                     {AGENT_ASSET_PAGE_TITLES[currentView] ??
                       t(pageMeta.titleKey, {
                         defaultValue: pageMeta.defaultTitle,

@@ -66,24 +66,11 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
   const [targetsText, setTargetsText] = useState("*");
   const [globsText, setGlobsText] = useState("[]");
   const [saving, setSaving] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const parentOptions = useMemo(
     () => parentPrompts.filter((p) => p.id !== editingId),
     [parentPrompts, editingId],
   );
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -279,7 +266,6 @@ const PromptFormPanel: React.FC<PromptFormPanelProps> = ({
             value={content}
             onChange={setContent}
             placeholder={t("prompts.contentPlaceholder", { filename })}
-            darkMode={isDarkMode}
             minHeight="167px"
           />
         </div>

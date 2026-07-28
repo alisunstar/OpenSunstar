@@ -2,25 +2,45 @@ import React, { useRef, useEffect } from "react";
 import { EditorView, basicSetup } from "codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { oneDark } from "@codemirror/theme-one-dark";
-import { EditorState } from "@codemirror/state";
+import { Compartment, EditorState } from "@codemirror/state";
 import { placeholder as placeholderExt } from "@codemirror/view";
+import { useIsDark } from "@/components/theme-provider";
 
 interface MarkdownEditorProps {
   value: string;
   onChange?: (value: string) => void;
   placeholder?: string;
-  darkMode?: boolean;
   readOnly?: boolean;
   className?: string;
   minHeight?: string;
   maxHeight?: string;
 }
 
+// 浅色主题：全部读设计 token，正文色柔化避免纯黑刺眼（A4）
+const lightTheme = EditorView.theme(
+  {
+    "&": {
+      backgroundColor: "transparent",
+    },
+    ".cm-content": {
+      color: "hsl(var(--foreground) / 0.85)",
+    },
+    ".cm-gutters": {
+      backgroundColor: "hsl(var(--muted))",
+      color: "hsl(var(--muted-foreground))",
+      borderRight: "1px solid hsl(var(--border))",
+    },
+    ".cm-activeLineGutter": {
+      backgroundColor: "hsl(var(--accent))",
+    },
+  },
+  { dark: false },
+);
+
 const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   value,
   onChange,
   placeholder: placeholderText = "",
-  darkMode = false,
   readOnly = false,
   className = "",
   minHeight = "300px",
@@ -28,6 +48,11 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
 }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
+  // 主题从 ThemeProvider 自取，不再依赖调用方 prop drilling
+  const darkMode = useIsDark();
+  // 主题扩展用 Compartment 包裹：切换时 reconfigure 热替换（A1），
+  // 不重建编辑器，光标/撤销历史/滚动位置全部保留
+  const themeCompartment = useRef(new Compartment());
 
   useEffect(() => {
     if (!editorRef.current) return;
@@ -62,6 +87,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       baseTheme,
       EditorView.lineWrapping,
       EditorState.readOnly.of(readOnly),
+      themeCompartment.current.of(darkMode ? oneDark : lightTheme),
     ];
 
     if (!readOnly) {
@@ -84,34 +110,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       );
     }
 
-    // 如果启用深色模式，添加深色主题
-    if (darkMode) {
-      extensions.push(oneDark);
-    } else {
-      // 浅色模式下的简单样式调整，使其更融入 UI
-      extensions.push(
-        EditorView.theme(
-          {
-            "&": {
-              backgroundColor: "transparent",
-            },
-            ".cm-content": {
-              color: "#374151", // text-gray-700
-            },
-            ".cm-gutters": {
-              backgroundColor: "#f9fafb", // bg-gray-50
-              color: "#9ca3af", // text-gray-400
-              borderRight: "1px solid #e5e7eb", // border-gray-200
-            },
-            ".cm-activeLineGutter": {
-              backgroundColor: "#e5e7eb",
-            },
-          },
-          { dark: false },
-        ),
-      );
-    }
-
     // 创建初始状态
     const state = EditorState.create({
       doc: value,
@@ -130,7 +128,18 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
       view.destroy();
       viewRef.current = null;
     };
-  }, [darkMode, readOnly, minHeight, maxHeight, placeholderText]); // 添加 placeholderText 依赖以支持国际化切换
+    // darkMode 不在依赖中：主题切换走下方 reconfigure，编辑器不重建
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [readOnly, minHeight, maxHeight, placeholderText]);
+
+  // 主题热切换：只重配 compartment，保留输入现场
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: themeCompartment.current.reconfigure(
+        darkMode ? oneDark : lightTheme,
+      ),
+    });
+  }, [darkMode]);
 
   // 当 value 从外部改变时更新编辑器内容
   useEffect(() => {
@@ -149,9 +158,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
   return (
     <div
       ref={editorRef}
-      className={`border rounded-md overflow-hidden ${
-        darkMode ? "border-gray-800" : "border-gray-200"
-      } ${className}`}
+      className={`border border-input rounded-md overflow-hidden ${className}`}
     />
   );
 };

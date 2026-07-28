@@ -44,9 +44,9 @@ interface PortfolioMatrixProps {
 }
 
 const stageColors: Record<string, string> = {
-  mvp: "#a855f7", // purple
-  rapid: "#10b981", // emerald
-  stable: "#3b82f6", // blue
+  mvp: "hsl(var(--chart-4))", // purple
+  rapid: "hsl(var(--chart-2))", // emerald
+  stable: "hsl(var(--chart-1))", // blue
 };
 
 /** 四象限的横切线。两种分数都是 0-100，60 分作「过半偏上」的分界。 */
@@ -117,7 +117,7 @@ function spreadOverlappingPoints(points: ProjectPoint[]) {
       z: p.codeLines > 0 ? Math.max(Math.log10(p.codeLines + 1) * 8, 20) : 20,
       name: p.name,
       stage: p.stage,
-      fill: stageColors[p.stage] ?? "#6b7280",
+      fill: stageColors[p.stage] ?? "hsl(var(--muted-foreground))",
     };
   });
 }

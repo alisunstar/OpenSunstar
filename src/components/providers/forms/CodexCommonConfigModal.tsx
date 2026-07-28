@@ -29,23 +29,7 @@ export const CodexCommonConfigModal: React.FC<CodexCommonConfigModalProps> = ({
   isExtracting,
 }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -136,7 +120,6 @@ export const CodexCommonConfigModal: React.FC<CodexCommonConfigModalProps> = ({
           placeholder={`# Common Codex config
 
 # Add your common TOML configuration here`}
-          darkMode={isDarkMode}
           rows={16}
           showValidation={false}
           language="javascript"

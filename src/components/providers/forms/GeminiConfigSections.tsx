@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { useTranslation } from "react-i18next";
 import JsonEditor from "@/components/JsonEditor";
 
@@ -27,22 +27,6 @@ export const GeminiEnvSection: React.FC<GeminiEnvSectionProps> = ({
   commonConfigError,
 }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   const handleChange = (newValue: string) => {
     onChange(newValue);
@@ -98,7 +82,6 @@ export const GeminiEnvSection: React.FC<GeminiEnvSectionProps> = ({
         placeholder={`GOOGLE_GEMINI_BASE_URL=https://your-api-endpoint.com/
 GEMINI_API_KEY=sk-your-api-key-here
 GEMINI_MODEL=gemini-3.5-flash`}
-        darkMode={isDarkMode}
         rows={6}
         showValidation={false}
         language="javascript"
@@ -134,22 +117,6 @@ export const GeminiConfigSection: React.FC<GeminiConfigSectionProps> = ({
   configError,
 }) => {
   const { t } = useTranslation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <div className="space-y-2">
@@ -169,7 +136,6 @@ export const GeminiConfigSection: React.FC<GeminiConfigSectionProps> = ({
   "timeout": 30000,
   "maxRetries": 3
 }`}
-        darkMode={isDarkMode}
         rows={8}
         showValidation={true}
         language="json"

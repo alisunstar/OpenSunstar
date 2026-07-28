@@ -46,19 +46,6 @@ export function CommandFormPanel({
     hermes: false,
   });
   const [saving, setSaving] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -170,7 +157,6 @@ export function CommandFormPanel({
           <MarkdownEditor
             value={content}
             onChange={setContent}
-            darkMode={isDarkMode}
             minHeight="280px"
           />
         </div>

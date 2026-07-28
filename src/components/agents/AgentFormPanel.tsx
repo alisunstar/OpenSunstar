@@ -45,7 +45,6 @@ export function AgentFormPanel({
     hermes: false,
   });
   const [saving, setSaving] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const disabledApps = useMemo(
     () => ({
@@ -55,18 +54,6 @@ export function AgentFormPanel({
     }),
     [t],
   );
-
-  useEffect(() => {
-    setIsDarkMode(document.documentElement.classList.contains("dark"));
-    const observer = new MutationObserver(() => {
-      setIsDarkMode(document.documentElement.classList.contains("dark"));
-    });
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ["class"],
-    });
-    return () => observer.disconnect();
-  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -186,7 +173,6 @@ export function AgentFormPanel({
           <MarkdownEditor
             value={content}
             onChange={setContent}
-            darkMode={isDarkMode}
             minHeight="320px"
           />
         </div>

@@ -11,8 +11,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 210 100% 56%;
+    --primary: 214 100% 44%;
     --primary-foreground: 0 0% 100%;
+    --primary-hover: 214 100% 38%;
 
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
@@ -22,12 +23,43 @@
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
+    --destructive-hover: 0 72% 45%;
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 210 100% 56%;
+    --ring: 214 100% 44%;
+
+    /* 数据可视化色板（图表/SVG 专用，随主题切换） */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 25 95% 53%;
+    --chart-4: 271 81% 56%;
+    --chart-5: 350 89% 60%;
+
+    /* MCP/安装动作品牌色（emerald 系，白字对比度 ≥4.5:1） */
+    --mcp: 163 94% 24%;
+    --mcp-foreground: 0 0% 100%;
+    --mcp-hover: 163 94% 19%;
+
+    /* 语义色（成功/警告/信息）：DEFAULT 为主色，subtle 为浅底背景 */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --success-subtle: 142 71% 95%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 10% 3.9%;
+    --warning-subtle: 38 92% 95%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --info-subtle: 217 91% 96%;
+
+    /* elevation 阴影 token：暗色下会被覆盖加强 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md:
+      0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg:
+      0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
     --radius: 0.5rem;
   }
@@ -40,8 +72,9 @@
     --popover: 240 5% 16%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 210 100% 54%;
+    --primary: 210 100% 60%;
     --primary-foreground: 0 0% 100%;
+    --primary-hover: 210 100% 54%;
 
     --secondary: 240 5% 18%;
     --secondary-foreground: 0 0% 98%;
@@ -53,12 +86,48 @@
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
+    --destructive-hover: 0 62.8% 26%;
 
     --border: 240 5% 24%;
     --input: 240 5% 24%;
-    --ring: 210 100% 54%;
+    --ring: 210 100% 60%;
+
+    /* 数据可视化色板：暗色下整体提亮，保持与背景的区分度 */
+    --chart-1: 217 91% 68%;
+    --chart-2: 142 69% 58%;
+    --chart-3: 25 95% 63%;
+    --chart-4: 271 91% 72%;
+    --chart-5: 350 89% 70%;
+
+    --mcp: 160 84% 39%;
+    --mcp-foreground: 0 0% 100%;
+    --mcp-hover: 160 84% 33%;
+
+    /* 语义色（暗色）：主色提亮，subtle 为深色底上的弱填充 */
+    --success: 142 69% 58%;
+    --success-foreground: 142 30% 10%;
+    --success-subtle: 142 30% 15%;
+    --warning: 38 92% 60%;
+    --warning-foreground: 38 50% 10%;
+    --warning-subtle: 38 50% 15%;
+    --info: 217 91% 68%;
+    --info-foreground: 217 50% 10%;
+    --info-subtle: 217 40% 15%;
+
+    /* 暗色 elevation：更深的阴影 + 分层，让浮层在暗底上可辨 */
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+    --shadow-md:
+      0 4px 6px -1px rgb(0 0 0 / 0.5), 0 2px 4px -2px rgb(0 0 0 / 0.5);
+    --shadow-lg:
+      0 10px 15px -3px rgb(0 0 0 / 0.6), 0 4px 6px -4px rgb(0 0 0 / 0.6);
   }
 }
+
+/* ── 材质语言规范（C3）────────────────────────────────────────
+   1. 数据卡片/表单/表格：一律扁平 token（bg-card/border-border），禁渐变
+   2. glass 模糊：仅用于覆盖层（弹窗/tooltip/浮动栏），同屏模糊 ≤2 层
+   3. 渐变：仅限品牌展示位（hero 图标底、空状态插画）
+   ─────────────────────────────────────────────────────────── */
 
 .glass {
   background: rgba(255, 255, 255, 0.7);
@@ -124,8 +193,10 @@
 
 * {
   box-sizing: border-box;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  /* 全局细滚动条：保持滚动位置可感知（可用性），同时不抢视觉 */
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border) / 0.6) transparent;
+  -ms-overflow-style: auto;
 }
 
 html {
@@ -146,11 +217,38 @@ html.dark {
 }
 
 ::-webkit-scrollbar {
-  display: none;
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border) / 0.6);
+  border-radius: 9999px;
+}
+
+/* hover/滚动中才完全显形：可用性与玻璃拟态视觉的折中（A5） */
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* 跟随系统「减少动态效果」偏好：CSS 动画/过渡全局降级（framer-motion 由 MotionConfig 处理） */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 *:focus-visible {
-  @apply outline-2 outline-blue-500 outline-offset-2;
+  @apply outline-2 outline-ring outline-offset-2;
 }
 
 @layer utilities {
@@ -192,7 +290,7 @@ input[type="password"]::-ms-clear {
   display: none;
 }
 
-/* ── Sidebar 自定义滚动条 ──────────────────── */
+/* ── Sidebar 自定义滚动条（更紧凑的 4px，与全局 6px 区分） ──────────────────── */
 
 .sidebar-scroll {
   scrollbar-width: thin;
@@ -200,7 +298,6 @@ input[type="password"]::-ms-clear {
 }
 
 .sidebar-scroll::-webkit-scrollbar {
-  display: block;
   width: 4px;
 }
 
