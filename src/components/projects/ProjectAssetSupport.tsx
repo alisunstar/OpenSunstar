@@ -103,13 +103,20 @@ export function ProjectAssetEnableSwitch({
 }: ProjectAssetEnableSwitchProps) {
   const { t } = useTranslation();
   const linkable = isAssetLinkable(assetType);
+  const label = t("projectAssets.projectLink", {
+    defaultValue: "本项目关联",
+  });
 
   const switchEl = (
-    <Switch
-      checked={checked}
-      onCheckedChange={onCheckedChange}
-      disabled={disabled || !linkable}
-    />
+    <span className="inline-flex shrink-0 items-center gap-2">
+      <span className="text-[11px] text-muted-foreground">{label}</span>
+      <Switch
+        aria-label={label}
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        disabled={disabled || !linkable}
+      />
+    </span>
   );
 
   if (linkable) return switchEl;
@@ -120,9 +127,7 @@ export function ProjectAssetEnableSwitch({
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="inline-flex">{switchEl}</span>
-      </TooltipTrigger>
+      <TooltipTrigger asChild>{switchEl}</TooltipTrigger>
       <TooltipContent side="left" className="max-w-xs text-xs">
         {t("projectAssets.switchAllUnsupported", {
           defaultValue:

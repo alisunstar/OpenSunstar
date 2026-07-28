@@ -54,6 +54,17 @@ vi.mock("@/components/projects/ProjectAssetPanel", () => ({
 vi.mock("@/components/projects/ProjectBlueprintPanel", () => ({
   ProjectBlueprintPanel: () => <div data-testid="blueprint-panel" />,
 }));
+vi.mock("@/components/projects/ProjectAssetHealthSummary", () => ({
+  ProjectAssetHealthSummary: () => <div data-testid="asset-health" />,
+}));
+vi.mock("@/components/projects/ProjectWikiPanel", () => ({
+  ProjectWikiPanel: () => <div data-testid="project-wiki" />,
+}));
+vi.mock("@/components/projects/ProjectEnvironmentSnapshotPanel", () => ({
+  ProjectEnvironmentSnapshotPanel: () => (
+    <div data-testid="project-environment" />
+  ),
+}));
 vi.mock("@/components/projects/ProjectFlowOrchestratorPanel", () => ({
   ProjectFlowOrchestratorPanel: () => <div data-testid="flow-panel" />,
 }));
@@ -126,15 +137,37 @@ function renderPage(
   };
 }
 
-describe("项目 · AI 配置：唯一挂载点", () => {
-  it("配置页挂着蓝图、完整就绪度和资产勾选三块", () => {
+describe("项目资产配置：唯一挂载点", () => {
+  it("默认首屏直接呈现蓝图和项目资产关联，不让长篇就绪列表把它们压到折叠线下", () => {
     renderPage();
 
+    expect(
+      screen.getByRole("heading", { name: "项目资产配置" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("项目级 · alpha")).toBeInTheDocument();
     expect(screen.getByTestId("blueprint-panel")).toBeInTheDocument();
     expect(screen.getByTestId("asset-panel")).toBeInTheDocument();
-    // compact 版只报缺口、不给勾选；配置页要的是完整版
+    expect(screen.queryByTestId("readiness-full")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("asset-health")).not.toBeInTheDocument();
+  });
+
+  it("把详细检查和项目环境拆成独立分区", async () => {
+    const user = userEvent.setup();
+    renderPage();
+
+    expect(screen.getByRole("tab", { name: "资产关联" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await user.click(screen.getByRole("tab", { name: "就绪与生效" }));
     expect(screen.getByTestId("readiness-full")).toBeInTheDocument();
-    expect(screen.queryByTestId("readiness-compact")).toBeNull();
+    expect(screen.getByTestId("asset-health")).toBeInTheDocument();
+    expect(screen.queryByTestId("asset-panel")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: "项目环境" }));
+    expect(screen.getByTestId("project-wiki")).toBeInTheDocument();
+    expect(screen.getByTestId("project-environment")).toBeInTheDocument();
+    expect(screen.queryByTestId("readiness-full")).not.toBeInTheDocument();
   });
 
   it("P0 回归：抽屉不得再挂第二份配置面板", () => {
@@ -164,16 +197,18 @@ describe("项目 · AI 配置：唯一挂载点", () => {
    * 在这里再挂一份就是第三个挂载点 —— 正是上面那条回归要防的东西。
    */
   it("配置页用链接跳流程与方法论，不再挂一份编排面板", async () => {
+    const user = userEvent.setup();
     const { onNavigate } = renderPage();
 
     expect(screen.queryByTestId("flow-panel")).toBeNull();
 
-    await userEvent.click(screen.getByRole("button", { name: /工作流编排/ }));
+    await user.click(screen.getByRole("tab", { name: "项目环境" }));
+    await user.click(screen.getByRole("button", { name: /工作流编排/ }));
     expect(onNavigate).toHaveBeenCalledWith("methodology");
   });
 });
 
-describe("项目 · AI 配置：当前项目是共享状态", () => {
+describe("项目资产配置：当前项目是共享状态", () => {
   it("页内切换器改的是全应用的当前项目，不是页内私有副本", async () => {
     const { onSelectProject } = renderPage();
 

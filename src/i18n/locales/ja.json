@@ -1835,8 +1835,8 @@
     }
   },
   "prompts": {
-    "manage": "プロンプトと指示",
-    "title": "プロンプトと指示",
+    "manage": "Prompt & Rules",
+    "title": "Prompt & Rules",
     "claudeTitle": "Claude プロンプト管理",
     "codexTitle": "Codex プロンプト管理",
     "add": "プロンプトを追加",
@@ -3391,10 +3391,29 @@
     "off": "オフ",
     "description": "クラウド同期は空間軸（デバイス間の一貫性）を解決します。プロジェクト環境スナップショット（時間軸・バージョンロールバック）と相互補完、必要に応じて使用。"
   },
+  "kanban": {
+    "readiness": {
+      "compactTitle": "プロジェクト設定の準備状況",
+      "normalCount": "正常 {{count}} 件",
+      "driftCount": "不一致 {{count}} 件",
+      "missingCount": "未設定 {{count}} 件",
+      "priorityDrift": "優先対応：{{label}} の設定が不一致です",
+      "priorityMissing": "優先対応：{{label}} を設定してください"
+    }
+  },
+  "projectAssets": {
+    "projectLink": "このプロジェクトに関連付け"
+  },
   "projectAiConfig": {
-    "title": "プロジェクト · AI 設定",
+    "title": "プロジェクトアセット設定",
     "subtitle": "単一プロジェクトに AI アセットを適用します：ブループリントの適用、準備状況の確認、有効にするアセットの選択。サイドバーの「Agent 設定」はグローバルライブラリを管理し、このページはそれらを本プロジェクトへ関連付けます。",
     "switcher": "設定対象のプロジェクト",
+    "targetCli": "対象 CLI",
+    "tabs": {
+      "assets": "アセット関連付け",
+      "readiness": "準備と反映",
+      "environment": "プロジェクト環境"
+    },
     "emptyProjects": "プロジェクトがまだありません。追加してから AI アセットを設定してください。",
     "orchestrationLink": "ワークフロー編成",
     "orchestrationHint": "ステージ・プリセット・変更実行プランは「ワークフローと方法論」で設定します。現在のプロジェクトを引き継いで移動します。"

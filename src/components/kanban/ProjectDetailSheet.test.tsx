@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { screen, waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import type { Project } from "@/types/project";
@@ -38,34 +38,22 @@ vi.mock("framer-motion", async () => {
   };
 });
 
-// 用一个最小替身模拟真实结构：修复确认框由 AgentReadinessPanel 在抽屉**内部**渲染
-// （AgentReadinessPanel.tsx:455-466），走的是 Radix Dialog 的 portal。
-vi.mock("@/components/kanban/AgentReadinessPanel", async () => {
-  const React = await import("react");
-  const { ConfirmDialog } = await import("@/components/ConfirmDialog");
-  return {
-    AgentReadinessPanel: () => {
-      const [open, setOpen] = React.useState(false);
-      return (
-        <div>
-          <button type="button" onClick={() => setOpen(true)}>
-            打开修复确认
-          </button>
-          <ConfirmDialog
-            isOpen={open}
-            title="确认修复配置漂移"
-            message="可能覆盖你在 IDE/终端里手动改过的内容"
-            confirmText="确认修复"
-            cancelText="取消"
-            zIndex="top"
-            onConfirm={() => setOpen(false)}
-            onCancel={() => setOpen(false)}
-          />
-        </div>
-      );
-    },
-  };
-});
+let readinessProps: Record<string, unknown> = {};
+vi.mock("@/components/kanban/AgentReadinessPanel", () => ({
+  AgentReadinessPanel: (props: Record<string, unknown>) => {
+    readinessProps = props;
+    return (
+      <button
+        type="button"
+        onClick={() =>
+          (props.onOpenProjectAssets as (() => void) | undefined)?.()
+        }
+      >
+        打开项目资产配置
+      </button>
+    );
+  },
+}));
 
 vi.mock("@/components/kanban/AIRiskAnalysis", () => ({
   AIRiskAnalysis: () => <div data-testid="risk" />,
@@ -106,7 +94,7 @@ const PROJECT: Project = {
   addedAt: new Date("2026-07-01").toISOString(),
 };
 
-function renderSheet(onClose: () => void) {
+function renderSheet(onClose: () => void, onOpenAiConfig = vi.fn()) {
   return renderWithProviders(
     <ProjectDetailSheet
       view={makeProjectView(PROJECT, { progress: 50 })}
@@ -114,48 +102,41 @@ function renderSheet(onClose: () => void) {
       onStageChange={vi.fn()}
       onProgressChange={vi.fn()}
       onClose={onClose}
+      onOpenAiConfig={onOpenAiConfig}
     />,
   );
 }
 
-describe("ProjectDetailSheet Esc 键守卫", () => {
-  it("P0 回归：子确认框打开时按 Esc 只关子框，不得连抽屉一起关掉", async () => {
-    const user = userEvent.setup();
+describe("ProjectDetailSheet 就绪度只保留摘要", () => {
+  it("不再把扫描、修复和完整配置能力传进抽屉", () => {
     const onClose = vi.fn();
     renderSheet(onClose);
 
-    await user.click(screen.getByRole("button", { name: "打开修复确认" }));
-    expect(screen.getByText("确认修复配置漂移")).toBeInTheDocument();
-
-    await user.keyboard("{Escape}");
-
-    // 「取消这次高危修复」和「关掉整个抽屉」是两件事，一次 Esc 只能做前者。
-    expect(onClose).not.toHaveBeenCalled();
-    await waitFor(() =>
-      expect(screen.queryByText("确认修复配置漂移")).not.toBeInTheDocument(),
-    );
+    expect(readinessProps.compact).toBe(true);
+    expect(readinessProps.onScanEffective).toBeUndefined();
+    expect(readinessProps.onRepairDrift).toBeUndefined();
+    expect(readinessProps.onRefresh).toBeUndefined();
+    expect(readinessProps.onNavigate).toBeUndefined();
   });
 
-  it("没有子对话框时 Esc 仍然关闭抽屉", async () => {
+  it("唯一 CTA 打开项目资产配置并关闭抽屉", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
-    renderSheet(onClose);
+    const onOpenAiConfig = vi.fn();
+    renderSheet(onClose, onOpenAiConfig);
 
-    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "打开项目资产配置" }));
 
+    expect(onOpenAiConfig).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+});
 
-  it("子确认框关闭后，再按一次 Esc 才关闭抽屉", async () => {
+describe("ProjectDetailSheet Esc 键守卫", () => {
+  it("按 Esc 关闭抽屉", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     renderSheet(onClose);
-
-    await user.click(screen.getByRole("button", { name: "打开修复确认" }));
-    await user.keyboard("{Escape}");
-    await waitFor(() =>
-      expect(screen.queryByText("确认修复配置漂移")).not.toBeInTheDocument(),
-    );
 
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);

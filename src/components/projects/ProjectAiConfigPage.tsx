@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { FolderPlus, RefreshCw, Sparkles, Workflow } from "lucide-react";
+import { FolderPlus, Sparkles, Workflow } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AgentReadinessPanel } from "@/components/kanban/AgentReadinessPanel";
 import { ProjectAssetPanel } from "@/components/projects/ProjectAssetPanel";
 import { ProjectBlueprintPanel } from "@/components/projects/ProjectBlueprintPanel";
+import { ProjectAssetHealthSummary } from "@/components/projects/ProjectAssetHealthSummary";
+import { ProjectWikiPanel } from "@/components/projects/ProjectWikiPanel";
+import { ProjectEnvironmentSnapshotPanel } from "@/components/projects/ProjectEnvironmentSnapshotPanel";
+import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 import { useAgentReadiness } from "@/hooks/useAIInsight";
 import { repairAssetDrift } from "@/api/aiInsight";
 import { showRepairAssetFeedback } from "@/lib/repairFeedback";
@@ -43,6 +48,7 @@ export function ProjectAiConfigPage({
   const { t } = useTranslation();
   const [scrollSection, setScrollSection] =
     useState<ProjectAssetSection | null>(null);
+  const [activeTab, setActiveTab] = useState("assets");
   const [repairingCheckName, setRepairingCheckName] = useState<string | null>(
     null,
   );
@@ -63,6 +69,7 @@ export function ProjectAiConfigPage({
 
   useEffect(() => {
     setScrollSection(null);
+    setActiveTab("assets");
   }, [project?.id]);
 
   const {
@@ -132,7 +139,7 @@ export function ProjectAiConfigPage({
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-primary shrink-0" />
-              {t("projectAiConfig.title", { defaultValue: "项目 · AI 配置" })}
+              {t("projectAiConfig.title", { defaultValue: "项目资产配置" })}
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
               {t("projectAiConfig.subtitle", {
@@ -142,6 +149,7 @@ export function ProjectAiConfigPage({
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <PageScopeBadge scope="project" projectName={project.name} />
             <label className="sr-only" htmlFor="project-ai-config-switcher">
               {t("projectAiConfig.switcher", { defaultValue: "当前配置项目" })}
             </label>
@@ -160,29 +168,46 @@ export function ProjectAiConfigPage({
                 </option>
               ))}
             </select>
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-lg"
-              onClick={() => void refreshReadiness()}
-              disabled={readinessLoading}
-            >
-              <RefreshCw
-                className={`h-3.5 w-3.5 mr-1.5 ${readinessLoading ? "animate-spin" : ""}`}
-              />
-              {t("common.refresh", { defaultValue: "刷新" })}
-            </Button>
+            <span className="rounded-md border border-border/60 bg-muted/30 px-2 py-1.5 text-xs text-muted-foreground">
+              {t("projectAiConfig.targetCli", { defaultValue: "目标 CLI" })}：
+              <span className="ml-1 font-medium text-foreground">
+                {targetApp === "codex"
+                  ? "Codex"
+                  : targetApp === "gemini"
+                    ? "Gemini"
+                    : targetApp === "opencode"
+                      ? "OpenCode"
+                      : targetApp === "hermes"
+                        ? "Hermes"
+                        : "Claude"}
+              </span>
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="px-6 py-5 space-y-6">
-        {/*
-         * 上排两块并列：左边是「一次性套一整套」（蓝图），右边是「逐项看差在哪」
-         * （就绪度）—— 先决定用哪套基线，再看这套基线在本项目上还缺什么。
-         * 抽屉时代它们只能上下堆着，看右边时看不见左边。
-         */}
-        <div className="grid gap-6 xl:grid-cols-2 items-start">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        className="px-6 py-5"
+      >
+        <TabsList className="grid w-full max-w-xl grid-cols-3">
+          <TabsTrigger value="assets">
+            {t("projectAiConfig.tabs.assets", { defaultValue: "资产关联" })}
+          </TabsTrigger>
+          <TabsTrigger value="readiness">
+            {t("projectAiConfig.tabs.readiness", {
+              defaultValue: "就绪与生效",
+            })}
+          </TabsTrigger>
+          <TabsTrigger value="environment">
+            {t("projectAiConfig.tabs.environment", {
+              defaultValue: "项目环境",
+            })}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="assets" className="mt-5 space-y-6">
           <ProjectBlueprintPanel
             key={`blueprint-${project.id}`}
             projectId={project.id}
@@ -191,6 +216,29 @@ export function ProjectAiConfigPage({
               handleConfigChanged();
             }}
           />
+          <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-1">
+              {t("kanban.detail.projectAssets", {
+                defaultValue: "本项目启用的资产",
+              })}
+            </h3>
+            <p className="text-[11px] text-muted-foreground mb-4">
+              {t("kanban.detail.projectAssetsHint", {
+                defaultValue:
+                  "勾选后仅对当前项目生效；全局库在侧栏维护，项目关联仅存于本地数据库。",
+              })}
+            </p>
+            <ProjectAssetPanel
+              key={`assets-${project.id}`}
+              projectId={project.id}
+              scrollToSection={scrollSection}
+              onConfigChanged={handleConfigChanged}
+              onNavigateToGlobal={onNavigate}
+            />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="readiness" className="mt-5 space-y-6">
           <AgentReadinessPanel
             data={readinessData}
             isLoading={readinessLoading}
@@ -198,67 +246,46 @@ export function ProjectAiConfigPage({
             onScanEffective={scanEffective}
             onRepairDrift={handleRepairDrift}
             repairingCheckName={repairingCheckName}
-            onOpenProjectAssets={(section) => setScrollSection(section ?? null)}
+            onOpenProjectAssets={(section) => {
+              setScrollSection(section ?? null);
+              setActiveTab("assets");
+            }}
             onNavigate={onNavigate}
           />
-        </div>
+          <ProjectAssetHealthSummary projectId={project.id} />
+        </TabsContent>
 
-        {/*
-         * 工作流编排**不**在这里再挂一份。`ProjectFlowOrchestratorPanel` 已经是
-         * 「流程与方法论 → 工作流配置」那一页的主体，那里还带着预设推荐、变更
-         * 执行方案、设计合约一整条链路。在这儿复制一份等于第三个挂载点，
-         * 也就是审查报告 §3.1 反复清理过的那类重复 —— 改口径时永远漏掉一处。
-         * 所以这里只留一个去处明确的入口。
-         */}
-        <button
-          type="button"
-          onClick={() => onNavigate?.("methodology")}
-          className="w-full flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-        >
-          <Workflow className="h-4 w-4 text-primary shrink-0" />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-medium text-foreground">
-              {t("projectAiConfig.orchestrationLink", {
-                defaultValue: "工作流编排",
-              })}
-            </span>
-            <span className="block text-[11px] text-muted-foreground">
-              {t("projectAiConfig.orchestrationHint", {
-                defaultValue:
-                  "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
-              })}
-            </span>
-          </span>
-        </button>
-
-        <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-1">
-            {t("kanban.detail.projectAssets", {
-              defaultValue: "本项目启用的资产",
-            })}
-          </h3>
-          {/*
-           * 这句从抽屉搬过来时**不是**原样照抄：抽屉里的 defaultValue 写的是
-           * 「与侧栏全局库双向同步」，而 `zh.json`（也就是用户真正看到的那句）
-           * 写的是下面这句。两句意思还相反 —— 前者承诺双向，后者说清楚全局库
-           * 在侧栏维护、项目关联只落本地库。搬运时按 zh.json 对齐，顺手清掉
-           * 这条 `i18n:sync` 漂移；否则等于把一句已知说错的话抄进新页面。
-           */}
-          <p className="text-[11px] text-muted-foreground mb-4">
-            {t("kanban.detail.projectAssetsHint", {
-              defaultValue:
-                "勾选后仅对当前项目生效；全局库在侧栏维护，项目关联仅存于本地数据库。",
-            })}
-          </p>
-          <ProjectAssetPanel
-            key={`assets-${project.id}`}
+        <TabsContent value="environment" className="mt-5 space-y-6">
+          <ProjectWikiPanel
             projectId={project.id}
-            scrollToSection={scrollSection}
             onConfigChanged={handleConfigChanged}
-            onNavigateToGlobal={onNavigate}
           />
-        </div>
-      </div>
+          <ProjectEnvironmentSnapshotPanel
+            projectId={project.id}
+            onApplied={handleConfigChanged}
+          />
+          <button
+            type="button"
+            onClick={() => onNavigate?.("methodology")}
+            className="w-full flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-left transition-colors hover:bg-muted/40"
+          >
+            <Workflow className="h-4 w-4 text-primary shrink-0" />
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-medium text-foreground">
+                {t("projectAiConfig.orchestrationLink", {
+                  defaultValue: "工作流编排",
+                })}
+              </span>
+              <span className="block text-[11px] text-muted-foreground">
+                {t("projectAiConfig.orchestrationHint", {
+                  defaultValue:
+                    "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
+                })}
+              </span>
+            </span>
+          </button>
+        </TabsContent>
+      </Tabs>
     </motion.div>
   );
 }

@@ -23,6 +23,7 @@ describe("application navigation contract", () => {
 
   it("keeps the team entry outside global Agent configuration scope", () => {
     expect(PAGE_META.teamCollaboration.defaultTitle).toBe("Team Collaboration");
+    expect(PAGE_META.prompts.defaultTitle).toBe("Prompt & Rules");
     expect(isAgentConfigView("teamCollaboration")).toBe(false);
     expect(isAgentConfigView("prompts")).toBe(true);
   });

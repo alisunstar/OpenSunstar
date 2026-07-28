@@ -37,13 +37,10 @@ import {
   ProjectAssetEnableSwitch,
   ProjectAssetSupportTooltipProvider,
 } from "./ProjectAssetSupport";
-import { ProjectAssetHealthSummary } from "./ProjectAssetHealthSummary";
-import { ProjectWikiPanel } from "./ProjectWikiPanel";
 import {
   summarizeAssetSupport,
   PROMPT_SYNC_APP_IDS,
 } from "@/lib/projectAssets/assetAppSupport";
-import { ProjectEnvironmentSnapshotPanel } from "./ProjectEnvironmentSnapshotPanel";
 import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 
 interface ProjectAssetPanelProps {
@@ -449,15 +446,6 @@ export function ProjectAssetPanel({
   return (
     <ProjectAssetSupportTooltipProvider>
       <div className="space-y-6">
-        <ProjectAssetHealthSummary projectId={projectId} />
-        <ProjectWikiPanel
-          projectId={projectId}
-          onConfigChanged={notifyChanged}
-        />
-        <ProjectEnvironmentSnapshotPanel
-          projectId={projectId}
-          onApplied={notifyChanged}
-        />
         {/* 作用域说明 banner */}
         <div className="flex items-start gap-2.5 rounded-lg border border-blue-500/20 bg-blue-500/5 px-3 py-2.5">
           <div className="flex items-center gap-1.5 shrink-0 mt-0.5">

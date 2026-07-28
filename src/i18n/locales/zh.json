@@ -1985,8 +1985,8 @@
     }
   },
   "prompts": {
-    "manage": "提示词与指令",
-    "title": "提示词与指令",
+    "manage": "Prompt & Rules",
+    "title": "Prompt & Rules",
     "claudeTitle": "Claude 提示词管理",
     "codexTitle": "Codex 提示词管理",
     "add": "添加提示词",
@@ -3706,11 +3706,17 @@
     "readiness": {
       "title": "Agent 配置就绪",
       "loading": "正在评估配置就绪度…",
-      "hint": "点击下方条目可直达对应配置；项目级资产在本页「AI 资产配置」中关联。",
+      "hint": "点击下方条目可直达对应配置；项目级资产在「项目资产配置」中关联。",
       "configure": "去配置",
       "configureGlobal": "前往全局配置",
       "manage": "管理",
-      "openAssetsTab": "打开 AI 资产配置",
+      "openAssetsTab": "打开项目资产配置",
+      "compactTitle": "项目配置就绪度",
+      "normalCount": "{{count}} 项正常",
+      "driftCount": "{{count}} 项不一致",
+      "missingCount": "{{count}} 项缺失",
+      "priorityDrift": "优先处理：{{label}} 配置不一致",
+      "priorityMissing": "优先处理：{{label}} 尚未配置",
       "completedSection": "已完成 {{count}} 项",
       "badgeHint": "点击查看详情",
       "scanEffective": "生效态扫描",
@@ -3830,6 +3836,7 @@
     "goToSubagents": "前往 Subagents 管理"
   },
   "projectAssets": {
+    "projectLink": "本项目关联",
     "hint": "为当前项目勾选要启用的 AI 资产子集。关联仅写入 OpenSunstar 本地库，不会自动修改项目仓库文件；写入各 CLI 仍由侧栏全局资产管理。",
     "partialHint": "部分 CLI 支持有限制，悬停标签查看说明",
     "globalBaselineHint": "全局库已有 {{count}} 条规则作为安全基线；可为当前项目单独勾选启用子集。",
@@ -4304,7 +4311,13 @@
     "orchestrationLink": "工作流编排",
     "subtitle": "为单个项目落地 AI 资产：套用蓝图、检查就绪度、勾选生效的资产。侧栏「Agent 配置」管的是全局库，这里管它们在本项目上的关联。",
     "switcher": "当前配置项目",
-    "title": "项目 · AI 配置"
+    "targetCli": "目标 CLI",
+    "tabs": {
+      "assets": "资产关联",
+      "readiness": "就绪与生效",
+      "environment": "项目环境"
+    },
+    "title": "项目资产配置"
   },
   "ai": {
     "cost": {

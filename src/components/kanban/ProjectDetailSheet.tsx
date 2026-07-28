@@ -10,14 +10,11 @@ import type { ProjectView } from "@/types/projectView";
 import { AIRiskAnalysis } from "./AIRiskAnalysis";
 import { CommitTrendChart } from "./CommitTrendChart";
 import { useAIRisk, useAgentReadiness } from "@/hooks/useAIInsight";
-import { repairAssetDrift } from "@/api/aiInsight";
-import { showRepairAssetFeedback } from "@/lib/repairFeedback";
 import { useAIRoiReport } from "@/hooks/useAIRoiReport";
 import { useAICost } from "@/contexts/AICostContext";
 import { isKeyEventOwnedByNestedLayer } from "@/lib/dialogEscape";
 import { activityTier7d, formatCompactNumber } from "@/lib/portfolioMetrics";
 import { formatAiCostYuan, formatAiTokens } from "@/lib/aiCostFormat";
-import type { PageView } from "@/app/navigation";
 import type { AppId } from "@/lib/api";
 
 export interface ProjectDetailSheetProps {
@@ -34,13 +31,11 @@ export interface ProjectDetailSheetProps {
   onStageChange: (stage: StageKey) => void;
   onProgressChange: (progress: number) => void;
   onClose: () => void;
-  onNavigate?: (view: PageView) => void;
   /**
-   * 去「项目 · AI 配置」页配这个项目。抽屉曾经自己装着那一整块（第二个 Tab），
+   * 去「项目资产配置」页配这个项目。抽屉曾经自己装着那一整块（第二个 Tab），
    * 现在它只负责把用户送过去 —— 480px 装不下要动手勾选的东西。
    */
   onOpenAiConfig?: () => void;
-  onPortfolioConfigChanged?: () => void;
   targetApp?: AppId;
 }
 
@@ -50,9 +45,7 @@ export function ProjectDetailSheet({
   onStageChange,
   onProgressChange,
   onClose,
-  onNavigate,
   onOpenAiConfig,
-  onPortfolioConfigChanged,
   targetApp = "claude",
 }: ProjectDetailSheetProps) {
   const { t: tr } = useTranslation();
@@ -71,9 +64,6 @@ export function ProjectDetailSheet({
     aiTrendInsight,
   } = view;
   const sheetRef = useRef<HTMLDivElement>(null);
-  const [repairingCheckName, setRepairingCheckName] = useState<string | null>(
-    null,
-  );
 
   useEffect(() => {
     const sheet = sheetRef.current;
@@ -122,12 +112,8 @@ export function ProjectDetailSheet({
     riskHook.refresh();
   };
 
-  const {
-    data: readinessData,
-    isLoading: readinessLoading,
-    refresh: refreshReadiness,
-    scanEffective,
-  } = useAgentReadiness(project.path, true, targetApp);
+  const { data: readinessData, isLoading: readinessLoading } =
+    useAgentReadiness(project.path, true, targetApp);
   const { refreshToken } = useAICost();
   const { report: roiReport } = useAIRoiReport(30, refreshToken);
   const projectRoi = roiReport?.by_project.find(
@@ -147,35 +133,6 @@ export function ProjectDetailSheet({
     onOpenAiConfig?.();
     onClose();
   }, [onOpenAiConfig, onClose]);
-
-  const handleNavigate = useCallback(
-    (view: PageView) => {
-      onNavigate?.(view);
-      onClose();
-    },
-    [onNavigate, onClose],
-  );
-
-  const handleRepairDrift = useCallback(
-    async (checkName: string) => {
-      setRepairingCheckName(checkName);
-      try {
-        const result = await repairAssetDrift(
-          project.path,
-          checkName,
-          targetApp,
-        );
-        const ok = showRepairAssetFeedback(result, tr);
-        if (ok || result) {
-          scanEffective();
-          onPortfolioConfigChanged?.();
-        }
-      } finally {
-        setRepairingCheckName(null);
-      }
-    },
-    [project.path, targetApp, scanEffective, onPortfolioConfigChanged, tr],
-  );
 
   function activityLabel(count: number): { text: string; color: string } {
     const tier = activityTier7d(count);
@@ -245,7 +202,7 @@ export function ProjectDetailSheet({
 
           {/*
            * 这里原来有一条 Tab 栏（概览 / AI 资产配置）。第二个 Tab 已经升格成
-           * 侧栏一级页「项目 · AI 配置」—— 抽屉只剩一种形态，一个 Tab 的 Tab 栏
+           * 工作区二级页「项目资产配置」—— 抽屉只剩一种形态，一个 Tab 的 Tab 栏
            * 只是噪音，所以整条删掉，内容直接铺开。
            */}
           <div>
@@ -574,18 +531,13 @@ export function ProjectDetailSheet({
 
           {/*
            * compact 版就绪度：只报「缺什么」，不提供勾选。真正动手配的那一整块
-           * （蓝图 / 编排 / 逐项就绪 / 8 类资产勾选）在「项目 · AI 配置」页，
-           * 面板里的「去配置」按钮把用户送过去并关掉抽屉。
+           * （蓝图 / 逐项就绪 / 8 类资产关联）在「项目资产配置」页，
+           * 面板只留摘要和一个明确入口，并在跳转时关掉抽屉。
            */}
           <AgentReadinessPanel
             data={readinessData}
             isLoading={readinessLoading}
-            onRefresh={refreshReadiness}
-            onScanEffective={scanEffective}
-            onRepairDrift={handleRepairDrift}
-            repairingCheckName={repairingCheckName}
             onOpenProjectAssets={handleOpenAiConfig}
-            onNavigate={handleNavigate}
             compact
           />
         </div>

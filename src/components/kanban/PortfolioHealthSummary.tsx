@@ -33,7 +33,7 @@ interface PortfolioHealthSummaryProps {
    * 是「去配 AI 资产」。现在两件事拆成两个回调，名字各自对得上。
    */
   onOpenProject: (project: Project) => void;
-  /** 去「项目 · AI 配置」页配这个项目。 */
+  /** 去「项目资产配置」页配这个项目。 */
   onOpenProjectAiConfig?: (project: Project) => void;
   /**
    * 真正的漂移修复入口（`KanbanPage.handleRepairProjectDrift`：先拉预览、

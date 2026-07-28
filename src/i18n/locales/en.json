@@ -1853,8 +1853,8 @@
     }
   },
   "prompts": {
-    "manage": "Prompts & Instructions",
-    "title": "Prompts & Instructions",
+    "manage": "Prompt & Rules",
+    "title": "Prompt & Rules",
     "claudeTitle": "Claude Prompt Management",
     "codexTitle": "Codex Prompt Management",
     "add": "Add Prompt",
@@ -3507,7 +3507,13 @@
       "configure": "Configure",
       "configureGlobal": "Open global settings",
       "manage": "Manage",
-      "openAssetsTab": "Open AI assets",
+      "openAssetsTab": "Open project asset setup",
+      "compactTitle": "Project configuration readiness",
+      "normalCount": "{{count}} ready",
+      "driftCount": "{{count}} inconsistent",
+      "missingCount": "{{count}} missing",
+      "priorityDrift": "Prioritize: {{label}} is inconsistent",
+      "priorityMissing": "Prioritize: configure {{label}}",
       "completedSection": "{{count}} completed",
       "badgeHint": "click for details",
       "scanEffective": "Effective-state scan",
@@ -3605,6 +3611,7 @@
     "goToSubagents": "Go to Subagents"
   },
   "projectAssets": {
+    "projectLink": "Link to this project",
     "hint": "Choose the AI asset subset to enable for this project. Links are stored in OpenSunstar only and do not modify the repo; syncing to CLIs still uses the global library in the sidebar.",
     "partialHint": "Some CLIs have limited support — hover chips for details",
     "globalBaselineHint": "{{count}} global rule(s) act as a safety baseline; you can enable a project subset separately.",
@@ -3981,9 +3988,15 @@
     "description": "Cloud sync addresses the spatial axis — keeping config consistent across devices. Complements project environment snapshots (temporal axis · version rollback). Use as needed."
   },
   "projectAiConfig": {
-    "title": "Project · AI Setup",
+    "title": "Project Asset Setup",
     "subtitle": "Land AI assets on a single project: apply a blueprint, check readiness, and pick which assets take effect. The sidebar's Agent Config manages the global library; this page manages how those assets attach to this project.",
     "switcher": "Project being configured",
+    "targetCli": "Target CLI",
+    "tabs": {
+      "assets": "Asset links",
+      "readiness": "Readiness & activation",
+      "environment": "Project environment"
+    },
     "emptyProjects": "No projects yet. Add one before configuring AI assets.",
     "orchestrationLink": "Workflow orchestration",
     "orchestrationHint": "Stages, presets and change-execution plans live under Workflow & Methodology; opening it carries the current project along."

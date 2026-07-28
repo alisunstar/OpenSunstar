@@ -36,7 +36,6 @@ import { useProjectViews } from "@/hooks/kanban/useProjectViews";
 import { pickProjectViews } from "@/lib/kanban/projectView";
 import { revealPathInFolder } from "@/lib/reveal";
 import type { Project } from "@/types/project";
-import type { PageView } from "@/app/navigation";
 import { AINLQueryBar } from "./AINLQueryBar";
 import { AICostStrip } from "./AICostStrip";
 import { AICostPanel } from "./AICostPanel";
@@ -94,7 +93,6 @@ interface KanbanPageProps {
   onAddProject: () => void;
   onClearSelection?: () => void;
   onOpenSettings?: () => void;
-  onNavigate?: (view: PageView) => void;
   onPortfolioDataChanged?: () => void;
   targetApp?: AppId;
   onProjectsReload?: () => void | Promise<void>;
@@ -113,7 +111,6 @@ export function KanbanPage({
   onProjectRemove,
   onAddProject,
   onClearSelection,
-  onNavigate,
   onPortfolioDataChanged,
   targetApp = "claude",
   onProjectsReload,
@@ -426,10 +423,6 @@ export function KanbanPage({
   const handleRefresh = () => {
     refreshScan();
     refreshConfig();
-    bumpPortfolioRefresh();
-  };
-
-  const handlePortfolioConfigChanged = () => {
     bumpPortfolioRefresh();
   };
 
@@ -955,9 +948,7 @@ export function KanbanPage({
               onStageChange={(s) => setStage(detailView.id, s)}
               onProgressChange={(p) => setProjectProgress(detailView.id, p)}
               onClose={closeDetail}
-              onNavigate={onNavigate}
               onOpenAiConfig={() => onOpenProjectAiConfig(detailView.id)}
-              onPortfolioConfigChanged={handlePortfolioConfigChanged}
               targetApp={targetApp}
             />
           )}

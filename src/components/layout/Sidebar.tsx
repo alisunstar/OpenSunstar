@@ -111,7 +111,7 @@ function SectionLabel({
 // ── 组件 ──────────────────────────────────────────
 
 function isWorkspaceActive(view: PageView): boolean {
-  return view === "kanban";
+  return view === "kanban" || view === "projectAiConfig";
 }
 
 export function Sidebar({
@@ -241,7 +241,7 @@ export function Sidebar({
               accent={activeView === "projectAiConfig"}
               collapsed
               title={t("projectAiConfig.title", {
-                defaultValue: "项目 · AI 配置",
+                defaultValue: "项目资产配置",
               })}
             />
             <SidebarItem
@@ -303,7 +303,7 @@ export function Sidebar({
                 label={t("workspace.tabs.dashboard", {
                   defaultValue: "今日工作台",
                 })}
-                active={workspaceActive && workspaceTab === "dashboard"}
+                active={activeView === "kanban" && workspaceTab === "dashboard"}
                 onClick={() => goWorkspace("dashboard")}
                 indent
               />
@@ -311,7 +311,7 @@ export function Sidebar({
                 icon={<LayoutGrid className="w-4 h-4" />}
                 label={t("workspace.tabs.board", { defaultValue: "项目看板" })}
                 active={
-                  workspaceActive &&
+                  activeView === "kanban" &&
                   workspaceTab === "board" &&
                   !activeProjectId
                 }
@@ -323,8 +323,26 @@ export function Sidebar({
                 label={t("workspace.tabs.assetsMatrix", {
                   defaultValue: "AI 资产总览",
                 })}
-                active={workspaceActive && workspaceTab === "assetsMatrix"}
+                active={
+                  activeView === "kanban" && workspaceTab === "assetsMatrix"
+                }
                 onClick={() => goWorkspace("assetsMatrix")}
+                indent
+              />
+              <SidebarItem
+                icon={<Sparkles className="w-4 h-4" />}
+                label={t("projectAiConfig.title", {
+                  defaultValue: "项目资产配置",
+                })}
+                active={activeView === "projectAiConfig"}
+                onClick={openProjectAiConfig}
+                badge={
+                  activeProject ? (
+                    <span className="max-w-[72px] truncate text-[10px] text-muted-foreground/70">
+                      {activeProject.name}
+                    </span>
+                  ) : undefined
+                }
                 indent
               />
               {projects.map((project) => (
@@ -332,7 +350,7 @@ export function Sidebar({
                   key={project.id}
                   project={project}
                   active={
-                    workspaceActive &&
+                    activeView === "kanban" &&
                     workspaceTab === "board" &&
                     activeProjectId === project.id
                   }
@@ -350,33 +368,6 @@ export function Sidebar({
             </SidebarMenu>
 
             {/*
-             * 「项目 · AI 配置」升格成一级页之前，这里挂的是一个缩进的
-             * `${activeProject.name} · AI 配置` —— 只有选中项目时才出现，
-             * 而且藏在「工作区」子项里。它当年是抽屉第二个 Tab 的快捷方式，
-             * 层级跟着落点走。落点现在是一级页，入口就得跟上来：常驻、不缩进、
-             * 没选项目也能点（页面会自己认领第一个项目）。
-             *
-             * 位置也是有意的：紧挨「工作区」之下 —— 先看整体（今日工作台 /
-             * 看板 / 资产总览），再进单项目配置，最后才是「流程与方法论」和
-             * 全局的「Agent 配置」。作用域从宽到窄再到全局库。
-             */}
-            <SidebarItem
-              icon={<Sparkles className="w-4 h-4" />}
-              label={t("projectAiConfig.title", {
-                defaultValue: "项目 · AI 配置",
-              })}
-              active={activeView === "projectAiConfig"}
-              onClick={openProjectAiConfig}
-              badge={
-                activeProject ? (
-                  <span className="max-w-[88px] truncate text-[10px] text-muted-foreground/70">
-                    {activeProject.name}
-                  </span>
-                ) : undefined
-              }
-            />
-
-            {/*
              * 「治理」此前扛着两个无关语义：这里的方法论识别，和
              * `GovernanceDashboard` 的配置生效率统计 —— 两者零共享代码
              * （§2.5）。各自改成说人话的名字之后，「治理」这个词从界面上消失，
@@ -389,18 +380,6 @@ export function Sidebar({
               onClick={() => onNavigate("methodology")}
             />
 
-            {/* 项目作用域提示条：当有选中项目时显示，提醒用户 Agent 配置是全局操作 */}
-            {activeProject && (
-              <div className="mx-2 mb-1.5 px-2 py-1 rounded-md bg-accent/50 text-[10px] flex items-center gap-1.5 truncate">
-                <FolderOpen className="h-3 w-3 text-accent-foreground shrink-0" />
-                <span className="text-accent-foreground font-medium truncate">
-                  {t("scope.activeProject", {
-                    name: activeProject.name,
-                    defaultValue: `项目：${activeProject.name}`,
-                  })}
-                </span>
-              </div>
-            )}
             {/*
              * 「Agent 配置」vs「AI 资产总览」这对名字暗示的是「编辑 vs 查看」，
              * 但两边的实体集合完全相同（8 类）。真实边界是**作用域**：这里是
@@ -415,6 +394,11 @@ export function Sidebar({
             <SidebarMenu
               icon={<LayoutDashboard className="w-4 h-4" />}
               label={t("sidebar.agentConfig", { defaultValue: "Agent 配置" })}
+              badge={
+                <span className="rounded-full border border-border/70 bg-muted/50 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground">
+                  {t("scope.globalScope", { defaultValue: "全局" })}
+                </span>
+              }
               defaultOpen={false}
               active={agentConfigActive}
             >
@@ -436,7 +420,9 @@ export function Sidebar({
               />
               <SidebarItem
                 icon={<BookOpen className="w-4 h-4" />}
-                label={t("prompts.manage", { defaultValue: "Prompts" })}
+                label={t("prompts.manage", {
+                  defaultValue: "Prompt & Rules",
+                })}
                 active={activeView === "prompts"}
                 onClick={() => onNavigate("prompts")}
                 indent

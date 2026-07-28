@@ -1855,8 +1855,8 @@
     }
   },
   "prompts": {
-    "manage": "提示詞與指令",
-    "title": "提示詞與指令",
+    "manage": "Prompt & Rules",
+    "title": "Prompt & Rules",
     "claudeTitle": "Claude 提示詞管理",
     "codexTitle": "Codex 提示詞管理",
     "add": "新增提示詞",
@@ -3744,7 +3744,13 @@
       "configure": "去配置",
       "configureGlobal": "前往全局配置",
       "manage": "管理",
-      "openAssetsTab": "打開 AI 資產配置",
+      "openAssetsTab": "打開專案資產配置",
+      "compactTitle": "專案配置就緒度",
+      "normalCount": "{{count}} 項正常",
+      "driftCount": "{{count}} 項不一致",
+      "missingCount": "{{count}} 項缺失",
+      "priorityDrift": "優先處理：{{label}} 配置不一致",
+      "priorityMissing": "優先處理：{{label}} 尚未配置",
       "completedSection": "已完成 {{count}} 項",
       "badgeHint": "點擊查看詳情",
       "scanEffective": "生效態掃描",
@@ -3842,6 +3848,7 @@
     "goToSubagents": "前往 Subagents 管理"
   },
   "projectAssets": {
+    "projectLink": "本專案關聯",
     "hint": "為當前項目勾選要啟用的 AI 資產子集。關聯僅寫入 OpenSunstar 本地庫，不會自動修改項目倉庫文件；寫入各 CLI 仍由側欄全局資產管理。",
     "partialHint": "部分 CLI 支持有限制，懸停標籤查看說明",
     "globalBaselineHint": "全局庫已有 {{count}} 條規則作為安全基線；可為當前項目單獨勾選啟用子集。",
@@ -4022,9 +4029,15 @@
     "description": "雲同步解決的是「空間軸」問題——配置在多台設備間保持一致。與專案環境快照（時間軸·版本回溯）互為補充，按需選用。"
   },
   "projectAiConfig": {
-    "title": "專案 · AI 配置",
+    "title": "專案資產配置",
     "subtitle": "為單一專案落地 AI 資產：套用藍圖、檢查就緒度、勾選生效的資產。側欄「Agent 配置」管的是全域資產庫，這裡管它們在本專案上的關聯。",
     "switcher": "目前配置專案",
+    "targetCli": "目標 CLI",
+    "tabs": {
+      "assets": "資產關聯",
+      "readiness": "就緒與生效",
+      "environment": "專案環境"
+    },
     "emptyProjects": "還沒有加入專案，先加入一個再來配置 AI 資產。",
     "orchestrationLink": "工作流程編排",
     "orchestrationHint": "階段、預設與變更執行方案在「流程與方法論」裡配置，會帶著目前專案跳過去。"

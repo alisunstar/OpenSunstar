@@ -519,7 +519,7 @@ export interface ProjectAssetsMatrixProps {
   /** 点项目名 → 打开项目详情抽屉（概览）。 */
   onOpenProject: (project: Project) => void;
   /**
-   * 单元格详情里的「查看项目资产」→ 去「项目 · AI 配置」页。
+   * 单元格详情里的「查看项目资产」→ 去「项目资产配置」页。
    *
    * 这两件事以前挤在同一个 `onOpenProject(project, { assetsTab?: boolean })`
    * 里，靠一个 boolean 分流。落点已经是两个页面了，回调也就该是两个。

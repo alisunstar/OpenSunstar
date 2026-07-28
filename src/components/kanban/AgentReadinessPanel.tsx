@@ -138,6 +138,106 @@ export function AgentReadinessPanel({
 
   const maxScore = readinessMaxScore(data.max_score);
 
+  if (compact) {
+    const drifted = data.details.filter(
+      (item) =>
+        item.effective_state === "drifted" || item.status === "unhealthy",
+    );
+    const normal = data.details.filter(
+      (item) =>
+        !isIndeterminateStatus(item.status) &&
+        item.effective_state !== "drifted" &&
+        item.status !== "unhealthy" &&
+        item.score >= item.weight,
+    );
+    const missing = data.details.filter(
+      (item) =>
+        !isIndeterminateStatus(item.status) &&
+        item.effective_state !== "drifted" &&
+        item.status !== "unhealthy" &&
+        item.score < item.weight,
+    );
+    const priority = drifted[0] ?? missing[0] ?? null;
+
+    return (
+      <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 shrink-0 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">
+                {t("kanban.readiness.compactTitle", {
+                  defaultValue: "项目配置就绪度",
+                })}
+              </h3>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                {t("kanban.readiness.normalCount", {
+                  count: normal.length,
+                  defaultValue: "{{count}} 项正常",
+                })}
+              </span>
+              <span aria-hidden> · </span>
+              <span className="font-medium text-amber-600 dark:text-amber-400">
+                {t("kanban.readiness.driftCount", {
+                  count: drifted.length,
+                  defaultValue: "{{count}} 项不一致",
+                })}
+              </span>
+              <span aria-hidden> · </span>
+              <span>
+                {t("kanban.readiness.missingCount", {
+                  count: missing.length,
+                  defaultValue: "{{count}} 项缺失",
+                })}
+              </span>
+            </p>
+          </div>
+          <span
+            className={cn(
+              "shrink-0 text-lg font-bold tabular-nums",
+              readinessScoreTone(data.score, maxScore),
+            )}
+          >
+            {data.score}
+            <span className="text-xs font-normal text-muted-foreground">
+              /{maxScore}
+            </span>
+          </span>
+        </div>
+
+        {priority && (
+          <p className="mt-4 rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            {drifted.includes(priority)
+              ? t("kanban.readiness.priorityDrift", {
+                  label: priority.label,
+                  defaultValue: "优先处理：{{label}} 配置不一致",
+                })
+              : t("kanban.readiness.priorityMissing", {
+                  label: priority.label,
+                  defaultValue: "优先处理：{{label}} 尚未配置",
+                })}
+          </p>
+        )}
+
+        {onOpenProjectAssets && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-4 w-full justify-between"
+            onClick={() => onOpenProjectAssets()}
+          >
+            {t("kanban.readiness.openAssetsTab", {
+              defaultValue: "打开项目资产配置",
+            })}
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   const handleAction = (checkName: string, score: number) => {
     const action = getReadinessAction(checkName, score);
 
@@ -417,14 +517,12 @@ export function AgentReadinessPanel({
         </div>
       </div>
 
-      {!compact && (
-        <p className="text-[11px] text-muted-foreground/80 -mt-1 mb-1">
-          {t("kanban.readiness.hint", {
-            defaultValue:
-              "点击下方条目可直达对应配置；项目级资产在本页「AI 资产配置」中关联。",
-          })}
-        </p>
-      )}
+      <p className="text-[11px] text-muted-foreground/80 -mt-1 mb-1">
+        {t("kanban.readiness.hint", {
+          defaultValue:
+            "点击下方条目可直达对应配置；项目级资产在「项目资产配置」中关联。",
+        })}
+      </p>
 
       <div className="space-y-2">
         {incomplete.map(renderItem)}
@@ -460,19 +558,6 @@ export function AgentReadinessPanel({
         <p className="text-[11px] text-primary/70 leading-relaxed rounded-lg bg-primary/5 px-3 py-2">
           {data.llm_suggestion}
         </p>
-      )}
-
-      {compact && onOpenProjectAssets && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full mt-2"
-          onClick={() => onOpenProjectAssets()}
-        >
-          {t("kanban.readiness.openAssetsTab", {
-            defaultValue: "打开 AI 资产配置",
-          })}
-        </Button>
       )}
 
       {onRepairDrift && (

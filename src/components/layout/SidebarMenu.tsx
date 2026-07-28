@@ -11,6 +11,7 @@ import {
 interface SidebarMenuProps {
   icon: React.ReactNode;
   label: string;
+  badge?: React.ReactNode;
   defaultOpen?: boolean;
   active?: boolean;
   children: React.ReactNode;
@@ -21,6 +22,7 @@ interface SidebarMenuProps {
 export function SidebarMenu({
   icon,
   label,
+  badge,
   defaultOpen = false,
   active,
   children,
@@ -55,6 +57,8 @@ export function SidebarMenu({
 
           {/* 标签 */}
           <span className="flex-1 text-left font-medium">{label}</span>
+
+          {badge}
 
           {/* 折叠箭头 */}
           <ChevronDown

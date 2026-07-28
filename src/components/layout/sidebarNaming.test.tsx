@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import { Sidebar } from "@/components/layout/Sidebar";
 import zh from "@/i18n/locales/zh.json";
+import type { PageView } from "@/app/navigation";
+import type { Project } from "@/types/project";
 import { renderWithProviders } from "../../../tests/renderWithProviders";
 
 /**
@@ -47,11 +50,73 @@ const NAMES = {
   projectLanding: "AI 资产总览",
 } as const;
 
-function renderSidebar() {
+const ALPHA: Project = {
+  id: "p1",
+  name: "alpha",
+  path: "E:/projects/alpha",
+  addedAt: new Date("2026-07-01").toISOString(),
+};
+
+function renderSidebar({
+  activeView = "kanban",
+  projects = [],
+  activeProjectId,
+}: {
+  activeView?: PageView;
+  projects?: Project[];
+  activeProjectId?: string;
+} = {}) {
   return renderWithProviders(
-    <Sidebar activeView="kanban" onNavigate={vi.fn()} projects={[]} />,
+    <Sidebar
+      activeView={activeView}
+      onNavigate={vi.fn()}
+      projects={projects}
+      activeProjectId={activeProjectId}
+    />,
   );
 }
+
+describe("项目资产配置归入工作区", () => {
+  it("作为工作区常驻二级入口，并保留当前项目徽标", () => {
+    renderSidebar({
+      activeView: "projectAiConfig",
+      projects: [ALPHA],
+      activeProjectId: ALPHA.id,
+    });
+
+    const workspaceButton = screen.getByRole("button", { name: "工作区" });
+    const workspaceContentId = workspaceButton.getAttribute("aria-controls");
+    const workspaceGroup = workspaceContentId
+      ? document.getElementById(workspaceContentId)
+      : null;
+    const projectConfigButton = screen.getByRole("button", {
+      name: /项目资产配置.*alpha/,
+    });
+    const dashboardButton = screen.getByRole("button", { name: "今日工作台" });
+
+    expect(workspaceGroup).toContainElement(projectConfigButton);
+    expect(projectConfigButton).toHaveClass("bg-primary/10");
+    expect(dashboardButton).not.toHaveClass("bg-primary/10");
+    expect(screen.queryByText("项目：alpha")).not.toBeInTheDocument();
+  });
+
+  it("Agent 配置在导航上明确标记为全局作用域", () => {
+    renderSidebar();
+
+    expect(
+      screen.getByRole("button", { name: /Agent 配置.*全局/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("Prompt 资产入口统一使用英文名 Prompt & Rules", async () => {
+    const user = userEvent.setup();
+    renderSidebar();
+
+    await user.click(screen.getByRole("button", { name: /Agent 配置.*全局/ }));
+    expect(screen.getByText("Prompt & Rules")).toBeInTheDocument();
+    expect(screen.queryByText("提示词与指令")).not.toBeInTheDocument();
+  });
+});
 
 describe("侧栏没有「分组标题 = 唯一菜单项」的空嵌套", () => {
   it("P0 回归：一个名字在侧栏里只出现一次 —— 出现两次就是空嵌套", () => {

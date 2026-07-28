@@ -112,7 +112,7 @@ function presetLabelKey(presetId: string): string {
 interface MethodologyPageProps {
   projects: Project[];
   /**
-   * 从「项目 · AI 配置」跳过来时带上的当前项目。那一页刻意不再挂第二份
+   * 从「项目资产配置」跳过来时带上的当前项目。那一页刻意不再挂第二份
    * `ProjectFlowOrchestratorPanel`（避免第三个挂载点），只给一个入口 ——
    * 如果跳过来还要用户再选一遍项目，这个入口就不如原来抽屉里那份好用。
    */

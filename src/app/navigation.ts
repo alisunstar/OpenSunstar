@@ -80,7 +80,7 @@ export const PAGE_META: Record<PageView, PageMeta> = {
   },
   mcp: { titleKey: "mcp.title", defaultTitle: "MCP" },
   mcpDiscovery: { titleKey: "mcp.discover", defaultTitle: "Discover MCP" },
-  prompts: { titleKey: "prompts.title", defaultTitle: "Prompts" },
+  prompts: { titleKey: "prompts.title", defaultTitle: "Prompt & Rules" },
   commands: { titleKey: "commands.title", defaultTitle: "Commands" },
   hooks: { titleKey: "hooks.title", defaultTitle: "Hooks" },
   convert: { titleKey: "convert.title", defaultTitle: "Convert" },
@@ -95,7 +95,7 @@ export const PAGE_META: Record<PageView, PageMeta> = {
   sessions: { titleKey: "sessionManager.title", defaultTitle: "Context" },
   kanban: { titleKey: "workspace.title", defaultTitle: "Workspace" },
   /**
-   * 「项目 · AI 配置」原先是项目详情抽屉里的第二个 Tab。抽屉宽 480px，而这块
+   * 「项目资产配置」原先是项目详情抽屉里的第二个 Tab。抽屉宽 480px，而这块
    * 是全页最重的**动手操作**界面（套蓝图、逐项看就绪度、在 8 类资产里勾选），
    * 塞在这个宽度里既看不全也点不准 —— 所以升格成侧栏一级页。
    *
@@ -105,7 +105,7 @@ export const PAGE_META: Record<PageView, PageMeta> = {
    */
   projectAiConfig: {
     titleKey: "projectAiConfig.title",
-    defaultTitle: "项目 · AI 配置",
+    defaultTitle: "项目资产配置",
   },
   tokenStats: { titleKey: "sidebar.tokenStats", defaultTitle: "AI Tokens" },
   methodology: {

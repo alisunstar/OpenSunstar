@@ -1,4 +1,5 @@
 import { Globe2, FolderOpen } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -13,13 +14,15 @@ interface PageScopeBadgeProps {
 /**
  * 作用域标记组件，用于在全局面板或项目面板标题旁显示当前操作的作用域。
  * - global: 蓝色地球图标 + "全局"
- * - project: 绿色文件夹图标 + 项目名称
+ * - project: 绿色文件夹图标 + "项目级" + 项目名称
  */
 export function PageScopeBadge({
   scope,
   projectName,
   className,
 }: PageScopeBadgeProps) {
+  const { t } = useTranslation();
+
   if (scope === "global") {
     return (
       <Badge
@@ -31,7 +34,7 @@ export function PageScopeBadge({
         )}
       >
         <Globe2 className="h-3 w-3" />
-        全局
+        {t("scope.globalScope", { defaultValue: "全局" })}
       </Badge>
     );
   }
@@ -46,7 +49,8 @@ export function PageScopeBadge({
       )}
     >
       <FolderOpen className="h-3 w-3" />
-      {projectName ?? "项目"}
+      {t("scope.projectScope", { defaultValue: "项目级" })} ·{" "}
+      {projectName ?? t("assetsMatrix.project", { defaultValue: "项目" })}
     </Badge>
   );
 }
