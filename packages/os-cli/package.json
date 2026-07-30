@@ -1,8 +1,8 @@
 {
   "name": "opensunstar-os",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "OpenSunstar CLI (os) — governance, provider switch, and TUI dashboard",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "author": "Jason Young",
   "repository": {
     "type": "git",

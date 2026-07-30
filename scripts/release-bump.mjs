@@ -169,8 +169,8 @@ function buildReleaseNoteEn(nextVersion, date, body, schemaVersion) {
   const schemaLine = schemaVersion ? `v${schemaVersion}` : "see CHANGELOG";
   return `# OpenSunstar v${nextVersion} Release Notes
 
-**Release date:** ${date}  
-**License:** MIT  
+**Release date:** ${date}
+**License:** Apache-2.0
 **Database schema:** ${schemaLine}
 
 ---
@@ -197,7 +197,7 @@ ${changes}
 
 ---
 
-**MIT License** — Core is open source; team/enterprise capabilities may be offered separately.
+**Apache License 2.0** — This repository contains the public client. The hosted commercial control plane is separate proprietary software; see [LICENSING.md](../LICENSING.md).
 `;
 }
 
@@ -206,8 +206,8 @@ function buildReleaseNoteZh(nextVersion, date, body, schemaVersion) {
   const schemaLine = schemaVersion ? `v${schemaVersion}` : "见 CHANGELOG";
   return `# OpenSunstar v${nextVersion} 发布说明
 
-**发布日期：** ${date}  
-**许可证：** MIT  
+**发布日期：** ${date}
+**许可证：** Apache-2.0
 **数据库 schema：** ${schemaLine}
 
 ---
@@ -231,6 +231,10 @@ ${changes}
 - [CHANGELOG](../../CHANGELOG.md)
 - [VERSIONING.md](../VERSIONING.md)
 - [工作区模块说明](../kanban.md)
+
+---
+
+**Apache License 2.0** — 本仓库为公共客户端；托管式商业控制面是独立的私有软件。边界说明见 [LICENSING.md](../LICENSING.md)。
 
 `;
 }

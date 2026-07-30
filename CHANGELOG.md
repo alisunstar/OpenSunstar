@@ -9,6 +9,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.2.0] - 2026-07-28
+
+### Added
+
+- **Project Wiki baseline:** initialize and inspect project-local Wiki structures, including source maps, flows, components, APIs, freshness signals, and follow-up maintenance actions
+- **Team configuration client:** Git-native team package connection, deployment planning, audit receipts, and workspace persistence for the separately hosted commercial control plane
+- **Usage sidecar storage:** isolate high-volume usage telemetry from the primary configuration database with atomic refresh and compatibility migration
+
+### Changed
+
+- **Workspace information architecture:** separate portfolio overview, project asset configuration, global Agent assets, and project environment responsibilities; clarify navigation scope and accessibility
+- **Project asset configuration:** move the project-scoped workbench out of the drawer, simplify readiness summaries, and make asset association the default task
+- **Internationalization and theming:** use source defaults consistently, close locale coverage gaps, route colors through semantic tokens, and preserve theme switching
+- **License and product boundary:** publish the public desktop/CLI client under Apache-2.0 and document the separately maintained proprietary cloud control plane
+
+### Fixed
+
+- **AI and portfolio states:** preserve query failures instead of presenting them as zero values, remove conditional Hook paths, and improve keyboard access to the asset matrix
+- **Team control-plane errors:** surface server denial reasons instead of replacing them with misleading local messages
+
 ## [1.1.9] - 2026-07-17
 
 ### Added
@@ -222,4 +242,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### License
 
-Released under the [MIT License](LICENSE).
+Released under the MIT License included with the [v0.1.0 release](https://github.com/alisunstar/OpenSunstar/blob/v0.1.0/LICENSE). Releases through v1.1.9 retain their original MIT terms; see [license transition](docs/LICENSING.md#license-transition).

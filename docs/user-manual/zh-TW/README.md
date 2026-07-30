@@ -1,6 +1,6 @@
 # OpenSunstar 使用者手冊（繁體中文）
 
-**版本：** v0.1.0 · **授權條款：** MIT
+**版本：** v1.2.0 · **授權條款：** Apache-2.0
 
 > 面向 Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes 的原生桌面管理器。
 

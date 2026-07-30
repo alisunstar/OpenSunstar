@@ -1,6 +1,6 @@
 {
   "name": "OpenSunstar",
-  "version": "1.1.9",
+  "version": "1.2.0",
   "description": "All-in-One Assistant for Claude Code, Codex & Gemini CLI",
   "type": "module",
   "scripts": {
@@ -36,7 +36,7 @@
   },
   "keywords": [],
   "author": "Jason Young",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "packageManager": "pnpm@11.5.2",
   "repository": {
     "type": "git",

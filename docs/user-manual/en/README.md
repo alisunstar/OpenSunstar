@@ -1,6 +1,6 @@
 # OpenSunstar User Manual (English)
 
-**Version:** v0.1.0 · **License:** MIT
+**Version:** v1.2.0 · **License:** Apache-2.0
 
 > Native desktop manager for Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw, and Hermes.
 

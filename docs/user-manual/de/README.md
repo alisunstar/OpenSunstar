@@ -1,6 +1,6 @@
 # OpenSunstar Benutzerhandbuch (Deutsch)
 
-**Version:** v0.1.0 · **Lizenz:** MIT
+**Version:** v1.2.0 · **Lizenz:** Apache-2.0
 
 > Native Desktop-Steuerzentrale für Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw und Hermes.
 

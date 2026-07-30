@@ -4,8 +4,8 @@
 
 ### Der All-in-One-Desktop-Manager für KI-Coding-CLI-Tools
 
-[![Version](https://img.shields.io/badge/version-v1.1.9-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
@@ -260,6 +260,6 @@ OpenSunstar baut auf dem Open-Source-Projekt [cc-switch](https://github.com/fari
 
 ### Lizenz
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE)
 
-Kern ist Open Source; Team- und Enterprise-Funktionen sind für separate kommerzielle Vereinbarungen geplant.
+Die Desktop-App, die `os`-CLI und die lokalen Funktionen in diesem Repository bilden den öffentlichen Client unter Apache-2.0. Die gehostete kommerzielle Steuerungsebene für Konten, Abonnements und Abrechnung, mandantenfähige Teamdienste sowie Cloud-Betrieb ist separate proprietäre Software und nicht von der Lizenz dieses Repositorys abgedeckt. Siehe [Lizenzierung und Produktgrenze](docs/LICENSING.md).

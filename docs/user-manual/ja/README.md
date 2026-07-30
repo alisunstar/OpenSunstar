@@ -1,6 +1,6 @@
 # OpenSunstar ユーザーマニュアル（日本語）
 
-**バージョン：** v0.1.0 · **ライセンス：** MIT
+**バージョン：** v1.2.0 · **ライセンス：** Apache-2.0
 
 > Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes 向けネイティブデスクトップマネージャー。
 

@@ -8,9 +8,9 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.9-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
@@ -177,7 +177,7 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | :---------: | :-------------: |
 | ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.9** — Subscription account health & advisory routing, brand icon refresh, Codex/proxy hardening, schema v37.
+> **v1.2.0** — Project Wiki baselines, project asset workflow improvements, usage sidecar storage, and Apache-2.0 licensing; database schema v43.
 
 ---
 
@@ -381,6 +381,6 @@ OpenSunstar builds upon the open-source [cc-switch](https://github.com/farion123
 
 ### License
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE)
 
-Core is open source; team and enterprise capabilities are planned to be offered under separate commercial agreements.
+The desktop app, `os` CLI, and local capabilities in this repository form the public client. The hosted commercial control plane—accounts, subscriptions and billing, multi-tenant team services, and cloud operations—is separate proprietary software and is not covered by this repository's license. See [Licensing and product boundary](docs/LICENSING.md).

@@ -53,4 +53,4 @@ Place a prebuilt binary at `vendor/os` (or `vendor/os.exe` on Windows), then run
 
 ## License
 
-MIT
+Apache-2.0. See the repository [LICENSE](../../LICENSE) and [licensing boundary](../../docs/LICENSING.md).

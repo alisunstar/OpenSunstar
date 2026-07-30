@@ -6,9 +6,9 @@
 
 *跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
 
-[![Version](https://img.shields.io/badge/version-v1.1.9-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
@@ -175,7 +175,7 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | :------: | :--------: |
 | ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
 
-> **v1.1.9** — 订阅账号健康与建议式路由、品牌图标刷新、Codex/代理加固；数据库 schema v37。
+> **v1.2.0** — 项目 Wiki 基线、项目资产工作流改进、用量 sidecar 存储及 Apache-2.0 许可；数据库 schema v43。
 
 ---
 
@@ -381,6 +381,6 @@ OpenSunstar 的诞生离不开 [cc-switch](https://github.com/farion1231/cc-swit
 
 ### 许可证
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE)
 
-核心开源；团队/企业能力以单独商业协议提供（规划中）。
+本仓库中的桌面应用、`os` CLI 与本地能力组成 Apache-2.0 公共客户端。账号、订阅与计费、多租户团队服务及云端运维属于独立维护的私有商业控制面，不在本仓库许可证授权范围内。详见[许可与产品边界](docs/LICENSING.md)。

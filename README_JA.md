@@ -4,8 +4,8 @@
 
 ### AI コーディング CLI ツールのオールインワン・デスクトップマネージャー
 
-[![Version](https://img.shields.io/badge/version-v1.1.9-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)
 
@@ -244,6 +244,6 @@ OpenSunstar は [cc-switch](https://github.com/farion1231/cc-switch) オープ�
 
 ### ライセンス
 
-[MIT](LICENSE)
+[Apache License 2.0](LICENSE)
 
-コアはオープンソース。チーム/エンタープライズ向け機能は、別途商用ライセンスで提供予定（計画中）。
+このリポジトリ内のデスクトップアプリ、`os` CLI、ローカル機能は Apache-2.0 の公開クライアントです。アカウント、サブスクリプションと課金、マルチテナントのチームサービス、クラウド運用を担うホステッド商用コントロールプレーンは別途管理されるプロプライエタリソフトウェアであり、本リポジトリのライセンス対象外です。詳細は[ライセンスと製品境界](docs/LICENSING.md)を参照してください。
