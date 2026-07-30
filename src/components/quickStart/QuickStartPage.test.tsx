@@ -25,12 +25,12 @@ vi.mock("@/lib/quickStart", () => ({
       ],
     },
     {
-      category: "cn_official",
+      category: "ai_china",
       presets: [
         {
           name: "DeepSeek",
           websiteUrl: "https://platform.deepseek.com",
-          category: "cn_official",
+          category: "ai_china",
           icon: "deepseek",
           isOfficial: false,
           raw: {},
@@ -88,17 +88,25 @@ vi.mock("./QuickStartAdvancedPanel", () => ({
   QuickStartAdvancedPanel: () => <div>高级选项</div>,
 }));
 
-vi.mock("./QuickStartProviderList", () => ({
-  QuickStartProviderList: () => <div>已接入供应商</div>,
+vi.mock("@/components/providers/forms/CodexOAuthSection", () => ({
+  CodexOAuthSection: () => <div>Codex 设备授权流程</div>,
 }));
 
-function renderPage() {
+vi.mock("./QuickStartProviderList", () => ({
+  QuickStartProviderList: () => <div>API Key 接入</div>,
+}));
+
+function renderPage(
+  onOpenAuthSettings?: Parameters<
+    typeof QuickStartPage
+  >[0]["onOpenAuthSettings"],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <QueryClientProvider client={queryClient}>
-      <QuickStartPage />
+      <QuickStartPage onOpenAuthSettings={onOpenAuthSettings} />
     </QueryClientProvider>,
   );
 }
@@ -123,7 +131,7 @@ describe("QuickStartPage single-page provider workbench", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "模型与供应商" }),
+      await screen.findByRole("heading", { name: "模型接入" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /Claude Code/ }),
@@ -132,31 +140,65 @@ describe("QuickStartPage single-page provider workbench", () => {
     expect(screen.queryByTestId("quick-start-stepper")).not.toBeInTheDocument();
   });
 
-  it("keeps the default workbench focused on the matching official connection", async () => {
+  it("keeps the default workbench focused on the matching subscription account", async () => {
     renderPage();
 
     expect(
-      await screen.findByRole("button", { name: /Claude Official/ }),
+      await screen.findByRole("heading", { name: /Claude Official/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("凭据由 Claude Code 管理；OpenSunstar 读取状态和额度。"),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: /DeepSeek/ }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: /新增供应商/ }),
+      screen.getByRole("button", { name: /添加供应商/ }),
     ).toBeInTheDocument();
+    expect(screen.queryByText("代理与故障设置")).not.toBeInTheDocument();
   });
 
   it("opens the curated supplier library only from the add provider entry", async () => {
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /新增供应商/ }));
+    fireEvent.click(screen.getByRole("button", { name: /添加供应商/ }));
 
     expect(
-      await screen.findByRole("dialog", { name: /新增供应商/ }),
+      await screen.findByRole("dialog", { name: /添加供应商/ }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: /DeepSeek/ }),
     ).toBeInTheDocument();
+  });
+
+  it("routes account actions to the exact authentication section", async () => {
+    const onOpenAuthSettings = vi.fn();
+    renderPage(onOpenAuthSettings);
+
+    fireEvent.click(await screen.findByRole("button", { name: "登录状态" }));
+    expect(onOpenAuthSettings).toHaveBeenLastCalledWith({
+      tab: "auth",
+      targetId: "local-cli-auth",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Codex/ }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "ChatGPT 订阅登录" }),
+    );
+    expect(
+      await screen.findByRole("dialog", { name: "ChatGPT 订阅登录" }),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "ChatGPT 订阅登录" }),
+      ).not.toBeInTheDocument();
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "账号管理" }));
+    expect(onOpenAuthSettings).toHaveBeenLastCalledWith({
+      tab: "auth",
+      targetId: "codex-oauth",
+    });
   });
 
   it("requires a successful connectivity check before enabling a curated provider", async () => {
@@ -175,7 +217,7 @@ describe("QuickStartPage single-page provider workbench", () => {
     ]);
     renderPage();
 
-    fireEvent.click(screen.getByRole("button", { name: /新增供应商/ }));
+    fireEvent.click(screen.getByRole("button", { name: /添加供应商/ }));
     fireEvent.click(await screen.findByRole("button", { name: /DeepSeek/ }));
     fireEvent.change(screen.getByLabelText("API Key"), {
       target: { value: "sk-test" },

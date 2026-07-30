@@ -143,6 +143,15 @@ export function SettingsPageContent({
     if (intent.openSections?.length) {
       setProxyOpenSections(intent.openSections);
     }
+    if (intent.targetId) {
+      const targetId = intent.targetId;
+      window.setTimeout(() => {
+        document.getElementById(targetId)?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 0);
+    }
   }, [settingsNavIntent]);
 
   useEffect(() => {

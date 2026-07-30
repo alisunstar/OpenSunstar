@@ -25,12 +25,21 @@ const backupProvider: Provider = {
   category: "cn_official",
   settingsConfig: {},
 };
+const officialProvider: Provider = {
+  id: "claude-official",
+  name: "Claude Official",
+  category: "official",
+  settingsConfig: {},
+};
 let actionProvider = provider;
 
 vi.mock("@/lib/query/queries", () => ({
   useProvidersQuery: () => ({
     data: {
-      providers: { [provider.id]: provider },
+      providers: {
+        [provider.id]: provider,
+        [officialProvider.id]: officialProvider,
+      },
       currentProviderId: provider.id,
     },
   }),
@@ -116,8 +125,11 @@ describe("QuickStartProviderList", () => {
   it("hands the connected providers to the sortable management list with the active and route status", () => {
     renderList();
 
-    expect(screen.getByText("我的供应商（1）")).toBeInTheDocument();
+    expect(screen.getByText("API Key 接入（1）")).toBeInTheDocument();
     expect(providerListProps.providers).toEqual({ [provider.id]: provider });
+    expect(
+      screen.getByText("API Key 保存在本机安全凭据库；接入时会更新本地配置。"),
+    ).toBeInTheDocument();
     expect(providerListProps.currentProviderId).toBe(provider.id);
     expect(providerListProps.isProxyTakeover).toBe(true);
   });

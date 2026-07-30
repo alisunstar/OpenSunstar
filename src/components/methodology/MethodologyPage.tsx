@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import {
@@ -38,6 +38,11 @@ import {
   type SddDetectionResult,
 } from "@/lib/api/sdd";
 import type { Project } from "@/types/project";
+import type {
+  MethodologyNavigationIntent,
+  MethodologyTab,
+  PageView,
+} from "@/app/navigation";
 import { cn } from "@/lib/utils";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -117,6 +122,10 @@ interface MethodologyPageProps {
    * 如果跳过来还要用户再选一遍项目，这个入口就不如原来抽屉里那份好用。
    */
   initialProjectId?: string | null;
+  /** 来自项目页的精确落点；避免只跳到方法论首页。 */
+  navigationIntent?: MethodologyNavigationIntent;
+  onNavigationIntentConsumed?: () => void;
+  onNavigate?: (view: PageView) => void;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -438,6 +447,9 @@ function DetectionMatrix({
 export function MethodologyPage({
   projects,
   initialProjectId,
+  navigationIntent,
+  onNavigationIntentConsumed,
+  onNavigate,
 }: MethodologyPageProps) {
   const { t } = useTranslation();
   const [descriptors, setDescriptors] = useState<SddDescriptorSummary[]>([]);
@@ -445,7 +457,8 @@ export function MethodologyPage({
   const [loading, setLoading] = useState(true);
   const [loadingSaved, setLoadingSaved] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [activeTab, setActiveTab] = useState("rulesContext");
+  const [activeTab, setActiveTab] = useState<MethodologyTab>("rulesContext");
+  const consumedNavigationIntentKey = useRef<number | null>(null);
 
   // Tab 2 orchestration: selected project for flow config
   const [orchestrationProjectId, setOrchestrationProjectId] = useState(
@@ -457,6 +470,20 @@ export function MethodologyPage({
   const [presetRecommendations, setPresetRecommendations] = useState<
     Record<string, string | null>
   >({});
+
+  useEffect(() => {
+    if (
+      !navigationIntent ||
+      consumedNavigationIntentKey.current === navigationIntent.key
+    ) {
+      return;
+    }
+    consumedNavigationIntentKey.current = navigationIntent.key;
+    setOrchestrationProjectId(navigationIntent.projectId);
+    setOrchestrationInitialPreset(undefined);
+    setActiveTab(navigationIntent.tab);
+    onNavigationIntentConsumed?.();
+  }, [navigationIntent, onNavigationIntentConsumed]);
 
   const loadDescriptors = useCallback(async () => {
     setLoading(true);
@@ -719,7 +746,7 @@ export function MethodologyPage({
       <div className="flex-1 min-h-0 px-6 pb-6">
         <Tabs
           value={activeTab}
-          onValueChange={setActiveTab}
+          onValueChange={(value) => setActiveTab(value as MethodologyTab)}
           className="h-full flex flex-col"
         >
           <TabsList className="shrink-0 mb-4">
@@ -1209,6 +1236,7 @@ export function MethodologyPage({
                 <ProjectRulesContextPanel
                   key={`rules-${orchestrationProjectId}`}
                   projectId={orchestrationProjectId}
+                  onOpenPromptLibrary={() => onNavigate?.("prompts")}
                 />
               ) : (
                 projects.length > 0 && (

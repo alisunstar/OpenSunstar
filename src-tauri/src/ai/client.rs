@@ -5,6 +5,7 @@
 
 use super::types::{AIProviderConfig, ChatMessage, ChatResponse};
 use crate::proxy::http_client;
+use std::time::Duration;
 
 /// AI 客户端 — 无状态，所有配置通过参数传入
 pub struct AIClient;
@@ -24,30 +25,58 @@ impl AIClient {
         messages: Vec<ChatMessage>,
         max_tokens: Option<u32>,
     ) -> Result<ChatResponse, String> {
+        Self::chat_completion_with_timeout(config, messages, max_tokens, Duration::from_secs(30))
+            .await
+    }
+
+    /// 支持长任务自定义超时的非流式 chat completion。
+    /// Wiki 等代码库级生成任务会显著长于普通洞察请求。
+    pub async fn chat_completion_with_timeout(
+        config: &AIProviderConfig,
+        messages: Vec<ChatMessage>,
+        max_tokens: Option<u32>,
+        timeout: Duration,
+    ) -> Result<ChatResponse, String> {
+        Self::chat_completion_with_timeout_and_format(config, messages, max_tokens, timeout, false)
+            .await
+    }
+
+    /// 请求 OpenAI-compatible JSON Object 输出。
+    ///
+    /// 仅供已经确认支持 `response_format: { type: "json_object" }` 的 Provider 使用；
+    /// 普通自定义 Provider 继续走 [`chat_completion_with_timeout`]，避免兼容性回退。
+    pub async fn chat_completion_json_with_timeout(
+        config: &AIProviderConfig,
+        messages: Vec<ChatMessage>,
+        max_tokens: Option<u32>,
+        timeout: Duration,
+    ) -> Result<ChatResponse, String> {
+        Self::chat_completion_with_timeout_and_format(config, messages, max_tokens, timeout, true)
+            .await
+    }
+
+    async fn chat_completion_with_timeout_and_format(
+        config: &AIProviderConfig,
+        messages: Vec<ChatMessage>,
+        max_tokens: Option<u32>,
+        timeout: Duration,
+        json_mode: bool,
+    ) -> Result<ChatResponse, String> {
         let client = http_client::get();
 
-        // 构建请求体
-        let mut body = serde_json::json!({
-            "model": config.model,
-            "messages": messages,
-            "stream": false,
-        });
-        if let Some(max) = max_tokens {
-            body["max_tokens"] = serde_json::json!(max);
-        }
+        let body = build_chat_completion_body(config, &messages, max_tokens, json_mode);
 
-        // 设置较短超时（洞察生成不需要太长）
         let response = client
             .post(&config.api_url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", config.api_key))
-            .timeout(std::time::Duration::from_secs(30))
+            .timeout(timeout)
             .json(&body)
             .send()
             .await
             .map_err(|e| {
                 if e.is_timeout() {
-                    "AI 请求超时（30 秒），请稍后重试".to_string()
+                    format!("AI 请求超时（{} 秒），请稍后重试", timeout.as_secs())
                 } else if e.is_connect() {
                     format!("AI 服务连接失败: {e}")
                 } else {
@@ -76,6 +105,26 @@ impl AIClient {
 
         Ok(chat_response)
     }
+}
+
+fn build_chat_completion_body(
+    config: &AIProviderConfig,
+    messages: &[ChatMessage],
+    max_tokens: Option<u32>,
+    json_mode: bool,
+) -> serde_json::Value {
+    let mut body = serde_json::json!({
+        "model": config.model,
+        "messages": messages,
+        "stream": false,
+    });
+    if let Some(max) = max_tokens {
+        body["max_tokens"] = serde_json::json!(max);
+    }
+    if json_mode {
+        body["response_format"] = serde_json::json!({ "type": "json_object" });
+    }
+    body
 }
 
 /// USD → CNY 汇率。
@@ -181,6 +230,26 @@ pub fn estimate_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) ->
 mod tests {
     use super::*;
 
+    #[test]
+    fn json_mode_request_sets_response_format_without_changing_messages() {
+        let config = AIProviderConfig {
+            provider: "deepseek".to_string(),
+            api_key: "test-key".to_string(),
+            api_url: "https://api.deepseek.com/v1/chat/completions".to_string(),
+            model: "deepseek-chat".to_string(),
+        };
+        let messages = vec![ChatMessage {
+            role: "user".to_string(),
+            content: "Return json".to_string(),
+        }];
+
+        let body = build_chat_completion_body(&config, &messages, Some(8_000), true);
+
+        assert_eq!(body["response_format"]["type"], "json_object");
+        assert_eq!(body["messages"][0]["content"], "Return json");
+        assert_eq!(body["max_tokens"], 8_000);
+    }
+
     /// 1M 输入 + 1M 输出，方便直接读出「每百万 token 单价」。
     fn cost_1m(model: &str) -> (f64, f64) {
         let input = estimate_cost(model, 1_000_000, 0);
@@ -267,12 +336,20 @@ mod tests {
     fn truncate_error_keeps_short_messages_intact() {
         assert_eq!(truncate_error("短"), "短");
     }
+
+    #[test]
+    fn truncate_error_is_safe_for_long_unicode_messages() {
+        let message = "错误".repeat(400);
+        let truncated = truncate_error(&message);
+        assert!(truncated.ends_with("...(truncated)"));
+        assert!(truncated.chars().count() <= 500 + "...(truncated)".chars().count());
+    }
 }
 
 /// 截断错误信息，避免日志过长
 fn truncate_error(s: &str) -> String {
-    if s.len() > 500 {
-        format!("{}...(truncated)", &s[..500])
+    if s.chars().count() > 500 {
+        format!("{}...(truncated)", s.chars().take(500).collect::<String>())
     } else {
         s.to_string()
     }

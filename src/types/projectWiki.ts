@@ -18,7 +18,88 @@ export interface WikiScanResult {
   contentSha256: string | null;
   lastLintPassed: boolean | null;
   lastLintAt: number | null;
+  sourceBaseline: WikiSourceBaselineStatus;
+  lifecycle: WikiLifecycle;
   checkedAt: number;
+}
+
+/** 当前项目的源码同步基线；没有 Git 提交时使用内容快照。 */
+export interface WikiSourceBaselineStatus {
+  hasGitCommit: boolean;
+  snapshotSha256: string | null;
+  snapshotFileCount: number | null;
+  snapshotRecordedAt: number | null;
+}
+
+/** 由 OpenSunstar 控制面持久化的 Wiki 生命周期，不由生成器自行决定。 */
+export interface WikiLifecycle {
+  phase:
+    | "uninitialized"
+    | "pendingGeneration"
+    | "generating"
+    | "pendingAcceptance"
+    | "syncedToCommit"
+    | "syncedToSnapshot"
+    | "changesDetected"
+    | "pendingSync"
+    | "syncing"
+    | "updated"
+    | "failed";
+  baselineCommit: string | null;
+  baselineContentSha256: string | null;
+  engine: string | null;
+  updatedAt: number;
+  lastError: string | null;
+}
+
+/** 生成器写入隔离目录、尚未进入正式 wiki/ 的候选产物。 */
+export interface WikiCandidate {
+  id: string;
+  engine: string;
+  createdAt: number;
+  pageCount: number;
+  hasIndex: boolean;
+  path: string;
+  sourceCommit: string | null;
+  model: string | null;
+  generationSeconds: number | null;
+}
+
+/** 控制面安全导入候选后的结果。 */
+export interface WikiCandidateImportResult {
+  candidate: WikiCandidate;
+  backupPath: string;
+  filesWritten: number;
+  lifecycle: WikiLifecycle;
+}
+
+export interface WikiCandidateQuality {
+  candidateId: string;
+  engine: string;
+  sourceCommit: string | null;
+  model: string | null;
+  pageCount: number;
+  qualityLevel: string;
+  sourceRefCount: number;
+  invalidSourceRefCount: number;
+  questionCount: number;
+  corePageCoverage: WikiCorePageCoverage;
+  generationSeconds: number | null;
+}
+
+export interface WikiComparisonReport {
+  baseCommit: string | null;
+  model: string | null;
+  generatedAt: number;
+  comparable: boolean;
+  blockers: string[];
+  results: WikiCandidateQuality[];
+}
+
+export interface WikiGeneratorRunResult {
+  candidate: WikiCandidate;
+  durationSeconds: number;
+  summary: string;
 }
 
 export interface WikiCorePageCoverage {
@@ -58,6 +139,22 @@ export interface WikiInventorySummary {
   byType: Record<string, number>;
   byStatus: Record<string, number>;
   effectiveSourcePages: number;
+}
+
+/** Wiki 阅读器使用的页面正文。frontmatter 已由后端解析并从正文中移除。 */
+export interface WikiPageContent {
+  path: string;
+  title: string;
+  pageType: string;
+  status: string;
+  sourceFiles: string[];
+  content: string;
+}
+
+/** 正式 Wiki 或指定隔离候选的只读文档。 */
+export interface WikiDocument {
+  candidateId: string | null;
+  pages: WikiPageContent[];
 }
 
 export interface WikiLintIssue {

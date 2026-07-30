@@ -24,6 +24,28 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+function stripOneM(model: string): string {
+  return model
+    .trim()
+    .replace(/\[1m\]$/i, "")
+    .trim();
+}
+
+function withOneM(model: string, enabled: boolean): string {
+  const normalized = stripOneM(model);
+  return normalized && enabled ? `${normalized}[1M]` : normalized;
+}
+
+function setOptionalEnv(
+  env: Record<string, string>,
+  key: string,
+  value: string,
+): void {
+  const normalized = value.trim();
+  if (normalized) env[key] = normalized;
+  else delete env[key];
+}
+
 function buildMetaCustomEndpoints(urls: string[]): ProviderMeta | undefined {
   const filtered = urls
     .map((u) => u.trim().replace(/\/+$/, ""))
@@ -116,10 +138,49 @@ function buildClaudeFromPreset(
   env[keyField] = fields.apiKey.trim();
 
   if (fields.advancedClaude) {
-    env.ANTHROPIC_DEFAULT_HAIKU_MODEL = fields.advancedClaude.haikuModel;
-    env.ANTHROPIC_DEFAULT_SONNET_MODEL = fields.advancedClaude.sonnetModel;
-    env.ANTHROPIC_DEFAULT_OPUS_MODEL = fields.advancedClaude.opusModel;
-    env.ANTHROPIC_MODEL = fields.advancedClaude.sonnetModel;
+    const advanced = fields.advancedClaude;
+    setOptionalEnv(env, "ANTHROPIC_MODEL", advanced.fallbackModel);
+    setOptionalEnv(env, "ANTHROPIC_DEFAULT_HAIKU_MODEL", advanced.haikuModel);
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME",
+      advanced.haikuModelName,
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_SONNET_MODEL",
+      withOneM(advanced.sonnetModel, advanced.sonnetSupports1m),
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME",
+      advanced.sonnetModelName,
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_OPUS_MODEL",
+      withOneM(advanced.opusModel, advanced.opusSupports1m),
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
+      advanced.opusModelName,
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_FABLE_MODEL",
+      withOneM(advanced.fableModel, advanced.fableSupports1m),
+    );
+    setOptionalEnv(
+      env,
+      "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME",
+      advanced.fableModelName,
+    );
+    setOptionalEnv(
+      env,
+      "CLAUDE_CODE_SUBAGENT_MODEL",
+      withOneM(advanced.subagentModel, advanced.subagentSupports1m),
+    );
   }
   settingsConfig.env = env;
 
@@ -155,10 +216,7 @@ function buildDesktopFromPreset(
 ): Omit<Provider, "id"> {
   const baseUrl = preset.baseUrl.trim().replace(/\/+$/, "");
   const keyField = preset.apiKeyField ?? "ANTHROPIC_AUTH_TOKEN";
-  const upstream =
-    fields.advancedDesktop?.upstreamModel ??
-    preset.modelRoutes?.[0]?.upstreamModel ??
-    "deepseek-v4-pro";
+  const advanced = fields.advancedDesktop;
 
   const routeMap: Record<string, ClaudeDesktopModelRoute> = {};
   if (preset.modelRoutes?.length) {
@@ -167,14 +225,47 @@ function buildDesktopFromPreset(
         model:
           preset.mode === "direct"
             ? route.upstreamModel
-            : fields.advancedDesktop?.upstreamModel || route.upstreamModel,
-        labelOverride: route.labelOverride,
-        supports1m: route.supports1m || undefined,
+            : route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus
+              ? advanced?.opusModel || route.upstreamModel
+              : route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku
+                ? advanced?.haikuModel || route.upstreamModel
+                : advanced?.sonnetModel || route.upstreamModel,
+        labelOverride:
+          route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus
+            ? advanced?.opusLabel || route.labelOverride
+            : route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku
+              ? advanced?.haikuLabel || route.labelOverride
+              : advanced?.sonnetLabel || route.labelOverride,
+        supports1m:
+          (route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus
+            ? advanced?.opusSupports1m
+            : route.routeId === CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku
+              ? advanced?.haikuSupports1m
+              : advanced?.sonnetSupports1m) || undefined,
+      };
+    }
+    if (preset.mode === "proxy" && advanced) {
+      routeMap[CLAUDE_DESKTOP_ROLE_ROUTE_IDS.sonnet] ??= {
+        model: advanced.sonnetModel,
+        labelOverride: advanced.sonnetLabel || undefined,
+        supports1m: advanced.sonnetSupports1m || undefined,
+      };
+      routeMap[CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus] ??= {
+        model: advanced.opusModel,
+        labelOverride: advanced.opusLabel || undefined,
+        supports1m: advanced.opusSupports1m || undefined,
+      };
+      routeMap[CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku] ??= {
+        model: advanced.haikuModel,
+        labelOverride: advanced.haikuLabel || undefined,
+        supports1m: advanced.haikuSupports1m || undefined,
       };
     }
   } else {
     routeMap[CLAUDE_DESKTOP_ROLE_ROUTE_IDS.sonnet] = {
-      model: upstream,
+      model: advanced?.sonnetModel || "deepseek-v4-pro",
+      labelOverride: advanced?.sonnetLabel || undefined,
+      supports1m: advanced?.sonnetSupports1m || undefined,
     };
   }
 
@@ -300,10 +391,17 @@ function buildGeminiFromPreset(
     icon: preset.icon,
     iconColor: preset.iconColor,
     isPartner: preset.isPartner,
-    meta: buildMetaCustomEndpoints([
-      baseUrl,
-      ...(preset.endpointCandidates ?? []),
-    ]),
+    meta: {
+      apiFormat:
+        fields.advancedGemini?.apiFormat ??
+        (preset.apiFormat === "gemini_native"
+          ? preset.apiFormat
+          : "gemini_native"),
+      ...buildMetaCustomEndpoints([
+        baseUrl,
+        ...(preset.endpointCandidates ?? []),
+      ]),
+    },
   };
 }
 
@@ -317,28 +415,103 @@ function buildCustomProvider(
   const model = fields.customModel.trim();
 
   switch (appId) {
-    case "claude":
+    case "claude": {
+      const advanced = fields.advancedClaude;
+      const keyField = advanced?.apiKeyField ?? "ANTHROPIC_AUTH_TOKEN";
+      const selectedModel = advanced?.sonnetModel.trim() || model;
+      const env: Record<string, string> = {
+        ANTHROPIC_BASE_URL: baseUrl,
+        [keyField]: fields.apiKey.trim(),
+      };
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_MODEL",
+        advanced?.fallbackModel || selectedModel,
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+        advanced?.haikuModel || selectedModel,
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME",
+        advanced?.haikuModelName ||
+          stripOneM(advanced?.haikuModel || selectedModel),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_SONNET_MODEL",
+        withOneM(
+          advanced?.sonnetModel || selectedModel,
+          advanced?.sonnetSupports1m ?? false,
+        ),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_SONNET_MODEL_NAME",
+        advanced?.sonnetModelName || stripOneM(selectedModel),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_OPUS_MODEL",
+        withOneM(
+          advanced?.opusModel || selectedModel,
+          advanced?.opusSupports1m ?? false,
+        ),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_OPUS_MODEL_NAME",
+        advanced?.opusModelName ||
+          stripOneM(advanced?.opusModel || selectedModel),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_FABLE_MODEL",
+        withOneM(
+          advanced?.fableModel || advanced?.opusModel || selectedModel,
+          advanced?.fableSupports1m ?? false,
+        ),
+      );
+      setOptionalEnv(
+        env,
+        "ANTHROPIC_DEFAULT_FABLE_MODEL_NAME",
+        advanced?.fableModelName ||
+          stripOneM(
+            advanced?.fableModel || advanced?.opusModel || selectedModel,
+          ),
+      );
+      setOptionalEnv(
+        env,
+        "CLAUDE_CODE_SUBAGENT_MODEL",
+        withOneM(
+          advanced?.subagentModel || "",
+          advanced?.subagentSupports1m ?? false,
+        ),
+      );
       return {
         name,
         settingsConfig: {
-          env: {
-            ANTHROPIC_BASE_URL: baseUrl,
-            ANTHROPIC_AUTH_TOKEN: fields.apiKey.trim(),
-            ANTHROPIC_MODEL: model,
-            ANTHROPIC_DEFAULT_HAIKU_MODEL: model,
-            ANTHROPIC_DEFAULT_SONNET_MODEL: model,
-            ANTHROPIC_DEFAULT_OPUS_MODEL: model,
-          },
+          env,
         },
         category: "custom",
         createdAt: Date.now(),
         meta: {
-          apiFormat: "anthropic",
+          apiFormat: advanced?.apiFormat ?? "anthropic",
+          ...(keyField !== "ANTHROPIC_AUTH_TOKEN"
+            ? { apiKeyField: keyField }
+            : {}),
           ...buildMetaCustomEndpoints([baseUrl]),
         },
       };
+    }
     case "claude-desktop": {
       const routeId = CLAUDE_DESKTOP_ROLE_ROUTE_IDS.sonnet;
+      const advanced = fields.advancedDesktop;
+      const sonnetModel = advanced?.sonnetModel.trim() || model;
+      const opusModel = advanced?.opusModel.trim() || sonnetModel;
+      const haikuModel = advanced?.haikuModel.trim() || sonnetModel;
       return {
         name,
         settingsConfig: {
@@ -351,42 +524,65 @@ function buildCustomProvider(
         createdAt: Date.now(),
         meta: {
           claudeDesktopMode: "proxy",
-          apiFormat: "anthropic",
+          apiFormat: advanced?.apiFormat ?? "anthropic",
           claudeDesktopModelRoutes: {
-            [routeId]: { model },
+            [routeId]: {
+              model: sonnetModel,
+              labelOverride: advanced?.sonnetLabel || undefined,
+              supports1m: advanced?.sonnetSupports1m || undefined,
+            },
+            [CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus]: {
+              model: opusModel,
+              labelOverride: advanced?.opusLabel || undefined,
+              supports1m: advanced?.opusSupports1m || undefined,
+            },
+            [CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku]: {
+              model: haikuModel,
+              labelOverride: advanced?.haikuLabel || undefined,
+              supports1m: advanced?.haikuSupports1m || undefined,
+            },
           },
           ...buildMetaCustomEndpoints([baseUrl]),
         },
       };
     }
     case "codex": {
+      const advanced = fields.advancedCodex;
+      const defaultModel = advanced?.defaultModel.trim() || model;
       const auth = generateThirdPartyAuth(fields.apiKey.trim());
-      const config = generateThirdPartyConfig("custom", baseUrl, model);
+      const config = generateThirdPartyConfig("custom", baseUrl, defaultModel);
       return {
         name,
         settingsConfig: { auth, config },
         category: "custom",
         createdAt: Date.now(),
         meta: {
-          apiFormat: "openai_chat",
+          apiFormat: advanced?.apiFormat ?? "openai_chat",
           ...buildMetaCustomEndpoints([baseUrl]),
         },
       };
     }
-    case "gemini":
+    case "gemini": {
+      const advanced = fields.advancedGemini;
+      const resolvedBaseUrl = advanced?.baseUrl.trim() || baseUrl;
+      const resolvedModel = advanced?.model.trim() || model;
       return {
         name,
         settingsConfig: {
           env: {
-            GOOGLE_GEMINI_BASE_URL: baseUrl,
+            GOOGLE_GEMINI_BASE_URL: resolvedBaseUrl,
             GEMINI_API_KEY: fields.apiKey.trim(),
-            GEMINI_MODEL: model,
+            GEMINI_MODEL: resolvedModel,
           },
         },
         category: "custom",
         createdAt: Date.now(),
-        meta: buildMetaCustomEndpoints([baseUrl]),
+        meta: {
+          apiFormat: advanced?.apiFormat ?? "gemini_native",
+          ...buildMetaCustomEndpoints([resolvedBaseUrl]),
+        },
       };
+    }
     default:
       throw new Error(`Unsupported custom app: ${appId}`);
   }
@@ -398,16 +594,74 @@ export function defaultAdvancedFields(
   selection: QuickStartSelection,
 ): Partial<QuickStartFormFields> {
   if (selection.mode === "custom") {
-    return {
+    const customModel =
+      appId === "codex"
+        ? "gpt-5.6-sol"
+        : appId === "gemini"
+          ? "gemini-3.6-flash"
+          : "deepseek-v4-pro";
+    const common = {
       customName: "",
       customBaseUrl: "",
-      customModel:
-        appId === "codex"
-          ? "gpt-5.6-sol"
-          : appId === "gemini"
-            ? "gemini-3.5-flash"
-            : "deepseek-v4-pro",
+      customModel,
     };
+    switch (appId) {
+      case "claude":
+        return {
+          ...common,
+          advancedClaude: {
+            apiFormat: "anthropic",
+            apiKeyField: "ANTHROPIC_AUTH_TOKEN",
+            haikuModel: customModel,
+            haikuModelName: customModel,
+            sonnetModel: customModel,
+            sonnetModelName: customModel,
+            sonnetSupports1m: false,
+            opusModel: customModel,
+            opusModelName: customModel,
+            opusSupports1m: false,
+            fableModel: customModel,
+            fableModelName: customModel,
+            fableSupports1m: false,
+            subagentModel: "",
+            subagentSupports1m: false,
+            fallbackModel: customModel,
+          },
+        };
+      case "claude-desktop":
+        return {
+          ...common,
+          advancedDesktop: {
+            apiFormat: "anthropic",
+            sonnetModel: customModel,
+            sonnetLabel: customModel,
+            sonnetSupports1m: false,
+            opusModel: customModel,
+            opusLabel: customModel,
+            opusSupports1m: false,
+            haikuModel: customModel,
+            haikuLabel: customModel,
+            haikuSupports1m: false,
+          },
+        };
+      case "codex":
+        return {
+          ...common,
+          advancedCodex: {
+            apiFormat: "openai_chat",
+            defaultModel: customModel,
+          },
+        };
+      case "gemini":
+        return {
+          ...common,
+          advancedGemini: {
+            apiFormat: "gemini_native",
+            baseUrl: "",
+            model: customModel,
+          },
+        };
+    }
   }
   if (selection.mode !== "preset") return {};
 
@@ -421,22 +675,62 @@ export function defaultAdvancedFields(
         | { env?: Record<string, string> }
         | undefined;
       const env = settingsConfig?.env;
+      const fallbackModel = env?.ANTHROPIC_MODEL ?? "";
+      const haikuModel = env?.ANTHROPIC_DEFAULT_HAIKU_MODEL ?? fallbackModel;
+      const sonnetModel = env?.ANTHROPIC_DEFAULT_SONNET_MODEL ?? fallbackModel;
+      const opusModel = env?.ANTHROPIC_DEFAULT_OPUS_MODEL ?? fallbackModel;
+      const fableModel = env?.ANTHROPIC_DEFAULT_FABLE_MODEL ?? opusModel;
       return {
         advancedClaude: {
           apiFormat: raw.apiFormat ?? "anthropic",
           apiKeyField: raw.apiKeyField ?? "ANTHROPIC_AUTH_TOKEN",
-          haikuModel: env?.ANTHROPIC_DEFAULT_HAIKU_MODEL ?? "",
-          sonnetModel: env?.ANTHROPIC_DEFAULT_SONNET_MODEL ?? "",
-          opusModel: env?.ANTHROPIC_DEFAULT_OPUS_MODEL ?? "",
+          haikuModel: stripOneM(haikuModel),
+          haikuModelName:
+            env?.ANTHROPIC_DEFAULT_HAIKU_MODEL_NAME ?? stripOneM(haikuModel),
+          sonnetModel: stripOneM(sonnetModel),
+          sonnetModelName:
+            env?.ANTHROPIC_DEFAULT_SONNET_MODEL_NAME ?? stripOneM(sonnetModel),
+          sonnetSupports1m: /\[1m\]$/i.test(sonnetModel.trim()),
+          opusModel: stripOneM(opusModel),
+          opusModelName:
+            env?.ANTHROPIC_DEFAULT_OPUS_MODEL_NAME ?? stripOneM(opusModel),
+          opusSupports1m: /\[1m\]$/i.test(opusModel.trim()),
+          fableModel: stripOneM(fableModel),
+          fableModelName:
+            env?.ANTHROPIC_DEFAULT_FABLE_MODEL_NAME ?? stripOneM(fableModel),
+          fableSupports1m: /\[1m\]$/i.test(fableModel.trim()),
+          subagentModel: stripOneM(env?.CLAUDE_CODE_SUBAGENT_MODEL ?? ""),
+          subagentSupports1m: /\[1m\]$/i.test(
+            (env?.CLAUDE_CODE_SUBAGENT_MODEL ?? "").trim(),
+          ),
+          fallbackModel: stripOneM(fallbackModel),
         },
       };
     }
     case "claude-desktop": {
       const raw = preset.raw as ClaudeDesktopProviderPreset;
+      const byRouteId = new Map(
+        (raw.modelRoutes ?? []).map((route) => [route.routeId, route]),
+      );
+      const fallbackRoute = raw.modelRoutes?.[0];
+      const sonnet =
+        byRouteId.get(CLAUDE_DESKTOP_ROLE_ROUTE_IDS.sonnet) ?? fallbackRoute;
+      const opus =
+        byRouteId.get(CLAUDE_DESKTOP_ROLE_ROUTE_IDS.opus) ?? fallbackRoute;
+      const haiku =
+        byRouteId.get(CLAUDE_DESKTOP_ROLE_ROUTE_IDS.haiku) ?? fallbackRoute;
       return {
         advancedDesktop: {
           apiFormat: raw.apiFormat ?? "anthropic",
-          upstreamModel: raw.modelRoutes?.[0]?.upstreamModel ?? "",
+          sonnetModel: sonnet?.upstreamModel ?? "",
+          sonnetLabel: sonnet?.labelOverride ?? sonnet?.upstreamModel ?? "",
+          sonnetSupports1m: sonnet?.supports1m ?? false,
+          opusModel: opus?.upstreamModel ?? "",
+          opusLabel: opus?.labelOverride ?? opus?.upstreamModel ?? "",
+          opusSupports1m: opus?.supports1m ?? false,
+          haikuModel: haiku?.upstreamModel ?? "",
+          haikuLabel: haiku?.labelOverride ?? haiku?.upstreamModel ?? "",
+          haikuSupports1m: haiku?.supports1m ?? false,
         },
       };
     }
@@ -457,6 +751,7 @@ export function defaultAdvancedFields(
       const env = settingsConfig?.env;
       return {
         advancedGemini: {
+          apiFormat: "gemini_native",
           baseUrl: env?.GOOGLE_GEMINI_BASE_URL ?? raw.baseURL ?? "",
           model: env?.GEMINI_MODEL ?? raw.model ?? "",
         },

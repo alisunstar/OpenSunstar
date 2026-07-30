@@ -14,6 +14,7 @@ import {
   isAgentConfigView,
   PAGE_META,
   VIEW_STORAGE_KEY,
+  type MethodologyNavigationIntent,
   type PageView,
 } from "@/app/navigation";
 import { usePageActionRefs } from "@/app/pageActionRefs";
@@ -34,8 +35,6 @@ import { DRAG_REGION_ATTR, DRAG_REGION_STYLE } from "@/lib/platform";
 import { useSettingsQuery } from "@/lib/query";
 import {
   buildAiProviderSettingsIntent,
-  buildProxySettingsIntent,
-  buildSubscriptionAccountsIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
 import {
@@ -60,6 +59,8 @@ function App() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
+  const [methodologyIntent, setMethodologyIntent] =
+    useState<MethodologyNavigationIntent | null>(null);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -69,16 +70,20 @@ function App() {
   const handleNavigate = useCallback((view: PageView) => {
     setCurrentView(view);
   }, []);
-  const openProxySettings = useCallback(() => {
-    setSettingsNavIntent(buildProxySettingsIntent());
-    handleNavigate("settings");
-  }, [handleNavigate]);
+  const openProjectWorkflow = useCallback(
+    (projectId: string) => {
+      setSelectedProjectId(projectId);
+      setMethodologyIntent({
+        key: Date.now(),
+        projectId,
+        tab: "orchestration",
+      });
+      handleNavigate("methodology");
+    },
+    [handleNavigate],
+  );
   const openAiProviderSettings = useCallback(() => {
     setSettingsNavIntent(buildAiProviderSettingsIntent());
-    handleNavigate("settings");
-  }, [handleNavigate]);
-  const openSubscriptionAccounts = useCallback(() => {
-    setSettingsNavIntent(buildSubscriptionAccountsIntent());
     handleNavigate("settings");
   }, [handleNavigate]);
 
@@ -307,18 +312,19 @@ function App() {
                   workspaceTab={workspaceTab}
                   settingsNavIntent={settingsNavIntent}
                   onNavigate={handleNavigate}
-                  onOpenProxySettings={openProxySettings}
-                  onOpenSubscriptionAccounts={openSubscriptionAccounts}
                   onOpenAiProviderSettings={openAiProviderSettings}
                   onWorkspaceTabChange={setWorkspaceTab}
                   onProjectClick={handleProjectClick}
                   onOpenProjectAiConfig={handleOpenProjectAssets}
+                  onOpenProjectWorkflow={openProjectWorkflow}
                   onSelectProject={setSelectedProjectId}
                   onProjectRemove={handleRemoveProject}
                   onAddProject={() => setAddProjectOpen(true)}
                   onClearProjectSelection={() => setSelectedProjectId(null)}
                   onProjectsReload={reloadProjects}
                   onSettingsNavIntent={setSettingsNavIntent}
+                  methodologyIntent={methodologyIntent}
+                  onMethodologyIntentConsumed={() => setMethodologyIntent(null)}
                 />
               </div>
             </ErrorBoundary>

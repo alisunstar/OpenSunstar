@@ -12,12 +12,27 @@ import { resolvePresetByName } from "./resolvePresets";
 export function inferVerifyProtocol(
   appId: QuickStartAppId,
   selection: QuickStartSelection,
-  _fields: QuickStartFormFields,
+  fields: QuickStartFormFields,
 ): VerifyProtocol {
   if (selection.mode === "custom") {
-    // 自定义默认按 OpenAI 兼容验证（Codex/Gemini 网关）；Claude 自定义走 Anthropic
-    if (appId === "claude" || appId === "claude-desktop") {
-      return "anthropic";
+    if (appId === "claude") {
+      const format = fields.advancedClaude?.apiFormat;
+      return format === "anthropic"
+        ? "anthropic"
+        : format === "gemini_native"
+          ? "gemini"
+          : "openai";
+    }
+    if (appId === "claude-desktop") {
+      const format = fields.advancedDesktop?.apiFormat;
+      return format === "anthropic"
+        ? "anthropic"
+        : format === "gemini_native"
+          ? "gemini"
+          : "openai";
+    }
+    if (appId === "gemini") {
+      return "gemini";
     }
     return "openai";
   }
@@ -32,30 +47,28 @@ export function inferVerifyProtocol(
   switch (appId) {
     case "claude": {
       const raw = preset.raw as ProviderPreset;
-      if (
-        raw.apiFormat === "openai_chat" ||
-        raw.apiFormat === "openai_responses"
-      ) {
+      const apiFormat = fields.advancedClaude?.apiFormat ?? raw.apiFormat;
+      if (apiFormat === "gemini_native") return "gemini";
+      if (apiFormat === "openai_chat" || apiFormat === "openai_responses") {
         return "openai";
       }
       return "anthropic";
     }
     case "claude-desktop": {
       const raw = preset.raw as ClaudeDesktopProviderPreset;
-      if (
-        raw.apiFormat === "openai_chat" ||
-        raw.apiFormat === "openai_responses"
-      ) {
+      const apiFormat = fields.advancedDesktop?.apiFormat ?? raw.apiFormat;
+      if (apiFormat === "gemini_native") return "gemini";
+      if (apiFormat === "openai_chat" || apiFormat === "openai_responses") {
         return "openai";
       }
       return "anthropic";
     }
-    case "codex": {
-      const raw = preset.raw as CodexProviderPreset;
-      return raw.apiFormat === "openai_responses" ? "openai" : "openai";
-    }
-    case "gemini":
+    case "codex":
       return "openai";
+    case "gemini":
+      return (preset.raw as GeminiProviderPreset).apiFormat === "gemini_native"
+        ? "gemini"
+        : "openai";
     default:
       return "anthropic";
   }
@@ -67,7 +80,9 @@ export function resolveVerifyBaseUrl(
   fields: QuickStartFormFields,
 ): string {
   if (selection.mode === "custom") {
-    return fields.customBaseUrl.trim().replace(/\/+$/, "");
+    const advancedBaseUrl =
+      appId === "gemini" ? fields.advancedGemini?.baseUrl : undefined;
+    return (advancedBaseUrl || fields.customBaseUrl).trim().replace(/\/+$/, "");
   }
 
   if (selection.mode === "official") {
@@ -108,7 +123,12 @@ export function resolveVerifyBaseUrl(
         | { env?: Record<string, string> }
         | undefined;
       const env = settingsConfig?.env;
-      return (env?.GOOGLE_GEMINI_BASE_URL ?? raw.baseURL ?? "")
+      return (
+        fields.advancedGemini?.baseUrl ??
+        env?.GOOGLE_GEMINI_BASE_URL ??
+        raw.baseURL ??
+        ""
+      )
         .trim()
         .replace(/\/+$/, "");
     }
@@ -200,10 +220,14 @@ export async function verifyQuickStartKey(
         defaultValue: "Key 有效（模型列表拉取失败，将使用预设默认模型）",
       });
     }
-  } else {
+  } else if (protocol === "anthropic") {
     message = t("quickStart.verifyOkAnthropic", {
       defaultValue:
         "Key 有效（该供应商不提供模型列表 API，将使用预设默认模型）",
+    });
+  } else {
+    message = t("quickStart.verifyOkGemini", {
+      defaultValue: "Key 有效，Gemini 原生接口验证通过",
     });
   }
 

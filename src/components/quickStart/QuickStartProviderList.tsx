@@ -31,8 +31,13 @@ export function QuickStartProviderList({
   const [isSavingUsage, setIsSavingUsage] = useState(false);
 
   const providers = data?.providers ?? {};
+  const apiKeyProviders = Object.fromEntries(
+    Object.entries(providers).filter(
+      ([, provider]) => provider.category !== "official",
+    ),
+  );
   const currentId = data?.currentProviderId ?? "";
-  const entries = Object.values(providers);
+  const entries = Object.values(apiKeyProviders);
 
   const takeoverActive =
     appId === "claude"
@@ -100,13 +105,13 @@ export function QuickStartProviderList({
       <div className="flex items-end justify-between gap-4">
         <div>
           <h3 className="text-sm font-medium">
-            {t("quickStart.myProviders", { defaultValue: "我的供应商" })}
+            {t("quickStart.myProviders", { defaultValue: "API Key 接入" })}
             {entries.length > 0 ? `（${entries.length}）` : ""}
           </h3>
           <p className="mt-1 text-xs text-muted-foreground">
             {t("quickStart.myProvidersHint", {
               defaultValue:
-                "拖动左侧手柄可排序；悬停供应商可进行编辑、复制、检测、用量配置或删除。",
+                "API Key 保存在本机安全凭据库；接入时会更新本地配置。",
             })}
           </p>
         </div>
@@ -119,7 +124,7 @@ export function QuickStartProviderList({
       </div>
 
       <ProviderList
-        providers={providers}
+        providers={apiKeyProviders}
         currentProviderId={currentId}
         appId={appId}
         onSwitch={(provider) => void switchProvider(provider)}

@@ -3,6 +3,12 @@ import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPres
 import { codexProviderPresets } from "@/config/codexProviderPresets";
 import { geminiProviderPresets } from "@/config/geminiProviderPresets";
 import {
+  quickStartClaudePresets,
+  quickStartCodexPresets,
+  quickStartDesktopPresets,
+  quickStartGeminiPresets,
+} from "@/config/quickStartProviderPresets";
+import {
   QUICKSTART_CURATED,
   QUICKSTART_CUSTOM_PRESET_ID,
   type QuickStartAppId,
@@ -11,19 +17,27 @@ import {
 import type { ResolvedQuickStartPreset } from "./types";
 
 function findClaudePreset(name: string) {
-  return providerPresets.find((p) => p.name === name);
+  return [...providerPresets, ...quickStartClaudePresets].find(
+    (p) => p.name === name,
+  );
 }
 
 function findDesktopPreset(name: string) {
-  return claudeDesktopProviderPresets.find((p) => p.name === name);
+  return [...claudeDesktopProviderPresets, ...quickStartDesktopPresets].find(
+    (p) => p.name === name,
+  );
 }
 
 function findCodexPreset(name: string) {
-  return codexProviderPresets.find((p) => p.name === name);
+  return [...codexProviderPresets, ...quickStartCodexPresets].find(
+    (p) => p.name === name,
+  );
 }
 
 function findGeminiPreset(name: string) {
-  return geminiProviderPresets.find((p) => p.name === name);
+  return [...geminiProviderPresets, ...quickStartGeminiPresets].find(
+    (p) => p.name === name,
+  );
 }
 
 export function resolvePresetByName(
@@ -44,6 +58,7 @@ export function resolvePresetByName(
         iconColor: p.iconColor,
         isOfficial: p.isOfficial,
         isPartner: p.isPartner,
+        authMode: p.requiresOAuth || p.isOfficial ? "oauth" : "api_key",
         raw: p,
       };
     }
@@ -60,6 +75,8 @@ export function resolvePresetByName(
         iconColor: p.iconColor,
         isOfficial: p.category === "official",
         isPartner: p.isPartner,
+        authMode:
+          p.requiresOAuth || p.category === "official" ? "oauth" : "api_key",
         raw: p,
       };
     }
@@ -76,6 +93,7 @@ export function resolvePresetByName(
         iconColor: p.iconColor,
         isOfficial: p.isOfficial,
         isPartner: p.isPartner,
+        authMode: p.isOfficial ? "oauth" : "api_key",
         raw: p,
       };
     }
@@ -92,6 +110,7 @@ export function resolvePresetByName(
         iconColor: p.iconColor,
         isOfficial: p.category === "official",
         isPartner: p.isPartner,
+        authMode: p.category === "official" ? "oauth" : "api_key",
         raw: p,
       };
     }
@@ -103,8 +122,23 @@ export function resolvePresetByName(
 export interface QuickStartPresetGroup {
   category: QuickStartCategoryId;
   presets: ResolvedQuickStartPreset[];
-  emptyHintKey?: string;
   isCustomGroup?: boolean;
+}
+
+function unavailablePreset(
+  displayName: string,
+  unavailableReason?: string,
+  unavailableReasonKey?: string,
+): ResolvedQuickStartPreset {
+  return {
+    name: `__unavailable__:${displayName}`,
+    displayName,
+    websiteUrl: "",
+    unavailable: true,
+    unavailableReason,
+    unavailableReasonKey,
+    raw: null,
+  };
 }
 
 /** 自定义配置卡片（虚拟 preset） */
@@ -139,23 +173,35 @@ export function getCuratedPresetGroups(
       continue;
     }
 
-    const presets = spec.presetNames
-      .map((name) => resolvePresetByName(appId, name))
+    const presets = spec.presets
+      .map((presetRef) => {
+        if (presetRef.unavailable) {
+          return unavailablePreset(
+            presetRef.displayName,
+            presetRef.unavailableReason,
+            presetRef.unavailableReasonKey,
+          );
+        }
+        const preset = resolvePresetByName(appId, presetRef.presetName ?? "");
+        return preset
+          ? { ...preset, displayName: presetRef.displayName }
+          : null;
+      })
       .filter((p): p is ResolvedQuickStartPreset => p !== null)
       .filter((p) => {
         if (!q) return true;
-        const hay = `${p.name} ${p.websiteUrl}`.toLowerCase();
+        const hay =
+          `${p.displayName ?? ""} ${p.name} ${p.websiteUrl}`.toLowerCase();
         return hay.includes(q);
       });
 
-    if (presets.length === 0 && !spec.emptyHintKey) {
+    if (presets.length === 0) {
       continue;
     }
 
     groups.push({
       category: spec.category,
       presets,
-      emptyHintKey: spec.emptyHintKey,
     });
   }
 
@@ -167,9 +213,14 @@ export function validateCuratedPresetNames(): string[] {
   const errors: string[] = [];
   for (const appId of Object.keys(QUICKSTART_CURATED) as QuickStartAppId[]) {
     for (const spec of QUICKSTART_CURATED[appId]) {
-      for (const name of spec.presetNames) {
-        if (!resolvePresetByName(appId, name)) {
-          errors.push(`${appId}: missing preset "${name}"`);
+      for (const presetRef of spec.presets) {
+        if (
+          !presetRef.unavailable &&
+          !resolvePresetByName(appId, presetRef.presetName ?? "")
+        ) {
+          errors.push(
+            `${appId}: missing preset "${presetRef.presetName ?? presetRef.displayName}"`,
+          );
         }
       }
     }

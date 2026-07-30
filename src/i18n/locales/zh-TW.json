@@ -38,7 +38,7 @@
     "changedFiles": {
       "coldStart": "Wiki 剛初始化，變更對映尚未生效",
       "coldStartProgress": "目前有效 source_files 頁面：{{current}}/{{threshold}}",
-      "coldStartGuidance": "請在 Claude Code 中使用 maintain-repo-wiki Skill 填充 wiki 內容",
+      "coldStartGuidance": "請點擊「生成專案 Wiki」，使用設定中的 AI 提供方生成並驗收",
       "affectedPages": "{{count}} 個原始碼變更，影響 {{pages}} 個 wiki 頁面",
       "unmapped": "{{count}} 個未對映變更",
       "noChanges": "無原始碼變更，wiki 頁面均為最新"
@@ -3624,11 +3624,11 @@
     "searchPlaceholder": "搜索供應商名稱或網址…",
     "noResults": "未找到匹配的供應商",
     "official": "官方",
-    "officialDesc": "官方供應商需通過瀏覽器登錄或訂閱授權，無法在快速接入中僅填 Key 完成。請前往供應商管理完成 OAuth / 官方配置。",
+    "officialDesc": "官方帳號按客戶端登入。",
     "partner": "合作伙伴",
     "apiKeyLabel": "API Key",
     "apiKeyPlaceholder": "粘貼你的 API Key",
-    "keychainHint": "Key 將安全存儲於系統鑰匙串（Windows Credential Manager / macOS Keychain），不會明文落盤",
+    "keychainHint": "API Key 保存在本機安全憑據庫；接入時會更新本機設定。",
     "getKey": "獲取 API Key",
     "apply": "一鍵啟用",
     "success": "接入成功！已切換為當前供應商",
@@ -3653,11 +3653,12 @@
     "verify": "驗證 Key",
     "verifyOk": "Key 有效！",
     "verifyOkAnthropic": "Key 有效（該供應商不提供模型列表 API，將使用預設默認模型）",
+    "verifyOkGemini": "Key 有效，Gemini 原生接口驗證通過",
     "verifyOkWithModels": "Key 有效，已獲取 {{count}} 個模型",
     "verifyOkNoModelList": "Key 有效（模型列表拉取失敗，將使用預設默認模型）",
-    "verifyHint": "Anthropic 協議驗證會消耗約 1 token；OpenAI 兼容網關驗證成功後可展開模型列表",
+    "verifyHint": "系統按目前協議驗證；Anthropic 約消耗 1 token，OpenAI/Gemini 取得模型列表後可用於進階映射",
     "modelsList": "可用模型（{{count}}）",
-    "myProviders": "我的供應商",
+    "myProviders": "API Key 接入",
     "switch": "切換",
     "apps": {
       "claude": "Claude Code",
@@ -3666,15 +3667,20 @@
       "gemini": "Gemini"
     },
     "category": {
-      "custom": "自定義"
+      "custom": "自定義",
+      "aiGlobal": "AI國際",
+      "aiChina": "AI中國",
+      "relay": "聚合/中轉",
+      "customModel": "自定義模型配置"
     },
     "gemini": {
-      "cnOfficialHint": "Phase 1 暫不提供中國官方精選卡片。請使用 OpenRouter 聚合網關，或通過「自定義配置」填寫國內 Gemini 兼容端點。"
+      "cnOfficialHint": "Gemini 快速接入目前啟用 Google 官方和 Gemini Native 相容端點；OpenAI Chat 網關會顯示協議不匹配提示。"
     },
     "custom": {
       "cardTitle": "自定義配置",
       "cardSubtitle": "自填 Base URL 與模型",
-      "hint": "自定義網關：填寫最小必填項即可接入，高級配置可在供應商管理中編輯。",
+      "hint": "填寫名稱、Base URL 與默認模型；API 格式、認證字段和模型映射可在下方高級選項中調整。",
+      "geminiHint": "填寫名稱、Gemini Native Base URL 與模型；Gemini CLI 原生協議會在進階選項中顯示。",
       "name": "供應商名稱",
       "namePlaceholder": "例如：我的 DeepSeek 網關",
       "baseUrl": "Base URL",
@@ -3687,7 +3693,20 @@
       "subtitle": "大多數場景保持默認即可",
       "upstreamModel": "上游模型",
       "defaultModel": "默認模型",
-      "apiFormat": "API 格式"
+      "apiFormat": "API 格式",
+      "authField": "認證字段",
+      "roleMapping": "模型角色映射",
+      "roleMappingHint": "顯示名稱用於 /model 選單；實際請求模型會寫入 Claude Code 環境變數。",
+      "role": "角色",
+      "displayName": "顯示名稱",
+      "requestModel": "實際請求模型",
+      "roleRequestModel": "{{role}} 實際請求模型",
+      "hiddenFromModelMenu": "不顯示在 /model 選單",
+      "fallbackModel": "預設兜底模型",
+      "desktopRoutes": "Claude Desktop 路由映射",
+      "customProtocolHint": "自定義配置按上游真實介面選擇協議。",
+      "presetProtocolLocked": "供應商預設已按真實端點鎖定協議，避免誤選後連線失敗。",
+      "geminiNativeLocked": "Gemini CLI 目前透傳原生 generateContent 協議；OpenAI Chat 端點需使用已實作協議轉換的客戶端入口。"
     },
     "badge": {
       "current": "當前",
@@ -3697,6 +3716,13 @@
       "clearFailed": "清除舊快速接入標記失敗，若切換仍報錯請手動在設置中清除",
       "takeoverFailed": "供應商已添加，但代理接管開啟失敗。請在設置-本地路由中手動開啟對應應用接管"
     },
+    "unavailableForApp": "當前客戶端協議暫未適配",
+    "unavailable": {
+      "codexOpenAiOnly": "Codex 快速接入目前使用 OpenAI Responses / Chat 上游協議",
+      "claudeOauthOnly": "此 OAuth 預設面向 Claude 客戶端",
+      "geminiNativeOnly": "Gemini CLI 需要 Gemini Native 或 Gemini 相容網關",
+      "geminiOpenRouter": "OpenRouter 提供 OpenAI Chat 上游，Gemini CLI 目前透傳 Gemini Native 協議"
+    },
     "error": {
       "emptyKey": "請填寫 API Key",
       "failed": "接入失敗，請檢查 API Key 或網絡後重試",
@@ -3704,6 +3730,41 @@
       "recoveryRequired": "接入失敗且自動恢復未完成，請先執行恢復",
       "noBaseUrl": "請填寫 Base URL",
       "noModel": "請填寫默認模型"
+    },
+    "addProvider": "添加供應商",
+    "addProviderHint": "選擇預設或添加相容端點。",
+    "configureProvider": "配置供應商",
+    "configureProviderHint": "只填必需資訊；連接和驗證會自動完成。",
+    "connectAndEnable": "連接並啟用",
+    "myProvidersHint": "API Key 保存在本機安全憑據庫；接入時會更新本機設定。",
+    "officialConnection": "訂閱帳號",
+    "officialConnectionHint": "按客戶端完成訂閱登入。",
+    "workbenchSubtitle": "選擇客戶端，再用訂閱帳號或 API Key 接入。",
+    "workbenchTitle": "模型接入",
+    "subscription": {
+      "loginStatus": "登入狀態",
+      "accountManagement": "帳號管理",
+      "claude": {
+        "title": "Claude 訂閱登入",
+        "description": "憑據由 Claude Code 管理；OpenSunstar 讀取狀態和額度。",
+        "action": "Claude 訂閱登入"
+      },
+      "claudeDesktop": {
+        "title": "Claude Desktop 登入",
+        "description": "登入由 Claude Desktop 管理。",
+        "action": "取得 Claude Desktop"
+      },
+      "codex": {
+        "title": "ChatGPT 訂閱登入",
+        "description": "登入由 OpenSunstar 託管。",
+        "action": "ChatGPT 訂閱登入",
+        "dialogHint": "按裝置授權流程連接帳號。"
+      },
+      "gemini": {
+        "title": "Gemini 帳號登入",
+        "description": "憑據由 Gemini CLI 管理；OpenSunstar 讀取狀態和額度。",
+        "action": "Gemini 登入指引"
+      }
     }
   },
   "kanban": {
@@ -4036,9 +4097,10 @@
     "tabs": {
       "assets": "資產關聯",
       "readiness": "就緒與生效",
-      "environment": "專案環境"
+      "environment": "專案環境 & Wiki"
     },
     "emptyProjects": "還沒有加入專案，先加入一個再來配置 AI 資產。",
+    "openWorkflow": "設定專案工作流程",
     "orchestrationLink": "工作流程編排",
     "orchestrationHint": "階段、預設與變更執行方案在「流程與方法論」裡配置，會帶著目前專案跳過去。"
   },

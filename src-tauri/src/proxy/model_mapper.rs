@@ -11,6 +11,8 @@ pub struct ModelMapping {
     pub haiku_model: Option<String>,
     pub sonnet_model: Option<String>,
     pub opus_model: Option<String>,
+    pub fable_model: Option<String>,
+    pub subagent_model: Option<String>,
     pub default_model: Option<String>,
 }
 
@@ -35,6 +37,16 @@ impl ModelMapping {
                 .and_then(|v| v.as_str())
                 .filter(|s| !s.is_empty())
                 .map(String::from),
+            fable_model: env
+                .and_then(|e| e.get("ANTHROPIC_DEFAULT_FABLE_MODEL"))
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(String::from),
+            subagent_model: env
+                .and_then(|e| e.get("CLAUDE_CODE_SUBAGENT_MODEL"))
+                .and_then(|v| v.as_str())
+                .filter(|s| !s.is_empty())
+                .map(String::from),
             default_model: env
                 .and_then(|e| e.get("ANTHROPIC_MODEL"))
                 .and_then(|v| v.as_str())
@@ -48,6 +60,8 @@ impl ModelMapping {
         self.haiku_model.is_some()
             || self.sonnet_model.is_some()
             || self.opus_model.is_some()
+            || self.fable_model.is_some()
+            || self.subagent_model.is_some()
             || self.default_model.is_some()
     }
 
@@ -56,6 +70,15 @@ impl ModelMapping {
         let model_lower = original_model.to_lowercase();
 
         // 1. 按模型类型匹配
+        if model_lower.contains("fable") {
+            if let Some(ref m) = self.fable_model {
+                return m.clone();
+            }
+            // Fable 未单独配置时按能力层级降到 Opus，而不是直接落到默认模型。
+            if let Some(ref m) = self.opus_model {
+                return m.clone();
+            }
+        }
         if model_lower.contains("haiku") {
             if let Some(ref m) = self.haiku_model {
                 return m.clone();
@@ -69,6 +92,14 @@ impl ModelMapping {
         if model_lower.contains("sonnet") {
             if let Some(ref m) = self.sonnet_model {
                 return m.clone();
+            }
+        }
+
+        // Subagent 可以直接配置成非 Claude 模型 ID；在默认模型兜底前保留该精确值。
+        if let Some(ref m) = self.subagent_model {
+            if strip_one_m_suffix_for_upstream(original_model) == strip_one_m_suffix_for_upstream(m)
+            {
+                return original_model.to_string();
             }
         }
 
@@ -154,7 +185,8 @@ mod tests {
                     "ANTHROPIC_MODEL": "default-model",
                     "ANTHROPIC_DEFAULT_HAIKU_MODEL": "haiku-mapped",
                     "ANTHROPIC_DEFAULT_SONNET_MODEL": "sonnet-mapped",
-                    "ANTHROPIC_DEFAULT_OPUS_MODEL": "opus-mapped"
+                    "ANTHROPIC_DEFAULT_OPUS_MODEL": "opus-mapped",
+                    "ANTHROPIC_DEFAULT_FABLE_MODEL": "fable-mapped"
                 }
             }),
             website_url: None,
@@ -215,6 +247,32 @@ mod tests {
     }
 
     #[test]
+    fn test_fable_mapping_and_one_m_suffix() {
+        let provider = create_provider_with_mapping();
+        for requested in ["claude-fable-5", "claude-fable-5[1M]"] {
+            let body = json!({"model": requested});
+            let (result, _, mapped) = apply_model_mapping(body, &provider);
+            assert_eq!(result["model"], "fable-mapped");
+            assert_eq!(mapped, Some("fable-mapped".to_string()));
+        }
+    }
+
+    #[test]
+    fn test_fable_falls_back_to_opus_when_unset() {
+        let mut provider = create_provider_with_mapping();
+        provider.settings_config = json!({
+            "env": {
+                "ANTHROPIC_MODEL": "default-model",
+                "ANTHROPIC_DEFAULT_OPUS_MODEL": "opus-mapped"
+            }
+        });
+        let body = json!({"model": "claude-fable-5"});
+        let (result, _, mapped) = apply_model_mapping(body, &provider);
+        assert_eq!(result["model"], "opus-mapped");
+        assert_eq!(mapped, Some("opus-mapped".to_string()));
+    }
+
+    #[test]
     fn test_thinking_does_not_affect_model_mapping() {
         // Issue #2081: thinking 参数不应影响模型映射
         let provider = create_provider_with_mapping();
@@ -259,6 +317,25 @@ mod tests {
         let (result, _, mapped) = apply_model_mapping(body, &provider);
         assert_eq!(result["model"], "default-model");
         assert_eq!(mapped, Some("default-model".to_string()));
+    }
+
+    #[test]
+    fn test_subagent_model_is_preserved_before_default_fallback() {
+        let mut provider = create_provider_with_mapping();
+        provider.settings_config = json!({
+            "env": {
+                "ANTHROPIC_MODEL": "default-model",
+                "CLAUDE_CODE_SUBAGENT_MODEL": "gpt-5.6-luna"
+            }
+        });
+
+        for requested in ["gpt-5.6-luna", "gpt-5.6-luna[1M]"] {
+            let body = json!({"model": requested});
+            let (result, original, mapped) = apply_model_mapping(body, &provider);
+            assert_eq!(result["model"], requested);
+            assert_eq!(original, Some(requested.to_string()));
+            assert!(mapped.is_none());
+        }
     }
 
     #[test]

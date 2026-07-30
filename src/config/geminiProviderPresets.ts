@@ -25,6 +25,8 @@ export interface GeminiProviderPreset {
   isPartner?: boolean;
   partnerPromotionKey?: string;
   endpointCandidates?: string[];
+  /** 快速接入验证协议；原生 Gemini API 使用 x-goog-api-key。 */
+  apiFormat?: "gemini_native" | "openai_chat";
   theme?: GeminiPresetTheme;
   // 图标配置
   icon?: string; // 图标名称
@@ -380,11 +382,11 @@ export const geminiProviderPresets: GeminiProviderPreset[] = [
     settingsConfig: {
       env: {
         GOOGLE_GEMINI_BASE_URL: "https://openrouter.ai/api",
-        GEMINI_MODEL: "gemini-3.5-flash",
+        GEMINI_MODEL: "gemini-3.6-flash",
       },
     },
     baseURL: "https://openrouter.ai/api",
-    model: "gemini-3.5-flash",
+    model: "gemini-3.6-flash",
     description: "OpenRouter",
     category: "aggregator",
     icon: "openrouter",

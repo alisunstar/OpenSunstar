@@ -28,13 +28,13 @@ export interface CustomProviderSettings {
 
 export interface AiInsightProviderSettingsView {
   provider: string;
-  deepseek_configured: boolean;
-  glm_api_url: string;
-  glm_model: string;
-  glm_configured: boolean;
-  custom_api_url: string;
-  custom_model: string;
-  custom_configured: boolean;
+  deepseekConfigured: boolean;
+  glmApiUrl: string;
+  glmModel: string;
+  glmConfigured: boolean;
+  customApiUrl: string;
+  customModel: string;
+  customConfigured: boolean;
 }
 
 // ── localStorage 迁移（一次性）────────────────────
@@ -138,7 +138,7 @@ export async function saveAiProvider(provider: AiProvider): Promise<void> {
 
 export async function getDeepseekSettings(): Promise<DeepseekSettings> {
   const view = await loadSettingsView();
-  return { apiKeyConfigured: view.deepseek_configured };
+  return { apiKeyConfigured: view.deepseekConfigured };
 }
 
 export async function saveDeepseekSettings(apiKey: string): Promise<boolean> {
@@ -177,9 +177,9 @@ export async function testDeepseekConnection(apiKeyOverride?: string): Promise<{
 export async function getGlmSettings(): Promise<GlmSettings> {
   const view = await loadSettingsView();
   return {
-    apiKeyConfigured: view.glm_configured,
-    apiUrl: view.glm_api_url,
-    model: view.glm_model,
+    apiKeyConfigured: view.glmConfigured,
+    apiUrl: view.glmApiUrl,
+    model: view.glmModel,
   };
 }
 
@@ -210,8 +210,8 @@ export async function testGlmConnection(
   }
   if (!key) return { ok: false, message: "未配置 API Key" };
 
-  const url = apiUrlOverride?.trim() || view.glm_api_url;
-  const model = modelOverride?.trim() || view.glm_model;
+  const url = apiUrlOverride?.trim() || view.glmApiUrl;
+  const model = modelOverride?.trim() || view.glmModel;
 
   try {
     const res = await fetch(url, {
@@ -239,9 +239,9 @@ export async function testGlmConnection(
 export async function getCustomProviderSettings(): Promise<CustomProviderSettings> {
   const view = await loadSettingsView();
   return {
-    apiKeyConfigured: view.custom_configured,
-    apiUrl: view.custom_api_url,
-    model: view.custom_model,
+    apiKeyConfigured: view.customConfigured,
+    apiUrl: view.customApiUrl,
+    model: view.customModel,
   };
 }
 
@@ -272,8 +272,8 @@ export async function testCustomProviderConnection(
   }
   if (!key) return { ok: false, message: "未配置 API Key" };
 
-  const url = apiUrlOverride?.trim() || view.custom_api_url;
-  const model = modelOverride?.trim() || view.custom_model;
+  const url = apiUrlOverride?.trim() || view.customApiUrl;
+  const model = modelOverride?.trim() || view.customModel;
 
   try {
     const res = await fetch(url, {

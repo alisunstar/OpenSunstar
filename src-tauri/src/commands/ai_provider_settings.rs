@@ -211,6 +211,14 @@ pub fn save_ai_insight_custom_settings(
 pub fn build_ai_insight_provider_config(
     state: State<'_, AppState>,
 ) -> Result<Option<AIProviderConfig>, String> {
+    resolve_ai_insight_provider_config(&state)
+}
+
+/// 后端能力（包括项目 Wiki）统一从“设置 → AI 提供方”解析配置。
+/// 不读取快速接入代理、CLI 登录态或进程环境变量。
+pub fn resolve_ai_insight_provider_config(
+    state: &AppState,
+) -> Result<Option<AIProviderConfig>, String> {
     let provider = state
         .db
         .get_setting(PROVIDER_SETTING_KEY)

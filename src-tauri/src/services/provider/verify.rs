@@ -18,6 +18,8 @@ pub enum VerifyProtocol {
     OpenAi,
     /// Anthropic 原生协议：x-api-key + POST /v1/messages
     Anthropic,
+    /// Gemini 原生协议：x-goog-api-key + GET /v1beta/models
+    Gemini,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -81,7 +83,73 @@ pub async fn verify_key(
     match protocol {
         VerifyProtocol::OpenAi => verify_openai_key(base, trimmed_key).await,
         VerifyProtocol::Anthropic => verify_anthropic_key(base, trimmed_key).await,
+        VerifyProtocol::Gemini => verify_gemini_key(base, trimmed_key).await,
     }
+}
+
+fn gemini_models_url(base: &str) -> String {
+    let trimmed = base.trim().trim_end_matches('/');
+    if trimmed.ends_with("/v1beta") || trimmed.ends_with("/v1") {
+        format!("{trimmed}/models")
+    } else {
+        format!("{trimmed}/v1beta/models")
+    }
+}
+
+/// Gemini 原生协议校验：GET {base}/v1beta/models + x-goog-api-key。
+async fn verify_gemini_key(base: &str, api_key: &str) -> Result<VerifyKeyResult, AppError> {
+    let url = gemini_models_url(base);
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(12))
+        .build()
+        .map_err(|e| AppError::Message(format!("HTTP client: {e}")))?;
+
+    let resp = match client
+        .get(&url)
+        .header("x-goog-api-key", api_key)
+        .send()
+        .await
+    {
+        Ok(response) => response,
+        Err(error) => {
+            let message = if error.is_timeout() {
+                "连接超时，请检查网络".into()
+            } else if error.is_connect() {
+                "Gemini 上游连接失败".into()
+            } else {
+                format!("网络错误: {error}")
+            };
+            return Ok(VerifyKeyResult {
+                ok: false,
+                model_count: 0,
+                error: Some(message),
+            });
+        }
+    };
+
+    if !resp.status().is_success() {
+        return Ok(VerifyKeyResult {
+            ok: false,
+            model_count: 0,
+            error: Some(humanize_status(resp.status().as_u16())),
+        });
+    }
+
+    let value: serde_json::Value = resp
+        .json()
+        .await
+        .map_err(|_| AppError::Message("上游响应格式异常".into()))?;
+    let count = value
+        .get("models")
+        .and_then(|models| models.as_array())
+        .map(|models| models.len())
+        .unwrap_or(0);
+
+    Ok(VerifyKeyResult {
+        ok: true,
+        model_count: count,
+        error: None,
+    })
 }
 
 /// OpenAI 兼容协议校验：GET {base}/v1/models + Bearer Auth
@@ -214,5 +282,22 @@ async fn verify_anthropic_key(base: &str, api_key: &str) -> Result<VerifyKeyResu
                 humanize_status(other)
             )),
         }),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::gemini_models_url;
+
+    #[test]
+    fn gemini_models_url_keeps_explicit_api_versions() {
+        assert_eq!(
+            gemini_models_url("https://generativelanguage.googleapis.com"),
+            "https://generativelanguage.googleapis.com/v1beta/models"
+        );
+        assert_eq!(
+            gemini_models_url("https://gateway.example/v1beta/"),
+            "https://gateway.example/v1beta/models"
+        );
     }
 }

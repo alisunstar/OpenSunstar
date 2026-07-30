@@ -888,6 +888,7 @@ pub async fn verify_provider_key(
     let p = match protocol.as_str() {
         "openai" | "open_ai" | "openai_chat" => crate::services::provider::VerifyProtocol::OpenAi,
         "anthropic" | "anthropic_native" => crate::services::provider::VerifyProtocol::Anthropic,
+        "gemini" | "gemini_native" => crate::services::provider::VerifyProtocol::Gemini,
         other => return Err(format!("Unsupported protocol: {other}")),
     };
     crate::services::provider::verify_key(&baseUrl, &apiKey, p)

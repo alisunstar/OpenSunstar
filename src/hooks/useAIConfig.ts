@@ -7,12 +7,21 @@ import { buildProviderConfig, type AIProviderConfig } from "@/api/aiInsight";
  */
 export function useAIConfig() {
   const [configured, setConfigured] = useState(false);
+  const [loading, setLoading] = useState(true);
   const configRef = useRef<AIProviderConfig | null>(null);
 
   const refresh = useCallback(async () => {
-    const config = await buildProviderConfig();
-    configRef.current = config;
-    setConfigured(config !== null);
+    setLoading(true);
+    try {
+      const config = await buildProviderConfig();
+      configRef.current = config;
+      setConfigured(config !== null);
+    } catch {
+      configRef.current = null;
+      setConfigured(false);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -25,6 +34,7 @@ export function useAIConfig() {
 
   return {
     aiConfigured: configured,
+    aiConfigLoading: loading,
     refreshConfig: refresh,
     getConfig,
   };

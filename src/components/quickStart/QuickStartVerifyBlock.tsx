@@ -16,6 +16,7 @@ interface QuickStartVerifyBlockProps {
   selection: QuickStartSelection;
   fields: QuickStartFormFields;
   onVerificationChange?: (verified: boolean) => void;
+  onModelsChange?: (models: FetchedModel[]) => void;
 }
 
 export function QuickStartVerifyBlock({
@@ -23,6 +24,7 @@ export function QuickStartVerifyBlock({
   selection,
   fields,
   onVerificationChange,
+  onModelsChange,
 }: QuickStartVerifyBlockProps) {
   const { t } = useTranslation();
   const [verifying, setVerifying] = useState(false);
@@ -36,11 +38,13 @@ export function QuickStartVerifyBlock({
     setMessage(null);
     setOk(null);
     setModels([]);
+    onModelsChange?.([]);
     try {
       const outcome = await verifyQuickStartKey(appId, selection, fields, t);
       setOk(outcome.ok);
       setMessage(outcome.message);
       setModels(outcome.models);
+      onModelsChange?.(outcome.models);
       onVerificationChange?.(outcome.ok);
       if (outcome.models.length > 0) {
         setModelsOpen(true);
@@ -49,10 +53,11 @@ export function QuickStartVerifyBlock({
       setOk(false);
       setMessage(String(error));
       onVerificationChange?.(false);
+      onModelsChange?.([]);
     } finally {
       setVerifying(false);
     }
-  }, [appId, selection, fields, onVerificationChange, t]);
+  }, [appId, selection, fields, onVerificationChange, onModelsChange, t]);
 
   return (
     <div className="space-y-2">
@@ -86,7 +91,7 @@ export function QuickStartVerifyBlock({
       <p className="text-xs text-muted-foreground">
         {t("quickStart.verifyHint", {
           defaultValue:
-            "Anthropic 协议验证会消耗约 1 token；OpenAI 兼容网关验证成功后可展开模型列表",
+            "系统按当前协议验证；Anthropic 约消耗 1 token，OpenAI/Gemini 获取到模型列表后可用于高级映射",
         })}
       </p>
       {models.length > 0 && (

@@ -720,8 +720,7 @@ fn verification_protocol_for(provider: &Provider) -> VerifyProtocol {
         .and_then(|meta| meta.api_format.as_deref())
     {
         Some("anthropic") => VerifyProtocol::Anthropic,
-        // OpenAI-compatible and Gemini-native QuickStart presets both retain the
-        // existing /v1/models probe contract. All other formats default to it too.
+        Some("gemini_native") => VerifyProtocol::Gemini,
         _ => VerifyProtocol::OpenAi,
     }
 }
@@ -746,6 +745,7 @@ fn build_upstream_verification_receipt(
         protocol: match protocol {
             VerifyProtocol::OpenAi => "openai",
             VerifyProtocol::Anthropic => "anthropic",
+            VerifyProtocol::Gemini => "gemini",
         }
         .to_string(),
         endpoint_host,

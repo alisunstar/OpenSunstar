@@ -11,7 +11,6 @@ import {
   Plus,
   PlusCircle,
   Search,
-  Settings2,
   Sparkles,
   Undo2,
   X,
@@ -57,10 +56,15 @@ import { QuickStartAppTabs, quickStartAppLabel } from "./QuickStartAppTabs";
 import { QuickStartCustomFields } from "./QuickStartCustomFields";
 import { QuickStartProviderList } from "./QuickStartProviderList";
 import { QuickStartVerifyBlock } from "./QuickStartVerifyBlock";
+import { CodexOAuthSection } from "@/components/providers/forms/CodexOAuthSection";
+import {
+  buildCodexOauthIntent,
+  buildLocalCliAuthIntent,
+  type SettingsNavIntent,
+} from "@/lib/settingsNavigation";
 
 interface QuickStartPageProps {
-  onOpenSettings?: () => void;
-  onOpenSubscriptionAccounts?: () => void;
+  onOpenAuthSettings?: (intent: SettingsNavIntent) => void;
 }
 
 const EMPTY_FIELDS: QuickStartFormFields = {
@@ -107,10 +111,7 @@ function formatUpstreamVerificationReceipt(
   }
 }
 
-export function QuickStartPage({
-  onOpenSettings,
-  onOpenSubscriptionAccounts,
-}: QuickStartPageProps) {
+export function QuickStartPage({ onOpenAuthSettings }: QuickStartPageProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [activeApp, setActiveApp] = useState<QuickStartAppId>("claude");
@@ -148,6 +149,7 @@ export function QuickStartPage({
     () => groupedPresets.filter((group) => group.category !== "official"),
     [groupedPresets],
   );
+  const officialPreset = officialGroups[0]?.presets[0] ?? null;
 
   const refreshRecoverableOperations = useCallback(async () => {
     const operations = await listRecoverableQuickStartOperations();
@@ -226,9 +228,12 @@ export function QuickStartPage({
 
   const handleSelectPreset = useCallback(
     (preset: ResolvedQuickStartPreset, isCustom: boolean) => {
+      if (preset.unavailable) return;
       const nextSelection: QuickStartSelection = isCustom
         ? { mode: "custom", appId: activeApp }
-        : preset.isOfficial || preset.category === "official"
+        : preset.authMode === "oauth" ||
+            preset.isOfficial ||
+            preset.category === "official"
           ? { mode: "official", appId: activeApp, presetName: preset.name }
           : {
               mode: "preset",
@@ -297,9 +302,11 @@ export function QuickStartPage({
         selection.mode === "custom"
           ? fields.customName.trim() ||
             t("quickStart.custom.defaultName", { defaultValue: "自定义供应商" })
-          : selectedPreset?.nameKey
-            ? String(t(selectedPreset.nameKey))
-            : (selectedPreset?.name ?? "供应商");
+          : selectedPreset?.displayName
+            ? selectedPreset.displayName
+            : selectedPreset?.nameKey
+              ? String(t(selectedPreset.nameKey))
+              : (selectedPreset?.name ?? "供应商");
       const providerInput = buildQuickStartProviderInput(
         activeApp,
         selection,
@@ -390,10 +397,11 @@ export function QuickStartPage({
 
   const operationSucceeded = lastOperation?.status === "succeeded";
   const selectedName =
-    selectedPreset?.nameKey &&
+    selectedPreset?.displayName ??
+    (selectedPreset?.nameKey &&
     selectedPreset.name !== QUICKSTART_CUSTOM_PRESET_ID
       ? String(t(selectedPreset.nameKey))
-      : (selectedPreset?.name ?? "供应商");
+      : (selectedPreset?.name ?? "供应商"));
 
   return (
     <div
@@ -404,18 +412,17 @@ export function QuickStartPage({
         <div className="space-y-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold">
             <Sparkles className="h-6 w-6 text-primary" />
-            {t("quickStart.workbenchTitle", { defaultValue: "模型与供应商" })}
+            {t("quickStart.workbenchTitle", { defaultValue: "模型接入" })}
           </h1>
           <p className="text-sm text-muted-foreground">
             {t("quickStart.workbenchSubtitle", {
-              defaultValue:
-                "选择供应商并填写 API Key，其余由 OpenSunstar 自动完成。",
+              defaultValue: "选择客户端，再用订阅账号或 API Key 接入。",
             })}
           </p>
         </div>
         <Button onClick={handleOpenAddProvider}>
           <Plus className="mr-1.5 h-4 w-4" />
-          {t("quickStart.addProvider", { defaultValue: "新增供应商" })}
+          {t("quickStart.addProvider", { defaultValue: "添加供应商" })}
         </Button>
       </header>
 
@@ -424,32 +431,20 @@ export function QuickStartPage({
       <section className="space-y-3">
         <div className="space-y-1">
           <h2 className="text-base font-semibold">
-            {t("quickStart.officialConnection", { defaultValue: "官方接入" })}
+            {t("quickStart.officialConnection", { defaultValue: "订阅账号" })}
           </h2>
           <p className="text-sm text-muted-foreground">
             {t("quickStart.officialConnectionHint", {
-              defaultValue: "使用官方账户登录或订阅授权，无需配置中转服务。",
+              defaultValue: "按客户端完成订阅登录。",
             })}
           </p>
         </div>
-        {selection?.mode === "official" && selectedPreset ? (
-          <OfficialLoginNotice
-            preset={selectedPreset}
-            onCancel={resetForm}
-            onManageAccounts={onOpenSubscriptionAccounts}
+        {officialPreset && (
+          <OfficialAccountPanel
+            appId={activeApp}
+            preset={officialPreset}
+            onOpenAuthSettings={onOpenAuthSettings}
           />
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {officialGroups.flatMap((group) =>
-              group.presets.map((preset) => (
-                <PresetCard
-                  key={`${group.category}-${preset.name}`}
-                  preset={preset}
-                  onSelect={() => handleSelectPreset(preset, false)}
-                />
-              )),
-            )}
-          </div>
         )}
       </section>
 
@@ -649,32 +644,7 @@ export function QuickStartPage({
         </section>
       )}
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-base font-semibold">
-              {t("quickStart.connectedProviders", {
-                defaultValue: "已接入供应商",
-              })}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {t("quickStart.connectedProvidersHint", {
-                defaultValue:
-                  "可直接切换当前供应商；高级能力在各供应商的设置中管理。",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-1">
-            {onOpenSettings && (
-              <Button variant="ghost" size="sm" onClick={onOpenSettings}>
-                <Settings2 className="mr-1.5 h-4 w-4" />
-                {t("quickStart.proxySettings", {
-                  defaultValue: "代理与故障设置",
-                })}
-              </Button>
-            )}
-          </div>
-        </div>
+      <section>
         <QuickStartProviderList
           appId={activeApp}
           onAddProvider={handleOpenAddProvider}
@@ -692,7 +662,7 @@ export function QuickStartPage({
                 ? t("quickStart.configureProvider", {
                     defaultValue: "配置供应商",
                   })
-                : t("quickStart.addProvider", { defaultValue: "新增供应商" })}
+                : t("quickStart.addProvider", { defaultValue: "添加供应商" })}
             </DialogTitle>
             <DialogDescription>
               {selection
@@ -741,11 +711,6 @@ export function QuickStartPage({
                             { defaultValue: group.category },
                           )}
                         </h3>
-                        {group.emptyHintKey && group.presets.length === 0 && (
-                          <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-                            {t(group.emptyHintKey)}
-                          </p>
-                        )}
                         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                           {group.presets.map((preset) => (
                             <PresetCard
@@ -766,12 +731,14 @@ export function QuickStartPage({
                   </div>
                 </>
               ) : selection.mode === "official" ? (
-                <OfficialLoginNotice
+                <OfficialAccountPanel
+                  appId={activeApp}
                   preset={selectedPreset!}
-                  onCancel={resetForm}
+                  onOpenAuthSettings={onOpenAuthSettings}
                 />
               ) : (
                 <ProviderForm
+                  key={`${activeApp}:${selectedPreset!.name}`}
                   activeApp={activeApp}
                   selection={selection}
                   selectedPreset={selectedPreset!}
@@ -816,9 +783,14 @@ function ProviderForm({
   onApply: () => void;
 }) {
   const { t } = useTranslation();
-  const title = selectedPreset.nameKey
-    ? String(t(selectedPreset.nameKey))
-    : selectedPreset.name;
+  const [availableModels, setAvailableModels] = useState<
+    import("@/lib/api/model-fetch").FetchedModel[]
+  >([]);
+  const title = selectedPreset.displayName
+    ? selectedPreset.displayName
+    : selectedPreset.nameKey
+      ? String(t(selectedPreset.nameKey))
+      : selectedPreset.name;
   return (
     <div className="space-y-5 rounded-xl border border-border bg-card p-5">
       <div className="flex items-start gap-3">
@@ -870,7 +842,8 @@ function ProviderForm({
         />
         <p className="text-xs text-muted-foreground">
           {t("quickStart.keychainHint", {
-            defaultValue: "凭据安全保存；接入完成前还会进行真实配置验证。",
+            defaultValue:
+              "API Key 保存在本机安全凭据库；接入时会更新本地配置。",
           })}
         </p>
         {selectedPreset.apiKeyUrl && (
@@ -891,11 +864,13 @@ function ProviderForm({
         selection={selection}
         fields={fields}
         onVerificationChange={onVerificationChange}
+        onModelsChange={setAvailableModels}
       />
       <QuickStartAdvancedPanel
         appId={activeApp}
         selection={selection}
         fields={fields}
+        availableModels={availableModels}
         onChange={onChange}
       />
 
@@ -919,49 +894,158 @@ function ProviderForm({
   );
 }
 
-function OfficialLoginNotice({
+function OfficialAccountPanel({
+  appId,
   preset,
-  onCancel,
-  onManageAccounts,
+  onOpenAuthSettings,
 }: {
+  appId: QuickStartAppId;
   preset: ResolvedQuickStartPreset;
-  onCancel: () => void;
-  onManageAccounts?: () => void;
+  onOpenAuthSettings?: (intent: SettingsNavIntent) => void;
 }) {
   const { t } = useTranslation();
-  const title = preset.nameKey ? String(t(preset.nameKey)) : preset.name;
+  const [codexLoginOpen, setCodexLoginOpen] = useState(false);
+  const providerTitle = preset.displayName
+    ? preset.displayName
+    : preset.nameKey
+      ? String(t(preset.nameKey))
+      : preset.name;
+  const copy = {
+    claude: {
+      title: t("quickStart.subscription.claude.title", {
+        defaultValue: "Claude 订阅登录",
+      }),
+      description: t("quickStart.subscription.claude.description", {
+        defaultValue: "凭据由 Claude Code 管理；OpenSunstar 读取状态和额度。",
+      }),
+      primary: t("quickStart.subscription.claude.action", {
+        defaultValue: "Claude 订阅登录",
+      }),
+      href: "https://claude.ai/login?selectAccount=true",
+      manage: t("quickStart.subscription.loginStatus", {
+        defaultValue: "登录状态",
+      }),
+    },
+    "claude-desktop": {
+      title: t("quickStart.subscription.claudeDesktop.title", {
+        defaultValue: "Claude Desktop 登录",
+      }),
+      description: t("quickStart.subscription.claudeDesktop.description", {
+        defaultValue: "登录由 Claude Desktop 管理。",
+      }),
+      primary: t("quickStart.subscription.claudeDesktop.action", {
+        defaultValue: "获取 Claude Desktop",
+      }),
+      href: preset.websiteUrl,
+      manage: null,
+    },
+    codex: {
+      title: t("quickStart.subscription.codex.title", {
+        defaultValue: "ChatGPT 订阅登录",
+      }),
+      description: t("quickStart.subscription.codex.description", {
+        defaultValue: "登录由 OpenSunstar 托管。",
+      }),
+      primary: t("quickStart.subscription.codex.action", {
+        defaultValue: "ChatGPT 订阅登录",
+      }),
+      href: null,
+      manage: t("quickStart.subscription.accountManagement", {
+        defaultValue: "账号管理",
+      }),
+    },
+    gemini: {
+      title: t("quickStart.subscription.gemini.title", {
+        defaultValue: "Gemini 账号登录",
+      }),
+      description: t("quickStart.subscription.gemini.description", {
+        defaultValue: "凭据由 Gemini CLI 管理；OpenSunstar 读取状态和额度。",
+      }),
+      primary: t("quickStart.subscription.gemini.action", {
+        defaultValue: "Gemini 登录指引",
+      }),
+      href: "https://geminicli.com/docs/get-started/authentication/",
+      manage: t("quickStart.subscription.loginStatus", {
+        defaultValue: "登录状态",
+      }),
+    },
+  }[appId];
+
+  const openManagement = () => {
+    onOpenAuthSettings?.(
+      appId === "codex" ? buildCodexOauthIntent() : buildLocalCliAuthIntent(),
+    );
+  };
+
   return (
-    <div className="space-y-4 rounded-xl border border-border bg-card p-5">
-      <h3 className="font-semibold">{title}</h3>
-      <p className="text-sm text-muted-foreground">
-        {t("quickStart.officialLoginNotice", {
-          defaultValue:
-            "官方供应商使用浏览器登录或订阅授权，不属于 API Key 快速接入流程。",
-        })}
-      </p>
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={onCancel}>
-          {t("common.back", { defaultValue: "返回" })}
-        </Button>
-        {onManageAccounts && (
-          <Button variant="outline" onClick={onManageAccounts}>
-            {t("quickStart.manageSubscriptionAccounts", {
-              defaultValue: "管理订阅账号",
-            })}
-          </Button>
-        )}
-        {preset.websiteUrl && (
-          <Button asChild>
-            <a href={preset.websiteUrl} target="_blank" rel="noreferrer">
-              {t("quickStart.openOfficialSite", {
-                defaultValue: "打开官网登录",
-              })}
-              <ExternalLink className="ml-1.5 h-4 w-4" />
-            </a>
-          </Button>
-        )}
-      </div>
-    </div>
+    <>
+      <article className="flex flex-col gap-4 rounded-xl border border-border/70 bg-card px-4 py-4 sm:flex-row sm:items-center">
+        <ProviderIcon
+          icon={preset.icon}
+          name={preset.name}
+          color={preset.iconColor}
+          size={40}
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold">{providerTitle}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {copy.description}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {copy.href ? (
+            <Button asChild>
+              <a href={copy.href} target="_blank" rel="noreferrer">
+                {copy.primary}
+                <ExternalLink className="ml-1.5 h-4 w-4" />
+              </a>
+            </Button>
+          ) : (
+            <Button onClick={() => setCodexLoginOpen(true)}>
+              {copy.primary}
+            </Button>
+          )}
+          {copy.manage && onOpenAuthSettings && (
+            <Button variant="outline" onClick={openManagement}>
+              {copy.manage}
+            </Button>
+          )}
+        </div>
+      </article>
+
+      {appId === "codex" && (
+        <Dialog open={codexLoginOpen} onOpenChange={setCodexLoginOpen}>
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden">
+            <DialogHeader className="relative pr-14">
+              <DialogTitle>
+                {t("quickStart.subscription.codex.title", {
+                  defaultValue: "ChatGPT 订阅登录",
+                })}
+              </DialogTitle>
+              <DialogDescription>
+                {t("quickStart.subscription.codex.dialogHint", {
+                  defaultValue: "按设备授权流程连接账号。",
+                })}
+              </DialogDescription>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3"
+                aria-label={t("common.close", { defaultValue: "关闭" })}
+                onClick={() => setCodexLoginOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            <div className="min-h-0 overflow-y-auto px-6 py-5">
+              <CodexOAuthSection />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -977,17 +1061,23 @@ function PresetCard({
   const { t } = useTranslation();
   const displayName = isCustom
     ? t("quickStart.custom.cardTitle", { defaultValue: "自定义配置" })
-    : preset.nameKey
-      ? t(preset.nameKey)
-      : preset.name;
+    : preset.displayName
+      ? preset.displayName
+      : preset.nameKey
+        ? t(preset.nameKey)
+        : preset.name;
   return (
     <button
       type="button"
       onClick={onSelect}
+      disabled={preset.unavailable}
+      aria-disabled={preset.unavailable || undefined}
       className={cn(
         "group flex items-center gap-3 rounded-lg border border-border bg-card p-3 text-left transition-all",
         "hover:border-primary/50 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isCustom && "border-dashed",
+        preset.unavailable &&
+          "cursor-not-allowed opacity-55 hover:border-border hover:shadow-none",
       )}
     >
       {isCustom ? (
@@ -1015,6 +1105,18 @@ function PresetCard({
             {t("quickStart.custom.cardSubtitle", {
               defaultValue: "填写 Base URL 与模型",
             })}
+          </span>
+        )}
+        {preset.unavailable && (
+          <span className="text-[10px] text-muted-foreground">
+            {preset.unavailableReasonKey
+              ? t(preset.unavailableReasonKey, {
+                  defaultValue: preset.unavailableReason,
+                })
+              : (preset.unavailableReason ??
+                t("quickStart.unavailableForApp", {
+                  defaultValue: "当前客户端协议暂未适配",
+                }))}
           </span>
         )}
       </div>

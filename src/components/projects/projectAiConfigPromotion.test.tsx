@@ -115,13 +115,16 @@ function renderPage(
     selectedProjectId: string | null;
     onSelectProject: (id: string) => void;
     onNavigate: (view: PageView) => void;
+    onOpenProjectWorkflow: (projectId: string) => void;
   }> = {},
 ) {
   const onSelectProject = overrides.onSelectProject ?? vi.fn();
   const onNavigate = overrides.onNavigate ?? vi.fn();
+  const onOpenProjectWorkflow = overrides.onOpenProjectWorkflow ?? vi.fn();
   return {
     onSelectProject,
     onNavigate,
+    onOpenProjectWorkflow,
     ...renderWithProviders(
       <ProjectAiConfigPage
         projects={overrides.projects ?? [ALPHA, BETA]}
@@ -132,6 +135,7 @@ function renderPage(
         }
         onSelectProject={onSelectProject}
         onNavigate={onNavigate}
+        onOpenProjectWorkflow={onOpenProjectWorkflow}
       />,
     ),
   };
@@ -164,7 +168,7 @@ describe("项目资产配置：唯一挂载点", () => {
     expect(screen.getByTestId("asset-health")).toBeInTheDocument();
     expect(screen.queryByTestId("asset-panel")).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("tab", { name: "项目环境" }));
+    await user.click(screen.getByRole("tab", { name: "项目环境 & Wiki" }));
     expect(screen.getByTestId("project-wiki")).toBeInTheDocument();
     expect(screen.getByTestId("project-environment")).toBeInTheDocument();
     expect(screen.queryByTestId("readiness-full")).not.toBeInTheDocument();
@@ -196,15 +200,16 @@ describe("项目资产配置：唯一挂载点", () => {
    * `ProjectFlowOrchestratorPanel` 已经是「流程与方法论 → 工作流配置」的主体，
    * 在这里再挂一份就是第三个挂载点 —— 正是上面那条回归要防的东西。
    */
-  it("配置页用链接跳流程与方法论，不再挂一份编排面板", async () => {
+  it("工作流入口归到页头，带当前项目打开唯一的编排主体", async () => {
     const user = userEvent.setup();
-    const { onNavigate } = renderPage();
+    const { onOpenProjectWorkflow } = renderPage();
 
     expect(screen.queryByTestId("flow-panel")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "配置项目工作流" }));
+    expect(onOpenProjectWorkflow).toHaveBeenCalledWith(ALPHA.id);
 
-    await user.click(screen.getByRole("tab", { name: "项目环境" }));
-    await user.click(screen.getByRole("button", { name: /工作流编排/ }));
-    expect(onNavigate).toHaveBeenCalledWith("methodology");
+    await user.click(screen.getByRole("tab", { name: "项目环境 & Wiki" }));
+    expect(screen.queryByText("工作流编排")).toBeNull();
   });
 });
 

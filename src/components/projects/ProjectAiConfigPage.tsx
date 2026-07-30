@@ -15,6 +15,10 @@ import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 import { useAgentReadiness } from "@/hooks/useAIInsight";
 import { repairAssetDrift } from "@/api/aiInsight";
 import { showRepairAssetFeedback } from "@/lib/repairFeedback";
+import {
+  buildAiProviderSettingsIntent,
+  setSettingsNavIntent,
+} from "@/lib/settingsNavigation";
 import type { PageView } from "@/app/navigation";
 import type { AppId } from "@/lib/api";
 import type { ProjectAssetSection } from "@/lib/readinessActions";
@@ -30,6 +34,8 @@ export interface ProjectAiConfigPageProps {
   selectedProjectId: string | null;
   onSelectProject: (projectId: string) => void;
   onNavigate?: (view: PageView) => void;
+  /** 打开当前项目的单一工作流配置入口。 */
+  onOpenProjectWorkflow?: (projectId: string) => void;
   onAddProject?: () => void;
   /** 配置落盘后通知外部重扫（看板的就绪度批量结果会因此失效）。 */
   onConfigChanged?: () => void;
@@ -41,6 +47,7 @@ export function ProjectAiConfigPage({
   selectedProjectId,
   onSelectProject,
   onNavigate,
+  onOpenProjectWorkflow,
   onAddProject,
   onConfigChanged,
   targetApp = "claude",
@@ -83,6 +90,11 @@ export function ProjectAiConfigPage({
     scanEffective();
     onConfigChanged?.();
   }, [scanEffective, onConfigChanged]);
+
+  const handleOpenAiProviderSettings = useCallback(() => {
+    setSettingsNavIntent(buildAiProviderSettingsIntent());
+    onNavigate?.("settings");
+  }, [onNavigate]);
 
   const handleRepairDrift = useCallback(
     async (checkName: string) => {
@@ -150,6 +162,18 @@ export function ProjectAiConfigPage({
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <PageScopeBadge scope="project" projectName={project.name} />
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8"
+              onClick={() => onOpenProjectWorkflow?.(project.id)}
+            >
+              <Workflow className="mr-1.5 h-3.5 w-3.5" />
+              {t("projectAiConfig.openWorkflow", {
+                defaultValue: "配置项目工作流",
+              })}
+            </Button>
             <label className="sr-only" htmlFor="project-ai-config-switcher">
               {t("projectAiConfig.switcher", { defaultValue: "当前配置项目" })}
             </label>
@@ -202,7 +226,7 @@ export function ProjectAiConfigPage({
           </TabsTrigger>
           <TabsTrigger value="environment">
             {t("projectAiConfig.tabs.environment", {
-              defaultValue: "项目环境",
+              defaultValue: "项目环境 & Wiki",
             })}
           </TabsTrigger>
         </TabsList>
@@ -259,31 +283,12 @@ export function ProjectAiConfigPage({
           <ProjectWikiPanel
             projectId={project.id}
             onConfigChanged={handleConfigChanged}
+            onOpenAiProviderSettings={handleOpenAiProviderSettings}
           />
           <ProjectEnvironmentSnapshotPanel
             projectId={project.id}
             onApplied={handleConfigChanged}
           />
-          <button
-            type="button"
-            onClick={() => onNavigate?.("methodology")}
-            className="w-full flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 text-left transition-colors hover:bg-muted/40"
-          >
-            <Workflow className="h-4 w-4 text-primary shrink-0" />
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-medium text-foreground">
-                {t("projectAiConfig.orchestrationLink", {
-                  defaultValue: "工作流编排",
-                })}
-              </span>
-              <span className="block text-[11px] text-muted-foreground">
-                {t("projectAiConfig.orchestrationHint", {
-                  defaultValue:
-                    "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
-                })}
-              </span>
-            </span>
-          </button>
         </TabsContent>
       </Tabs>
     </motion.div>

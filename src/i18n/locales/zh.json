@@ -39,7 +39,7 @@
     "changedFiles": {
       "coldStart": "Wiki 刚初始化，变更映射尚未生效",
       "coldStartProgress": "当前有效 source_files 页面：{{current}}/{{threshold}}",
-      "coldStartGuidance": "请在 Claude Code 中使用 maintain-repo-wiki Skill 填充 wiki 内容",
+      "coldStartGuidance": "请点击“生成项目 Wiki”，使用设置中的 AI 提供方生成并验收",
       "affectedPages": "{{count}} 个源码变更，影响 {{pages}} 个 wiki 页面",
       "unmapped": "{{count}} 个未映射变更",
       "noChanges": "无源码变更，wiki 页面均为最新"
@@ -2950,11 +2950,11 @@
     "searchPlaceholder": "搜索供应商名称或网址…",
     "noResults": "未找到匹配的供应商",
     "official": "官方",
-    "officialDesc": "官方供应商需通过浏览器登录或订阅授权，无法在快速接入中仅填 Key 完成。请前往供应商管理完成 OAuth / 官方配置。",
+    "officialDesc": "官方账号按客户端登录。",
     "partner": "合作伙伴",
     "apiKeyLabel": "API Key",
     "apiKeyPlaceholder": "粘贴你的 API Key",
-    "keychainHint": "Key 将安全存储于系统钥匙串（Windows Credential Manager / macOS Keychain），不会明文落盘",
+    "keychainHint": "API Key 保存在本机安全凭据库；接入时会更新本地配置。",
     "getKey": "获取 API Key",
     "apply": "一键启用",
     "success": "接入成功！已切换为当前供应商",
@@ -2979,11 +2979,12 @@
     "verify": "验证 Key",
     "verifyOk": "Key 有效！",
     "verifyOkAnthropic": "Key 有效（该供应商不提供模型列表 API，将使用预设默认模型）",
+    "verifyOkGemini": "Key 有效，Gemini 原生接口验证通过",
     "verifyOkWithModels": "Key 有效，已获取 {{count}} 个模型",
     "verifyOkNoModelList": "Key 有效（模型列表拉取失败，将使用预设默认模型）",
-    "verifyHint": "Anthropic 协议验证会消耗约 1 token；OpenAI 兼容网关验证成功后可展开模型列表",
+    "verifyHint": "系统按当前协议验证；Anthropic 约消耗 1 token，OpenAI/Gemini 获取到模型列表后可用于高级映射",
     "modelsList": "可用模型（{{count}}）",
-    "myProviders": "我的供应商",
+    "myProviders": "API Key 接入",
     "switch": "切换",
     "apps": {
       "claude": "Claude Code",
@@ -2992,15 +2993,20 @@
       "gemini": "Gemini"
     },
     "category": {
-      "custom": "自定义"
+      "custom": "自定义",
+      "aiGlobal": "AI国际",
+      "aiChina": "AI中国",
+      "relay": "聚合/中转",
+      "customModel": "自定义模型配置"
     },
     "gemini": {
-      "cnOfficialHint": "Phase 1 暂不提供中国官方精选卡片。请使用 OpenRouter 聚合网关，或通过「自定义配置」填写国内 Gemini 兼容端点。"
+      "cnOfficialHint": "Gemini 快速接入当前启用 Google 官方和 Gemini Native 兼容端点；OpenAI Chat 网关会显示协议不匹配提示。"
     },
     "custom": {
       "cardTitle": "自定义配置",
       "cardSubtitle": "自填 Base URL 与模型",
-      "hint": "自定义网关：填写最小必填项即可接入，高级配置可在供应商管理中编辑。",
+      "hint": "填写名称、Base URL 与默认模型；API 格式、认证字段和模型映射可在下方高级选项中调整。",
+      "geminiHint": "填写名称、Gemini Native Base URL 与模型；Gemini CLI 原生协议在高级选项中展示。",
       "name": "供应商名称",
       "namePlaceholder": "例如：我的 DeepSeek 网关",
       "baseUrl": "Base URL",
@@ -3013,7 +3019,20 @@
       "subtitle": "大多数场景保持默认即可",
       "upstreamModel": "上游模型",
       "defaultModel": "默认模型",
-      "apiFormat": "API 格式"
+      "apiFormat": "API 格式",
+      "authField": "认证字段",
+      "roleMapping": "模型角色映射",
+      "roleMappingHint": "显示名称用于 /model 菜单；实际请求模型会写入 Claude Code 环境变量。",
+      "role": "角色",
+      "displayName": "显示名称",
+      "requestModel": "实际请求模型",
+      "roleRequestModel": "{{role}} 实际请求模型",
+      "hiddenFromModelMenu": "不显示在 /model 菜单",
+      "fallbackModel": "默认兜底模型",
+      "desktopRoutes": "Claude Desktop 路由映射",
+      "customProtocolHint": "自定义配置按上游真实接口选择协议。",
+      "presetProtocolLocked": "供应商预设已按真实端点锁定协议，避免误选后连接失败。",
+      "geminiNativeLocked": "Gemini CLI 当前透传原生 generateContent 协议；OpenAI Chat 端点需使用已实现协议转换的客户端入口。"
     },
     "badge": {
       "current": "当前",
@@ -3033,15 +3052,22 @@
       "customRequired": "请填写 Base URL 和默认模型",
       "verifyRequired": "请先验证 API Key 和上游连接后再启用"
     },
-    "addProvider": "新增供应商",
+    "unavailableForApp": "当前客户端协议暂未适配",
+    "unavailable": {
+      "codexOpenAiOnly": "Codex 快速接入当前使用 OpenAI Responses / Chat 上游协议",
+      "claudeOauthOnly": "此 OAuth 预设面向 Claude 客户端",
+      "geminiNativeOnly": "Gemini CLI 需要 Gemini Native 或 Gemini 兼容网关",
+      "geminiOpenRouter": "OpenRouter 提供 OpenAI Chat 上游，Gemini CLI 当前透传 Gemini Native 协议"
+    },
+    "addProvider": "添加供应商",
     "addProviderHint": "从精选供应商开始，或添加自定义兼容接口。",
     "audit": "查看审计记录",
     "cannotDeleteCurrent": "当前使用中的供应商不能删除，请先切换到其他供应商。",
     "configureProvider": "配置供应商",
     "configureProviderHint": "只需填写必要信息；连接、写入与验证由系统自动处理。",
     "connectAndEnable": "连接并启用",
-    "connectedProviders": "已接入供应商",
-    "connectedProvidersHint": "可直接切换当前供应商；高级能力在各供应商的设置中管理。",
+    "connectedProviders": "API Key 接入",
+    "connectedProvidersHint": "",
     "deleteProviderMessage": "将删除 {{name}} 的已保存配置。此操作不会删除供应商平台上的账户或 API Key。",
     "enableUsage": "启用用量自动查询",
     "history": {
@@ -3049,10 +3075,10 @@
       "title": "最近接入操作"
     },
     "manageSubscriptionAccounts": "管理订阅账号",
-    "myProvidersHint": "拖动左侧手柄可排序；悬停供应商可进行编辑、复制、检测、用量配置或删除。",
-    "officialConnection": "官方接入",
-    "officialConnectionHint": "使用官方账户登录或订阅授权，无需配置中转服务。",
-    "officialLoginNotice": "官方供应商使用浏览器登录或订阅授权，不属于 API Key 快速接入流程。",
+    "myProvidersHint": "API Key 保存在本机安全凭据库；接入时会更新本地配置。",
+    "officialConnection": "订阅账号",
+    "officialConnectionHint": "按客户端完成订阅登录。",
+    "officialLoginNotice": "官方账号按客户端登录。",
     "openOfficialSite": "打开官网登录",
     "operationNeedsAttention": "本次接入需要处理",
     "proxySettings": "代理与故障设置",
@@ -3064,8 +3090,33 @@
     "usageConfigDescription": "为 {{name}} 保存查询脚本。默认复用该供应商已安全保存的连接凭据，不在此处重复录入密钥。",
     "usageInterval": "自动查询间隔（分钟，0 为关闭）",
     "usageScript": "查询脚本",
-    "workbenchSubtitle": "选择供应商并填写 API Key，其余由 OpenSunstar 自动完成。",
-    "workbenchTitle": "模型与供应商"
+    "workbenchSubtitle": "选择客户端，再用订阅账号或 API Key 接入。",
+    "workbenchTitle": "模型接入",
+    "subscription": {
+      "loginStatus": "登录状态",
+      "accountManagement": "账号管理",
+      "claude": {
+        "title": "Claude 订阅登录",
+        "description": "凭据由 Claude Code 管理；OpenSunstar 读取状态和额度。",
+        "action": "Claude 订阅登录"
+      },
+      "claudeDesktop": {
+        "title": "Claude Desktop 登录",
+        "description": "登录由 Claude Desktop 管理。",
+        "action": "获取 Claude Desktop"
+      },
+      "codex": {
+        "title": "ChatGPT 订阅登录",
+        "description": "登录由 OpenSunstar 托管。",
+        "action": "ChatGPT 订阅登录",
+        "dialogHint": "按设备授权流程连接账号。"
+      },
+      "gemini": {
+        "title": "Gemini 账号登录",
+        "description": "凭据由 Gemini CLI 管理；OpenSunstar 读取状态和额度。",
+        "action": "Gemini 登录指引"
+      }
+    }
   },
   "migration": {
     "success": "配置迁移成功",
@@ -4307,6 +4358,7 @@
   },
   "projectAiConfig": {
     "emptyProjects": "还没有添加项目，先添加一个再来配置 AI 资产。",
+    "openWorkflow": "配置项目工作流",
     "orchestrationHint": "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
     "orchestrationLink": "工作流编排",
     "subtitle": "为单个项目落地 AI 资产：套用蓝图、检查就绪度、勾选生效的资产。侧栏「Agent 配置」管的是全局库，这里管它们在本项目上的关联。",
@@ -4315,7 +4367,7 @@
     "tabs": {
       "assets": "资产关联",
       "readiness": "就绪与生效",
-      "environment": "项目环境"
+      "environment": "项目环境 & Wiki"
     },
     "title": "项目资产配置"
   },

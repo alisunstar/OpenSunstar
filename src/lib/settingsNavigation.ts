@@ -4,6 +4,8 @@ export interface SettingsNavIntent {
   tab?: "general" | "auth" | "advanced" | "about";
   /** ProxyTabContent accordion values, e.g. `proxy`, `failover` */
   openSections?: string[];
+  /** Optional section anchor inside the selected tab. */
+  targetId?: "subscription-accounts" | "local-cli-auth" | "codex-oauth";
 }
 
 export function setSettingsNavIntent(intent: SettingsNavIntent): void {
@@ -43,5 +45,13 @@ export function buildCloudSyncIntent(): SettingsNavIntent {
 }
 
 export function buildSubscriptionAccountsIntent(): SettingsNavIntent {
-  return { tab: "auth" };
+  return { tab: "auth", targetId: "subscription-accounts" };
+}
+
+export function buildLocalCliAuthIntent(): SettingsNavIntent {
+  return { tab: "auth", targetId: "local-cli-auth" };
+}
+
+export function buildCodexOauthIntent(): SettingsNavIntent {
+  return { tab: "auth", targetId: "codex-oauth" };
 }

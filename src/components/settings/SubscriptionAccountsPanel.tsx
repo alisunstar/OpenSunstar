@@ -66,7 +66,7 @@ export function SubscriptionAccountsPanel() {
   return (
     <section
       id="subscription-accounts"
-      className="rounded-xl border border-border/60 bg-card/60 p-6"
+      className="scroll-mt-6 rounded-xl border border-border/60 bg-card/60 p-6"
     >
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">

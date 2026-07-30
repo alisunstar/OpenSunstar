@@ -26,7 +26,7 @@ import type { Project } from "@/types/project";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
 import type { WorkspaceTab } from "@/types/workspace";
 
-import type { PageView } from "./navigation";
+import type { MethodologyNavigationIntent, PageView } from "./navigation";
 import type { PageActionRefs } from "./pageActionRefs";
 
 interface AppPageRouterProps {
@@ -39,8 +39,6 @@ interface AppPageRouterProps {
   workspaceTab: WorkspaceTab;
   settingsNavIntent: SettingsNavIntent | null;
   onNavigate: (view: PageView) => void;
-  onOpenProxySettings: () => void;
-  onOpenSubscriptionAccounts: () => void;
   onOpenAiProviderSettings: () => void;
   onWorkspaceTabChange: (tab: WorkspaceTab) => void;
   onProjectClick: (projectId: string) => void;
@@ -50,6 +48,7 @@ interface AppPageRouterProps {
    * 挤在同一个回调里靠 `{ assetsTab: true }` 分流。
    */
   onOpenProjectAiConfig: (projectId: string) => void;
+  onOpenProjectWorkflow: (projectId: string) => void;
   /** 只改「当前项目」，不跳页 —— 供「项目资产配置」页内的切换器使用。 */
   onSelectProject: (projectId: string) => void;
   onProjectRemove: (projectId: string) => void;
@@ -57,6 +56,8 @@ interface AppPageRouterProps {
   onClearProjectSelection: () => void;
   onProjectsReload: () => void | Promise<void>;
   onSettingsNavIntent: (intent: SettingsNavIntent) => void;
+  methodologyIntent: MethodologyNavigationIntent | null;
+  onMethodologyIntentConsumed: () => void;
 }
 
 export function AppPageRouter({
@@ -69,18 +70,19 @@ export function AppPageRouter({
   workspaceTab,
   settingsNavIntent,
   onNavigate,
-  onOpenProxySettings,
-  onOpenSubscriptionAccounts,
   onOpenAiProviderSettings,
   onWorkspaceTabChange,
   onProjectClick,
   onOpenProjectAiConfig,
+  onOpenProjectWorkflow,
   onSelectProject,
   onProjectRemove,
   onAddProject,
   onClearProjectSelection,
   onProjectsReload,
   onSettingsNavIntent,
+  methodologyIntent,
+  onMethodologyIntentConsumed,
 }: AppPageRouterProps) {
   const { t } = useTranslation();
   const effectiveTargetApp =
@@ -90,8 +92,10 @@ export function AppPageRouter({
     case "simpleConnect":
       return (
         <QuickStartPage
-          onOpenSettings={onOpenProxySettings}
-          onOpenSubscriptionAccounts={onOpenSubscriptionAccounts}
+          onOpenAuthSettings={(intent) => {
+            onSettingsNavIntent(intent);
+            onNavigate("settings");
+          }}
         />
       );
     case "mcp":
@@ -178,6 +182,7 @@ export function AppPageRouter({
           selectedProjectId={selectedProjectId}
           onSelectProject={onSelectProject}
           onNavigate={onNavigate}
+          onOpenProjectWorkflow={onOpenProjectWorkflow}
           onAddProject={onAddProject}
           targetApp={effectiveTargetApp}
         />
@@ -189,6 +194,9 @@ export function AppPageRouter({
         <MethodologyPage
           projects={projects}
           initialProjectId={selectedProjectId}
+          navigationIntent={methodologyIntent ?? undefined}
+          onNavigationIntentConsumed={onMethodologyIntentConsumed}
+          onNavigate={onNavigate}
         />
       );
     case "cloudSync":

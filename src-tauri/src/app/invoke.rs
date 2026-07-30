@@ -537,10 +537,18 @@ pub(super) fn register(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<ta
         // Project Wiki Baseline
         commands::scan_project_wiki_cmd,
         commands::inventory_project_wiki_cmd,
+        commands::read_project_wiki_document_cmd,
+        commands::open_project_wiki_folder_cmd,
         commands::run_project_wiki_lint_cmd,
         commands::preview_project_wiki_init_cmd,
         commands::init_project_wiki_cmd,
         commands::map_project_wiki_changed_files_cmd,
+        commands::accept_project_wiki_cmd,
+        commands::refresh_project_wiki_lifecycle_cmd,
+        commands::list_project_wiki_candidates_cmd,
+        commands::import_project_wiki_candidate_cmd,
+        commands::compare_project_wiki_candidates_cmd,
+        commands::run_project_wiki_generator_cmd,
         // Team Config (Git MVP Local Alpha)
         commands::connect_team_workspace,
         commands::validate_team_workspace,

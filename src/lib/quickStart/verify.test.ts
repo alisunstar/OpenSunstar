@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CodexProviderPreset } from "@/config/codexProviderPresets";
 import { resolvePresetByName } from "./resolvePresets";
+import { defaultAdvancedFields } from "./buildProvider";
 import type { QuickStartFormFields, QuickStartSelection } from "./types";
 
 const { fetchModelsForConfigMock, verifyProviderKeyMock } = vi.hoisted(() => ({
@@ -18,7 +19,11 @@ vi.mock("@/lib/api", () => ({
   },
 }));
 
-import { resolveVerifyBaseUrl, verifyQuickStartKey } from "./verify";
+import {
+  inferVerifyProtocol,
+  resolveVerifyBaseUrl,
+  verifyQuickStartKey,
+} from "./verify";
 
 const codexSelection: QuickStartSelection = {
   mode: "preset",
@@ -86,5 +91,104 @@ describe("QuickStart verification contract", () => {
       ok: true,
       models: [{ id: "deepseek-chat" }],
     });
+  });
+
+  it("uses custom advanced API format and Gemini endpoint overrides during verification", () => {
+    expect(
+      inferVerifyProtocol(
+        "claude",
+        { mode: "custom", appId: "claude" },
+        {
+          ...fields,
+          customBaseUrl: "https://anthropic.example",
+          advancedClaude: {
+            apiFormat: "openai_responses",
+            apiKeyField: "ANTHROPIC_API_KEY",
+            haikuModel: "fast",
+            haikuModelName: "Fast",
+            sonnetModel: "main",
+            sonnetModelName: "Main",
+            sonnetSupports1m: false,
+            opusModel: "strong",
+            opusModelName: "Strong",
+            opusSupports1m: false,
+            fableModel: "balanced",
+            fableModelName: "Balanced",
+            fableSupports1m: false,
+            subagentModel: "agent",
+            subagentSupports1m: false,
+            fallbackModel: "main",
+          },
+        },
+      ),
+    ).toBe("openai");
+
+    expect(
+      resolveVerifyBaseUrl(
+        "gemini",
+        { mode: "custom", appId: "gemini" },
+        {
+          ...fields,
+          customBaseUrl: "https://basic.example",
+          advancedGemini: {
+            apiFormat: "gemini_native",
+            baseUrl: "https://advanced.example/",
+            model: "gemini-custom",
+          },
+        },
+      ),
+    ).toBe("https://advanced.example");
+
+    expect(
+      inferVerifyProtocol(
+        "gemini",
+        { mode: "custom", appId: "gemini" },
+        {
+          ...fields,
+          advancedGemini: {
+            apiFormat: "gemini_native",
+            baseUrl: "https://advanced.example/",
+            model: "gemini-custom",
+          },
+        },
+      ),
+    ).toBe("gemini");
+  });
+
+  it("selects native Gemini verification for the Gemini API profile", () => {
+    expect(
+      inferVerifyProtocol(
+        "gemini",
+        {
+          mode: "preset",
+          appId: "gemini",
+          presetName: "Gemini API",
+          isOfficial: false,
+        },
+        fields,
+      ),
+    ).toBe("gemini");
+
+    const claudeGeminiFields = {
+      ...fields,
+      ...defaultAdvancedFields("claude", {
+        mode: "preset",
+        appId: "claude",
+        presetName: "Gemini Native",
+        isOfficial: false,
+      }),
+    };
+    expect(
+      inferVerifyProtocol(
+        "claude",
+        {
+          mode: "preset",
+          appId: "claude",
+          presetName: "Gemini Native",
+          isOfficial: false,
+        },
+        claudeGeminiFields,
+      ),
+    ).toBe("gemini");
   });
 });

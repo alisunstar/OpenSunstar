@@ -233,7 +233,10 @@ export function LocalCliAuthStatusPanel() {
   }, [load]);
 
   return (
-    <section className="rounded-xl border border-border/60 bg-card/60 p-6">
+    <section
+      id="local-cli-auth"
+      className="scroll-mt-6 rounded-xl border border-border/60 bg-card/60 p-6"
+    >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
           <div className="flex items-center gap-2">

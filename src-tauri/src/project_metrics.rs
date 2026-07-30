@@ -306,6 +306,34 @@ pub fn reveal_path_in_folder(path: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// 在系统文件管理器中直接打开目录内容。
+#[cfg(target_os = "windows")]
+pub fn open_directory(path: &str) -> Result<(), String> {
+    Command::new("explorer")
+        .arg(path)
+        .spawn()
+        .map_err(|e| format!("打开目录失败: {e}"))?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub fn open_directory(path: &str) -> Result<(), String> {
+    Command::new("open")
+        .arg(path)
+        .spawn()
+        .map_err(|e| format!("打开目录失败: {e}"))?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+pub fn open_directory(path: &str) -> Result<(), String> {
+    Command::new("xdg-open")
+        .arg(path)
+        .spawn()
+        .map_err(|e| format!("打开目录失败: {e}"))?;
+    Ok(())
+}
+
 #[cfg(target_os = "macos")]
 pub fn reveal_path_in_folder(path: &str) -> Result<(), String> {
     Command::new("open")

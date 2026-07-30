@@ -38,7 +38,7 @@
     "changedFiles": {
       "coldStart": "Wiki just initialized, change mapping not yet active",
       "coldStartProgress": "Effective source_files pages: {{current}}/{{threshold}}",
-      "coldStartGuidance": "Fill wiki content using maintain-repo-wiki Skill in Claude Code",
+      "coldStartGuidance": "Click Generate project Wiki, then use the configured AI provider and review the result",
       "affectedPages": "{{count}} source changes affect {{pages}} wiki pages",
       "unmapped": "{{count}} unmapped changes",
       "noChanges": "No source changes, wiki pages are up to date"
@@ -2786,11 +2786,11 @@
     "searchPlaceholder": "Search provider name or URL…",
     "noResults": "No matching providers",
     "official": "Official",
-    "officialDesc": "Official providers require browser login or subscription auth. Complete OAuth in Provider Management — you cannot connect with a key alone here.",
+    "officialDesc": "Sign in through the corresponding client.",
     "partner": "Partner",
     "apiKeyLabel": "API Key",
     "apiKeyPlaceholder": "Paste your API key",
-    "keychainHint": "Key is stored securely in the OS keychain (Windows Credential Manager / macOS Keychain), never written to disk in plaintext",
+    "keychainHint": "API keys stay in the local secure credential store; setup updates local client configuration.",
     "getKey": "Get API Key",
     "apply": "Activate",
     "success": "Connected! Switched to this provider",
@@ -2815,11 +2815,12 @@
     "verify": "Verify Key",
     "verifyOk": "Key is valid!",
     "verifyOkAnthropic": "Key is valid (no model list API — preset defaults will be used)",
+    "verifyOkGemini": "The key is valid and the native Gemini endpoint passed verification.",
     "verifyOkWithModels": "Key is valid — fetched {{count}} models",
     "verifyOkNoModelList": "Key is valid (model list fetch failed — preset defaults will be used)",
-    "verifyHint": "Anthropic verification uses ~1 token; OpenAI-compatible gateways can expand a model list after success",
+    "verifyHint": "Verification follows the selected protocol. Anthropic uses about 1 token; OpenAI/Gemini model lists feed Advanced mappings when available.",
     "modelsList": "Available models ({{count}})",
-    "myProviders": "My providers",
+    "myProviders": "API Key Access",
     "switch": "Switch",
     "apps": {
       "claude": "Claude Code",
@@ -2828,15 +2829,20 @@
       "gemini": "Gemini"
     },
     "category": {
-      "custom": "Custom"
+      "custom": "Custom",
+      "aiGlobal": "International AI",
+      "aiChina": "China AI",
+      "relay": "Aggregators / Relays",
+      "customModel": "Custom model configuration"
     },
     "gemini": {
-      "cnOfficialHint": "Phase 1 has no China official preset cards. Use OpenRouter, or fill a domestic Gemini-compatible endpoint under Custom."
+      "cnOfficialHint": "Gemini Quick Connect enables Google and Gemini Native-compatible endpoints. OpenAI Chat gateways are shown as protocol mismatches."
     },
     "custom": {
       "cardTitle": "Custom setup",
       "cardSubtitle": "Enter Base URL and model yourself",
-      "hint": "Custom gateway: fill the minimum fields to connect. Advanced settings are in Provider Management.",
+      "hint": "Enter a name, Base URL, and default model. API format, credential field, and model mapping are available under Advanced below.",
+      "geminiHint": "Enter a name, Gemini Native Base URL, and model. The fixed Gemini CLI native protocol is shown under Advanced.",
       "name": "Provider name",
       "namePlaceholder": "e.g. My DeepSeek gateway",
       "baseUrl": "Base URL",
@@ -2849,7 +2855,20 @@
       "subtitle": "Defaults work for most cases",
       "upstreamModel": "Upstream model",
       "defaultModel": "Default model",
-      "apiFormat": "API format"
+      "apiFormat": "API format",
+      "authField": "Credential field",
+      "roleMapping": "Model role mapping",
+      "roleMappingHint": "Display names appear in /model; request models are written to the Claude Code environment.",
+      "role": "Role",
+      "displayName": "Display name",
+      "requestModel": "Request model",
+      "roleRequestModel": "{{role}} request model",
+      "hiddenFromModelMenu": "Hidden from the /model menu",
+      "fallbackModel": "Default fallback model",
+      "desktopRoutes": "Claude Desktop route mapping",
+      "customProtocolHint": "Choose the protocol implemented by the upstream endpoint.",
+      "presetProtocolLocked": "The preset protocol is locked to its real endpoint to prevent connection failures.",
+      "geminiNativeLocked": "Gemini CLI currently forwards native generateContent requests. Use a client entry with protocol conversion for OpenAI Chat endpoints."
     },
     "badge": {
       "current": "Active",
@@ -2859,6 +2878,13 @@
       "clearFailed": "Failed to clear legacy Quick Connect marker. If switching still fails, clear it manually in Settings.",
       "takeoverFailed": "Provider added, but proxy takeover failed. Enable the app takeover manually in Settings > Local Routing."
     },
+    "unavailableForApp": "This client protocol is not adapted yet",
+    "unavailable": {
+      "codexOpenAiOnly": "Codex Quick Connect currently supports OpenAI Responses / Chat upstream protocols",
+      "claudeOauthOnly": "This OAuth preset is for Claude clients",
+      "geminiNativeOnly": "Gemini CLI requires Gemini Native or a Gemini-compatible gateway",
+      "geminiOpenRouter": "OpenRouter exposes OpenAI Chat upstream while Gemini CLI currently forwards Gemini Native"
+    },
     "error": {
       "emptyKey": "Please enter an API key",
       "failed": "Connection failed. Check your API key or network and retry.",
@@ -2866,6 +2892,41 @@
       "recoveryRequired": "Connection failed and automatic recovery is incomplete.",
       "noBaseUrl": "Please enter a Base URL",
       "noModel": "Please enter a default model"
+    },
+    "addProvider": "Add Provider",
+    "addProviderHint": "Choose a preset or add a compatible endpoint.",
+    "configureProvider": "Configure Provider",
+    "configureProviderHint": "Enter the required fields; setup and verification are automatic.",
+    "connectAndEnable": "Connect & Enable",
+    "myProvidersHint": "API keys stay in the local secure credential store; setup updates local configuration.",
+    "officialConnection": "Subscription Account",
+    "officialConnectionHint": "Sign in through the selected client.",
+    "workbenchSubtitle": "Choose a client, then connect with a subscription account or API key.",
+    "workbenchTitle": "Model Access",
+    "subscription": {
+      "loginStatus": "Login Status",
+      "accountManagement": "Account Management",
+      "claude": {
+        "title": "Claude Subscription Login",
+        "description": "Claude Code manages credentials; OpenSunstar reads status and quota.",
+        "action": "Claude Subscription Login"
+      },
+      "claudeDesktop": {
+        "title": "Claude Desktop Login",
+        "description": "Claude Desktop manages login.",
+        "action": "Get Claude Desktop"
+      },
+      "codex": {
+        "title": "ChatGPT Subscription Login",
+        "description": "OpenSunstar manages this login.",
+        "action": "ChatGPT Subscription Login",
+        "dialogHint": "Connect an account with device authorization."
+      },
+      "gemini": {
+        "title": "Gemini Account Login",
+        "description": "Gemini CLI manages credentials; OpenSunstar reads status and quota.",
+        "action": "Gemini Login Guide"
+      }
     }
   },
   "migration": {
@@ -3995,9 +4056,10 @@
     "tabs": {
       "assets": "Asset links",
       "readiness": "Readiness & activation",
-      "environment": "Project environment"
+      "environment": "Project environment & Wiki"
     },
     "emptyProjects": "No projects yet. Add one before configuring AI assets.",
+    "openWorkflow": "Configure project workflow",
     "orchestrationLink": "Workflow orchestration",
     "orchestrationHint": "Stages, presets and change-execution plans live under Workflow & Methodology; opening it carries the current project along."
   },

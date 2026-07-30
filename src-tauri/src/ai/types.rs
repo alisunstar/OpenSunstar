@@ -346,6 +346,10 @@ pub struct ChatResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ChatChoice {
     pub message: ChatMessage,
+    /// OpenAI-compatible providers commonly return `stop` or `length` here.
+    /// Wiki generation uses it to distinguish a normal response from token truncation.
+    #[serde(default)]
+    pub finish_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

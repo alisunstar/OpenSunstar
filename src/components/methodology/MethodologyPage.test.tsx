@@ -27,6 +27,9 @@ vi.mock("@/components/projects/ProjectDesignContractPanel", () => ({
     <div>设计面板：{projectId}</div>
   ),
 }));
+vi.mock("@/components/projects/ProjectRulesContextPanel", () => ({
+  ProjectRulesContextPanel: () => <div>规则上下文面板</div>,
+}));
 
 const projects = [
   { id: "alpha", name: "Alpha", path: "C:/alpha", addedAt: "2026-01-01" },
@@ -65,5 +68,27 @@ describe("MethodologyPage", () => {
     await user.click(screen.getByRole("tab", { name: /变更执行方案/i }));
 
     expect(screen.getByText("变更执行方案面板：beta")).toBeInTheDocument();
+  });
+
+  it("consumes a project workflow intent and lands on the orchestration tab", async () => {
+    const onNavigationIntentConsumed = vi.fn();
+    render(
+      <MethodologyPage
+        projects={projects}
+        navigationIntent={{
+          key: 101,
+          projectId: "beta",
+          tab: "orchestration",
+        }}
+        onNavigationIntentConsumed={onNavigationIntentConsumed}
+      />,
+    );
+
+    expect(await screen.findByText("工作流面板：beta")).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "工作流配置" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    expect(onNavigationIntentConsumed).toHaveBeenCalledTimes(1);
   });
 });

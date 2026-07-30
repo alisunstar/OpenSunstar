@@ -38,7 +38,7 @@
     "changedFiles": {
       "coldStart": "Wiki 初期化直後、変更マッピングはまだ有効ではありません",
       "coldStartProgress": "有効な source_files ページ: {{current}}/{{threshold}}",
-      "coldStartGuidance": "Claude Code で maintain-repo-wiki Skill を使用して wiki 内容を入力してください",
+      "coldStartGuidance": "「プロジェクト Wiki を生成」をクリックし、設定済みの AI プロバイダーで生成してレビューしてください",
       "affectedPages": "{{count}} 件のソース変更が {{pages}} 個の wiki ページに影響",
       "unmapped": "{{count}} 件の未マップ変更",
       "noChanges": "ソース変更なし、wiki ページは最新です"
@@ -2416,11 +2416,11 @@
     "searchPlaceholder": "プロバイダー名または URL を検索…",
     "noResults": "一致するプロバイダーが見つかりません",
     "official": "公式",
-    "officialDesc": "公式プロバイダーはブラウザログインまたはサブスクリプション認証が必要です。Key のみでは接続できません。プロバイダー管理で OAuth / 公式設定を完了してください。",
+    "officialDesc": "各クライアントからログインします。",
     "partner": "パートナー",
     "apiKeyLabel": "API Key",
     "apiKeyPlaceholder": "API Key を貼り付け",
-    "keychainHint": "Key は OS キーチェーン（Windows Credential Manager / macOS Keychain）に安全に保存され、平文でディスクに書き込まれません",
+    "keychainHint": "API Key はローカルの安全な資格情報ストアに保存され、接続時にローカル設定を更新します。",
     "getKey": "API Key を取得",
     "apply": "有効化",
     "success": "接続成功！このプロバイダーに切り替えました",
@@ -2445,11 +2445,12 @@
     "verify": "Key を検証",
     "verifyOk": "Key は有効です！",
     "verifyOkAnthropic": "Key は有効です（モデル一覧 API なし — プリセット既定モデルを使用）",
+    "verifyOkGemini": "Key は有効です。Gemini ネイティブ API の検証に成功しました。",
     "verifyOkWithModels": "Key は有効 — {{count}} 件のモデルを取得",
     "verifyOkNoModelList": "Key は有効（モデル一覧の取得に失敗 — プリセット既定モデルを使用）",
-    "verifyHint": "Anthropic 検証は約 1 token 消費。OpenAI 互換ゲートウェイは成功後にモデル一覧を展開できます",
+    "verifyHint": "選択したプロトコルで検証します。Anthropic は約 1 token を使用し、OpenAI/Gemini のモデル一覧は取得できた場合に詳細マッピングで利用できます。",
     "modelsList": "利用可能なモデル（{{count}}）",
-    "myProviders": "マイプロバイダー",
+    "myProviders": "API Key 接続",
     "switch": "切り替え",
     "apps": {
       "claude": "Claude Code",
@@ -2458,15 +2459,20 @@
       "gemini": "Gemini"
     },
     "category": {
-      "custom": "カスタム"
+      "custom": "カスタム",
+      "aiGlobal": "海外 AI",
+      "aiChina": "中国 AI",
+      "relay": "アグリゲーター / 中継",
+      "customModel": "カスタムモデル設定"
     },
     "gemini": {
-      "cnOfficialHint": "Phase 1 では中国公式プリセットカードはありません。OpenRouter を使うか、「カスタム設定」で国内 Gemini 互換エンドポイントを入力してください。"
+      "cnOfficialHint": "Gemini クイック接続では Google と Gemini Native 互換エンドポイントを有効にします。OpenAI Chat ゲートウェイはプロトコル不一致として表示されます。"
     },
     "custom": {
       "cardTitle": "カスタム設定",
       "cardSubtitle": "Base URL とモデルを自分で入力",
-      "hint": "カスタムゲートウェイ：最小項目を入力して接続。詳細設定はプロバイダー管理で編集できます。",
+      "hint": "名前、Base URL、既定モデルを入力します。API 形式、認証フィールド、モデルマッピングは下の詳細オプションで調整できます。",
+      "geminiHint": "名前、Gemini Native Base URL、モデルを入力します。Gemini CLI の固定ネイティブプロトコルは詳細オプションに表示されます。",
       "name": "プロバイダー名",
       "namePlaceholder": "例：My DeepSeek ゲートウェイ",
       "baseUrl": "Base URL",
@@ -2479,7 +2485,20 @@
       "subtitle": "多くの場合は既定値のままで問題ありません",
       "upstreamModel": "アップストリームモデル",
       "defaultModel": "既定モデル",
-      "apiFormat": "API 形式"
+      "apiFormat": "API 形式",
+      "authField": "認証フィールド",
+      "roleMapping": "モデルロールマッピング",
+      "roleMappingHint": "表示名は /model メニューに使われ、実際のリクエストモデルは Claude Code の環境変数に書き込まれます。",
+      "role": "ロール",
+      "displayName": "表示名",
+      "requestModel": "リクエストモデル",
+      "roleRequestModel": "{{role}} リクエストモデル",
+      "hiddenFromModelMenu": "/model メニューには表示しません",
+      "fallbackModel": "既定のフォールバックモデル",
+      "desktopRoutes": "Claude Desktop ルートマッピング",
+      "customProtocolHint": "アップストリームの実際のインターフェースに合わせてプロトコルを選択します。",
+      "presetProtocolLocked": "接続エラーを防ぐため、プリセットのプロトコルは実際のエンドポイントに固定されています。",
+      "geminiNativeLocked": "Gemini CLI は現在ネイティブ generateContent を転送します。OpenAI Chat エンドポイントにはプロトコル変換対応のクライアント入口を使用します。"
     },
     "badge": {
       "current": "現在",
@@ -2489,6 +2508,13 @@
       "clearFailed": "旧クイック接続マーカーのクリアに失敗しました。切り替えで引き続きエラーになる場合は設定で手動クリアしてください",
       "takeoverFailed": "プロバイダーは追加されましたが、プロキシ接管の有効化に失敗しました。設定-ローカルルートで該当アプリの接管を手動で有効にしてください"
     },
+    "unavailableForApp": "このクライアントプロトコルは現在準備中です",
+    "unavailable": {
+      "codexOpenAiOnly": "Codex クイック接続は現在 OpenAI Responses / Chat アップストリームを使用します",
+      "claudeOauthOnly": "この OAuth プリセットは Claude クライアント向けです",
+      "geminiNativeOnly": "Gemini CLI には Gemini Native または Gemini 互換ゲートウェイが必要です",
+      "geminiOpenRouter": "OpenRouter は OpenAI Chat を提供し、Gemini CLI は現在 Gemini Native を転送します"
+    },
     "error": {
       "emptyKey": "API Key を入力してください",
       "failed": "接続に失敗しました。API Key またはネットワークを確認して再試行してください。",
@@ -2496,6 +2522,41 @@
       "recoveryRequired": "接続に失敗し、自動復元が完了していません。",
       "noBaseUrl": "Base URL を入力してください",
       "noModel": "既定モデルを入力してください"
+    },
+    "addProvider": "プロバイダーを追加",
+    "addProviderHint": "プリセットまたは互換エンドポイントを追加します。",
+    "configureProvider": "プロバイダー設定",
+    "configureProviderHint": "必須項目のみ入力します。接続と検証は自動です。",
+    "connectAndEnable": "接続して有効化",
+    "myProvidersHint": "API Key はローカルの安全な資格情報ストアに保存され、接続時にローカル設定を更新します。",
+    "officialConnection": "サブスクリプションアカウント",
+    "officialConnectionHint": "選択したクライアントからログインします。",
+    "workbenchSubtitle": "クライアントを選び、サブスクリプションまたは API Key で接続します。",
+    "workbenchTitle": "モデル接続",
+    "subscription": {
+      "loginStatus": "ログイン状態",
+      "accountManagement": "アカウント管理",
+      "claude": {
+        "title": "Claude サブスクリプションログイン",
+        "description": "資格情報は Claude Code が管理し、OpenSunstar は状態と使用量を読み取ります。",
+        "action": "Claude にログイン"
+      },
+      "claudeDesktop": {
+        "title": "Claude Desktop ログイン",
+        "description": "ログインは Claude Desktop が管理します。",
+        "action": "Claude Desktop を入手"
+      },
+      "codex": {
+        "title": "ChatGPT サブスクリプションログイン",
+        "description": "ログインは OpenSunstar が管理します。",
+        "action": "ChatGPT にログイン",
+        "dialogHint": "デバイス認証でアカウントを接続します。"
+      },
+      "gemini": {
+        "title": "Gemini アカウントログイン",
+        "description": "資格情報は Gemini CLI が管理し、OpenSunstar は状態と使用量を読み取ります。",
+        "action": "Gemini ログインガイド"
+      }
     }
   },
   "migration": {
@@ -3412,9 +3473,10 @@
     "tabs": {
       "assets": "アセット関連付け",
       "readiness": "準備と反映",
-      "environment": "プロジェクト環境"
+      "environment": "プロジェクト環境 & Wiki"
     },
     "emptyProjects": "プロジェクトがまだありません。追加してから AI アセットを設定してください。",
+    "openWorkflow": "プロジェクトワークフローを設定",
     "orchestrationLink": "ワークフロー編成",
     "orchestrationHint": "ステージ・プリセット・変更実行プランは「ワークフローと方法論」で設定します。現在のプロジェクトを引き継いで移動します。"
   },

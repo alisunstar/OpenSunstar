@@ -22,7 +22,7 @@ export interface SwitchResult {
 }
 
 /** API Key 校验所用的协议类型 */
-export type VerifyProtocol = "openai" | "anthropic";
+export type VerifyProtocol = "openai" | "anthropic" | "gemini";
 
 /** Shared response shape for the provider-native API Key verification command. */
 export interface VerifyKeyResult {

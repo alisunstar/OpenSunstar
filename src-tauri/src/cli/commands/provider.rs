@@ -227,6 +227,7 @@ fn run_switch(
 fn run_verify(base_url: &str, api_key: &str, protocol: &str, json: bool) -> Result<(), String> {
     let proto = match protocol {
         "anthropic" => open_sunstar_lib::VerifyProtocol::Anthropic,
+        "gemini" | "gemini_native" => open_sunstar_lib::VerifyProtocol::Gemini,
         _ => open_sunstar_lib::VerifyProtocol::OpenAi,
     };
     let result = open_sunstar_lib::cli_api::cli_provider_verify(base_url, api_key, proto)?;

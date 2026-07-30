@@ -22,6 +22,20 @@ export type PageView =
   | "teamCollaboration"
   | "settings";
 
+/** 跨页打开项目方法论时携带的精确落点。 */
+export type MethodologyTab =
+  | "rulesContext"
+  | "orchestration"
+  | "recipe"
+  | "market"
+  | "designContract";
+
+export interface MethodologyNavigationIntent {
+  key: number;
+  projectId: string;
+  tab: MethodologyTab;
+}
+
 export interface PageMeta {
   titleKey: string;
   defaultTitle: string;
