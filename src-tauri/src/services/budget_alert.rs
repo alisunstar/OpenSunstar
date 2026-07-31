@@ -241,4 +241,17 @@ fn emit_alert(handle: &AppHandle, alert: &BudgetAlert) {
     if let Err(e) = handle.emit(EVENT_BUDGET_ALERT, alert) {
         log::warn!("Failed to emit {EVENT_BUDGET_ALERT}: {e}");
     }
+
+    // critical / emergency 升级为系统通知 + 托盘告警（工作区重构 2026-07-30）。
+    // warning 留在应用内 toast，不打扰。
+    if alert.alert_level != AlertLevel::Warning {
+        crate::services::sys_notify::notify_budget(handle, alert);
+
+        let period_label = if alert.period == "daily" { "日" } else { "月" };
+        let tray_text = format!(
+            "⚠️ {} {}用量 {}%",
+            alert.provider_name, period_label, alert.percentage.round() as i64
+        );
+        crate::tray::set_tray_alert(handle, &tray_text);
+    }
 }

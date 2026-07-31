@@ -36,6 +36,24 @@ export interface MethodologyNavigationIntent {
   tab: MethodologyTab;
 }
 
+/** 「项目资产配置」页的子 Tab 落点（与 `ProjectAiConfigPage` 内部 activeTab 取值一致）。 */
+export type ProjectAiConfigTab = "assets" | "readiness" | "environment";
+
+/**
+ * 跨页打开「项目资产配置」时携带的精确落点。
+ *
+ * 与 `MethodologyNavigationIntent` 同一模式：`key` 用时间戳保证同一项目
+ * 连续两次点击也重新触发消费（`KanbanPage` 告警卡 / 资产矩阵缺口格是主要
+ * 发起方）。`section` 用 `ProjectAssetSection`，由消费端滚动定位。
+ */
+export interface ProjectAiConfigNavigationIntent {
+  key: number;
+  projectId: string;
+  tab?: ProjectAiConfigTab;
+  /** 可选的资产区定位（mcp / skill / prompt…），消费端滚动到该区并高亮。 */
+  section?: import("@/types/projectAsset").ProjectAssetSection;
+}
+
 export interface PageMeta {
   titleKey: string;
   defaultTitle: string;

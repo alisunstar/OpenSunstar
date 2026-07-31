@@ -580,7 +580,7 @@ export async function repairProjectDrift(
   projectPath: string,
   targetApp?: string | null,
   checkNames?: string[],
-): Promise<RepairProjectDriftResult | null> {
+): Promise<RepairProjectDriftResult> {
   try {
     return await invoke<RepairProjectDriftResult>("repair_project_drift", {
       projectPath,
@@ -589,7 +589,7 @@ export async function repairProjectDrift(
     });
   } catch (e) {
     warn("repairProjectDrift failed", e);
-    return null;
+    throw e;
   }
 }
 

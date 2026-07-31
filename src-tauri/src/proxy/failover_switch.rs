@@ -44,6 +44,7 @@ impl FailoverSwitchManager {
         app_type: &str,
         provider_id: &str,
         provider_name: &str,
+        failure_count: u32,
     ) -> Result<bool, AppError> {
         let switch_key = format!("{app_type}:{provider_id}");
 
@@ -59,7 +60,7 @@ impl FailoverSwitchManager {
 
         // 执行切换（确保最后清理 pending 标记）
         let result = self
-            .do_switch(app_handle, app_type, provider_id, provider_name)
+            .do_switch(app_handle, app_type, provider_id, provider_name, failure_count)
             .await;
 
         // 清理 pending 标记
@@ -77,6 +78,7 @@ impl FailoverSwitchManager {
         app_type: &str,
         provider_id: &str,
         provider_name: &str,
+        failure_count: u32,
     ) -> Result<bool, AppError> {
         // 检查该应用是否已被代理接管（enabled=true）
         // 只有被接管的应用才允许执行故障转移切换
@@ -94,6 +96,33 @@ impl FailoverSwitchManager {
         }
 
         log::info!("[FO-001] 切换: {app_type} → {provider_name}");
+
+        // 读取切换前的当前供应商，作为 failover-event 的 from 字段。
+        let from_provider_name: Option<String> = if let Some(app) = app_handle {
+            if let Some(app_state) = app.try_state::<crate::store::AppState>() {
+                let app_type_enum = match app_type {
+                    "claude" => crate::app_config::AppType::Claude,
+                    "codex" => crate::app_config::AppType::Codex,
+                    "gemini" => crate::app_config::AppType::Gemini,
+                    _ => crate::app_config::AppType::Claude,
+                };
+                crate::settings::get_effective_current_provider(&app_state.db, &app_type_enum)
+                    .ok()
+                    .flatten()
+                    .and_then(|pid| {
+                        app_state
+                            .db
+                            .get_provider_by_id(&pid, app_type)
+                            .ok()
+                            .flatten()
+                            .map(|p| p.name)
+                    })
+            } else {
+                None
+            }
+        } else {
+            None
+        };
 
         let mut switched = false;
 
@@ -128,6 +157,35 @@ impl FailoverSwitchManager {
             if let Err(e) = app.emit("provider-switched", event_data) {
                 log::error!("[Failover] 发射事件失败: {e}");
             }
+
+            // 故障转移事件（工作区重构 2026-07-30）：前端 useWorkspaceAlerts 监听此事件，
+            // 将告警落进今日告警面板。即使主窗口没开，事件也会被 localStorage 持久化。
+            let now = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or(0);
+            let failover_payload = serde_json::json!({
+                "appType": app_type,
+                "fromProviderId": null,
+                "fromProviderName": from_provider_name.as_deref(),
+                "toProviderId": provider_id,
+                "toProviderName": provider_name,
+                "failureCount": failure_count,
+                "at": now,
+            });
+            if let Err(e) = app.emit("failover-event", &failover_payload) {
+                log::warn!("[Failover] 发射 failover-event 失败: {e}");
+            }
+
+            // 系统通知 + 托盘告警
+            crate::services::sys_notify::notify_failover(
+                app,
+                app_type,
+                from_provider_name.as_deref(),
+                provider_name,
+            );
+            let tray_text = format!("⚠️ {} → 已切换到 {}", app_type, provider_name);
+            crate::tray::set_tray_alert(app, &tray_text);
         }
 
         Ok(switched)

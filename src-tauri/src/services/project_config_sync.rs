@@ -293,10 +293,23 @@ pub fn sync_asset_for_project_path(
     project_path: &str,
     check_name: &str,
 ) -> Result<(), AppError> {
-    let root = PathBuf::from(project_path);
+    // 路径规范化：trim 收尾空白，避免前端或数据库存入的不可见字符导致
+    // `is_dir()` 返回 false 但同路径下的 `.mcp.json` 仍可被读到。
+    let trimmed = project_path.trim();
+    let root = PathBuf::from(trimmed);
     if !root.is_dir() {
+        // 给操作者更可用的诊断：到底是路径不存在、不是目录，还是权限/链接问题。
+        let detail = match std::fs::metadata(&root) {
+            Ok(m) if m.is_dir() => "路径存在但 stat/is_dir 不一致（可能符号链接或权限问题）".to_string(),
+            Ok(m) => format!("路径存在但不是目录（file_type={:?}）", m.file_type()),
+            Err(e) => format!("stat 失败: {e}"),
+        };
+        log::error!(
+            "sync_asset_for_project_path 失败: path={:?} trimmed={:?} byte_len={} check={} detail={}",
+            project_path, trimmed, project_path.len(), check_name, detail
+        );
         return Err(AppError::Message(format!(
-            "项目路径不存在或不是目录: {project_path}"
+            "项目路径不存在或不是目录: {trimmed}（{detail}）"
         )));
     }
     match check_name {

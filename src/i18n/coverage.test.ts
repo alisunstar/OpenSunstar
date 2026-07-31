@@ -110,7 +110,6 @@ describe("改过名的核心导航词四种语言都得有", () => {
     "workspace.title",
     "workspace.tabs.dashboard",
     "workspace.tabs.board",
-    "workspace.tabs.assetsMatrix",
     "sidebar.agentConfig",
   ];
 

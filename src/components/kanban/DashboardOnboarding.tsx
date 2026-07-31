@@ -18,37 +18,34 @@ const STEPS: Step[] = [
   {
     emoji: "🟢",
     titleKey: "onboarding.step1.title",
-    titleDefault: "配置状态 — 一眼看全局",
+    titleDefault: "告警制首屏 — 今天有没有事",
     descKey: "onboarding.step1.desc",
     descDefault:
-      "顶部汇总所有项目的 AI 配置状态：正常、需关注、异常、未扫描会分开显示。",
+      "今日工作台只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息，别给没病的人看体检报告。",
   },
   {
-    emoji: "🔍",
+    emoji: "🔴🟡🔧",
     titleKey: "onboarding.step2.title",
-    titleDefault: "需处理项目 — 快速定位",
+    titleDefault: "命 / 钱 / 事 — 三类告警",
     descKey: "onboarding.step2.desc",
-    // 按钮文案在 §2.4 已从「查看修复」改成「修复漂移」（`health.action.repair`）。
-    // 引导词用引号直接抄按钮上的字，按钮改名它就得跟着改，否则用户照着找不到。
     descDefault:
-      "需要关注的项目会列在下方，附带人可读的原因说明。点击「修复漂移」或「配置资产」即可直达操作。",
+      "命（红）= 供应商故障转移，会丢上下文；钱（黄）= 预算超限 critical/emergency；事（蓝）= 配置缺口或漂移。命永远排最前。",
   },
-  /**
-   * 这块面板不在今日工作台上，而引导条只在今日工作台渲染 —— 所以这段话必须
-   * 说清去哪儿找，否则用户在当前页面上找一块不存在的东西。
-   *
-   * 去处几经变动：§3.3 先把它从今日工作台挪到项目看板，最终定在「AI 资产
-   * 总览」（配置在各项目里落地了多少，正是这块面板回答的问题）。权威事实是
-   * `workspaceTabLayout.test.tsx` —— 那里断言它只在 assetsMatrix 这个 Tab 出现。
-   * 名字也从「治理总览」改成了「配置生效率」（§2.5）。
-   */
   {
-    emoji: "📊",
+    emoji: "🛠️",
     titleKey: "onboarding.step3.title",
-    titleDefault: "配置生效率 — 在「AI 资产总览」",
+    titleDefault: "动作按钮 — 一次点击落到能修的页面",
     descKey: "onboarding.step3.desc",
     descDefault:
-      "配置不一致项目、生效率、已生效项等详细数据，切到「AI 资产总览」查看。将鼠标悬停在卡片上可查看说明。",
+      "每条告警卡都带动作按钮：「去修复」「去配置」「调整预算」。一次点击直接落在「项目资产配置」对应区，不用再翻 Tab。",
+  },
+  {
+    emoji: "📊",
+    titleKey: "onboarding.step4.title",
+    titleDefault: "巡视类内容 — 切到「项目看板」",
+    descKey: "onboarding.step4.desc",
+    descDefault:
+      "聚合指标卡、阶段分布、健康清单、资产矩阵都在「项目看板」Tab。今日只放需要动手的，巡视内容不占开机第一眼。",
   },
 ];
 

@@ -37,6 +37,66 @@ static TRAY_SECTION_SUBMENUS: Lazy<
     std::sync::Mutex<std::collections::HashMap<AppType, Submenu<tauri::Wry>>>,
 > = Lazy::new(|| std::sync::Mutex::new(std::collections::HashMap::new()));
 
+/// 托盘告警文本（工作区重构 2026-07-30）。
+///
+/// 当 `set_tray_alert` 被调用时，下一次 `create_tray_menu` 重建会在菜单顶部
+/// 插入一条可点击的告警条目（id = `tray_alert_open`）。用户点击后：
+/// 1. 显示主窗口；
+/// 2. 向前端 emit `tray-open-alerts`，前端导航到工作区 → 今日告警面板。
+///
+/// `clear_tray_alert` 清空文本并恢复原始图标。
+static LAST_TRAY_ALERT: std::sync::Mutex<Option<String>> = std::sync::Mutex::new(None);
+
+const TRAY_ALERT_ITEM_ID: &str = "tray_alert_open";
+const EVENT_TRAY_OPEN_ALERTS: &str = "tray-open-alerts";
+
+/// 设置托盘告警：更新菜单顶部告警条目 + 切换图标为告警态。
+pub fn set_tray_alert(app: &tauri::AppHandle, text: &str) {
+    let settings = crate::settings::get_settings();
+    {
+        let mut guard = LAST_TRAY_ALERT
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        *guard = Some(text.to_string());
+    }
+    refresh_tray_menu(app);
+    if settings.notification_preferences.tray_badge {
+        if let Some(tray) = app.tray_by_id(TRAY_ID) {
+            if let Ok(icon) =
+                tauri::image::Image::from_bytes(include_bytes!("../icons/tray-alert.png"))
+            {
+                let _ = tray.set_icon(Some(icon));
+            }
+        }
+    }
+}
+
+/// 清除托盘告警：移除菜单顶部条目 + 恢复原始图标。
+#[allow(dead_code)]
+pub fn clear_tray_alert(app: &tauri::AppHandle) {
+    let already_clear = {
+        let guard = LAST_TRAY_ALERT
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        guard.is_none()
+    };
+    if already_clear {
+        return;
+    }
+    {
+        let mut guard = LAST_TRAY_ALERT
+            .lock()
+            .unwrap_or_else(|p| p.into_inner());
+        *guard = None;
+    }
+    refresh_tray_menu(app);
+    if let Some(tray) = app.tray_by_id(TRAY_ID) {
+        if let Some(icon) = app.default_window_icon() {
+            let _ = tray.set_icon(Some(icon.clone()));
+        }
+    }
+}
+
 /// 托盘菜单文本（国际化）
 #[derive(Clone, Copy)]
 pub struct TrayTexts {
@@ -46,6 +106,8 @@ pub struct TrayTexts {
     pub lightweight_mode: &'static str,
     pub quit: &'static str,
     pub _auto_label: &'static str,
+    /// 托盘空态：无告警时显示「一切正常」。
+    pub all_good: &'static str,
 }
 
 impl TrayTexts {
@@ -58,6 +120,7 @@ impl TrayTexts {
                 lightweight_mode: "Lightweight Mode",
                 quit: "Quit",
                 _auto_label: "Auto (Failover)",
+                all_good: "✓ All good",
             },
             "ja" => Self {
                 show_main: "メインウィンドウを開く",
@@ -66,6 +129,7 @@ impl TrayTexts {
                 lightweight_mode: "軽量モード",
                 quit: "終了",
                 _auto_label: "自動 (フェイルオーバー)",
+                all_good: "✓ 正常",
             },
             "zh-TW" => Self {
                 show_main: "開啟主介面",
@@ -74,6 +138,7 @@ impl TrayTexts {
                 lightweight_mode: "輕量模式",
                 quit: "退出",
                 _auto_label: "自動 (故障轉移)",
+                all_good: "✓ 一切正常",
             },
             _ => Self {
                 show_main: "打开主界面",
@@ -82,6 +147,7 @@ impl TrayTexts {
                 lightweight_mode: "轻量模式",
                 quit: "退出",
                 _auto_label: "自动 (故障转移)",
+                all_good: "✓ 一切正常",
             },
         }
     }
@@ -499,6 +565,28 @@ pub fn create_tray_menu(
     let mut section_handles: std::collections::HashMap<AppType, Submenu<tauri::Wry>> =
         std::collections::HashMap::new();
 
+    // 顶部：告警条目（仅当有活跃告警时显示）；无告警时显示空态「一切正常」
+    let alert_text = LAST_TRAY_ALERT
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .clone();
+    if let Some(alert) = alert_text {
+        let alert_item =
+            MenuItem::with_id(app, TRAY_ALERT_ITEM_ID, &alert, true, None::<&str>)
+                .map_err(|e| AppError::Message(format!("创建告警菜单项失败: {e}")))?;
+        menu_builder = menu_builder.item(&alert_item).separator();
+    } else {
+        let all_good_item = MenuItem::with_id(
+            app,
+            "tray_all_good",
+            tray_texts.all_good,
+            false,
+            None::<&str>,
+        )
+        .map_err(|e| AppError::Message(format!("创建空态菜单项失败: {e}")))?;
+        menu_builder = menu_builder.item(&all_good_item).separator();
+    }
+
     // 顶部：打开主界面 / 打开官方网站
     let show_main_item =
         MenuItem::with_id(app, "show_main", tray_texts.show_main, true, None::<&str>)
@@ -721,6 +809,29 @@ pub fn handle_tray_menu_event(app: &tauri::AppHandle, event_id: &str) {
                 if let Err(e) = crate::lightweight::exit_lightweight_mode(app) {
                     log::error!("退出轻量模式重建窗口失败: {e}");
                 }
+            }
+        }
+        TRAY_ALERT_ITEM_ID => {
+            // 告警条目点击：打开主窗口 + 通知前端跳转到今日告警面板
+            if let Some(window) = app.get_webview_window("main") {
+                #[cfg(target_os = "windows")]
+                {
+                    let _ = window.set_skip_taskbar(false);
+                }
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+                #[cfg(target_os = "macos")]
+                {
+                    apply_tray_policy(app, true);
+                }
+            } else if crate::lightweight::is_lightweight_mode() {
+                if let Err(e) = crate::lightweight::exit_lightweight_mode(app) {
+                    log::error!("退出轻量模式重建窗口失败: {e}");
+                }
+            }
+            if let Err(e) = app.emit(EVENT_TRAY_OPEN_ALERTS, ()) {
+                log::warn!("[Tray] emit {EVENT_TRAY_OPEN_ALERTS} 失败: {e}");
             }
         }
         "open_website" => {

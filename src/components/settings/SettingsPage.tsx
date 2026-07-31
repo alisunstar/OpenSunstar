@@ -35,6 +35,7 @@ import { AppVisibilitySettings } from "@/components/settings/AppVisibilitySettin
 import { SkillStorageLocationSettings } from "@/components/settings/SkillStorageLocationSettings";
 import { SkillSyncMethodSettings } from "@/components/settings/SkillSyncMethodSettings";
 import { TerminalSettings } from "@/components/settings/TerminalSettings";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { DirectorySettings } from "@/components/settings/DirectorySettings";
 import { ImportExportSection } from "@/components/settings/ImportExportSection";
 import { BackupListSection } from "@/components/settings/BackupListSection";
@@ -286,6 +287,10 @@ export function SettingsPageContent({
                       onChange={handleAutoSave}
                     />
                     <WindowSettings
+                      settings={settings}
+                      onChange={handleAutoSave}
+                    />
+                    <NotificationSettings
                       settings={settings}
                       onChange={handleAutoSave}
                     />

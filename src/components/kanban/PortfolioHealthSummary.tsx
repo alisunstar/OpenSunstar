@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import type { Project } from "@/types/project";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
+import type { ProjectAiConfigNavigationIntent } from "@/app/navigation";
 import {
   classifyReadinessLevel,
   isActionableGap,
@@ -34,7 +35,10 @@ interface PortfolioHealthSummaryProps {
    */
   onOpenProject: (project: Project) => void;
   /** 去「项目资产配置」页配这个项目。 */
-  onOpenProjectAiConfig?: (project: Project) => void;
+  onOpenProjectAiConfig?: (
+    project: Project,
+    intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
+  ) => void;
   /**
    * 真正的漂移修复入口（`KanbanPage.handleRepairProjectDrift`：先拉预览、
    * 再由用户勾选确认，不会闷头写盘）。不传时 `alert` 的按钮会退回
@@ -359,16 +363,21 @@ export function PortfolioHealthSummary({
                 // 名字由 `projectScoreTitle` 统一给：在此之前这里是一个光秃秃
                 // 的数字加一个盾牌图标，悬停什么也不说，读屏器念出来就是
                 // 「42」——「一个分数三个名字」的第二处（§5.2）。
-                <span
+                // 点击分数直接跳到「项目资产配置」的 readiness tab，落点精确。
+                <button
+                  type="button"
                   className={cn(
-                    "inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums shrink-0",
+                    "inline-flex items-center gap-0.5 text-[10px] font-semibold tabular-nums shrink-0 hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
                     LEVEL_META[level].text,
                   )}
                   title={projectScoreTitle("agentReadiness", score, t)}
+                  onClick={() =>
+                    onOpenProjectAiConfig?.(project, { tab: "readiness" })
+                  }
                 >
                   <Shield className="h-3 w-3" />
                   {score}
-                </span>
+                </button>
               )}
               {(() => {
                 // 只有「真实漂移」有东西可修；其余等级点下去是去配置/去查看。

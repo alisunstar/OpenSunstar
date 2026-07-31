@@ -361,6 +361,12 @@ export interface Settings {
   streamCheckConfirmed?: boolean;
   // Whether to show the failover toggle independently on the main page
   enableFailoverToggle?: boolean;
+  // 通知偏好设置（预算告警、故障转移、托盘红点）
+  notificationPreferences?: {
+    budgetAlert?: boolean;
+    failoverAlert?: boolean;
+    trayBadge?: boolean;
+  };
   // Preserve Codex ChatGPT login in auth.json when switching third-party providers
   preserveCodexOfficialAuthOnSwitch?: boolean;
   // User has confirmed the failover toggle first-run notice

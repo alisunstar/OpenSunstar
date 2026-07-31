@@ -27,9 +27,11 @@ import type { Project } from "@/types/project";
 import type { StageKey } from "@/hooks/useProjectStages";
 import type { AgentReadinessBatchEntry } from "@/lib/readinessBatch";
 import type { AgentReadinessItem } from "@/api/aiInsight";
+import type { ProjectAiConfigNavigationIntent } from "@/app/navigation";
 import { readinessScoreTone } from "@/lib/readinessConstants";
 import { projectScoreTitle } from "@/lib/kanban/projectScores";
 import { GOVERNANCE_CHECK_LABELS } from "@/lib/governanceStats";
+import { checkNameToAssetSection } from "@/lib/readinessActions";
 import { cn } from "@/lib/utils";
 import type { ProjectAssetCounts } from "@/hooks/kanban/usePortfolioAssetSummary";
 
@@ -516,6 +518,12 @@ export interface ProjectAssetsMatrixProps {
    */
   assetMap?: Map<string, ProjectAssetCounts>;
   loading?: boolean;
+  /**
+   * 近 N 天提交数（「最近使用」权重，工作区重构 2026-07-30）。
+   * 行排序 = 缺口严重度 × 最近使用：在用的项目有问题排最前，三个月没动的
+   * 沉底 —— 矩阵从「按名字排的报表」变成「按该动顺序排的待办」。
+   */
+  commitsInWindowMap?: Map<string, number>;
   /** 点项目名 → 打开项目详情抽屉（概览）。 */
   onOpenProject: (project: Project) => void;
   /**
@@ -523,8 +531,14 @@ export interface ProjectAssetsMatrixProps {
    *
    * 这两件事以前挤在同一个 `onOpenProject(project, { assetsTab?: boolean })`
    * 里，靠一个 boolean 分流。落点已经是两个页面了，回调也就该是两个。
+   *
+   * 第二参数是深链落点（工作区重构 2026-07-30）：从缺口格过去时带上
+   * `section`，配置页滚动定位到对应资产区。
    */
-  onOpenProjectAiConfig: (project: Project) => void;
+  onOpenProjectAiConfig: (
+    project: Project,
+    intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
+  ) => void;
 }
 
 interface SelectedCell {
@@ -548,6 +562,7 @@ export function ProjectAssetsMatrix({
   agentReadinessMap,
   assetMap,
   loading,
+  commitsInWindowMap,
   onOpenProject,
   onOpenProjectAiConfig,
 }: ProjectAssetsMatrixProps) {
@@ -624,17 +639,42 @@ export function ProjectAssetsMatrix({
   }, [projects, getItem]);
 
   const filteredProjects = useMemo(() => {
-    if (filterMode === "all") return projects;
-    return projects.filter((p) => {
-      const state = projectState.get(p.id)?.state;
-      if (filterMode === "needs_action") {
-        return (
-          state === "abnormal" || state === "attention" || state === "unscanned"
-        );
-      }
-      return state === filterMode;
+    const filtered =
+      filterMode === "all"
+        ? [...projects]
+        : projects.filter((p) => {
+            const state = projectState.get(p.id)?.state;
+            if (filterMode === "needs_action") {
+              return (
+                state === "abnormal" ||
+                state === "attention" ||
+                state === "unscanned"
+              );
+            }
+            return state === filterMode;
+          });
+    /*
+     * 排序（工作区重构 2026-07-30）：缺口严重度 × 最近使用。
+     * 以前按添加顺序/名字排 —— 那是一张「报表」；矩阵同时是待办入口，
+     * 待办的第一条必须是「在用的项目里伤得最重的那个」。全部正常或未扫的
+     * 项目沉底，保持原相对顺序。
+     */
+    const stateRank: Record<CellState, number> = {
+      abnormal: 0,
+      attention: 1,
+      unscanned: 2,
+      normal: 3,
+      not_applicable: 4,
+    };
+    const commitsOf = (p: Project) => commitsInWindowMap?.get(p.id) ?? 0;
+    return filtered.sort((a, b) => {
+      const sa = projectState.get(a.id)?.state ?? "unscanned";
+      const sb = projectState.get(b.id)?.state ?? "unscanned";
+      const byState = stateRank[sa] - stateRank[sb];
+      if (byState !== 0) return byState;
+      return commitsOf(b) - commitsOf(a);
     });
-  }, [projects, filterMode, projectState]);
+  }, [projects, filterMode, projectState, commitsInWindowMap]);
 
   // counts for header
   const projectStateCounts = useMemo(() => {
@@ -986,7 +1026,14 @@ export function ProjectAssetsMatrix({
           cell={selectedCell}
           onClose={handleCloseDetail}
           onViewProject={() => {
-            onOpenProjectAiConfig(selectedCell.project);
+            // 深链（工作区重构 2026-07-30）：漂移去「就绪与生效」修，
+            // 缺口去「资产关联」补；section 让配置页滚动定位到对应资产区。
+            const section = checkNameToAssetSection(
+              selectedCell.column.checkName,
+            );
+            const tab =
+              selectedCell.state === "abnormal" ? "readiness" : "assets";
+            onOpenProjectAiConfig(selectedCell.project, { tab, section });
             setSelectedCell(null);
           }}
           t={t}

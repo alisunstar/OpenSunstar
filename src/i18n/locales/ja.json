@@ -719,6 +719,15 @@
     "languageOptionJapanese": "日本語",
     "windowBehavior": "ウィンドウ動作",
     "windowBehaviorHint": "最小化動作や Claude プラグイン連携を設定します。",
+    "notificationPreferences": "通知設定",
+    "budgetAlertNotifications": "予算超過通知",
+    "budgetAlertNotificationsDescription": "Critical / Emergency の予算アラート時にシステム通知を送信します（warning はアプリ内のみ）",
+    "failoverAlertNotifications": "フェイルオーバー通知",
+    "failoverAlertNotificationsDescription": "プロバイダーの自動フェイルオーバー完了時にシステム通知を送信します",
+    "trayBadgeNotifications": "トレイアラート表示",
+    "trayBadgeNotificationsDescription": "未読アラートがある場合、トレイアイコンをアラート状態に切り替え、メニュー上部にアラート項目を表示します",
+    "workspaceAlertFirst": "ワークスペースアラートを最優先",
+    "workspaceAlertFirstDescription": "有効にすると「今日のワークスペース」の上部にアラートカードを表示します。無効時はトレイ/システム通知のみでアラートを通知します",
     "launchOnStartup": "起動時に自動実行",
     "launchOnStartupDescription": "システム起動時に OpenSunstar を自動起動します",
     "silentStartup": "サイレント起動",
@@ -1925,8 +1934,7 @@
     "tabs": {
       "label": "ワークスペースビュー",
       "dashboard": "今日のワークスペース",
-      "board": "プロジェクトボード",
-      "assetsMatrix": "AI アセット一覧"
+      "board": "プロジェクトボード"
     }
   },
   "openclaw": {
@@ -3335,16 +3343,20 @@
     "next": "次へ",
     "done": "了解",
     "step1": {
-      "title": "設定状態 — 一目で全体像を把握",
-      "desc": "上部のサマリーで、全プロジェクトの AI 設定状態を正常、要確認、異常、未スキャンに分けて表示します。"
+      "title": "アラート優先ホーム — 今日やることは？",
+      "desc": "今日ワークスペースは一つの質問に答えます：今日やることはあるか。何もなければ「今日は問題なし」と表示します — 問題がないのが最高のニュース、健康な人に健康診断書は見せません。"
     },
     "step2": {
-      "title": "対応が必要なプロジェクト — すばやく特定",
-      "desc": "確認が必要なプロジェクトが、分かりやすい理由説明つきで下に表示されます。「ドリフトを修復」または「アセットを設定」をクリックして直接操作できます。"
+      "title": "命 / 金 / 事 — 3 種のアラート",
+      "desc": "命（赤）= プロバイダーのフェイルオーバー、コンテキストが失われる; 金（黄）= 予算超過 critical/emergency; 事（青）= 設定のギャップやドリフト。命は常に最優先。"
     },
     "step3": {
-      "title": "設定有効化率 — 「AI アセット一覧」にあります",
-      "desc": "設定不一致のプロジェクト、有効化率、有効化アイテムなどの詳細データは「AI アセット一覧」タブにあります。カードにマウスを乗せると説明が表示されます。"
+      "title": "アクションボタン — ワンクリックで修復ページへ",
+      "desc": "各アラートカードにはアクションボタンがあります：「修復」「設定」「予算調整」。ワンクリックで「プロジェクトアセット設定」の該当セクションに直接移動、タブを探す必要はありません。"
+    },
+    "step4": {
+      "title": "概要コンテンツ — 「プロジェクトボード」へ切替",
+      "desc": "集計指標カード、段階分布、健全性リスト、アセットマトリクスはすべて「プロジェクトボード」タブにあります。今日には手を付けるものだけ残し、概要コンテンツは起動時の一目を占領しません。"
     }
   },
   "repairPreview": {

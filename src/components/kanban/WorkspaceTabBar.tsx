@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { LayoutDashboard, LayoutGrid, Table2 } from "lucide-react";
+import { LayoutDashboard, LayoutGrid } from "lucide-react";
 import type { WorkspaceTab } from "@/types/workspace";
 import { cn } from "@/lib/utils";
 
@@ -35,26 +35,15 @@ const TABS: {
     labelKey: "workspace.tabs.dashboard",
     defaultLabel: "今日工作台",
   },
+  /**
+   * 「项目看板」吸收了原「AI 资产总览」（工作区重构 2026-07-30）：治理面板
+   * 与资产矩阵同为项目维度的巡视内容，分两个 Tab 是信息超载。
+   */
   {
     id: "board",
     icon: LayoutGrid,
     labelKey: "workspace.tabs.board",
     defaultLabel: "项目看板",
-  },
-  /**
-   * 与侧栏「Agent 配置」是同一批实体（8 类），真实边界是**作用域** ——
-   * 那边是全局库的增删改，这里是项目级的关联与就绪状态。「配置 vs 总览」
-   * 这对名字暗示的却是「编辑 vs 查看」，指错了方向（审查报告 §2.5）。
-   *
-   * 报告建议改名「项目落地」把作用域写进名字，产品决定保留旧名 —— 沿用
-   * 已久的入口名有肌肉记忆成本。作用域这层意思因此只活在下面的 subtitle
-   * 与 `docs/kanban.md` 里，是已知欠账，不是没意识到。
-   */
-  {
-    id: "assetsMatrix",
-    icon: Table2,
-    labelKey: "workspace.tabs.assetsMatrix",
-    defaultLabel: "AI 资产总览",
   },
 ];
 

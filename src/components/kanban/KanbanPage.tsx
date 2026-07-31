@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -36,7 +37,6 @@ import { useProjectViews } from "@/hooks/kanban/useProjectViews";
 import { pickProjectViews } from "@/lib/kanban/projectView";
 import { revealPathInFolder } from "@/lib/reveal";
 import type { Project } from "@/types/project";
-import { AINLQueryBar } from "./AINLQueryBar";
 import { AICostStrip } from "./AICostStrip";
 import { AICostPanel } from "./AICostPanel";
 import { PortfolioMatrix } from "./PortfolioMatrix";
@@ -63,6 +63,10 @@ import { RepairPreviewDialog } from "./RepairPreviewDialog";
 import type { WorkspaceTab } from "@/types/workspace";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
 import type { AppId } from "@/lib/api";
+import type { ProjectAiConfigNavigationIntent } from "@/app/navigation";
+import { TodayAlertsPanel } from "./TodayAlertsPanel";
+import { useWorkspaceAlerts } from "@/hooks/useWorkspaceAlerts";
+import { useWorkspaceAlertFirst } from "@/hooks/useWorkspaceAlertFirst";
 // 只剩下类型：窗口切换器（选项常量 + `cn` 拼样式）已经搬进 TodayWorkspace，
 // 和它切的那排指标卡待在同一个文件里。这里保留的 state 仍是唯一事实来源，
 // 通过 `onOverviewWindowDaysChange` 回写。
@@ -88,12 +92,17 @@ interface KanbanPageProps {
    * 没反应，没有报错，没有类型错误。这一页在真实应用里只有一个挂载点，可选
    * 换不来任何灵活性，只换来了这个。测试要传就传 `vi.fn()`。
    */
-  onOpenProjectAiConfig: (projectId: string) => void;
+  onOpenProjectAiConfig: (
+    projectId: string,
+    intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
+  ) => void;
   onProjectRemove: (projectId: string) => void;
   onAddProject: () => void;
   onClearSelection?: () => void;
   onOpenSettings?: () => void;
   onPortfolioDataChanged?: () => void;
+  /** 页面级导航（「今日」钱类告警要跳 AI Tokens 页调预算）。 */
+  onNavigate?: (view: import("@/app/navigation").PageView) => void;
   targetApp?: AppId;
   onProjectsReload?: () => void | Promise<void>;
 }
@@ -112,11 +121,13 @@ export function KanbanPage({
   onAddProject,
   onClearSelection,
   onPortfolioDataChanged,
+  onNavigate,
   targetApp = "claude",
   onProjectsReload,
 }: KanbanPageProps) {
   const { t } = useTranslation();
   const reloadProjects = onProjectsReload ?? (() => undefined);
+  const { enabled: workspaceAlertFirst } = useWorkspaceAlertFirst();
   const { getStage, setStage } = useProjectStages(projects, reloadProjects);
   const { progress: progressMap, setProjectProgress } = useProjectProgress(
     projects,
@@ -286,6 +297,15 @@ export function KanbanPage({
         if (ok || result) {
           bumpPortfolioRefresh();
         }
+      } catch (e) {
+        toast.error(
+          t("kanban.readiness.repairError", {
+            defaultValue: "修复请求失败，请稍后重试",
+          }),
+          {
+            description: e instanceof Error ? e.message : String(e),
+          },
+        );
       } finally {
         setRepairingProjectId(null);
         setRepairPreviewProject(null);
@@ -405,11 +425,33 @@ export function KanbanPage({
   };
 
   const openAiConfig = useCallback(
-    (project: Project) => {
-      onOpenProjectAiConfig(project.id);
+    (
+      project: Project,
+      intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
+    ) => {
+      onOpenProjectAiConfig(project.id, intent);
     },
     [onOpenProjectAiConfig],
   );
+
+  /*
+   * 「今日」告警流（工作区重构 2026-07-30）：命/钱/事三类一个出口。
+   * task 类复用 PortfolioHealthSummary 的六档分级口径，排序改为
+   * 「最近使用加权」——三个月没动的项目不给今天添堵。
+   */
+  const {
+    alerts: workspaceAlerts,
+    dismissEventAlert: dismissWorkspaceAlert,
+  } = useWorkspaceAlerts({
+    projects,
+    agentReadinessMap,
+    commitsInWindowMap,
+    onRepairProject: handleRepairProjectDrift,
+    onOpenProjectAiConfig: (projectId, intent) =>
+      onOpenProjectAiConfig(projectId, intent),
+    onOpenTokenStats: () => onNavigate?.("tokenStats"),
+    repairingProjectId,
+  });
 
   const closeDetail = useCallback(() => {
     setInternalDetailId(null);
@@ -707,9 +749,11 @@ export function KanbanPage({
           )}
 
           {!empty && workspaceTab === "dashboard" && (
-            // 「今日工作台」只回答一个问题：今天该动哪个项目（审查报告 §3.3）。
-            // 因此这里不放 GovernanceDashboard（→ AI 资产总览）、
-            // PortfolioMatrix（→ 项目看板，那是项目彼此的关系，不是今天的事）。
+            // 「今日工作台」只回答一个问题：今天有没有事（工作区重构
+            // 2026-07-30）。告警制首屏：命（故障转移）/钱（预算）/事（缺口）
+            // 三类告警卡，全健康时只显示「今天没事」。原来的聚合指标卡、
+            // 健康清单、阶段分布全部搬去「项目看板」——巡视类内容不占开机
+            // 第一眼。
             <div className="px-6 pb-6 space-y-4">
               <DashboardOnboarding />
               {/*
@@ -723,21 +767,6 @@ export function KanbanPage({
                 projectCount={totalCount}
                 onOpenRoiPanel={() => setRoiPanelOpen(true)}
               />
-              {/*
-              问答栏紧跟成本条，不再留在这个 Tab 的最底下。
-
-              `AICostStrip` 在没配 AI 时整条 `return null`，理由写的是「同一屏的
-              AINLQueryBar 已经承担了『去设置里配置』的引导」—— 但那句话当时
-              并不成立：问答栏在阶段分布下面，和成本条隔着五块面板、约一屏半。
-              于是没配 AI 的用户在页顶什么也看不到，唯一的解释躺在页尾。
-              把两者放到一起，那条注释才对得上：没配时这里出现一次引导，配了
-              之后这里出现成本条 + 问答栏，都在开机第一眼扫得到的位置。
-            */}
-              <AINLQueryBar
-                projectContexts={Array.from(projectContextsMap.values())}
-                aiConfigured={aiConfigured}
-                projectCount={totalCount}
-              />
               {aiConfigured && (
                 <div className="flex flex-wrap items-center justify-end gap-2">
                   <AIWeeklyReport
@@ -746,11 +775,37 @@ export function KanbanPage({
                   />
                 </div>
               )}
+              {workspaceAlertFirst && (
+                <TodayAlertsPanel
+                  alerts={workspaceAlerts}
+                  onDismiss={dismissWorkspaceAlert}
+                  onOpenBoard={() => onWorkspaceTabChange?.("board")}
+                />
+              )}
+            </div>
+          )}
+
+          {!empty && workspaceTab === "board" && (
+            // 「项目看板」= 项目维度全部巡视内容的家（工作区重构 2026-07-30）：
+            // 原「AI 资产总览」Tab 并入这里，原「今日工作台」的聚合指标卡、
+            // 阶段分布、健康清单也迁到这里 —— 首屏告警制之后，它们不再占
+            // 开机第一眼，但都还有用，统一收在项目维度这一屏。
+            <div className="px-6 pb-8 space-y-4">
               {/*
-              摘要区在前、清单在后：先看「一共多少、整体多健康」，再看「具体
-              该动谁」。TodayWorkspace 现在只出数不出列表，所以它是这一屏的
-              抬头，而不是夹在两块清单中间的第三块。
+              这里曾经写 `aiConfigured && …`（审查报告 §2.5）。矩阵不调用任何
+              模型，纯 recharts 画本地已有的数字，却因为组件名带 `AI` 前缀被
+              一路门到没配 Key 的用户看不见。门控删了，"有没有点"由数据自己
+              决定 —— `portfolioPoints` 现在只装真实存在的分数，一个都没有时
+              组件返回 null，不会留下一张空图。
             */}
+              {portfolioPoints.length > 0 && (
+                <PortfolioMatrix
+                  points={portfolioPoints}
+                  scoreKind={portfolioScoreKind}
+                />
+              )}
+              {/* 聚合指标卡（从「今日工作台」迁入）：出数不出列表，是这一屏
+                  的抬头。窗口切换器跟着它一起走。 */}
               <TodayWorkspace
                 projects={projects}
                 getStage={getStage}
@@ -765,38 +820,6 @@ export function KanbanPage({
                 averageActivityColor={averageActivityColor}
                 lastUpdatedAt={portfolioLastUpdatedAt}
                 isRefreshing={portfolioDataRefreshing}
-              />
-              {/*
-              这个 Tab 里唯一一份「需要动手的项目」清单。TodayWorkspace 曾经
-              在下方另挂一份「建议优先处理」，两份读同一个 agentReadinessMap
-              却各算各的理由、各排各的序（§3.1）。留下这一份是因为它多给了
-              交通灯六档分级和修复入口。
-            */}
-              <PortfolioHealthSummary
-                projects={projects}
-                agentReadinessMap={agentReadinessMap}
-                assetMap={assetMap}
-                loading={readinessLoading}
-                onOpenProject={openDetail}
-                onOpenProjectAiConfig={openAiConfig}
-                // 与下方 PortfolioDriftSummary 接同一条修复链路：先拉预览、由
-                // 用户勾选确认后才写盘。共用 repairingProjectId，避免两个入口
-                // 对同一项目并发提交（审查报告 §4.3）。
-                onRepairProject={(p) => void handleRepairProjectDrift(p)}
-                repairingProjectId={repairingProjectId}
-              />
-              <PortfolioDriftSummary
-                projects={projects}
-                agentReadinessMap={agentReadinessMap}
-                targetApp={targetApp}
-                lastUpdatedAt={
-                  readinessLastUpdatedAt != null
-                    ? Math.floor(readinessLastUpdatedAt / 1000)
-                    : null
-                }
-                onOpenProject={(p) => openDetail(p)}
-                onRepairProject={(p) => void handleRepairProjectDrift(p)}
-                repairingProjectId={repairingProjectId}
               />
               <div className="rounded-xl border border-border/60 bg-card/30 p-4">
                 <div className="flex items-center gap-6">
@@ -848,34 +871,36 @@ export function KanbanPage({
                   ))}
                 </div>
               </div>
-            </div>
-          )}
-
-          {!empty && workspaceTab === "board" && (
-            // 「项目看板」是项目集合的空间视图：卡片网格 + 四象限图（审查报告 §3.3）。
-            // AICostStrip 与 AINLQueryBar 的重复挂载都已删，两者现在都归「今日工作台」。
-            <div className="px-6 pb-2 space-y-2">
-              {/*
-              这里曾经写 `aiConfigured && …`（审查报告 §2.5）。矩阵不调用任何
-              模型，纯 recharts 画本地已有的数字，却因为组件名带 `AI` 前缀被
-              一路门到没配 Key 的用户看不见。门控删了，"有没有点"由数据自己
-              决定 —— `portfolioPoints` 现在只装真实存在的分数，一个都没有时
-              组件返回 null，不会留下一张空图。
-            */}
-              {portfolioPoints.length > 0 && (
-                <PortfolioMatrix
-                  points={portfolioPoints}
-                  scoreKind={portfolioScoreKind}
-                />
-              )}
-            </div>
-          )}
-
-          {!empty && workspaceTab === "assetsMatrix" && (
-            // 「AI 资产总览」是配置落地的唯一权威视图（审查报告 §3.3），
-            // 因此 GovernanceDashboard（配置生效率）从「今日工作台」收到这里 ——
-            // 生效率和明细矩阵是同一个问题的两个粒度，本就不该隔着一个 Tab。
-            <div className="px-6 pb-8 space-y-4">
+              {/* 完整待办清单（从「今日工作台」迁入）：「今日」告警卡只出
+                  top 5，「查看项目全景」的落点就是这里。 */}
+              <PortfolioHealthSummary
+                projects={projects}
+                agentReadinessMap={agentReadinessMap}
+                assetMap={assetMap}
+                loading={readinessLoading}
+                onOpenProject={openDetail}
+                onOpenProjectAiConfig={openAiConfig}
+                // 与下方 PortfolioDriftSummary 接同一条修复链路：先拉预览、由
+                // 用户勾选确认后才写盘。共用 repairingProjectId，避免两个入口
+                // 对同一项目并发提交（审查报告 §4.3）。
+                onRepairProject={(p) => void handleRepairProjectDrift(p)}
+                repairingProjectId={repairingProjectId}
+              />
+              <PortfolioDriftSummary
+                projects={projects}
+                agentReadinessMap={agentReadinessMap}
+                targetApp={targetApp}
+                lastUpdatedAt={
+                  readinessLastUpdatedAt != null
+                    ? Math.floor(readinessLastUpdatedAt / 1000)
+                    : null
+                }
+                onOpenProject={(p) => openDetail(p)}
+                onRepairProject={(p) => void handleRepairProjectDrift(p)}
+                repairingProjectId={repairingProjectId}
+              />
+              {/* 生效率与明细矩阵（原「AI 资产总览」Tab 并入）：同一个问题的
+                  两个粒度，本就不该隔着一个 Tab。 */}
               <GovernanceDashboard
                 projects={projects}
                 agentReadinessMap={agentReadinessMap}
@@ -888,6 +913,7 @@ export function KanbanPage({
                 agentReadinessMap={agentReadinessMap}
                 assetMap={assetMap}
                 loading={readinessLoading}
+                commitsInWindowMap={commitsInWindowMap}
                 onOpenProject={openDetail}
                 onOpenProjectAiConfig={openAiConfig}
               />

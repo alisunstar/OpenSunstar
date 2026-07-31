@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { ChevronRight } from "lucide-react";
 
 import { AppPageActions, hasPageActions } from "@/app/AppPageActions";
@@ -16,6 +17,7 @@ import {
   VIEW_STORAGE_KEY,
   type MethodologyNavigationIntent,
   type PageView,
+  type ProjectAiConfigNavigationIntent,
 } from "@/app/navigation";
 import { usePageActionRefs } from "@/app/pageActionRefs";
 import { useAppKeyboardShortcuts } from "@/app/useAppKeyboardShortcuts";
@@ -61,6 +63,8 @@ function App() {
   );
   const [methodologyIntent, setMethodologyIntent] =
     useState<MethodologyNavigationIntent | null>(null);
+  const [projectAiConfigIntent, setProjectAiConfigIntent] =
+    useState<ProjectAiConfigNavigationIntent | null>(null);
   const [addProjectOpen, setAddProjectOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -116,6 +120,17 @@ function App() {
     localStorage.setItem(APP_STORAGE_KEY, targetApp);
   }, [targetApp]);
 
+  // 托盘告警条目点击 → 跳转到工作区今日告警面板（工作区重构 2026-07-30）
+  useEffect(() => {
+    const unlisten = listen("tray-open-alerts", () => {
+      handleNavigate("kanban");
+      setWorkspaceTab("dashboard");
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [handleNavigate]);
+
   const pageActionRefs = usePageActionRefs();
   useAppKeyboardShortcuts({
     currentView,
@@ -159,10 +174,27 @@ function App() {
    * 「配置 AI 资产」以前是：跳到工作区 → 强行把 Tab 切到「项目看板」→ 弹抽屉
    * → 抽屉再切到第二个 Tab。四步里有三步是为了把用户搬到那个 480px 的抽屉
    * 跟前，而且会顺手改掉他当前正在看的 Tab。现在它是一个一级页面，直接去。
+   *
+   * `intent` 是可选的精确落点（工作区重构 2026-07-30）：告警卡/资产矩阵的
+   * 「去修复」不只是去那一页，还要落到具体子 Tab 与具体资产区。
    */
   const handleOpenProjectAssets = useCallback(
-    (projectId: string) => {
+    (
+      projectId: string,
+      intent?: Pick<
+        ProjectAiConfigNavigationIntent,
+        "tab" | "section"
+      > | null,
+    ) => {
       setSelectedProjectId(projectId);
+      if (intent) {
+        setProjectAiConfigIntent({
+          key: Date.now(),
+          projectId,
+          tab: intent.tab,
+          section: intent.section,
+        });
+      }
       handleNavigate("projectAiConfig");
     },
     [handleNavigate],
@@ -325,6 +357,10 @@ function App() {
                   onSettingsNavIntent={setSettingsNavIntent}
                   methodologyIntent={methodologyIntent}
                   onMethodologyIntentConsumed={() => setMethodologyIntent(null)}
+                  projectAiConfigIntent={projectAiConfigIntent}
+                  onProjectAiConfigIntentConsumed={() =>
+                    setProjectAiConfigIntent(null)
+                  }
                 />
               </div>
             </ErrorBoundary>

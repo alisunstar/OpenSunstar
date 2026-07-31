@@ -122,6 +122,11 @@ export function useSettingsForm(): UseSettingsFormResult {
       silentStartup: data.silentStartup ?? false,
       skipClaudeOnboarding: data.skipClaudeOnboarding ?? false,
       preserveCodexOfficialAuthOnSwitch: true,
+      notificationPreferences: data.notificationPreferences ?? {
+        budgetAlert: true,
+        failoverAlert: true,
+        trayBadge: true,
+      },
       claudeConfigDir: sanitizeDir(data.claudeConfigDir),
       codexConfigDir: sanitizeDir(data.codexConfigDir),
       geminiConfigDir: sanitizeDir(data.geminiConfigDir),
@@ -146,8 +151,13 @@ export function useSettingsForm(): UseSettingsFormResult {
             useAppWindowControls: false,
             enableClaudePluginIntegration: false,
             skipClaudeOnboarding: false,
-            preserveCodexOfficialAuthOnSwitch: true,
-            language: readPersistedLanguage(),
+          preserveCodexOfficialAuthOnSwitch: true,
+          notificationPreferences: {
+            budgetAlert: true,
+            failoverAlert: true,
+            trayBadge: true,
+          },
+          language: readPersistedLanguage(),
           } as SettingsFormState);
 
         const next: SettingsFormState = {

@@ -245,6 +245,9 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        // OS 系统通知（工作区重构 2026-07-30）：预算 critical/emergency 与
+        // 故障转移走系统级通知 —— 窗口关了也能响，托盘才是这个产品的家。
+        // 使用 tauri-winrt-notification 直接发送 Windows toast 通知。
         .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(
             tauri_plugin_window_state::Builder::default()

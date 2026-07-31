@@ -77,6 +77,30 @@ impl VisibleApps {
     }
 }
 
+/// 通知偏好设置（工作区重构 2026-07-30）。
+///
+/// 控制预算告警、故障转移、托盘红点的系统级通知行为。
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NotificationPreferences {
+    #[serde(default = "default_true")]
+    pub budget_alert: bool,
+    #[serde(default = "default_true")]
+    pub failover_alert: bool,
+    #[serde(default = "default_true")]
+    pub tray_badge: bool,
+}
+
+impl Default for NotificationPreferences {
+    fn default() -> Self {
+        Self {
+            budget_alert: true,
+            failover_alert: true,
+            tray_badge: true,
+        }
+    }
+}
+
 /// WebDAV 同步状态（持久化同步进度信息）
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
@@ -357,6 +381,9 @@ pub struct AppSettings {
     /// Whether to show the failover toggle independently on the main page
     #[serde(default)]
     pub enable_failover_toggle: bool,
+    /// 通知偏好设置（工作区重构 2026-07-30）
+    #[serde(default)]
+    pub notification_preferences: NotificationPreferences,
     /// Backward-compatible serialized marker. Credential isolation is mandatory
     /// and this value is normalized to `true`.
     #[serde(default)]
@@ -478,6 +505,7 @@ impl Default for AppSettings {
             usage_confirmed: None,
             stream_check_confirmed: None,
             enable_failover_toggle: false,
+            notification_preferences: NotificationPreferences::default(),
             preserve_codex_official_auth_on_switch: true,
             failover_confirmed: None,
             first_run_notice_confirmed: None,

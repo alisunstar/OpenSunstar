@@ -51,6 +51,7 @@ pub mod skills_sh_leaderboard;
 pub mod speedtest;
 pub mod sql_helpers;
 pub mod stream_check;
+pub mod sys_notify;
 pub mod subscription;
 pub mod subscription_routing;
 pub mod sync_protocol;

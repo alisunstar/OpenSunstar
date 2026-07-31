@@ -759,6 +759,15 @@
     "languageOptionJapanese": "日本語",
     "windowBehavior": "窗口行为",
     "windowBehaviorHint": "配置窗口最小化与 Claude 插件联动策略。",
+    "notificationPreferences": "通知偏好",
+    "budgetAlertNotifications": "预算超限系统通知",
+    "budgetAlertNotificationsDescription": "Critical / Emergency 级别预算告警时发送系统级通知（warning 仍仅在应用内提示）",
+    "failoverAlertNotifications": "故障转移系统通知",
+    "failoverAlertNotificationsDescription": "供应商自动故障转移完成后发送系统级通知",
+    "trayBadgeNotifications": "托盘红点提醒",
+    "trayBadgeNotificationsDescription": "有未读告警时托盘图标切换为告警态并在菜单顶部显示告警条目",
+    "workspaceAlertFirst": "工作区告警首屏",
+    "workspaceAlertFirstDescription": "开启后「今日工作台」首屏展示告警卡片；关闭时告警仅通过托盘/系统通知触达，保持老用户习惯",
     "launchOnStartup": "开机自启",
     "launchOnStartupDescription": "随系统启动自动运行 OpenSunstar",
     "silentStartup": "静默启动",
@@ -1338,16 +1347,20 @@
     "next": "下一步",
     "done": "知道了",
     "step1": {
-      "title": "配置状态 — 一眼看全局",
-      "desc": "顶部汇总所有项目的 AI 配置状态：正常、需关注、异常、未扫描会分开显示。"
+      "title": "告警制首屏 — 今天有没有事",
+      "desc": "今日工作台只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息，别给没病的人看体检报告。"
     },
     "step2": {
-      "title": "需处理项目 — 快速定位",
-      "desc": "需要关注的项目会列在下方，附带人可读的原因说明。点击「修复漂移」或「配置资产」即可直达操作。"
+      "title": "命 / 钱 / 事 — 三类告警",
+      "desc": "命（红）= 供应商故障转移，会丢上下文；钱（黄）= 预算超限 critical/emergency；事（蓝）= 配置缺口或漂移。命永远排最前。"
     },
     "step3": {
-      "title": "配置生效率 — 在「AI 资产总览」",
-      "desc": "配置不一致项目、生效率、已生效项等详细数据，切到「AI 资产总览」查看。将鼠标悬停在卡片上可查看说明。"
+      "title": "动作按钮 — 一次点击落到能修的页面",
+      "desc": "每条告警卡都带动作按钮：「去修复」「去配置」「调整预算」。一次点击直接落在「项目资产配置」对应区，不用再翻 Tab。"
+    },
+    "step4": {
+      "title": "巡视类内容 — 切到「项目看板」",
+      "desc": "聚合指标卡、阶段分布、健康清单、资产矩阵都在「项目看板」Tab。今日只放需要动手的，巡视内容不占开机第一眼。"
     },
     "addProvidersManually": "您可以在设置中手动添加供应商。",
     "apiKeyBadge": "API Key",
@@ -2212,8 +2225,7 @@
     "tabs": {
       "label": "工作区视图",
       "dashboard": "今日工作台",
-      "board": "项目看板",
-      "assetsMatrix": "AI 资产总览"
+      "board": "项目看板"
     },
     "dashboard": {
       "title": "今日工作台",

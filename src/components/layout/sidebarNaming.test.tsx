@@ -46,8 +46,12 @@ const NAMES = {
    * 对 `zh.json` 的逐键断言把「跨」前缀是否复活钉死，而不是靠一条正则。
    */
   assetLibrary: "Agent 配置",
-  /** 项目级关联作用域。同上，§2.5 的「项目落地」未采纳。 */
-  projectLanding: "AI 资产总览",
+  /**
+   * 原「AI 资产总览」项已并入「项目看板」（工作区重构 2026-07-30）——
+   * 治理面板与资产矩阵同为项目维度巡视内容，不再单列一个侧栏入口。
+   * 作用域的接力棒交给「项目资产配置」：它才是项目级关联的唯一入口。
+   */
+  projectLanding: "项目资产配置",
 } as const;
 
 const ALPHA: Project = {
@@ -163,12 +167,14 @@ describe("i18n 资源与组件兜底文案必须一致", () => {
     expect(zh.methodology.sidebar).toBe(NAMES.methodology);
     expect(zh.methodology.title).toBe(NAMES.methodology);
     expect(zh.sidebar.agentConfig).toBe(NAMES.assetLibrary);
-    expect(zh.workspace.tabs.assetsMatrix).toBe(NAMES.projectLanding);
+    expect(zh.projectAiConfig.title).toBe(NAMES.projectLanding);
   });
 
-  it("空嵌套用掉的两个 key 已删除 —— 留着就是等人再挂回去", () => {
-    // `kanban.subtitle`「多项目组合矩阵…」就是这么活下来的：无人渲染，
-    // 却一直躺在 zh.json 里冒充规格（§2.2）。
+  it("被砍的 Tab key 已删除 —— 留着就是等人再挂回去", () => {
+    // `workspace.tabs.assetsMatrix` 随「AI 资产总览」并入「项目看板」而删
+    // （工作区重构 2026-07-30）。`kanban.subtitle`「多项目组合矩阵…」就是
+    // 这么活下来的：无人渲染，却一直躺在 zh.json 里冒充规格（§2.2）。
+    expect("assetsMatrix" in zh.workspace.tabs).toBe(false);
     expect("section" in zh.workspace.sidebar).toBe(false);
     expect("sidebarSection" in zh.methodology).toBe(false);
   });

@@ -25,7 +25,6 @@ import {
   PanelLeftOpen,
   Sun,
   Moon,
-  Table2,
   Sparkles,
   Cpu,
   Cloud,
@@ -318,17 +317,8 @@ export function Sidebar({
                 onClick={() => goWorkspace("board")}
                 indent
               />
-              <SidebarItem
-                icon={<Table2 className="w-4 h-4" />}
-                label={t("workspace.tabs.assetsMatrix", {
-                  defaultValue: "AI 资产总览",
-                })}
-                active={
-                  activeView === "kanban" && workspaceTab === "assetsMatrix"
-                }
-                onClick={() => goWorkspace("assetsMatrix")}
-                indent
-              />
+              {/* 原「AI 资产总览」项已并入「项目看板」（工作区重构
+                  2026-07-30）：治理面板与资产矩阵同为项目维度巡视内容。 */}
               <SidebarItem
                 icon={<Sparkles className="w-4 h-4" />}
                 label={t("projectAiConfig.title", {

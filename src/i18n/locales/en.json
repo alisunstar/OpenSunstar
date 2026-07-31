@@ -719,6 +719,15 @@
     "languageOptionJapanese": "日本語",
     "windowBehavior": "Window Behavior",
     "windowBehaviorHint": "Configure window minimize and Claude plugin integration policies.",
+    "notificationPreferences": "Notification Preferences",
+    "budgetAlertNotifications": "Budget Overrun Notifications",
+    "budgetAlertNotificationsDescription": "Send system notifications for Critical / Emergency budget alerts (warnings remain in-app only)",
+    "failoverAlertNotifications": "Failover Notifications",
+    "failoverAlertNotificationsDescription": "Send system notifications when provider auto-failover completes",
+    "trayBadgeNotifications": "Tray Badge Alert",
+    "trayBadgeNotificationsDescription": "Switch tray icon to alert state and show alert item at the top of the menu when unread alerts exist",
+    "workspaceAlertFirst": "Workspace Alerts First",
+    "workspaceAlertFirstDescription": "Show alert cards at the top of Today Workspace when enabled; when disabled, alerts only reach you via tray/system notifications",
     "launchOnStartup": "Launch on Startup",
     "launchOnStartupDescription": "Automatically run OpenSunstar when system starts",
     "silentStartup": "Silent Startup",
@@ -2076,8 +2085,7 @@
     "tabs": {
       "label": "Workspace views",
       "dashboard": "Today",
-      "board": "Project board",
-      "assetsMatrix": "AI assets"
+      "board": "Project board"
     },
     "dashboard": {
       "title": "Today",
@@ -3925,16 +3933,20 @@
     "next": "Next",
     "done": "Got it",
     "step1": {
-      "title": "Configuration status — at a glance",
-      "desc": "The top summary separates AI config status across projects: OK, needs attention, abnormal, and not scanned."
+      "title": "Alert-first home — anything today?",
+      "desc": "Today Workspace answers one question: is there anything today. Nothing to do shows \"All clear\" — no news is the best news; don't show a healthy user a medical report."
     },
     "step2": {
-      "title": "Projects needing action — quick locate",
-      "desc": "Projects that need attention are listed below with human-readable reasons. Click \"Repair drift\" or \"Configure assets\" to jump straight to the action."
+      "title": "Life / Money / Task — three alert kinds",
+      "desc": "Life (red) = provider failover, drops context; Money (yellow) = budget overrun critical/emergency; Task (blue) = config gap or drift. Life always ranks first."
     },
     "step3": {
-      "title": "Config effectiveness — on \"AI assets\"",
-      "desc": "Projects with config mismatch, effective rate, effective items and other detailed metrics live on the \"AI assets\" tab. Hover over a card for details."
+      "title": "Action buttons — one click to the fix page",
+      "desc": "Every alert card has an action: \"Repair\", \"Configure\", \"Adjust budget\". One click lands on the matching section of Project Asset Config — no more tab hunting."
+    },
+    "step4": {
+      "title": "Overview content — switch to \"Project Board\"",
+      "desc": "Aggregate metric cards, stage distribution, health list, asset matrix all live on the \"Project Board\" tab. Today only keeps what needs hands-on; overview content doesn't occupy the boot-time first glance."
     }
   },
   "repairPreview": {

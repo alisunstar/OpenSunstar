@@ -26,7 +26,11 @@ import type { Project } from "@/types/project";
 import type { ProjectDetailIntent } from "@/types/projectDetail";
 import type { WorkspaceTab } from "@/types/workspace";
 
-import type { MethodologyNavigationIntent, PageView } from "./navigation";
+import type {
+  MethodologyNavigationIntent,
+  PageView,
+  ProjectAiConfigNavigationIntent,
+} from "./navigation";
 import type { PageActionRefs } from "./pageActionRefs";
 
 interface AppPageRouterProps {
@@ -46,8 +50,14 @@ interface AppPageRouterProps {
    * 去「项目资产配置」页配这个项目（会顺手把「当前项目」钉到它）。
    * 和 `onProjectClick`（开抽屉看概览）是两个动作、两个落点 —— 它们以前
    * 挤在同一个回调里靠 `{ assetsTab: true }` 分流。
+   *
+   * 第二个参数是可选的深链落点（工作区重构 2026-07-30）：告警卡与资产
+   * 矩阵的「去修复」要落到具体子 Tab 与资产区，不只是打开页面。
    */
-  onOpenProjectAiConfig: (projectId: string) => void;
+  onOpenProjectAiConfig: (
+    projectId: string,
+    intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
+  ) => void;
   onOpenProjectWorkflow: (projectId: string) => void;
   /** 只改「当前项目」，不跳页 —— 供「项目资产配置」页内的切换器使用。 */
   onSelectProject: (projectId: string) => void;
@@ -58,6 +68,8 @@ interface AppPageRouterProps {
   onSettingsNavIntent: (intent: SettingsNavIntent) => void;
   methodologyIntent: MethodologyNavigationIntent | null;
   onMethodologyIntentConsumed: () => void;
+  projectAiConfigIntent: ProjectAiConfigNavigationIntent | null;
+  onProjectAiConfigIntentConsumed: () => void;
 }
 
 export function AppPageRouter({
@@ -83,6 +95,8 @@ export function AppPageRouter({
   onSettingsNavIntent,
   methodologyIntent,
   onMethodologyIntentConsumed,
+  projectAiConfigIntent,
+  onProjectAiConfigIntentConsumed,
 }: AppPageRouterProps) {
   const { t } = useTranslation();
   const effectiveTargetApp =
@@ -172,6 +186,7 @@ export function AppPageRouter({
           onAddProject={onAddProject}
           onClearSelection={onClearProjectSelection}
           onOpenSettings={onOpenAiProviderSettings}
+          onNavigate={onNavigate}
           onProjectsReload={onProjectsReload}
         />
       );
@@ -185,6 +200,8 @@ export function AppPageRouter({
           onOpenProjectWorkflow={onOpenProjectWorkflow}
           onAddProject={onAddProject}
           targetApp={effectiveTargetApp}
+          navigationIntent={projectAiConfigIntent ?? undefined}
+          onNavigationIntentConsumed={onProjectAiConfigIntentConsumed}
         />
       );
     case "tokenStats":

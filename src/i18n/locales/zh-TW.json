@@ -719,6 +719,15 @@
     "languageOptionJapanese": "日本語",
     "windowBehavior": "視窗行為",
     "windowBehaviorHint": "設定視窗最小化與 Claude 外掛程式連動策略。",
+    "notificationPreferences": "通知偏好",
+    "budgetAlertNotifications": "預算超限系統通知",
+    "budgetAlertNotificationsDescription": "Critical / Emergency 等級預算告警時發送系統級通知（warning 仍僅在應用內提示）",
+    "failoverAlertNotifications": "故障轉移系統通知",
+    "failoverAlertNotificationsDescription": "供應商自動故障轉移完成後發送系統級通知",
+    "trayBadgeNotifications": "系統匣紅點提醒",
+    "trayBadgeNotificationsDescription": "有未讀告警時系統匣圖示切換為告警態並在選單頂部顯示告警項目",
+    "workspaceAlertFirst": "工作區告警首螢幕",
+    "workspaceAlertFirstDescription": "開啟後「今日工作台」首屏顯示告警卡片；關閉時告警僅透過系統匣/系統通知觸達，保持既有使用習慣",
     "launchOnStartup": "開機自動啟動",
     "launchOnStartupDescription": "隨系統啟動自動執行 OpenSunstar",
     "silentStartup": "靜默啟動",
@@ -1951,8 +1960,7 @@
     "tabs": {
       "label": "工作區視圖",
       "dashboard": "今日工作臺",
-      "board": "項目看板",
-      "assetsMatrix": "AI 資產總覽"
+      "board": "項目看板"
     },
     "dashboard": {
       "title": "今日工作臺",
@@ -3965,16 +3973,20 @@
     "next": "下一步",
     "done": "知道了",
     "step1": {
-      "title": "配置狀態 — 一眼看全局",
-      "desc": "頂部彙總所有項目的 AI 配置狀態：正常、需關注、異常、未掃描會分開顯示。"
+      "title": "告警制首螢幕 — 今天有沒有事",
+      "desc": "今日工作台只回答一個問題：今天有沒有事。沒事就顯示「今天沒事」—— 沒事就是最好的消息，別給沒病的人看體檢報告。"
     },
     "step2": {
-      "title": "需處理項目 — 快速定位",
-      "desc": "需要關注的項目會列在下方，附帶人可讀的原因說明。點擊「修復漂移」或「配置資產」即可直達操作。"
+      "title": "命 / 錢 / 事 — 三類告警",
+      "desc": "命（紅）= 供應商故障轉移，會丟上下文；錢（黃）= 預算超限 critical/emergency；事（藍）= 配置缺口或漂移。命永遠排最前。"
     },
     "step3": {
-      "title": "配置生效率 — 在「AI 資產總覽」",
-      "desc": "配置不一致項目、生效率、已生效項等詳細數據，切到「AI 資產總覽」查看。將滑鼠懸停在卡片上可查看說明。"
+      "title": "動作按鈕 — 一次點擊落到能修的頁面",
+      "desc": "每條告警卡都帶動作按鈕：「去修復」「去配置」「調整預算」。一次點擊直接落在「項目資產配置」對應區，不用再翻 Tab。"
+    },
+    "step4": {
+      "title": "巡視類內容 — 切到「項目看板」",
+      "desc": "彙總指標卡、階段分布、健康清單、資產矩陣都在「項目看板」Tab。今日只放需要動手的，巡視內容不占開機第一眼。"
     }
   },
   "repairPreview": {

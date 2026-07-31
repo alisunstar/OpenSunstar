@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { FolderPlus, Sparkles, Workflow } from "lucide-react";
@@ -19,7 +19,7 @@ import {
   buildAiProviderSettingsIntent,
   setSettingsNavIntent,
 } from "@/lib/settingsNavigation";
-import type { PageView } from "@/app/navigation";
+import type { PageView, ProjectAiConfigNavigationIntent } from "@/app/navigation";
 import type { AppId } from "@/lib/api";
 import type { ProjectAssetSection } from "@/lib/readinessActions";
 import type { Project } from "@/types/project";
@@ -40,6 +40,13 @@ export interface ProjectAiConfigPageProps {
   /** 配置落盘后通知外部重扫（看板的就绪度批量结果会因此失效）。 */
   onConfigChanged?: () => void;
   targetApp?: AppId;
+  /**
+   * 深链落点（工作区重构 2026-07-30）：从「今日」告警卡或资产矩阵缺口格
+   * 跳来时，不只是打开页面 —— 还要落到指定子 Tab，并把 `section` 对应的
+   * 资产区滚动定位。与 `MethodologyPage` 的 intent 消费同一模式。
+   */
+  navigationIntent?: ProjectAiConfigNavigationIntent;
+  onNavigationIntentConsumed?: () => void;
 }
 
 export function ProjectAiConfigPage({
@@ -51,6 +58,8 @@ export function ProjectAiConfigPage({
   onAddProject,
   onConfigChanged,
   targetApp = "claude",
+  navigationIntent,
+  onNavigationIntentConsumed,
 }: ProjectAiConfigPageProps) {
   const { t } = useTranslation();
   const [scrollSection, setScrollSection] =
@@ -64,6 +73,48 @@ export function ProjectAiConfigPage({
     projects.find((p) => p.id === selectedProjectId) ?? projects[0] ?? null;
 
   /*
+   * 深链 intent 消费（照 `MethodologyPage` 的模式）：`key` 去重，消费一次即焚。
+   *
+   * 竞态：消费里 `onSelectProject` 会引发 `project?.id` 变化，而下面那个
+   * 「切项目就重置 tab/section」的 effect 会把 intent 刚设好的落点抹掉。
+   * 所以消费时把目标项目记进 `intentDrivenProjectId`，reset effect 见到
+   * 这次切换是深链引起的就跳过一次 —— 只跳一次，用完即清。
+   *
+   * `section` 定位只在 assets 子 Tab 生效（`ProjectAssetPanel.scrollToSection`
+   * 是现成的）；readiness 子 Tab 落在页签级 —— 修复入口本身就在那里。
+   */
+  const consumedIntentKey = useRef<number | null>(null);
+  const intentDrivenProjectId = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      !navigationIntent ||
+      consumedIntentKey.current === navigationIntent.key
+    ) {
+      return;
+    }
+    consumedIntentKey.current = navigationIntent.key;
+    if (
+      navigationIntent.projectId &&
+      navigationIntent.projectId !== selectedProjectId
+    ) {
+      intentDrivenProjectId.current = navigationIntent.projectId;
+      onSelectProject(navigationIntent.projectId);
+    }
+    setActiveTab(navigationIntent.tab ?? "readiness");
+    setScrollSection(
+      (navigationIntent.tab ?? "readiness") === "assets"
+        ? (navigationIntent.section ?? null)
+        : null,
+    );
+    onNavigationIntentConsumed?.();
+  }, [
+    navigationIntent,
+    selectedProjectId,
+    onSelectProject,
+    onNavigationIntentConsumed,
+  ]);
+
+  /*
    * 从侧栏直接点进来时可能一个项目都没选过。这一页没有项目就完全无事可做，
    * 所以替用户认领第一个 —— 但认领的是**共享的**那份状态，而不是页内私有的
    * 一份，否则离开这一页后「当前项目」会莫名其妙地回退。
@@ -75,6 +126,14 @@ export function ProjectAiConfigPage({
   }, [selectedProjectId, projects, onSelectProject]);
 
   useEffect(() => {
+    // 深链引起的那次项目切换不重置：落点已由 intent effect 设置（见上方注释）
+    if (intentDrivenProjectId.current !== null) {
+      if (intentDrivenProjectId.current === project?.id) {
+        intentDrivenProjectId.current = null;
+        return;
+      }
+      intentDrivenProjectId.current = null;
+    }
     setScrollSection(null);
     setActiveTab("assets");
   }, [project?.id]);

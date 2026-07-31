@@ -26,6 +26,17 @@ const CHECK_TO_SECTION: Record<string, ProjectAssetSection> = {
   subagents_configured: "subagent",
 };
 
+/**
+ * readiness check_name → 「项目资产配置」资产区（工作区重构 2026-07-30）。
+ * 资产矩阵缺口格与「今日」告警卡的深链都靠它定位，返回 undefined 表示
+ * 该检查项没有对应资产区（如 `recent_updates` 维护度指标）。
+ */
+export function checkNameToAssetSection(
+  checkName: string,
+): ProjectAssetSection | undefined {
+  return CHECK_TO_SECTION[checkName];
+}
+
 export function getReadinessAction(
   checkName: string,
 
