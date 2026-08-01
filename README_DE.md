@@ -2,7 +2,7 @@
 
 # OpenSunstar
 
-### Der All-in-One-Desktop-Manager für KI-Coding-CLI-Tools
+### Local-first All-in-One-Plattform für AI-Coding-Workflow-Engineering
 
 [![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
@@ -38,7 +38,25 @@
 
 ## 1. Was ist OpenSunstar
 
-**OpenSunstar** ist eine plattformübergreifende native Desktop-App (Tauri 2 + React) für die AI-Coding-CLI-Ära. Sie vereint **Anbieter-Onboarding, Agent-Konfiguration und Multi-Projekt-Governance**.
+**OpenSunstar** ist eine plattformübergreifende native Desktop-App (Tauri 2 + React) für die AI-Coding-CLI-Ära — **本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**.
+
+> 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+> Provider copy: **预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）**
+
+### Produktnarrativ (an der aktuellen Seitenleiste ausgerichtet)
+
+OpenSunstar wird nicht mehr als einzelner Anbieter-Umschalter beschrieben. Die Seitenleiste aus dem Quellcode ist die Informationsarchitektur: eine local-first Engineering-Plattform für Projekte, AI-Assets, Workflow-Orchestrierung, Agent-Erweiterungen, Modellzugang, Sync und Zusammenarbeit.
+
+| Seitenleisten-Eintrag | Untermenüs / Einstiegspunkte | Produktnarrativ |
+| --- | --- | --- |
+| **Project Cockpit** | Today Alerts / Project Board | KI-getriebenes Multi-Projekt-Portfolio: Risiken, Readiness-Lücken, stagnierende Repos, Phasen, Commit-Aktivität und Portfolio-Gesundheit. |
+| **My Projects** | Projektliste / Projekt hinzufügen / ansehen / entfernen | Reale Git-Repositories aufnehmen und AI-Assets, Wiki-Basis, Umgebungs-Snapshots und Governance-Status pro Projekt speichern. |
+| **Project Config** | AI Asset Config / Workflow Orchestration | Assets im ausgewählten Repo verankern: Verknüpfungen, Readiness & Wirksamkeit, Projektumgebung & Wiki, Regeln/Kontext, Discovery, Workflow-Konfiguration, Change Recipes und Design Contracts. |
+| **Agent Config (global)** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert | Globale Agent-Asset-Bibliothek: Erweiterungen installieren, auditieren, konvertieren und je Tool synchronisieren; pro Projekt wird entschieden, was aktiv ist. |
+| **AI Models** | Quick Start / Context / AI Tokens | Quick Start enthält **22+ Anbieter-Presets** und erlaubt zusätzliche benutzerdefinierte Anbieter inklusive Aggregatoren/Relays; Context verwaltet Sessions, AI Tokens Nutzung, Budgets und Modellkosten. |
+| **Sync & Collaboration** | Cross-device Cloud Sync / Team Collaboration (Beta) | WebDAV, S3 und GitHub Gist synchronisieren Konfigurationen; Team-Pakete, Mitglieder, Einladungen, Team-Keys und Deployments stützen Zusammenarbeit. |
+| **Bottom & Settings** | Sync-Status / Settings / Theme / Sidebar einklappen | Sync-Zustand anzeigen und General, Auth, Advanced und About zentral verwalten. |
+
 
 ### Zielgruppe
 
@@ -58,14 +76,14 @@ Teams ohne AI-CLI, Nutzer nur mit offiziellem Abo, PMs die Jira/Linear-Kanban br
 
 ### Kern-Anwendungsfälle (8 Szenarien)
 
-1. Schnellstart für Claude Code / Desktop / Codex / Gemini  
-2. Multi-Tool-Anbieterwechsel (Tray, Hot-Switch bei Claude Code)  
-3. Unified Agent Assets (MCP, Skills, Prompts, …)  
-4. MCP & Skills Discovery (Smithery, skills.sh-Ranking)  
-5. Multi-Repo-Governance (Today Workspace, Board, Asset-Matrix)  
-6. Readiness pro Projekt + direkte Asset-Nachverfolgung  
-7. Token-Statistik, Budget, KI-Investitionsberichte  
-8. Backup & Sync (WebDAV / S3 / Gist, Deep Link)
+1. Schnellstart für Claude Code / Desktop / Codex / Gemini
+2. Multi-Tool-Anbieterwechsel (Tray, Hot-Switch bei Claude Code)
+3. Unified Agent Assets (MCP, Skills, Prompts, …)
+4. MCP & Skills Discovery (Smithery, skills.sh-Ranking)
+5. Multi-Repo-Governance (Project Cockpit: Today Alerts, Board, Readiness-Lücken)
+6. Readiness pro Projekt + direkte Asset-Nachverfolgung
+7. Token-Statistik, Budget, KI-Investitionsberichte
+8. Sync & Collaboration (WebDAV / S3 / Gist, Team-Konfigurationspakete, Deep Link)
 
 ### Sechs gelöste Schmerzpunkte
 
@@ -84,9 +102,9 @@ Teams ohne AI-CLI, Nutzer nur mit offiziellem Abo, PMs die Jira/Linear-Kanban br
 | ------- | ------------ |
 | **7 CLI-Tools** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
 | **Schnellstart** | Kuratiert für 4 Apps |
-| **7+ Presets** | Kuratiert für Schnellzugriff; weitere in Einstellungen (inkl. Relays) |
+| **22+ Anbieter-Presets** | Kuratierte Presets plus eigene Anbieter; Aggregatoren/Relays eingeschlossen |
 | **Agent-Konfig** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents |
-| **Workspace** | Today WS · Board · Asset-Übersicht · Readiness |
+| **Project Cockpit** | Today Alerts · Project Board · Readiness · Asset-Lücken |
 | **Discovery** | skills.sh · Smithery · ClawHub · ModelScope |
 | **Plattform** | Windows · macOS · Linux · i18n |
 
@@ -97,9 +115,9 @@ Teams ohne AI-CLI, Nutzer nur mit offiziellem Abo, PMs die Jira/Linear-Kanban br
 
 ### Screenshots
 
-| Schnellstart | Heutiger Arbeitsbereich |
-| :----------: | :---------------------: |
-| ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Workspace](website/assets/screenshots/workspace-zh.png) |
+| Projekt-Cockpit | KI-Asset-Konfiguration |
+| :--------------: | :---------------------: |
+| ![Projekt-Cockpit](website/assets/screenshots/project-cockpit-zh.png) | ![KI-Asset-Konfiguration](website/assets/screenshots/project-ai-assets-zh.png) |
 
 > **v0.1.0** — erste öffentliche Version; Workspace-Features werden aktiv weiterentwickelt.
 

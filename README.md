@@ -2,11 +2,13 @@
 
 # OpenSunstar
 
-### The All-in-One Platform for AI Coding Workflow Engineering
+### Local-first, all-in-one AI coding workflow engineering configuration platform
 
-**一站式统一管理你的 AI 编程工作流工程化配置平台**
+**本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**
 
-*跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
+*跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步*
+
+**Source provider copy:** 预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）
 
 [![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
@@ -44,9 +46,10 @@ English | [中文](README_ZH.md) | [繁體中文](docs/user-manual/zh-TW/README.
 
 ## 1. What is OpenSunstar
 
-**OpenSunstar** is a cross-platform native desktop app (Tauri 2 + React) — **the all-in-one platform to manage your AI coding workflow engineering configuration**.
+**OpenSunstar** is a cross-platform native desktop app (Tauri 2 + React) — **a local-first, all-in-one platform for AI coding workflow engineering configuration**.
 
-> **An AI readiness cockpit across a multi-project portfolio matrix**: methodology & workflow orchestration per project, plus bidirectional Agent configuration sync across tools and devices.
+> **本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**
+> 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
 
 Move from “edit config files by hand” to “see project health, orchestrate workflows, fill asset gaps, and keep shipping.”
 
@@ -73,41 +76,19 @@ OpenSunstar ships **two independent entry points** that share the same data unde
 
 > **Dual-mode, independently startable; data is unified.** For proxy takeover (Claude Code / Codex / Gemini), keep the desktop app running until headless `os proxy` ships.
 
-### Product map (aligned with the sidebar)
+### Product narrative (aligned with the current sidebar)
 
-#### Workspace — AI readiness cockpit
+OpenSunstar is no longer documented as a single provider switcher. Its source-of-truth navigation is the sidebar: a local-first engineering platform where projects, AI assets, workflow orchestration, Agent extensions, model access, sync, and collaboration share one cockpit.
 
-| Entry | Capability |
-| ----- | ---------- |
-| **Today** | First glance: todos, readiness gaps, portfolio overview |
-| **Project board** | Multi-repo stages, commit activity, AI portfolio reports |
-| **AI assets** | Project × asset matrix (MCP / Skills / Prompts / Commands / Hooks …) and config effectiveness |
-| **Project · AI Config** | Enable/link agent assets per repo, jump to fix gaps |
-
-#### Project Config — Methodology & Orchestration
-
-| Tab | Capability |
-| --- | ---------- |
-| **Methodology Framework** | Read-only SDD framework detection (spec-kit, flow-kit, …) |
-| **Preset Orchestration** | Flow tiers, modules & stages → `workflow.profile.json` |
-| **Custom Orchestration** | Visual stage graph + Recipe (YAML+Markdown hybrid) |
-| **Design Contract** | Brand templates → `DESIGN.md` + DTCG tokens |
-
-#### Agent Config — cross-tool bidirectional sync
-
-MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — unified install, audit, and per-app sync to 7 CLIs.
-
-#### AI Models
-
-| Entry | Capability |
-| ----- | ---------- |
-| **Quick Connect** | 3-step wizard: pick supplier → enter key → apply to CLI |
-| **Context** | Browse, search, and restore conversation sessions |
-| **AI Tokens** | Usage stats, budget alerts, custom model pricing |
-
-#### Settings
-
-Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme & language, and more.
+| Sidebar entry | Submenus / entry points | Product narrative |
+| --- | --- | --- |
+| **Project Cockpit** | Today Alerts / Project Board | AI-driven multi-project portfolio cockpit: see risks, readiness gaps, stalled repos, stages, commit activity, and portfolio health. |
+| **My Projects** | Project list / Add project / View project / Remove project | Bring real Git repositories into OpenSunstar and persist AI assets, wiki baselines, environment snapshots, and governance state per project. |
+| **Project Config** | AI Asset Config / Workflow Orchestration | Land assets inside a selected repo: asset links, readiness & effectiveness, project environment & Wiki, rules/context, discovery, workflow config, change recipes, and design contracts. |
+| **Agent Config (global)** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert | Global Agent asset library: install, audit, convert, and sync extensions across tools, then decide per project which assets take effect. |
+| **AI Models** | Quick Start / Context / AI Tokens | Quick Start ships **22+ preset providers** and lets users define more custom providers, including aggregators/relays; Context manages sessions, and AI Tokens tracks usage, budgets, and model costs. |
+| **Sync & Collaboration** | Cross-device Cloud Sync / Team Collaboration (Beta) | WebDAV, S3, and GitHub Gist sync configs across devices; team config packages, members, invites, team keys, and deployments support collaboration. |
+| **Bottom & Settings** | Sync status / Settings / Theme / Collapse sidebar | Show sync health and centralize General, Auth, Advanced, and About settings while preserving the local-first desktop workflow. |
 
 ### Target users
 
@@ -130,9 +111,9 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 
 ### Core use cases (8 scenarios)
 
-1. **AI workspace governance** — Today, Project board, AI assets, readiness scoring
+1. **Project Cockpit governance** — Today Alerts, Project Board, project readiness, and asset gaps
 2. **Methodology & workflow orchestration** — framework detection, preset orchestration, custom Recipe, design contract
-3. **One-click API access** — curated Quick Connect for Claude Code / Desktop / Codex / Gemini
+3. **One-click API access** — Quick Start for Claude Code / Desktop / Codex / Gemini with 22+ preset providers plus custom aggregators/relays
 4. **Cross-tool Agent sync** — 9 agent modules with bidirectional sync
 5. **Context management** — multi-CLI session browse, search, and restore
 6. **AI usage & cost** — Token dashboard, budget alerts, investment reports
@@ -155,14 +136,14 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 | Feature | Description |
 | ------- | ----------- |
 | **7 CLI tools** | Claude Code · Claude Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
-| **Quick Connect** | 7+ curated presets (Official · CN · Aggregator · Custom); add more in Settings (incl. relays) |
+| **Quick Start** | 22+ preset providers (Official · Global AI · China AI · Aggregator/Relay · Custom); users can add more custom providers, including aggregators/relays |
 | **Methodology & Orchestration** | Framework detection · preset orchestration · custom Recipe · design contract |
 | **Agent configuration** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert |
-| **AI workspace** | Today · Project board · AI assets · Agent Readiness |
+| **Project Cockpit** | Today Alerts · Project Board · project readiness · asset-gap actions |
 | **Context & usage** | Context sessions · AI Tokens dashboard · budget alerts |
 | **Skills / MCP discovery** | skills.sh leaderboard · Smithery · ClawHub · ModelScope · GitHub |
 | **Secret storage** | OS Keychain first, SQLite atomic writes |
-| **Sync & backup** | WebDAV / S3 / Gist · auto-backup · Deep Link import |
+| **Sync & Collaboration** | WebDAV / S3 / Gist · auto-backup · team config packages · Deep Link import |
 | **Cross-platform** | Windows · macOS · Linux · dark/light themes · i18n |
 | **CLI `os` + TUI** | Standalone binary · governance · provider switch · full-screen dashboard |
 
@@ -173,9 +154,9 @@ Provider management, cloud sync & backup (WebDAV / S3 / Gist), proxy & HA, theme
 
 ### Screenshots
 
-| Quick Start | Today Workspace |
-| :---------: | :-------------: |
-| ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Today Workspace](website/assets/screenshots/workspace-zh.png) |
+| Project Cockpit | AI Asset Configuration |
+| :-------------: | :--------------------: |
+| ![Project Cockpit](website/assets/screenshots/project-cockpit-zh.png) | ![AI Asset Configuration](website/assets/screenshots/project-ai-assets-zh.png) |
 
 > **v1.2.0** — Project Wiki baselines, project asset workflow improvements, usage sidecar storage, and Apache-2.0 licensing; database schema v43.
 
@@ -268,7 +249,7 @@ For official providers (Anthropic / OpenAI / Google), Quick Start links you to *
 ### Set up your workspace
 
 1. Sidebar → **Workspace** → **Add project** and point to local Git repos
-2. Open **Today Workspace** for attention items and readiness gaps
+2. Open **Project Cockpit → Today Alerts** for attention items and readiness gaps
 3. Use **Project Board** for commit activity and AI portfolio reports
 4. Open a project's **AI Assets** to manage MCP / Skills / Prompts at repo level
 
@@ -347,7 +328,7 @@ Data is fetched from skills.sh and cached locally (~6 hours). The UI shows last 
 | User manual (日本語) | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | User manual (Deutsch) | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | Workspace module | [docs/kanban.md](docs/kanban.md) |
-| Release notes v1.1.3 | [docs/release-notes/v1.1.3-en.md](docs/release-notes/v1.1.3-en.md) |
+| Release notes v1.2.0 | [docs/release-notes/v1.2.0-en.md](docs/release-notes/v1.2.0-en.md) |
 
 ### Development
 

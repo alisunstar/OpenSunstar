@@ -2,7 +2,9 @@
 
 **版本：** v1.2.0 · **许可证：** Apache-2.0
 
-> 面向 Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes 的一站式 AI 工具管理桌面应用。
+> **主标题：** 本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台
+>
+> **副标题：** 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
 
 ---
 
@@ -14,9 +16,9 @@
 4. [四、API 接入](#四api-接入)
 5. [五、Agent 配置管理](#五agent-配置管理)
 6. [六、代理与高可用](#六代理与高可用)
-7. [七、项目 AI 看板](#七项目-ai-看板)
+7. [七、项目驾驶舱](#七项目驾驶舱)
 8. [八、用量统计与会话管理](#八用量统计与会话管理)
-9. [九、同步与备份](#九同步与备份)
+9. [九、同步与协作](#九同步与协作)
 10. [十、设置](#十设置)
 11. [十一、常见问题 FAQ](#十一常见问题-faq)
 12. [附录](#附录)
@@ -51,11 +53,11 @@
 **OpenSunstar** 是一个跨平台桌面应用，让你：
 
 - **一个应用管理七个工具** — Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes
-- **三步快速接入** — 选择供应商 → 保存密钥 → 应用到 CLI，无需手动编辑配置文件
+- **三步快速接入** — 选择供应商 → 保存密钥 → 应用到 CLI；预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）
 - **Agent 配置双向同步** — 一站式管理 MCP、Skills、Prompts、Commands、Hooks、Ignore 规则、工具权限、Subagents，跨工具跨设备同步
 - **系统托盘快速切换** — 无需打开主窗口即可切换供应商
 - **本地代理与高可用** — 格式转换、自动故障转移、熔断器保护、健康监控
-- **项目 AI 看板** — 多项目组合矩阵，全生命周期管控、健康状态研判、成本动态监控
+- **项目驾驶舱** — 多项目组合矩阵，全生命周期管控、健康状态研判、成本动态监控
 - **云同步** — WebDAV、S3 兼容存储、GitHub Gist 跨设备同步配置
 - **跨平台** — Windows、macOS、Linux 原生桌面应用
 
@@ -64,13 +66,13 @@
 | 特性 | 说明 |
 |------|------|
 | **7 个 CLI 工具支持** | Claude Code、Claude Desktop、Codex、Gemini CLI、OpenCode、OpenClaw、Hermes |
-| **快速接入向导** | 3 步完成供应商配置，预设 DeepSeek / OpenRouter / 智谱 GLM / Anthropic 官方 |
-| **高级 Provider 模式** | 支持 20+ 供应商类型，完整 CRUD、端点测速、故障转移队列 |
-| **Agent 配置管理** | MCP / Skills / Prompts / Commands / Hooks / Ignore / Permissions / Subagents 共 9 大模块 |
+| **快速接入向导** | 3 步完成供应商配置，预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站） |
+| **高级 Provider 模式** | 完整 CRUD、端点测速、故障转移队列；可配置官方、全球 AI、中国 AI、聚合/中转与自定义端点 |
+| **Agent 配置管理** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert 共 9 大模块 |
 | **本地代理服务** | Anthropic ↔ OpenAI ↔ Gemini 格式转换，流式/非流式超时控制 |
 | **故障转移与熔断器** | 多供应商优先级队列 + 三态熔断器 + 三层整流器 |
 | **密钥安全存储** | 优先使用 OS Keychain（Windows 凭据管理器 / macOS Keychain / Linux Secret Service），AES-256-GCM 加密兜底 |
-| **项目 AI 看板** | 三阶段管理（MVP/Rapid/Stable），AI 健康评分、风险分析、周报、自然语言查询 |
+| **项目驾驶舱** | 今日告警、项目看板、AI 健康评分、风险分析、周报、自然语言查询 |
 | **用量统计** | Token / 请求数 / 费用仪表盘，趋势图表，按供应商/模型分组统计 |
 | **会话管理** | 浏览、搜索、恢复 AI 对话历史 |
 | **云同步** | WebDAV / S3 兼容 / GitHub Gist，自定义配置目录 |
@@ -156,16 +158,18 @@ paru -S opensunstar-bin
 
 OpenSunstar 主界面采用经典的**侧边栏 + 内容区**布局。
 
-**侧边栏结构（从上到下）：**
+**侧边栏结构（从上到下，基于当前源码）：**
 
-| 区域 | 包含内容 |
-|------|----------|
-| **API 接入** | 快速接入向导（SimpleConnect） |
-| **Agent 配置** | 可折叠菜单：MCP、Skills、Prompts & Rules、命令管理、钩子管理、配置转换、忽略规则、工具权限、Subagent 管理 |
-| **运行监控** | 会话管理（Context）、AI Tokens 用量 |
-| **项目** | 项目 AI 看板、已添加项目列表、添加项目入口 |
-| **同步备份** | WebDAV / S3 / Gist 同步管理 + 导入导出 |
-| **底部** | 同步状态条、主题切换按钮、侧边栏折叠按钮、设置入口 |
+| 一级功能 | 子菜单 / 入口 | 功能 |
+|------|------|------|
+| **项目驾驶舱** | 今日告警 / 项目看板 | 跨多项目组合矩阵的 AI 驱动项目驾驶舱，查看风险、缺口、停滞、阶段、提交活跃度与组合健康 |
+| **我的项目** | 项目列表 / 添加项目 / 查看项目 / 移除项目 | 将真实 Git 仓库纳入 OpenSunstar，以项目为单位沉淀 AI 资产、Wiki、环境快照与治理状态 |
+| **项目配置** | AI资产配置 / 工作流编排 | AI资产配置含资产关联、就绪与生效、项目环境 & Wiki；工作流编排含规则与上下文、现状发现、工作流配置、变更执行方案、设计合约 |
+| **Agent 配置（全局）** | MCP、Skills、Prompt & Rules、Commands、Hooks、Ignore、Permissions、Subagents、Convert | 全局 Agent 扩展资产库，统一安装、审计、转换并同步到不同 CLI 工具 |
+| **AI模型** | 快速接入 / Context / AI Tokens | 快速接入：预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）；Context 管理会话，AI Tokens 管理用量、预算与成本 |
+| **同步与协作** | 跨设备云同步 / 团队协作配置（Beta） | WebDAV、S3、GitHub Gist 跨设备同步；团队配置包、成员、邀请、团队密钥与部署 |
+| **底部** | 同步状态条、设置、主题切换、侧边栏折叠 | 展示同步健康并集中管理通用、认证、高级、关于等设置 |
+
 
 **内容区：**
 - 顶部工具栏：页面标题 + 当前 App 切换器（Prompts、Sessions 页面可见）+ 操作按钮
@@ -175,7 +179,7 @@ OpenSunstar 主界面采用经典的**侧边栏 + 内容区**布局。
 
 推荐所有新用户通过「快速接入」完成首次配置：
 
-1. **选供应商** — 在预设卡片中选择（DeepSeek / OpenRouter / 智谱 GLM / Anthropic 官方），或使用自定义 OpenAI 兼容端点
+1. **选供应商** — 在预设卡片中选择（预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）），或使用自定义 OpenAI / Anthropic / Gemini 兼容端点
 2. **配密钥** — 输入 API Key，保存到操作系统安全密钥链（Keychain）
 3. **应用到 CLI** — 选择目标 CLI 工具，拉取模型列表，点击应用
 
@@ -219,7 +223,7 @@ OpenSunstar 主界面采用经典的**侧边栏 + 内容区**布局。
 | `Alt + 3` | 跳转 Skills 管理 |
 | `Alt + 4` | 跳转会话管理（Context） |
 | `Alt + 5` | 跳转 AI Tokens 用量 |
-| `Alt + 6` | 跳转项目 AI 看板 |
+| `Alt + 6` | 跳转项目驾驶舱 |
 | `Ctrl + B` / `Cmd + B` | 折叠 / 展开侧边栏 |
 | `?` 或 `Ctrl + /` | 呼出快捷键帮助面板 |
 | `Esc` | 从子页面返回上级（MCP 发现 / Skills 发现） |
@@ -242,7 +246,7 @@ OpenSunstar 提供两种 API 供应商配置方式：**快速接入**（SimpleCo
 
 进入快速接入页面，你将看到供应商卡片网格：
 
-| 预设供应商 | API 端点 | 默认模型 |
+| 预设供应商（22+，可自定义含聚合/中转） | API 端点 | 默认模型 |
 |-----------|----------|----------|
 | **DeepSeek** | `api.deepseek.com` | `deepseek-chat` |
 | **OpenRouter** | `openrouter.ai/api` | `anthropic/claude-3.5-sonnet` |
@@ -324,7 +328,7 @@ OpenSunstar 提供两种 API 供应商配置方式：**快速接入**（SimpleCo
 #### 4.2.1 添加供应商
 
 1. 点击「添加供应商」按钮
-2. 选择供应商类型（Claude / Codex / Gemini / OpenCode / OpenClaw / Hermes / Claude Desktop 等，支持 20+ 类型）
+2. 选择供应商类型（Claude / Claude Desktop / Codex / Gemini / OpenCode / OpenClaw / Hermes 等），也可选择自定义或聚合/中转站端点
 3. 填写配置：
    - **名称** — 自定义供应商名称
    - **API Key** — 存入 Keychain
@@ -722,11 +726,11 @@ Closed（正常）→ Open（熔断）→ HalfOpen（探测恢复）→ Closed
 
 ---
 
-## 七、项目 AI 看板
+## 七、项目驾驶舱
 
 ### 7.1 是什么
 
-项目 AI 看板是**多 Git 仓库的研发驾驶舱**，不是传统拖拽式任务看板。它基于代码提交和 AI 交互数据，提炼项目的健康度、活跃度与成本效率指标。
+项目驾驶舱是**多 Git 仓库的研发驾驶舱**，不是传统拖拽式任务看板。它基于代码提交和 AI 交互数据，提炼项目的健康度、活跃度与成本效率指标。
 
 ### 7.2 添加项目
 
@@ -860,7 +864,7 @@ OpenSunstar 允许自定义模型定价，确保成本统计准确：
 
 ---
 
-## 九、同步与备份
+## 九、同步与协作
 
 ### 9.1 云同步
 
@@ -874,7 +878,7 @@ OpenSunstar 支持三种云同步方式，确保配置跨设备可迁移。
 
 **配置步骤：**
 
-1. 进入「同步备份」页面
+1. 进入「跨设备云同步」页面
 2. 填写 WebDAV 服务器信息：
    - **服务器地址**（如 `https://your-nas.com/webdav`）
    - **用户名**
@@ -905,7 +909,7 @@ OpenSunstar 支持三种云同步方式，确保配置跨设备可迁移。
 
 适用于开发者，利用 GitHub Gist 同步配置。
 
-1. 进入「同步备份」页面 → Gist 同步区块
+1. 进入「跨设备云同步」页面 → Gist 同步区块
 2. 输入 **GitHub Personal Access Token**（需要 gist 权限）
 3. 测试连接
 4. 启用自动/手动同步
@@ -935,7 +939,7 @@ OpenSunstar 支持三种云同步方式，确保配置跨设备可迁移。
 
 **导出：**
 - 完整导出：SQLite 数据库（供应商、MCP、Prompts、Skills、项目、设置等）+ Skills 文件
-- 在「同步备份」页面或「设置 → 常规」中操作
+- 在「跨设备云同步」页面或「设置 → 高级」中操作
 
 **导入：**
 - 选择导出包文件
@@ -1111,7 +1115,7 @@ A：按 `?` 或 `Ctrl+/` 查看完整的快捷键列表。当前不支持自定�
 | `Alt + 3` | 跳转 Skills 管理 |
 | `Alt + 4` | 跳转会话管理（Context） |
 | `Alt + 5` | 跳转 AI Tokens 用量 |
-| `Alt + 6` | 跳转项目 AI 看板 |
+| `Alt + 6` | 跳转项目驾驶舱 |
 | `Ctrl + B` / `Cmd + B` | 折叠 / 展开侧边栏 |
 | `?` 或 `Ctrl + /` | 呼出快捷键帮助面板 |
 | `Esc` | 从子页面返回上级 / 关闭弹窗 |

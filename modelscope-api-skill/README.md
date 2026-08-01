@@ -2,6 +2,14 @@
 
 魔塔社区（ModelScope）完整 API 封装 Skill，支持模型库、数据集、技能中心、MCP 广场、创空间（Studio）的查询、搜索、部署与管理。
 
+## 产品定位（源码侧边栏基线）
+
+**主标题：** 本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台
+
+**副标题：** 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+
+当前 README 按真实侧边栏理解 OpenSunstar：项目驾驶舱、我的项目、项目配置（AI资产配置 / 工作流编排）、Agent 配置（MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert）、AI模型（快速接入 / Context / AI Tokens）、同步与协作、设置。快速接入文案统一为：**预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）**。
+
 ## What It Does
 
 本 Skill 封装了魔塔社区（ModelScope）的全部可用 API，覆盖 5 大能力模块：

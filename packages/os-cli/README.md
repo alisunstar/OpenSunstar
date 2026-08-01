@@ -2,6 +2,18 @@
 
 npm wrapper for the **OpenSunstar CLI** (`os`) — downloads the platform binary from [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releases) on install.
 
+## Product context (source-aligned sidebar baseline)
+
+**Positioning:** Local-first, all-in-one AI coding workflow engineering configuration platform.
+
+**Source title:** 本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台
+
+**Source subtitle:** 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+
+**Source provider copy:** 预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）
+
+This README follows the real sidebar: Project Cockpit, My Projects, Project Config (AI Asset Config / Workflow Orchestration), Agent Config (MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert), AI Models (Quick Start / Context / AI Tokens), Sync & Collaboration, and Settings. Provider copy is unified as: **22+ preset providers with user-defined custom providers, including aggregators/relays**.
+
 The installer verifies the downloaded archive against the SHA256 manifest
 included in the published npm package.
 

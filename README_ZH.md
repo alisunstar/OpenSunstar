@@ -2,9 +2,9 @@
 
 # OpenSunstar
 
-### 一站式统一管理你的 AI 编程工作流工程化配置平台
+### 本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台
 
-*跨多项目组合矩阵的 AI 就绪度驾驶舱，一站式帮你基于项目的方法论 & 工作流编排和跨工具跨设备 Agent 配置双向同步*
+*跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步*
 
 [![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![npm opensunstar-os](https://img.shields.io/npm/v/opensunstar-os.svg)](https://www.npmjs.com/package/opensunstar-os)
@@ -42,9 +42,10 @@
 
 ## 一. 什么是 OpenSunstar
 
-**OpenSunstar** 是基于 Tauri 2 + React 的跨平台原生桌面应用——**一站式统一管理你的 AI 编程工作流工程化配置平台**。
+**OpenSunstar** 是基于 Tauri 2 + React 的跨平台原生桌面应用——**本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**。
 
-> **跨多项目组合矩阵的 AI 就绪度驾驶舱**：一站式帮你完成基于项目的方法论与工作流编排，以及跨工具、跨设备的 Agent 配置双向同步。
+> **本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**
+> 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
 
 从「改配置文件」升级为「看清项目、编排流程、补齐资产、持续交付」。
 
@@ -71,41 +72,19 @@ OpenSunstar 提供 **两种可独立启动的入口**，共用 `~/.OpenSunstar/`
 
 > **双模态、可独立启动；数据统一。** 代理接管场景（Claude Code / Codex / Gemini）请保持桌面应用运行，直至 headless `os proxy` 落地。
 
-### 产品能力地图（对齐侧边栏）
+### 产品叙事（对齐当前侧边栏）
 
-#### 工作区 — AI 就绪度驾驶舱
+OpenSunstar 的产品叙事紧扣当前源码中的侧边栏一级菜单与子菜单：从本地项目驾驶舱进入，把项目、AI 资产、工作流、Agent 扩展、模型接入、同步协作放在同一个本地优先的工程化平台里。
 
-| 入口 | 能力 |
-| ---- | ---- |
-| **今日工作台** | 开机第一眼：待办、就绪度缺口、组合概览 |
-| **项目看板** | 多 Git 仓库阶段、提交活跃度、AI 组合报告 |
-| **AI 资产总览** | 项目 × 资产矩阵（MCP / Skills / Prompts / Commands / Hooks …）与配置生效率 |
-| **项目 · AI 配置** | 按仓库启用/关联 Agent 资产，直达补齐 |
-
-#### 项目配置 — 方法论与编排
-
-| Tab | 能力 |
-| --- | ---- |
-| **方法论框架** | 只读探测 spec-kit / flow-kit 等 SDD 框架，推荐后续编排 |
-| **预设编排** | 流程档位、模块与阶段，导出 `workflow.profile.json` |
-| **自定义编排** | 可视化阶段图 + Recipe，YAML+Markdown 混合格式 |
-| **设计合约** | 品牌模板 → `DESIGN.md` + DTCG tokens |
-
-#### Agent 配置 — 跨工具双向同步
-
-MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — 统一安装、审计与按应用同步到 7 个 CLI。
-
-#### AI 模型
-
-| 入口 | 能力 |
-| ---- | ---- |
-| **快速接入** | 三步向导：选供应商 → 填 Key → 一键应用到 CLI |
-| **Context** | 会话上下文浏览、搜索与恢复 |
-| **AI Tokens** | 用量统计、预算告警、自定义模型定价 |
-
-#### 设置
-
-供应商管理、云同步与备份（WebDAV / S3 / Gist）、代理与高可用、主题与语言等。
+| 侧边栏一级功能 | 子菜单 / 入口 | 功能叙事 |
+| --- | --- | --- |
+| **项目驾驶舱** | 今日告警 / 项目看板 | 跨多项目组合矩阵的 AI 驱动驾驶舱：先看风险、缺口和停滞，再看项目列表、阶段、提交活跃度与组合健康。 |
+| **我的项目** | 项目列表 / 添加项目 / 查看项目 / 移除项目 | 把真实 Git 仓库纳入 OpenSunstar，以项目为单位沉淀 AI 资产、Wiki、环境快照和治理状态。 |
+| **项目配置** | AI资产配置 / 工作流编排 | 在单个项目内落地资产关联、就绪与生效、项目环境 & Wiki；并配置规则与上下文、现状发现、工作流配置、变更执行方案、设计合约。 |
+| **Agent 配置（全局）** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert | 全局 Agent 扩展资产库：统一安装、审计、转换与按工具同步，再由项目配置决定哪些资产在具体仓库生效。 |
+| **AI模型** | 快速接入 / Context / AI Tokens | 快速接入提供预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）；Context 管理会话上下文，AI Tokens 统计用量、预算与模型成本。 |
+| **同步与协作** | 跨设备云同步 / 团队协作配置（Beta） | WebDAV、S3、GitHub Gist 承载跨设备配置同步；团队配置包、成员、邀请、团队密钥与部署支撑跨人协作。 |
+| **底部与设置** | 同步状态条 / 设置 / 主题切换 / 折叠侧边栏 | 展示同步健康，集中管理通用、认证、高级、关于等设置，并保持桌面端本地优先体验。 |
 
 ### OpenSunstar 目标用户精准画像
 
@@ -128,9 +107,9 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 
 ### 核心适用场景（8 大场景）
 
-1. **AI 工作区治理** — 今日工作台、项目看板、AI 资产总览与就绪度评分
+1. **项目驾驶舱治理** — 今日告警、项目看板、项目就绪度与资产缺口
 2. **方法论与工作流编排** — 框架探测、预设编排、自定义 Recipe、设计合约
-3. **API 快速一键接入** — Claude Code / Desktop / Codex / Gemini 精选向导
+3. **API 快速一键接入** — Claude Code / Desktop / Codex / Gemini 精选向导，预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）
 4. **跨工具 Agent 配置同步** — MCP / Skills / Prompts 等 9 大模块双向同步
 5. **上下文管理** — 多 CLI 会话浏览、搜索与恢复
 6. **AI 用量与成本** — Token 仪表盘、预算告警、投入报告
@@ -153,10 +132,10 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 | 特性 | 说明 |
 | ---- | ---- |
 | **7 个 CLI 工具** | Claude Code · Claude Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
-| **快速接入向导** | 7+ 精选预设（官方 · 国产 · 聚合 · 自定义）；支持在设置中自定义更多供应商（含中转站） |
+| **快速接入向导** | 预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）；覆盖官方 · 全球 AI · 中国 AI · 聚合/中转 · 自定义分类 |
 | **方法论与编排** | 框架探测 · 预设编排 · 自定义 Recipe · 设计合约 |
 | **Agent 配置管理** | MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert |
-| **AI 工作区** | 今日工作台 · 项目看板 · AI 资产总览 · Agent 就绪度 |
+| **项目驾驶舱** | 今日告警 · 项目看板 · 项目就绪度 · 资产缺口修复 |
 | **上下文与用量** | Context 会话管理 · AI Tokens 仪表盘 · 预算告警 |
 | **Skills / MCP 发现** | skills.sh 排行榜 · Smithery · ClawHub · ModelScope · GitHub |
 | **密钥安全** | OS Keychain 优先，SQLite 原子写入 |
@@ -171,9 +150,9 @@ MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subage
 
 ### 界面预览
 
-| 快速接入 | 今日工作台 |
-| :------: | :--------: |
-| ![快速接入](website/assets/screenshots/quickstart-zh.png) | ![今日工作台](website/assets/screenshots/workspace-zh.png) |
+| 项目驾驶舱 | AI资产配置 |
+| :--------: | :--------: |
+| ![项目驾驶舱](website/assets/screenshots/project-cockpit-zh.png) | ![AI资产配置](website/assets/screenshots/project-ai-assets-zh.png) |
 
 > **v1.2.0** — 项目 Wiki 基线、项目资产工作流改进、用量 sidecar 存储及 Apache-2.0 许可；数据库 schema v43。
 
@@ -268,7 +247,7 @@ os provider switch --app claude --id <provider-id> --yes
 ### 配置工作区
 
 1. 侧边栏 → **工作区** → **添加项目**，绑定本地 Git 仓库
-2. 打开 **今日工作台** 查看待办与就绪度缺口
+2. 打开 **项目驾驶舱 → 今日告警** 查看待办与就绪度缺口
 3. 在 **项目看板** 查看提交活跃度与 AI 组合报告
 4. 进入项目的 **AI 配置** 管理仓库级 MCP / Skills / Prompts
 
@@ -347,7 +326,7 @@ os provider switch --app claude --id <provider-id> --yes
 | 用户手册（日本語） | [docs/user-manual/ja/README.md](docs/user-manual/ja/README.md) |
 | 用户手册（Deutsch） | [docs/user-manual/de/README.md](docs/user-manual/de/README.md) |
 | 工作区模块说明 | [docs/kanban.md](docs/kanban.md) |
-| v1.1.3 发布说明 | [docs/release-notes/v1.1.3-zh.md](docs/release-notes/v1.1.3-zh.md) |
+| v1.2.0 发布说明 | [docs/release-notes/v1.2.0-zh.md](docs/release-notes/v1.2.0-zh.md) |
 
 ### 开发
 

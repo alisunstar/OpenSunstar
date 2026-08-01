@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OpenSunstar — 一站式 AI 编程工作流工程化配置平台</title>
+    <title>OpenSunstar — 本地优先的 AI 编程工作流工程化配置平台</title>
     <meta
       name="description"
-      content="OpenSunstar 是 GUI + CLI(TUI) 双模态 AI 编程工作流平台：桌面驾驶舱与 os 命令行共用 ~/.OpenSunstar，CLI 可独立运行。工作区治理、编排、Agent 同步、快速接入。"
+      content="OpenSunstar 是本地优先的 GUI + CLI(TUI) 双模态 AI 编程工作流工程化配置平台：以项目驾驶舱统一管理项目 AI 资产、工作流编排、Agent 扩展配置、AI 模型与跨设备同步。"
     />
     <meta name="theme-color" content="#0d1117" />
     <link rel="icon" href="assets/icon.png" type="image/png" />
@@ -17,14 +17,20 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="css/style.css?v=8" />
-    <meta property="og:title" content="OpenSunstar — 一站式 AI 编程工作流工程化配置平台" />
+    <meta
+      property="og:title"
+      content="OpenSunstar — 本地优先的 AI 编程工作流工程化配置平台"
+    />
     <meta
       property="og:description"
-      content="GUI + CLI(TUI) 双模态：桌面 GUI 与 os 命令行独立启动、数据同源。工作区治理、编排、Agent 同步、快速接入。7 个 CLI 工具。"
+      content="本地优先的 GUI + CLI(TUI) 双模态：项目驾驶舱、AI资产配置、工作流编排、Agent 扩展同步与 AI 模型管理；支持 7 个 CLI 工具与 22+ 预设供应商。"
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://opensunstar.github.io/" />
-    <meta property="og:image" content="assets/screenshots/main-zh.png" />
+    <meta
+      property="og:image"
+      content="assets/screenshots/project-cockpit-zh.png"
+    />
   </head>
   <body>
     <nav class="site-nav">
@@ -44,7 +50,9 @@
           <li><a href="#architecture" data-section="architecture">架构</a></li>
           <li><a href="#features" data-section="features">功能</a></li>
           <li><a href="#tools" data-section="tools">支持工具</a></li>
-          <li><a href="#quick-start" data-section="quick-start">快速开始</a></li>
+          <li>
+            <a href="#quick-start" data-section="quick-start">快速开始</a>
+          </li>
           <li><a href="#faq" data-section="faq">FAQ</a></li>
         </ul>
         <div class="nav-actions">
@@ -74,10 +82,15 @@
           <span class="dot"></span>
           公共客户端 · Apache-2.0 · GUI + CLI(TUI) 双模态
         </div>
-        <h1 class="hero-title">AI 编程工作流<br />工程化配置平台</h1>
+        <h1 class="hero-title">
+          本地优先，一站式统一管理你的<br />AI 编程工作流工程化配置平台
+        </h1>
         <p class="subtitle">
-          <strong>跨多项目组合矩阵的 AI 就绪度驾驶舱。</strong>
-          一站式完成基于项目的方法论与工作流编排，以及跨工具、跨设备的 Agent 配置双向同步——从 AI 工作区、快速接入、上下文管理到用量成本，全在侧边栏一级菜单直达。
+          <strong
+            >跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步</strong
+          >
+          <br />项目驾驶舱、我的项目、项目配置、Agent
+          配置、AI模型、同步与协作，全部由当前侧边栏一级菜单直达。
         </p>
         <div class="hero-actions">
           <a
@@ -99,8 +112,8 @@
         <div class="hero-meta">
           <span>✓ 桌面 GUI + CLI `os` 全屏 TUI</span>
           <span>✓ CLI 可独立运行，无需先开 GUI</span>
-          <span>✓ 7 个 AI CLI 工具 · 工作区 · 编排 · Agent 配置</span>
-          <span>✓ 简中 / 繁中 / EN / 日 · 全本地 · 零遥测</span>
+          <span>✓ 7 个 AI CLI 工具 · 项目驾驶舱 · 项目配置 · Agent 配置</span>
+          <span>✓ 预设22+供应商 · 支持自定义供应商（含聚合/中转站）</span>
         </div>
         <div class="hero-preview">
           <div class="app-mock" aria-label="OpenSunstar 界面示意（非真实截图）">
@@ -121,39 +134,39 @@
                 </div>
               </div>
               <div class="app-mock-tabs">
-                <span class="app-mock-tab active">Claude</span>
-                <span class="app-mock-tab">Codex</span>
-                <span class="app-mock-tab">Gemini</span>
+                <span class="app-mock-tab active">项目驾驶舱</span>
+                <span class="app-mock-tab">项目配置</span>
+                <span class="app-mock-tab">Agent 配置</span>
               </div>
             </div>
             <div class="app-mock-body">
               <div class="app-mock-row highlight">
                 <div class="app-mock-icon ds">DS</div>
                 <div class="app-mock-info">
-                  <strong>DeepSeek</strong>
-                  <span>https://api.deepseek.com</span>
+                  <strong>项目看板</strong>
+                  <span>跨项目风险、活跃度与 AI 资产状态</span>
                 </div>
-                <span class="app-mock-badge">当前</span>
+                <span class="app-mock-badge">驾驶舱</span>
               </div>
               <div class="app-mock-row">
                 <div class="app-mock-icon or">OR</div>
                 <div class="app-mock-info">
-                  <strong>OpenRouter</strong>
-                  <span>https://openrouter.ai/api</span>
+                  <strong>AI资产配置</strong>
+                  <span>资产关联 · 就绪与生效 · 项目环境 &amp; Wiki</span>
                 </div>
               </div>
               <div class="app-mock-row">
                 <div class="app-mock-icon glm">GLM</div>
                 <div class="app-mock-info">
-                  <strong>智谱 GLM</strong>
-                  <span>https://open.bigmodel.cn</span>
+                  <strong>工作流编排</strong>
+                  <span>规则与上下文 · 工作流配置 · 变更执行方案</span>
                 </div>
               </div>
               <div class="app-mock-row">
                 <div class="app-mock-icon ant">A</div>
                 <div class="app-mock-info">
-                  <strong>Anthropic 官方</strong>
-                  <span>https://api.anthropic.com</span>
+                  <strong>AI模型</strong>
+                  <span>快速接入：22+ 供应商 · Context · AI Tokens</span>
                 </div>
               </div>
             </div>
@@ -168,7 +181,8 @@
           <span class="section-label">Dual Mode</span>
           <h2 class="section-title">GUI + CLI(TUI) 双模态</h2>
           <p class="section-desc">
-            同一产品、两种入口：人看桌面 GUI，Agent 与 CI 用 <code>os</code>。两个进程可独立启动，共用
+            同一产品、两种入口：人看桌面 GUI，Agent 与 CI 用
+            <code>os</code>。两个进程可独立启动，共用
             <code>~/.OpenSunstar/</code> 数据库与工具配置——双模态、数据统一。
           </p>
         </div>
@@ -177,12 +191,14 @@
             <div class="card-icon gold">🖥️</div>
             <h3>桌面 GUI</h3>
             <p>
-              Tauri 2 原生应用：供应商可视化、工作区驾驶舱、Agent 资产管理、本地代理与高可用、云同步设置。
+              Tauri 2
+              原生应用：项目驾驶舱、我的项目、AI资产配置、工作流编排、全局 Agent
+              扩展、AI模型与同步协作。
             </p>
             <div class="card-tags">
-              <span class="tag">Quick Connect</span>
+              <span class="tag">快速接入</span>
               <span class="tag">代理 :15721</span>
-              <span class="tag">工作区</span>
+              <span class="tag">项目驾驶舱</span>
             </div>
           </article>
           <article class="card">
@@ -202,7 +218,8 @@
             <div class="card-icon orange">🔗</div>
             <h3>独立启动 · 数据同源</h3>
             <p>
-              <strong>无需先开 GUI</strong>即可使用 CLI——首次运行自动 bootstrap 数据库。代理接管场景请保持桌面应用运行；纯治理与切供应商仅需
+              <strong>无需先开 GUI</strong>即可使用 CLI——首次运行自动 bootstrap
+              数据库。代理接管场景请保持桌面应用运行；纯治理与切供应商仅需
               <code>os</code>。
             </p>
             <div class="card-tags">
@@ -214,14 +231,17 @@
         <div class="code-block" style="margin-top: 28px">
           <button class="copy-btn" type="button">复制</button>
           <code
-            ><span class="comment"># 仅 CLI（从 Release 下载 os 附件）</span><br /><span
+            ><span class="comment"># 仅 CLI（从 Release 下载 os 附件）</span
+            ><br /><span class="cmd">os config bootstrap --yes</span><br /><span
               class="cmd"
-              >os config bootstrap --yes</span
-            ><br /><span class="cmd">os</span>
-            <span class="comment"># 全屏 TUI 仪表盘</span><br /><span class="cmd"
+              >os</span
+            >
+            <span class="comment"># 全屏 TUI 仪表盘</span><br /><span
+              class="cmd"
               >os drift check --json</span
             ><br /><span class="cmd"
-              >os provider switch --app claude --id &lt;provider-id&gt; --yes</span
+              >os provider switch --app claude --id &lt;provider-id&gt;
+              --yes</span
             ></code
           >
         </div>
@@ -232,63 +252,104 @@
       <div class="container">
         <div class="section-header">
           <span class="section-label">Product Map</span>
-          <h2 class="section-title">对齐侧边栏，四大能力域</h2>
+          <h2 class="section-title">对齐当前侧边栏，七类工程化能力</h2>
           <p class="section-desc">
-            从 AI 工作区治理到方法论编排，从 Agent 配置同步到 API 接入与用量管理——每一域可独立使用，也可组合成完整 AI 编程工作流。
+            从项目组合全景到单项目资产落地，从工作流编排到跨工具、跨设备的 Agent
+            扩展同步；官网功能地图与桌面端当前一级菜单、子菜单保持一致。
           </p>
         </div>
         <div class="card-grid card-grid-3">
           <article class="card">
             <div class="card-icon gold">📊</div>
-            <h3>AI 工作区</h3>
+            <h3>项目驾驶舱</h3>
             <p>
-              多 Git 仓库 AI 就绪度驾驶舱：今日工作台、项目看板、AI 资产总览矩阵。按项目查看 Agent 就绪度评分，一键跳转补齐 MCP / Skills / Prompts 等资产缺口。
+              今日告警与项目看板汇总多项目的风险、阶段、提交活跃度、AI
+              资产状态和配置生效率，帮助你先看最该看的项目。
             </p>
             <div class="card-tags">
-              <span class="tag">今日工作台</span>
-              <span class="tag">项目看板</span>
-              <span class="tag">AI 资产总览</span>
+              <span class="tag">今日告警</span><span class="tag">项目看板</span>
             </div>
-            <p class="card-meta">就绪度驾驶舱</p>
+            <p class="card-meta">AI 驱动的组合矩阵</p>
           </article>
           <article class="card">
-            <div class="card-icon teal">🧭</div>
-            <h3>方法论与编排</h3>
+            <div class="card-icon teal">📁</div>
+            <h3>我的项目</h3>
             <p>
-              方法论框架只读探测（spec-kit / flow-kit 等）→ 预设编排导出 workflow.profile.json → 自定义 Recipe 阶段图 → 设计合约生成 DESIGN.md。四 Tab 独立可用，无先后依赖。
+              把真实 Git 仓库添加到本地项目组合；按项目保存 AI 资产、Wiki
+              基线、环境快照与治理状态，并在需要时查看或移除项目。
             </p>
             <div class="card-tags">
-              <span class="tag">框架探测</span>
-              <span class="tag">预设编排</span>
-              <span class="tag">自定义 Recipe</span>
+              <span class="tag">项目列表</span><span class="tag">添加项目</span>
             </div>
-            <p class="card-meta">项目级 SDD 编排</p>
+            <p class="card-meta">本地项目组合</p>
           </article>
           <article class="card">
-            <div class="card-icon orange">⚡</div>
-            <h3>Agent 配置</h3>
+            <div class="card-icon orange">🧩</div>
+            <h3>项目配置</h3>
             <p>
-              MCP · Skills · Prompts · Commands · Hooks · Ignore · Permissions · Subagents · Convert — 9 大模块统一管理，按应用双向同步到 7 个 CLI。Skills 安装前 55+ 规则安全审计。
+              AI资产配置覆盖资产关联、就绪与生效、项目环境 &amp;
+              Wiki；工作流编排覆盖规则与上下文、现状发现、工作流配置、变更执行方案和设计合约。
             </p>
             <div class="card-tags">
-              <span class="tag">MCP 管理</span>
-              <span class="tag">Skills 审计</span>
-              <span class="tag">跨工具同步</span>
+              <span class="tag">AI资产配置</span
+              ><span class="tag">工作流编排</span>
             </div>
-            <p class="card-meta">9 大模块 · 双向同步</p>
+            <p class="card-meta">让全局资产在项目生效</p>
           </article>
           <article class="card">
-            <div class="card-icon teal">🔌</div>
-            <h3>AI 模型</h3>
+            <div class="card-icon teal">⚡</div>
+            <h3>Agent 配置（全局）</h3>
             <p>
-              <strong>快速接入</strong>：7+ 精选预设（官方 · 国产 · OpenRouter · 自定义），支持设置中扩展更多供应商（含中转站）。<strong>Context</strong> 会话管理。<strong>AI Tokens</strong> 用量统计与预算告警。
+              MCP、Skills、Prompt &amp;
+              Rules、Commands、Hooks、Ignore、Permissions、Subagents、Convert
+              集中管理；再按项目和工具决定哪些资产生效。
             </p>
             <div class="card-tags">
-              <span class="tag">Quick Connect</span>
-              <span class="tag">Context</span>
-              <span class="tag">AI Tokens</span>
+              <span class="tag">9 类扩展</span
+              ><span class="tag">跨工具配置</span>
+            </div>
+            <p class="card-meta">全局资产库</p>
+          </article>
+          <article class="card">
+            <div class="card-icon gold">🔌</div>
+            <h3>AI模型</h3>
+            <p>
+              <strong>快速接入</strong
+              >预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）；<strong
+                >Context</strong
+              >
+              管理会话，<strong>AI Tokens</strong> 查看用量、预算与模型成本。
+            </p>
+            <div class="card-tags">
+              <span class="tag">快速接入</span><span class="tag">Context</span
+              ><span class="tag">AI Tokens</span>
             </div>
             <p class="card-meta">接入 · 上下文 · 用量</p>
+          </article>
+          <article class="card">
+            <div class="card-icon orange">☁️</div>
+            <h3>同步与协作</h3>
+            <p>
+              跨设备云同步使用 WebDAV、S3 或 GitHub
+              Gist；团队协作配置（Beta）覆盖团队配置包、成员、邀请、团队密钥与部署。
+            </p>
+            <div class="card-tags">
+              <span class="tag">跨设备云同步</span
+              ><span class="tag">团队协作 Beta</span>
+            </div>
+            <p class="card-meta">配置可迁移、可协作</p>
+          </article>
+          <article class="card">
+            <div class="card-icon teal">⚙️</div>
+            <h3>设置与本地优先</h3>
+            <p>
+              同步状态条、主题与侧边栏操作随时可见；通用、认证、高级与关于设置集中管理，同时保持桌面端本地存储和本地优先体验。
+            </p>
+            <div class="card-tags">
+              <span class="tag">General</span><span class="tag">Auth</span
+              ><span class="tag">Advanced</span>
+            </div>
+            <p class="card-meta">本地数据，统一控制</p>
           </article>
         </div>
       </div>
@@ -297,10 +358,14 @@
     <section id="philosophy">
       <div class="container">
         <div class="section-header">
-          <span class="section-label">Design Philosophy</span>
-          <h2 class="section-title">编排 → 配置 → 接入 → 洞察</h2>
+          <span class="section-label">Workflow Loop</span>
+          <h2 class="section-title">
+            看清项目 → 落地资产 → 编排工作流 → 扩展与同步
+          </h2>
           <p class="section-desc">
-            以项目为中心的方法论与工作流编排，配合跨工具 Agent 配置同步与 API 快速接入，形成可观测、可迭代的 AI 编程闭环。
+            围绕真实项目建立 AI
+            工程化闭环：从组合层发现缺口，到项目层生效资产和流程，再把可复用的
+            Agent 扩展与模型配置同步到更多工具和设备。
           </p>
         </div>
         <div class="lifecycle">
@@ -308,66 +373,76 @@
             <div class="phase-header">
               <span class="phase-emoji">📊</span>
               <div>
-                <span class="phase-en">Workspace</span>
-                <h4>工作区</h4>
+                <span class="phase-en">Cockpit</span>
+                <h4>看清项目</h4>
               </div>
             </div>
-            <p>今日工作台 · 项目看板 · AI 资产总览 · 就绪度评分 · 按项目补齐 Agent 资产</p>
+            <p>
+              项目驾驶舱中的今日告警与项目看板聚合项目活跃度、风险、就绪状态与资产缺口。
+            </p>
             <div class="phase-tags">
-              <span class="phase-tag">readiness</span>
-              <span class="phase-tag">assets-matrix</span>
+              <span class="phase-tag">today-alerts</span
+              ><span class="phase-tag">project-board</span>
             </div>
           </article>
           <span class="flow-arrow" aria-hidden="true">→</span>
           <article class="phase-card" style="--phase-color: #58a6ff">
             <div class="phase-header">
-              <span class="phase-emoji">🧭</span>
+              <span class="phase-emoji">🧩</span>
               <div>
-                <span class="phase-en">Orchestrate</span>
-                <h4>编排</h4>
+                <span class="phase-en">Project Config</span>
+                <h4>落地资产</h4>
               </div>
             </div>
-            <p>方法论框架探测 → 预设编排 → 自定义 Recipe → 设计合约，按项目导出工作流配置</p>
+            <p>
+              选择项目蓝图，关联 MCP、Skills、Prompts
+              等资产，检查就绪与生效，并维护项目环境和 Wiki。
+            </p>
             <div class="phase-tags">
-              <span class="phase-tag">methodology</span>
-              <span class="phase-tag">recipe</span>
+              <span class="phase-tag">asset-links</span
+              ><span class="phase-tag">readiness</span>
             </div>
           </article>
           <span class="flow-arrow" aria-hidden="true">→</span>
           <article class="phase-card" style="--phase-color: #f778ba">
             <div class="phase-header">
-              <span class="phase-emoji">⚡</span>
+              <span class="phase-emoji">🧭</span>
               <div>
-                <span class="phase-en">Configure</span>
-                <h4>配置</h4>
+                <span class="phase-en">Orchestration</span>
+                <h4>编排工作流</h4>
               </div>
             </div>
-            <p>MCP/Skills/Prompts/Commands/Hooks 等 9 大模块，跨 7 个 CLI 双向同步与跨设备迁移</p>
+            <p>
+              以规则与上下文、现状发现、工作流配置、变更执行方案、设计合约组织项目的工程化流程。
+            </p>
             <div class="phase-tags">
-              <span class="phase-tag">agent-sync</span>
-              <span class="phase-tag">skills-audit</span>
+              <span class="phase-tag">workflow-config</span
+              ><span class="phase-tag">design-contract</span>
             </div>
           </article>
           <span class="flow-arrow" aria-hidden="true">→</span>
           <article class="phase-card" style="--phase-color: #00b96b">
             <div class="phase-header">
-              <span class="phase-emoji">🔌</span>
+              <span class="phase-emoji">⚡</span>
               <div>
-                <span class="phase-en">Connect</span>
-                <h4>接入</h4>
+                <span class="phase-en">Extend &amp; Sync</span>
+                <h4>扩展与同步</h4>
               </div>
             </div>
-            <p>7+ 精选供应商快速接入 · Context 会话管理 · AI Tokens 用量与预算 · 本地代理高可用</p>
+            <p>
+              用全局 Agent 配置、快速接入的 22+
+              供应商、跨设备云同步与团队协作配置，把能力复用到更多项目、工具和设备。
+            </p>
             <div class="phase-tags">
-              <span class="phase-tag">quick-connect</span>
-              <span class="phase-tag">ai-tokens</span>
+              <span class="phase-tag">agent-assets</span
+              ><span class="phase-tag">cloud-sync</span>
             </div>
           </article>
         </div>
         <div class="loop-footer">
           <div class="loop-line"></div>
           <p class="loop-text">
-            工作区 → 编排 → 配置 → 接入 — 以项目为中心的 AI 编程工作流闭环
+            项目驾驶舱 → AI资产配置 → 工作流编排 → Agent 扩展与同步
           </p>
         </div>
       </div>
@@ -379,90 +454,99 @@
           <span class="section-label">Features</span>
           <h2 class="section-title">核心模块，覆盖 AI 编程工作流全链路</h2>
           <p class="section-desc">
-            AI 工作区、方法论与编排、Agent 配置、快速接入、上下文管理、AI 用量成本 — 对齐侧边栏一级菜单，一次配齐。
+            项目驾驶舱、我的项目、项目配置、Agent
+            配置、AI模型、同步与协作、设置——逐项对齐当前侧边栏与子菜单。
           </p>
         </div>
         <div class="feature-list">
           <div class="feature-item">
             <div class="fi-icon">⌨️</div>
             <div>
-              <strong>CLI `os` + 全屏 TUI</strong>
-              <span
-                >独立命令行工具：治理编排、供应商切换、Agent 集成（--json）。交互终端运行
-                <code>os</code> 打开全屏仪表盘。无需 GUI 即可 bootstrap 与日常使用。</span
+              <strong>CLI <code>os</code> + 全屏 TUI</strong
+              ><span
+                >独立命令行工具提供环境诊断、配置漂移检查、就绪度评分、项目状态和工作流门禁；支持
+                <code>--json</code> 供 Agent 与 CI 消费。</span
               >
             </div>
           </div>
           <div class="feature-item">
             <div class="fi-icon">📊</div>
             <div>
-              <strong>AI 工作区 — 就绪度驾驶舱</strong>
-              <span
-                >今日工作台、项目看板、AI 资产总览矩阵。Agent 就绪度评分，按项目一键跳转补齐 MCP / Skills / Prompts 缺口。AI 周报与自然语言查询。</span
+              <strong>项目驾驶舱</strong
+              ><span
+                >今日告警与项目看板汇总项目组合的风险、阶段、提交活跃度、AI
+                资产状态和配置生效率，让研发重点先被看见。</span
               >
             </div>
           </div>
           <div class="feature-item">
-            <div class="fi-icon">🧭</div>
+            <div class="fi-icon">📁</div>
             <div>
-              <strong>方法论与编排</strong>
-              <span
-                >框架只读探测 → 预设编排（workflow.profile.json）→ 自定义 Recipe 阶段图 → 设计合约（DESIGN.md）。四 Tab 独立可用。</span
-              >
-            </div>
-          </div>
-          <div class="feature-item">
-            <div class="fi-icon">🔄</div>
-            <div>
-              <strong>API 快速一键接入</strong>
-              <span
-                >7+ 精选预设（官方 · 国产 · OpenRouter · 自定义），支持设置中扩展更多供应商（含中转站）。密钥 OS Keychain 加密，系统托盘热切换。</span
-              >
-            </div>
-          </div>
-          <div class="feature-item">
-            <div class="fi-icon">🛡️</div>
-            <div>
-              <strong>本地代理与高可用</strong>
-              <span
-                >127.0.0.1:15721 本地 HTTP 代理。自动故障转移、三态熔断器、三层整流器。可按应用接管代理，实时监控供应商健康状态。</span
+              <strong>我的项目</strong
+              ><span
+                >导入本地 Git 仓库，按项目保存 AI 资产、Wiki
+                基线、环境快照和治理状态，并通过项目组合统一查看。</span
               >
             </div>
           </div>
           <div class="feature-item">
             <div class="fi-icon">🧩</div>
             <div>
-              <strong>Agent 扩展配置与同步</strong>
-              <span
-                >9 大模块：MCP 服务器、Skills（GitHub / ZIP / ClawHub / ModelScope）、Prompts
-                & Rules（CLAUDE.md / AGENTS.md / GEMINI.md）、Commands、Hooks、Ignore、Permissions、Subagent、Convert。55+ 安全审计规则 + 跨设备双向同步。</span
+              <strong>AI资产配置</strong
+              ><span
+                >为单个项目选择蓝图并关联全局资产；通过资产关联、就绪与生效、项目环境
+                &amp; Wiki 三个入口让配置真正落地。</span
               >
             </div>
           </div>
           <div class="feature-item">
-            <div class="fi-icon">💬</div>
+            <div class="fi-icon">🧭</div>
             <div>
-              <strong>Context 上下文管理</strong>
-              <span
-                >浏览、搜索与恢复多 CLI 会话历史。跨项目、跨工具上下文一站式管理。</span
+              <strong>工作流编排</strong
+              ><span
+                >规则与上下文、现状发现、工作流配置、变更执行方案（Beta）、设计合约（Beta）按项目组织，形成可执行的工程化流程。</span
               >
             </div>
           </div>
           <div class="feature-item">
-            <div class="fi-icon">💰</div>
+            <div class="fi-icon">🧩</div>
             <div>
-              <strong>AI Tokens 用量与成本</strong>
-              <span
-                >按供应商/模型分组统计，请求日志追踪，自定义模型定价，预算告警实时推送。</span
+              <strong>Agent 扩展配置</strong
+              ><span
+                >MCP、Skills、Prompt &amp;
+                Rules、Commands、Hooks、Ignore、Permissions、Subagents、Convert
+                作为全局资产库管理，再按项目与工具生效。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">🔌</div>
+            <div>
+              <strong>快速接入、Context 与 AI Tokens</strong
+              ><span
+                ><strong
+                  >预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）</strong
+                >；同时管理多 CLI 会话上下文、用量、预算与模型成本。</span
               >
             </div>
           </div>
           <div class="feature-item">
             <div class="fi-icon">☁️</div>
             <div>
-              <strong>云同步与备份（设置）</strong>
-              <span
-                >WebDAV / S3 / GitHub Gist 三通道云同步。自动备份保留 10 份快照，OpenSunstar:// DeepLink 一键导入全量配置。</span
+              <strong>跨设备云同步与团队协作</strong
+              ><span
+                >WebDAV、S3、GitHub Gist
+                承载配置同步；团队协作配置（Beta）提供团队配置包、成员、邀请、密钥与部署管理。</span
+              >
+            </div>
+          </div>
+          <div class="feature-item">
+            <div class="fi-icon">⚙️</div>
+            <div>
+              <strong>设置与本地优先控制</strong
+              ><span
+                >同步状态、主题、通用、认证、高级和关于设置集中可见；本地数据库与工具配置由桌面
+                GUI 和 <code>os</code> 共同使用。</span
               >
             </div>
           </div>
@@ -476,7 +560,9 @@
           <span class="section-label">Supported Tools</span>
           <h2 class="section-title">一个应用，七个 CLI</h2>
           <p class="section-desc">
-            每个工具都有专属预设与配置管理，也支持一次配置多端同步。Claude Code 更支持热切换，无需重启终端。
+            每个工具都有专属配置管理；全局 Agent
+            扩展可按工具同步，项目配置则决定资产在具体仓库是否生效。Claude Code
+            支持热切换。
           </p>
         </div>
         <div class="tools-strip">
@@ -497,20 +583,24 @@
           <span class="section-label">Quick Start</span>
           <h2 class="section-title">🚀 快速开始</h2>
           <p class="section-desc">
-            安装桌面 GUI，或通过 <code>npm install -g opensunstar-os</code> 仅安装 CLI
+            安装桌面 GUI，或通过
+            <code>npm install -g opensunstar-os</code> 仅安装 CLI
             <code>os</code>。首次使用会自动导入或 bootstrap 现有 CLI 配置。
           </p>
         </div>
 
         <div class="prereq">
           <span class="prereq-item"
-            ><span class="check">✓</span> Windows 10+ / macOS 12+ / Ubuntu 22.04+</span
+            ><span class="check">✓</span> Windows 10+ / macOS 12+ / Ubuntu
+            22.04+</span
           >
           <span class="prereq-item"
             ><span class="check">✓</span> GUI 安装包无需 Node.js</span
           >
           <span class="prereq-item"
-            ><span class="check">✓</span> CLI：<code>npm i -g opensunstar-os</code>（Node 18+）</span
+            ><span class="check">✓</span> CLI：<code
+              >npm i -g opensunstar-os</code
+            >（Node 18+）</span
           >
         </div>
 
@@ -546,30 +636,32 @@
           <div class="code-block">
             <button class="copy-btn" type="button">复制</button>
             <code
-              ><span class="comment"># CLI（npm，推荐 Agent / CI）</span><br /><span
-                class="cmd"
-                >npm install -g opensunstar-os</span
+              ><span class="comment"># CLI（npm，推荐 Agent / CI）</span
+              ><br /><span class="cmd">npm install -g opensunstar-os</span
               ><br /><span class="cmd">os doctor --json</span><br /><br /><span
                 class="comment"
                 ># GUI — Homebrew</span
               ><br /><span class="cmd">brew install --cask OpenSunstar</span
-              ><br /><span class="cmd">brew upgrade --cask OpenSunstar</span></code
+              ><br /><span class="cmd"
+                >brew upgrade --cask OpenSunstar</span
+              ></code
             >
           </div>
         </div>
 
         <div class="platform-panel" id="platform-linux">
           <p style="color: var(--text-secondary); margin-bottom: 16px">
-            GUI：.deb / .rpm / AppImage · CLI：<code>npm install -g opensunstar-os</code>
+            GUI：.deb / .rpm / AppImage · CLI：<code
+              >npm install -g opensunstar-os</code
+            >
           </p>
           <div class="code-block">
             <button class="copy-btn" type="button">复制</button>
             <code
               ><span class="comment"># CLI（npm）</span><br /><span class="cmd"
                 >npm install -g opensunstar-os</span
-              ><br /><span class="cmd">os drift check --json</span><br /><br /><span
-                class="comment"
-                ># GUI — Debian / Ubuntu</span
+              ><br /><span class="cmd">os drift check --json</span
+              ><br /><br /><span class="comment"># GUI — Debian / Ubuntu</span
               ><br /><span class="cmd"
                 >sudo dpkg -i OpenSunstar-v1.2.0-Linux.deb</span
               ><br /><br /><span class="comment"># Arch (paru)</span><br /><span
@@ -584,8 +676,8 @@
           <div class="download-card">
             <h4>⌨️ CLI `os`</h4>
             <p>
-              <code>npm install -g opensunstar-os</code>（v1.2.0）— 安装时自动拉取 Release
-              原生二进制；亦可从 Release 下载 os-* 附件。
+              <code>npm install -g opensunstar-os</code>（v1.2.0）—
+              安装时自动拉取 Release 原生二进制；亦可从 Release 下载 os-* 附件。
             </p>
             <a
               class="btn btn-primary"
@@ -616,7 +708,10 @@
           </div>
           <div class="download-card">
             <h4>📖 用户手册</h4>
-            <p>供应商、MCP、Skills、代理故障转移等完整指南。</p>
+            <p>
+              项目驾驶舱、AI资产配置、工作流编排、Agent
+              扩展、供应商和云同步等完整指南。
+            </p>
             <a
               class="btn btn-secondary"
               href="https://github.com/alisunstar/OpenSunstar/tree/main/docs/user-manual/zh"
@@ -628,7 +723,10 @@
           <div class="download-card">
             <h4>🌐 官方网站</h4>
             <p>
-              <a href="https://opensunstar.github.io/" target="_blank" rel="noopener"
+              <a
+                href="https://opensunstar.github.io/"
+                target="_blank"
+                rel="noopener"
                 >opensunstar.github.io</a
               >
               — 产品概览、双模态说明与快速开始（GitHub Pages）。
@@ -655,13 +753,16 @@
           <details class="faq-item">
             <summary>如何用 npm 安装 CLI `os`？</summary>
             <p>
-              全局安装：<code>npm install -g opensunstar-os</code>（需 Node.js 18+）。包名
-              <a href="https://www.npmjs.com/package/opensunstar-os" target="_blank" rel="noopener"
+              全局安装：<code>npm install -g opensunstar-os</code>（需 Node.js
+              18+）。包名
+              <a
+                href="https://www.npmjs.com/package/opensunstar-os"
+                target="_blank"
+                rel="noopener"
                 >opensunstar-os</a
               >
-              为 Node 薄包装，安装时从 GitHub Release 下载对应平台的 Rust 原生二进制。验证：<code
-                >os --version</code
-              >。也可从
+              为 Node 薄包装，安装时从 GitHub Release 下载对应平台的 Rust
+              原生二进制。验证：<code>os --version</code>。也可从
               <a
                 href="https://github.com/alisunstar/OpenSunstar/releases/latest"
                 target="_blank"
@@ -674,9 +775,11 @@
           <details class="faq-item">
             <summary>CLI `os` 需要先启动桌面 GUI 吗？</summary>
             <p>
-              <strong>不需要。</strong> <code>os</code> 可单独下载运行，首次使用会自动创建
+              <strong>不需要。</strong>
+              <code>os</code> 可单独下载运行，首次使用会自动创建
               <code>~/.OpenSunstar/OpenSunstar.db</code>（或执行
-              <code>os config bootstrap --yes</code>）。治理、供应商切换、TUI 仪表盘均不依赖 GUI。若使用<strong>代理接管</strong>（本地
+              <code>os config bootstrap --yes</code>）。治理、供应商切换、TUI
+              仪表盘均不依赖 GUI。若使用<strong>代理接管</strong>（本地
               :15721），请保持桌面应用运行。
             </p>
           </details>
@@ -684,7 +787,8 @@
             <summary>切换供应商后需要重启终端吗？</summary>
             <p>
               大多数 CLI 需要重启终端才能生效。Claude Code
-              支持供应商热切换，无需重启。切换前 OpenSunstar 会自动备份当前配置。
+              支持供应商热切换，无需重启。切换前 OpenSunstar
+              会自动备份当前配置。
             </p>
           </details>
           <details class="faq-item">
@@ -698,25 +802,25 @@
           <details class="faq-item">
             <summary>如何切回官方登录？</summary>
             <p>
-              在预设供应商中添加「官方（Official）」条目并切换过去，然后在对应 CLI
-              中执行 Log out / Log in 流程即可。
+              在快速接入中选择或添加「官方（Official）」供应商条目并切换过去，然后在对应
+              CLI 中执行 Log out / Log in 流程即可。
             </p>
           </details>
           <details class="faq-item">
-            <summary>项目组合和看板有什么区别？</summary>
+            <summary>项目驾驶舱和项目看板有什么区别？</summary>
             <p>
-              OpenSunstar 的「项目组合」是多 Git
-              仓库研发仪表盘，展示代码量、提交活跃度与 AI
-              洞察，不是拖拽式任务看板。
+              OpenSunstar 的「项目驾驶舱」面向多 Git
+              仓库组合，包含「今日告警」和「项目看板」：展示风险、阶段、提交活跃度、AI
+              资产状态与配置生效率，不是拖拽式任务看板。
             </p>
           </details>
           <details class="faq-item">
             <summary>OpenSunstar 安全吗？会上传我的数据吗？</summary>
             <p>
               OpenSunstar 全本地运行，零遥测，不上传任何数据。API Key
-              加密存入操作系统密钥链（Windows Credential Manager / macOS Keychain /
-              Linux Secret Service），使用 AES-256-GCM 加密。Skills 安装前经过 55+
-              规则安全审计，确保来源可信。
+              加密存入操作系统密钥链（Windows Credential Manager / macOS
+              Keychain / Linux Secret Service），使用 AES-256-GCM 加密。Skills
+              安装前经过 55+ 规则安全审计，确保来源可信。
             </p>
           </details>
           <details class="faq-item">
@@ -747,7 +851,8 @@
               OpenSunstar
             </a>
             <p>
-              一站式 AI 编程工作流工程化配置平台 — 工作区就绪度驾驶舱、方法论与编排、Agent 配置同步、快速接入与用量管理
+              本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台 —
+              项目驾驶舱、AI资产配置、工作流编排、Agent 扩展同步与 AI模型管理
             </p>
           </div>
           <div class="footer-col">
@@ -788,7 +893,7 @@
                   href="https://github.com/alisunstar/OpenSunstar/blob/master/docs/kanban.md"
                   target="_blank"
                   rel="noopener"
-                  >项目组合说明</a
+                  >项目驾驶舱说明</a
                 >
               </li>
               <li>
@@ -813,7 +918,10 @@
                 >
               </li>
               <li>
-                <a href="https://opensunstar.github.io/" target="_blank" rel="noopener"
+                <a
+                  href="https://opensunstar.github.io/"
+                  target="_blank"
+                  rel="noopener"
                   >opensunstar.github.io</a
                 >
               </li>

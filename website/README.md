@@ -1,6 +1,14 @@
 # OpenSunstar 官网（GitHub Pages）
 
-面向 [opensunstar.github.io](https://opensunstar.github.io/) 的静态发布站点，风格参考 [Yuque AI Ecosystem](https://yuque.github.io/yuque-ecosystem/)。
+面向 [opensunstar.github.io](https://opensunstar.github.io/) 的静态发布站点，围绕「本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台」讲述侧边栏功能叙事，风格参考 [Yuque AI Ecosystem](https://yuque.github.io/yuque-ecosystem/)。
+
+## 产品定位（源码侧边栏基线）
+
+**主标题：** 本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台
+
+**副标题：** 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+
+当前 README 按真实侧边栏理解 OpenSunstar：项目驾驶舱、我的项目、项目配置（AI资产配置 / 工作流编排）、Agent 配置（MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert）、AI模型（快速接入 / Context / AI Tokens）、同步与协作、设置。快速接入文案统一为：**预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）**。
 
 ## 本地预览
 
@@ -94,7 +102,7 @@ website/
 
 ## 更新版本号
 
-发布新版本时，同步修改 `index.html` 中的版本号（当前 **v1.1.3**）及下载文件名。
+发布新版本时，同步修改 `index.html` 中的版本号（当前 **v1.2.0**）及下载文件名。
 
 ## 资源说明
 

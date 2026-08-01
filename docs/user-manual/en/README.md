@@ -2,7 +2,10 @@
 
 **Version:** v1.2.0 · **License:** Apache-2.0
 
-> Native desktop manager for Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw, and Hermes.
+> Local-first, all-in-one AI coding workflow engineering configuration platform for Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw, and Hermes.
+>
+> Source positioning: **本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台** — 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+> Provider copy: **预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）**
 
 ---
 
@@ -11,14 +14,14 @@
 1. [Getting started](#1-getting-started)
 2. [Simple Connect & providers](#2-simple-connect--providers)
 3. [Agent configuration](#3-agent-configuration)
-4. [Portfolio dashboard](#4-portfolio-dashboard)
+4. [Project Cockpit](#4-project-cockpit)
 5. [Proxy & failover](#5-proxy--failover)
 6. [Usage & budget](#6-usage--budget)
-7. [Sync & backup](#7-sync--backup)
+7. [Sync & Collaboration](#7-sync--collaboration)
 8. [Settings & data paths](#8-settings--data-paths)
 9. [FAQ](#9-faq)
 
-Related: [v0.1.0 Release Notes](../release-notes/v0.1.0-en.md) · [Portfolio module detail](../kanban.md)
+Related: [v0.1.0 Release Notes](../release-notes/v0.1.0-en.md) · [Project Cockpit module detail](../kanban.md)
 
 ---
 
@@ -37,19 +40,23 @@ Download from [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releas
 ### First launch
 
 1. OpenSunstar detects existing CLI configs and imports them as the **default** provider.
-2. Use **Simple Connect** (sidebar → 快速接入 / API Connect) for a guided setup.
+2. Use **Quick Start** (sidebar → AI Models → 快速接入) for a guided setup.
 3. Switch providers from the main UI or **system tray**.
 4. Restart your terminal for most CLIs (Claude Code supports **hot-switch**).
 
 ### Sidebar overview
 
-| Section | Purpose |
-| ------- | ------- |
-| **API Connect** | Simple Connect wizard + expert provider panel |
-| **Agent config** | MCP, Skills, Prompts, Commands, Hooks, etc. |
-| **Portfolio** | Multi-repo Git dashboard |
-| **Sync & backup** | WebDAV / S3 / export |
-| **Settings** | Language, proxy, directories, about |
+OpenSunstar is no longer documented as a single provider switcher. Its source-of-truth navigation is the sidebar: a local-first engineering platform where projects, AI assets, workflow orchestration, Agent extensions, model access, sync, and collaboration share one cockpit.
+
+| Sidebar entry | Submenus / entry points | Product narrative |
+| --- | --- | --- |
+| **Project Cockpit** | Today Alerts / Project Board | AI-driven multi-project portfolio cockpit: see risks, readiness gaps, stalled repos, stages, commit activity, and portfolio health. |
+| **My Projects** | Project list / Add project / View project / Remove project | Bring real Git repositories into OpenSunstar and persist AI assets, wiki baselines, environment snapshots, and governance state per project. |
+| **Project Config** | AI Asset Config / Workflow Orchestration | Land assets inside a selected repo: asset links, readiness & effectiveness, project environment & Wiki, rules/context, discovery, workflow config, change recipes, and design contracts. |
+| **Agent Config (global)** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert | Global Agent asset library: install, audit, convert, and sync extensions across tools, then decide per project which assets take effect. |
+| **AI Models** | Quick Start / Context / AI Tokens | Quick Start ships **22+ preset providers** and lets users define more custom providers, including aggregators/relays; Context manages sessions, and AI Tokens tracks usage, budgets, and model costs. |
+| **Sync & Collaboration** | Cross-device Cloud Sync / Team Collaboration (Beta) | WebDAV, S3, and GitHub Gist sync configs across devices; team config packages, members, invites, team keys, and deployments support collaboration. |
+| **Bottom & Settings** | Sync status / Settings / Theme / Collapse sidebar | Show sync health and centralize General, Auth, Advanced, and About settings while preserving the local-first desktop workflow. |
 
 ---
 
@@ -57,14 +64,15 @@ Download from [GitHub Releases](https://github.com/alisunstar/OpenSunstar/releas
 
 ### Simple Connect (3 steps)
 
-1. **Supplier** — Pick a preset (DeepSeek, GLM, custom OpenAI-compatible, etc.)
+1. **Provider** — Pick from 22+ preset providers (official, global AI, China AI, aggregators/relays) or define a custom endpoint
 2. **Key** — Save API key (Keychain on macOS where supported)
 3. **Apply** — Choose CLI tool and model, then write config
 
-Switch to the **Expert** tab for full provider list management.
+Switch to the **Expert** tab for full provider management, including user-defined providers and relay/aggregator endpoints.
 
 ### Provider operations
 
+- **Preset catalog** — 22+ curated providers plus custom providers, including aggregators/relays
 - **Enable** — Writes live config for the selected app
 - **Add** — Preset or custom endpoint
 - **Edit** — Keys, base URL, models, shared config snippet
@@ -122,13 +130,13 @@ Import via URL: `OpenSunstar://import/...` (providers, MCP, prompts, skills).
 
 ---
 
-## 4. Portfolio dashboard
+## 4. Project Cockpit
 
-The sidebar entry **Portfolio** (项目组合) is a **multi-repo development cockpit**, not a drag-and-drop task board.
+The sidebar entry **Project Cockpit** (项目驾驶舱) is a **multi-repo AI development cockpit**, not a drag-and-drop task board.
 
 ### Add projects
 
-1. Sidebar → **+** or Portfolio → Add project
+1. Sidebar → **My Projects → Add project** or Project Cockpit → Add project
 2. Enter name and local Git repository path
 3. Click **Refresh metrics** to scan code lines and Git stats
 
@@ -137,7 +145,7 @@ The sidebar entry **Portfolio** (项目组合) is a **multi-repo development coc
 These share the same **7-day commit count**:
 
 - Summary card “commits in last 7 days”
-- Portfolio matrix X-axis
+- Project Cockpit matrix X-axis
 - AI-generated weekly report
 
 Health scoring still references **30-day** commits for trend rules.
@@ -146,7 +154,7 @@ See [kanban.md](../kanban.md) for architecture and persistence (SQLite + localSt
 
 ### AI insights
 
-- Portfolio summary, health breakdown, weekly report
+- Project Cockpit summary, health breakdown, weekly report
 - Requires configured AI provider in Settings → AI provider
 
 ---
@@ -185,7 +193,7 @@ Set daily / monthly USD limits per provider; alerts via system events.
 
 ---
 
-## 7. Sync & backup
+## 7. Sync & Collaboration
 
 ### Cloud sync
 
@@ -226,16 +234,16 @@ Dark · Light · Follow system
 
 ## 9. FAQ
 
-**Restart terminal after switch?**  
+**Restart terminal after switch?**
 Usually yes. Claude Code hot-switch is the exception.
 
-**Delete active provider?**  
+**Delete active provider?**
 At least one active config is kept so the CLI remains usable. Hide unused apps in Settings instead.
 
-**Back to official login?**  
+**Back to official login?**
 Add Official preset → switch → run CLI logout/login flow.
 
-**Where is portfolio data?**  
+**Where is portfolio data?**
 Projects in SQLite `projects` table; stage/progress in localStorage (migration planned).
 
 ---

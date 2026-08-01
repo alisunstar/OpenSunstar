@@ -197,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Simple Connect** — Three-step wizard: pick supplier → save API key → apply to CLI tools
 - **Seven supported tools** — Claude Code, Claude Desktop, Codex, Gemini CLI, OpenCode, OpenClaw, Hermes
-- **50+ provider presets** — One-click import for mainstream relays, cloud APIs, and coding plans
+- **22+ provider presets, plus custom providers (including aggregators/relays)** — One-click import for mainstream relays, cloud APIs, and coding plans
 - **Universal providers** — Single config synced across Claude Code, Codex, and Gemini CLI
 - **One-click switching** — Main UI and system-tray quick switch (Claude Code supports hot-switch)
 - **Shared config snippets** — Preserve plugins and extensions when switching providers

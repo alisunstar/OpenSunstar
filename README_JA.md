@@ -2,7 +2,7 @@
 
 # OpenSunstar
 
-### AI コーディング CLI ツールのオールインワン・デスクトップマネージャー
+### ローカルファーストの AI コーディングワークフロー工程化プラットフォーム
 
 [![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
@@ -38,7 +38,25 @@
 
 ## 1. OpenSunstar とは
 
-**OpenSunstar** は Tauri 2 + React のクロスプラットフォームネイティブデスクトップアプリです。AI コーディング CLI 時代に、**プロバイダー接続・Agent 設定・マルチプロジェクトガバナンス**を一つに集約します。
+**OpenSunstar** は Tauri 2 + React のクロスプラットフォームネイティブデスクトップアプリです — **本地优先，一站式统一管理你的 AI 编程工作流工程化配置平台**。
+
+> 跨多项目组合矩阵以AI驱动的项目驾驶舱，一站式帮你基于项目的AI资产配置&工作流编排和跨工具跨设备Agent扩展配置同步
+> Provider copy: **预设22+供应商，支持用户自定义配置更多供应商（含聚合/中转站）**
+
+### プロダクトナラティブ（現在のサイドバーに準拠）
+
+OpenSunstar は単なるプロバイダー切替ツールではなく、ソース上のサイドバー構造を基準にしたローカルファーストな AI コーディングワークフロー工程化プラットフォームです。プロジェクト、AI アセット、ワークフロー、Agent 拡張、モデル接続、同期、コラボレーションを一つのコックピットに集約します。
+
+| サイドバー項目 | サブメニュー / 入口 | ナラティブ |
+| --- | --- | --- |
+| **プロジェクトコックピット** | 今日のアラート / プロジェクトボード | 複数リポジトリのリスク、Readiness 欠落、停滞、ステージ、コミット活動、ポートフォリオ健全性を俯瞰。 |
+| **マイプロジェクト** | プロジェクト一覧 / 追加 / 表示 / 削除 | 実際の Git リポジトリを取り込み、AI アセット、Wiki、環境スナップショット、ガバナンス状態をプロジェクト単位で保存。 |
+| **プロジェクト設定** | AI アセット設定 / ワークフロー編成 | アセット関連付け、就緒/有効化、プロジェクト環境 & Wiki、ルール/コンテキスト、現状発見、ワークフロー設定、変更実行レシピ、デザイン契約を扱う。 |
+| **Agent 設定（グローバル）** | MCP / Skills / Prompt & Rules / Commands / Hooks / Ignore / Permissions / Subagents / Convert | グローバル Agent アセットライブラリとしてインストール、監査、変換、ツール別同期を行い、プロジェクト側で有効化を決める。 |
+| **AI モデル** | Quick Start / Context / AI Tokens | Quick Start は 22+ のプリセットプロバイダーを提供し、集約/リレーを含むカスタムプロバイダーも追加可能。Context は会話管理、AI Tokens は利用量・予算・モデルコストを扱う。 |
+| **同期と協作** | クロスデバイスクラウド同期 / チーム協作設定（Beta） | WebDAV、S3、GitHub Gist で設定を同期し、チーム設定パッケージ、メンバー、招待、チームキー、デプロイを扱う。 |
+| **下部と設定** | 同期ステータス / 設定 / テーマ / サイドバー折りたたみ | 同期状態を表示し、General / Auth / Advanced / About を集中管理。 |
+
 
 ### ターゲットユーザー
 
@@ -58,7 +76,7 @@ AI CLI 非利用チーム、単一公式サブスクのみのユーザー、Jira
 
 ### コア利用シーン（8 シナリオ）
 
-クイックスタート、マルチツール切替、Agent 資産統合、MCP/Skills 発見、マルチリポ治理、Readiness 補完、Token/コスト管理、同期・バックアップ。
+クイックスタート、マルチツール切替、Agent 資産統合、MCP/Skills 発見、プロジェクトコックピット、Readiness 補完、Token/コスト管理、同期と協作。
 
 ### 解決する 6 つの痛点
 
@@ -70,7 +88,7 @@ AI CLI 非利用チーム、単一公式サブスクのみのユーザー、Jira
 | ---- | ---- |
 | **7 CLI ツール** | Claude Code · Desktop · Codex · Gemini CLI · OpenCode · OpenClaw · Hermes |
 | **クイックスタート** | 4 アプリ厳選ウィザード |
-| **7+ プリセット** | クイック接続向け厳選；設定でカスタム追加（リレー含む） |
+| **22+ プリセットプロバイダー** | 公式・グローバル AI・中国 AI・集約/リレー・カスタムを含み、ユーザー定義も追加可能 |
 | **Agent 設定** | MCP · Skills · Prompts 等 8 モジュール |
 | **ワークスペース** | 今日の WS · ボード · 資産概要 · Readiness |
 
@@ -81,9 +99,9 @@ AI CLI 非利用チーム、単一公式サブスクのみのユーザー、Jira
 
 ### スクリーンショット
 
-| クイックスタート | 今日のワークスペース |
-| :--------------: | :------------------: |
-| ![Quick Start](website/assets/screenshots/quickstart-zh.png) | ![Workspace](website/assets/screenshots/workspace-zh.png) |
+| プロジェクト・コックピット | AIアセット設定 |
+| :------------------------: | :-----------: |
+| ![プロジェクト・コックピット](website/assets/screenshots/project-cockpit-zh.png) | ![AIアセット設定](website/assets/screenshots/project-ai-assets-zh.png) |
 
 > **v0.1.0** — 初の公開リリース。日常利用可能。ワークスペースと AI アセットライフサイクルは継続開発中。
 
