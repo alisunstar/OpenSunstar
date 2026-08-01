@@ -258,10 +258,10 @@ describe("TodayWorkspace 不再是第二份项目清单", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("P0 回归：面板不再自报「今日工作台」—— Tab 栏已经写着了", () => {
+  it("P0 回归：面板不再自报「今日告警」—— Tab 栏已经写着了", () => {
     renderWorkspace();
 
-    expect(screen.queryByText("今日工作台")).not.toBeInTheDocument();
+    expect(screen.queryByText("今日告警")).not.toBeInTheDocument();
     // 副标题留着：它说的是范围，Tab 名说的是「你在哪儿」
     expect(screen.getByText(/共 3 个项目/)).toBeInTheDocument();
   });

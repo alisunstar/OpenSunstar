@@ -49,7 +49,7 @@ vi.mock("@/components/kanban/AgentReadinessPanel", () => ({
           (props.onOpenProjectAssets as (() => void) | undefined)?.()
         }
       >
-        打开项目资产配置
+        打开AI资产配置
       </button>
     );
   },
@@ -119,13 +119,13 @@ describe("ProjectDetailSheet 就绪度只保留摘要", () => {
     expect(readinessProps.onNavigate).toBeUndefined();
   });
 
-  it("唯一 CTA 打开项目资产配置并关闭抽屉", async () => {
+  it("唯一 CTA 打开AI资产配置并关闭抽屉", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     const onOpenAiConfig = vi.fn();
     renderSheet(onClose, onOpenAiConfig);
 
-    await user.click(screen.getByRole("button", { name: "打开项目资产配置" }));
+    await user.click(screen.getByRole("button", { name: "打开AI资产配置" }));
 
     expect(onOpenAiConfig).toHaveBeenCalledTimes(1);
     expect(onClose).toHaveBeenCalledTimes(1);

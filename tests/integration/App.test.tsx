@@ -47,10 +47,8 @@ describe("App integration with MSW", () => {
     await waitFor(() => {
       expect(screen.getByTestId("workspace-page")).toBeInTheDocument();
     });
-    // 侧栏工作区菜单名。§2.5 把「跨项目工作区」改成「工作区」，同时删掉了
-    // 「分组标题 = 唯一菜单项」的空嵌套 —— 所以这里从 `> 0`（当年正是为了
-    // 容忍那个重复才这么写的）收紧成 1：再出现两次就是空嵌套挂回来了。
-    expect(screen.getAllByText("工作区")).toHaveLength(1);
+    // 侧栏项目驾驶舱菜单名。分组标题只出现一次 —— 再出现两次就是空嵌套挂回来了。
+    expect(screen.getAllByText("项目驾驶舱")).toHaveLength(1);
   });
 
   it("navigates from the sidebar into the team collaboration center", async () => {

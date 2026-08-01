@@ -229,7 +229,7 @@ export function AgentReadinessPanel({
             onClick={() => onOpenProjectAssets()}
           >
             {t("kanban.readiness.openAssetsTab", {
-              defaultValue: "打开项目资产配置",
+              defaultValue: "打开AI资产配置",
             })}
             <ArrowRight className="h-3.5 w-3.5" />
           </Button>
@@ -520,7 +520,7 @@ export function AgentReadinessPanel({
       <p className="text-[11px] text-muted-foreground/80 -mt-1 mb-1">
         {t("kanban.readiness.hint", {
           defaultValue:
-            "点击下方条目可直达对应配置；项目级资产在「项目资产配置」中关联。",
+            "点击下方条目可直达对应配置；项目级资产在「AI资产配置」中关联。",
         })}
       </p>
 

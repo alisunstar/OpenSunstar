@@ -32,7 +32,7 @@ export interface ProjectDetailSheetProps {
   onProgressChange: (progress: number) => void;
   onClose: () => void;
   /**
-   * 去「项目资产配置」页配这个项目。抽屉曾经自己装着那一整块（第二个 Tab），
+   * 去「AI资产配置」页配这个项目。抽屉曾经自己装着那一整块（第二个 Tab），
    * 现在它只负责把用户送过去 —— 480px 装不下要动手勾选的东西。
    */
   onOpenAiConfig?: () => void;
@@ -202,7 +202,7 @@ export function ProjectDetailSheet({
 
           {/*
            * 这里原来有一条 Tab 栏（概览 / AI 资产配置）。第二个 Tab 已经升格成
-           * 工作区二级页「项目资产配置」—— 抽屉只剩一种形态，一个 Tab 的 Tab 栏
+           * 工作区二级页「AI资产配置」—— 抽屉只剩一种形态，一个 Tab 的 Tab 栏
            * 只是噪音，所以整条删掉，内容直接铺开。
            */}
           <div>
@@ -531,7 +531,7 @@ export function ProjectDetailSheet({
 
           {/*
            * compact 版就绪度：只报「缺什么」，不提供勾选。真正动手配的那一整块
-           * （蓝图 / 逐项就绪 / 8 类资产关联）在「项目资产配置」页，
+           * （蓝图 / 逐项就绪 / 8 类资产关联）在「AI资产配置」页，
            * 面板只留摘要和一个明确入口，并在跳转时关掉抽屉。
            */}
           <AgentReadinessPanel

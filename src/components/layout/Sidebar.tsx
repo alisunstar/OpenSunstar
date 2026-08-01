@@ -16,8 +16,10 @@ import {
   Bot,
   LayoutGrid,
   Coins,
+  Folder,
   Settings,
   Plus,
+  Rocket,
   FolderOpen,
   ExternalLink,
   Trash2,
@@ -110,7 +112,11 @@ function SectionLabel({
 // ── 组件 ──────────────────────────────────────────
 
 function isWorkspaceActive(view: PageView): boolean {
-  return view === "kanban" || view === "projectAiConfig";
+  return view === "kanban";
+}
+
+function isProjectConfigActive(view: PageView): boolean {
+  return view === "projectAiConfig" || view === "methodology";
 }
 
 export function Sidebar({
@@ -130,6 +136,7 @@ export function Sidebar({
   const agentConfigActive = isAgentConfigActive(activeView);
   const aiModelActive = isAiModelActive(activeView);
   const workspaceActive = isWorkspaceActive(activeView);
+  const projectConfigActive = isProjectConfigActive(activeView);
   const activeProject = activeProjectId
     ? projects.find((p) => p.id === activeProjectId)
     : undefined;
@@ -217,12 +224,24 @@ export function Sidebar({
         {collapsed ? (
           <div className="space-y-0.5">
             <SidebarItem
-              icon={<LayoutDashboard className="w-4 h-4" />}
+              icon={<Rocket className="w-4 h-4" />}
               label=""
               active={workspaceActive}
               onClick={() => goWorkspace("dashboard")}
               accent={workspaceActive}
               collapsed
+              title={t("workspace.title", { defaultValue: "项目驾驶舱" })}
+            />
+            <SidebarItem
+              icon={<Folder className="w-4 h-4" />}
+              label=""
+              active={false}
+              onClick={() => onAddProject?.()}
+              accent={false}
+              collapsed
+              title={t("sidebar.section.myProjects", {
+                defaultValue: "我的项目",
+              })}
             />
             <SidebarItem
               icon={<LayoutDashboard className="w-4 h-4" />}
@@ -240,7 +259,7 @@ export function Sidebar({
               accent={activeView === "projectAiConfig"}
               collapsed
               title={t("projectAiConfig.title", {
-                defaultValue: "项目资产配置",
+                defaultValue: "AI资产配置",
               })}
             />
             <SidebarItem
@@ -258,6 +277,7 @@ export function Sidebar({
               onClick={() => onNavigate("methodology")}
               accent={activeView === "methodology"}
               collapsed
+              title={t("methodology.sidebar", { defaultValue: "工作流编排" })}
             />
             <SidebarItem
               icon={<Cloud className="w-4 h-4" />}
@@ -284,23 +304,17 @@ export function Sidebar({
           </div>
         ) : (
           <>
-            {/*
-             * 这里此前有一个 SectionLabel「跨项目工作区」，底下只挂着同名的
-             * 一个菜单项 —— 同一个词连印两遍，中间什么也没有（审查报告 §2.3）。
-             * 分组层存在的意义是「底下有好几个东西需要归拢」，只有一个孩子时
-             * 它不表达任何信息，只是把真分组之间的间距撑大一倍。四处同样的
-             * 空嵌套一并删掉，只保留下面「AI模型」「同步与协作」两个真分组。
-             */}
+            {/* ▸ 项目驾驶舱 */}
             <SidebarMenu
-              icon={<LayoutGrid className="w-4 h-4" />}
-              label={t("workspace.title", { defaultValue: "工作区" })}
+              icon={<Rocket className="w-4 h-4" />}
+              label={t("workspace.title", { defaultValue: "项目驾驶舱" })}
               defaultOpen
               active={workspaceActive}
             >
               <SidebarItem
                 icon={<LayoutDashboard className="w-4 h-4" />}
                 label={t("workspace.tabs.dashboard", {
-                  defaultValue: "今日工作台",
+                  defaultValue: "今日告警",
                 })}
                 active={activeView === "kanban" && workspaceTab === "dashboard"}
                 onClick={() => goWorkspace("dashboard")}
@@ -317,24 +331,16 @@ export function Sidebar({
                 onClick={() => goWorkspace("board")}
                 indent
               />
-              {/* 原「AI 资产总览」项已并入「项目看板」（工作区重构
-                  2026-07-30）：治理面板与资产矩阵同为项目维度巡视内容。 */}
-              <SidebarItem
-                icon={<Sparkles className="w-4 h-4" />}
-                label={t("projectAiConfig.title", {
-                  defaultValue: "项目资产配置",
-                })}
-                active={activeView === "projectAiConfig"}
-                onClick={openProjectAiConfig}
-                badge={
-                  activeProject ? (
-                    <span className="max-w-[72px] truncate text-[10px] text-muted-foreground/70">
-                      {activeProject.name}
-                    </span>
-                  ) : undefined
-                }
-                indent
-              />
+            </SidebarMenu>
+
+            {/* ▸ 我的项目 */}
+            <SidebarMenu
+              icon={<Folder className="w-4 h-4" />}
+              label={t("sidebar.section.myProjects", {
+                defaultValue: "我的项目",
+              })}
+              defaultOpen={false}
+            >
               {projects.map((project) => (
                 <ProjectItem
                   key={project.id}
@@ -357,18 +363,41 @@ export function Sidebar({
               />
             </SidebarMenu>
 
-            {/*
-             * 「治理」此前扛着两个无关语义：这里的方法论识别，和
-             * `GovernanceDashboard` 的配置生效率统计 —— 两者零共享代码
-             * （§2.5）。各自改成说人话的名字之后，「治理」这个词从界面上消失，
-             * 也就不会再有人以为它们是一回事。
-             */}
-            <SidebarItem
-              icon={<BookOpen className="w-4 h-4" />}
-              label={t("methodology.sidebar", { defaultValue: "流程与方法论" })}
-              active={activeView === "methodology"}
-              onClick={() => onNavigate("methodology")}
-            />
+            {/* ▸ 项目配置 */}
+            <SidebarMenu
+              icon={<Settings className="w-4 h-4" />}
+              label={t("sidebar.projectConfig", {
+                defaultValue: "项目配置",
+              })}
+              defaultOpen
+              active={projectConfigActive}
+            >
+              <SidebarItem
+                icon={<Sparkles className="w-4 h-4" />}
+                label={t("projectAiConfig.title", {
+                  defaultValue: "AI资产配置",
+                })}
+                active={activeView === "projectAiConfig"}
+                onClick={openProjectAiConfig}
+                badge={
+                  activeProject ? (
+                    <span className="max-w-[72px] truncate text-[10px] text-muted-foreground/70">
+                      {activeProject.name}
+                    </span>
+                  ) : undefined
+                }
+                indent
+              />
+              <SidebarItem
+                icon={<BookOpen className="w-4 h-4" />}
+                label={t("methodology.sidebar", {
+                  defaultValue: "工作流编排",
+                })}
+                active={activeView === "methodology"}
+                onClick={() => onNavigate("methodology")}
+                indent
+              />
+            </SidebarMenu>
 
             {/*
              * 「Agent 配置」vs「AI 资产总览」这对名字暗示的是「编辑 vs 查看」，

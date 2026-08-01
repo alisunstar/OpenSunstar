@@ -47,7 +47,7 @@ interface AppPageRouterProps {
   onWorkspaceTabChange: (tab: WorkspaceTab) => void;
   onProjectClick: (projectId: string) => void;
   /**
-   * 去「项目资产配置」页配这个项目（会顺手把「当前项目」钉到它）。
+   * 去「AI资产配置」页配这个项目（会顺手把「当前项目」钉到它）。
    * 和 `onProjectClick`（开抽屉看概览）是两个动作、两个落点 —— 它们以前
    * 挤在同一个回调里靠 `{ assetsTab: true }` 分流。
    *
@@ -59,7 +59,7 @@ interface AppPageRouterProps {
     intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
   ) => void;
   onOpenProjectWorkflow: (projectId: string) => void;
-  /** 只改「当前项目」，不跳页 —— 供「项目资产配置」页内的切换器使用。 */
+  /** 只改「当前项目」，不跳页 —— 供「AI资产配置」页内的切换器使用。 */
   onSelectProject: (projectId: string) => void;
   onProjectRemove: (projectId: string) => void;
   onAddProject: () => void;

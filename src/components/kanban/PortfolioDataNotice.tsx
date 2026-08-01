@@ -25,7 +25,7 @@ export interface PortfolioDataNoticeProps {
  * 组合层数据不完整告警（审查报告 §5.6）。
  *
  * 三个 Tab 共用一个入口，理由是：`assetMap` 与 `agentReadinessMap` 同时喂
- * 「今日工作台 / 项目看板 / AI 资产总览」，读不到时三处都会退化成
+ * 「今日告警 / 项目看板 / AI 资产总览」，读不到时三处都会退化成
  * 「未扫 / 未配置 / 缺 MCP」—— 也就是把网络故障讲成治理结论。
  *
  * 刻意保留原始 error message：全站原本把 429 限流、401 密钥失效、IPC 超时

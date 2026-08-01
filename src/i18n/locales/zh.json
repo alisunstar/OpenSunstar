@@ -1341,26 +1341,26 @@
     "monthlyLimitInvalid": "月预算必须为非负数"
   },
   "onboarding": {
-    "title": "欢迎使用工作区",
+    "title": "快速上手",
     "dismiss": "关闭引导",
     "prev": "上一步",
     "next": "下一步",
     "done": "知道了",
     "step1": {
-      "title": "告警制首屏 — 今天有没有事",
-      "desc": "今日工作台只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息，别给没病的人看体检报告。"
+      "title": "添加项目",
+      "desc": "所有功能围绕项目展开。点击侧边栏「我的项目 → 添加项目」，把你的代码仓库加进来，OpenSunstar 会自动扫描 AI 配置状态。"
     },
     "step2": {
-      "title": "命 / 钱 / 事 — 三类告警",
-      "desc": "命（红）= 供应商故障转移，会丢上下文；钱（黄）= 预算超限 critical/emergency；事（蓝）= 配置缺口或漂移。命永远排最前。"
+      "title": "项目驾驶舱 — 今天有没有事",
+      "desc": "「今日告警」只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息。「项目看板」放聚合指标与资产矩阵，巡视内容不占开机第一眼。"
     },
     "step3": {
-      "title": "动作按钮 — 一次点击落到能修的页面",
-      "desc": "每条告警卡都带动作按钮：「去修复」「去配置」「调整预算」。一次点击直接落在「项目资产配置」对应区，不用再翻 Tab。"
+      "title": "AI资产配置 — 为项目落地资产",
+      "desc": "在「项目配置 → AI资产配置」里为项目关联 MCP 服务器、Skills、Prompts 等资产。侧栏「Agent 配置」管全局库，这里管它们在项目上的关联。"
     },
     "step4": {
-      "title": "巡视类内容 — 切到「项目看板」",
-      "desc": "聚合指标卡、阶段分布、健康清单、资产矩阵都在「项目看板」Tab。今日只放需要动手的，巡视内容不占开机第一眼。"
+      "title": "工作流编排 — 建立可执行流程",
+      "desc": "在「项目配置 → 工作流编排」里为项目配置阶段、预设与变更执行方案。方法论识别、预设编排、自定义编排、设计合约——四个独立维度，按需选用，无先后依赖。"
     },
     "addProvidersManually": "您可以在设置中手动添加供应商。",
     "apiKeyBadge": "API Key",
@@ -2217,18 +2217,18 @@
     "toggleFailed": "切换同步目标失败"
   },
   "workspace": {
-    "title": "工作区",
+    "title": "项目驾驶舱",
     "subtitle": "汇总各项目 AI 配置状态与近期活跃度，帮你先看该看的",
     "sidebar": {
       "currentProjectAssets": "{{name}} · AI 配置"
     },
     "tabs": {
       "label": "工作区视图",
-      "dashboard": "今日工作台",
+      "dashboard": "今日告警",
       "board": "项目看板"
     },
     "dashboard": {
-      "title": "今日工作台",
+      "title": "今日告警",
       "subtitle": "共 {{count}} 个项目 · 优先关注进度与 AI 资产配置",
       "attentionCount": "待关注项目",
       "attentionHint": "就绪不足或资产缺失",
@@ -3723,6 +3723,7 @@
     "syncBackup": "同步备份",
     "section": {
       "projects": "项目",
+      "myProjects": "我的项目",
       "monitor": "运行监控",
       "aiModels": "AI模型",
       "cloudSync": "跨设备云同步",
@@ -3730,6 +3731,7 @@
       "syncCollab": "同步与协作"
     },
     "agentConfig": "Agent 配置",
+    "projectConfig": "项目配置",
     "planning": "规划中",
     "addProject": "添加项目",
     "collapse": "折叠侧边栏",
@@ -3969,8 +3971,8 @@
     "refresh": "刷新"
   },
   "methodology": {
-    "sidebar": "流程与方法论",
-    "title": "流程与方法论",
+    "sidebar": "工作流编排",
+    "title": "工作流编排",
     "subtitle": "为项目建立可执行流程与治理检查；方法论识别作为可选诊断。",
     "scanAll": "扫描所有项目",
     "scanAllNoProjects": "请先添加项目再扫描",
@@ -4381,7 +4383,7 @@
       "readiness": "就绪与生效",
       "environment": "项目环境 & Wiki"
     },
-    "title": "项目资产配置"
+    "title": "AI资产配置"
   },
   "ai": {
     "cost": {

@@ -2077,18 +2077,18 @@
     }
   },
   "workspace": {
-    "title": "Workspace",
+    "title": "Project Cockpit",
     "subtitle": "AI config status and recent activity across your projects, so you see what matters first",
     "sidebar": {
       "currentProjectAssets": "{{name}} · AI assets"
     },
     "tabs": {
       "label": "Workspace views",
-      "dashboard": "Today",
+      "dashboard": "Alerts",
       "board": "Project board"
     },
     "dashboard": {
-      "title": "Today",
+      "title": "Alerts",
       "subtitle": "{{count}} projects · focus on progress and AI asset readiness",
       "attentionCount": "Needs attention",
       "attentionHint": "Low readiness or missing assets",
@@ -3528,9 +3528,11 @@
     "tokenStats": "AI Tokens",
     "syncBackup": "Sync Backup",
     "agentConfig": "Agent Config",
+    "projectConfig": "Project Config",
     "planning": "Coming Soon",
     "section": {
       "projects": "Projects",
+      "myProjects": "My Projects",
       "monitor": "Monitoring",
       "aiModels": "AI Models",
       "cloudSync": "Cross-device Cloud Sync",
@@ -3749,8 +3751,8 @@
     "refresh": "Refresh"
   },
   "methodology": {
-    "sidebar": "Workflow & Methodology",
-    "title": "Workflow & Methodology",
+    "sidebar": "Workflow Orchestration",
+    "title": "Workflow Orchestration",
     "subtitle": "Build executable workflows and governance checks for projects. Methodology detection is optional diagnostics.",
     "scanAll": "Scan all projects",
     "scanAllNoProjects": "Add a project first to scan",
@@ -3927,26 +3929,26 @@
     "daysAgo": "{{count}} days ago"
   },
   "onboarding": {
-    "title": "Welcome to the Workspace",
+    "title": "Quick Start",
     "dismiss": "Dismiss guide",
     "prev": "Previous",
     "next": "Next",
     "done": "Got it",
     "step1": {
-      "title": "Alert-first home — anything today?",
-      "desc": "Today Workspace answers one question: is there anything today. Nothing to do shows \"All clear\" — no news is the best news; don't show a healthy user a medical report."
+      "title": "Add a project",
+      "desc": "Everything revolves around projects. Click \"My Projects → Add Project\" in the sidebar to bring your repo in — OpenSunstar will automatically scan its AI configuration status."
     },
     "step2": {
-      "title": "Life / Money / Task — three alert kinds",
-      "desc": "Life (red) = provider failover, drops context; Money (yellow) = budget overrun critical/emergency; Task (blue) = config gap or drift. Life always ranks first."
+      "title": "Project Cockpit — anything today?",
+      "desc": "\"Alerts\" answers one question: is there anything today. All clear shows \"All clear\" — no news is the best news. \"Project Board\" holds aggregate metrics and asset matrix; overview content doesn't occupy the boot-time first glance."
     },
     "step3": {
-      "title": "Action buttons — one click to the fix page",
-      "desc": "Every alert card has an action: \"Repair\", \"Configure\", \"Adjust budget\". One click lands on the matching section of Project Asset Config — no more tab hunting."
+      "title": "AI Asset Setup — land assets on a project",
+      "desc": "Under \"Project Config → AI Asset Setup\", link MCP servers, Skills, Prompts and other assets to a project. The sidebar's \"Agent Config\" manages the global library; this page manages how those assets attach to a project."
     },
     "step4": {
-      "title": "Overview content — switch to \"Project Board\"",
-      "desc": "Aggregate metric cards, stage distribution, health list, asset matrix all live on the \"Project Board\" tab. Today only keeps what needs hands-on; overview content doesn't occupy the boot-time first glance."
+      "title": "Workflow Orchestration — build executable workflows",
+      "desc": "Under \"Project Config → Workflow Orchestration\", configure stages, presets and change-execution plans. Methodology detection, preset orchestration, custom orchestration, design contracts — four independent dimensions, pick as needed, no ordering dependency."
     }
   },
   "repairPreview": {
@@ -4061,7 +4063,7 @@
     "description": "Cloud sync addresses the spatial axis — keeping config consistent across devices. Complements project environment snapshots (temporal axis · version rollback). Use as needed."
   },
   "projectAiConfig": {
-    "title": "Project Asset Setup",
+    "title": "AI Asset Setup",
     "subtitle": "Land AI assets on a single project: apply a blueprint, check readiness, and pick which assets take effect. The sidebar's Agent Config manages the global library; this page manages how those assets attach to this project.",
     "switcher": "Project being configured",
     "targetCli": "Target CLI",

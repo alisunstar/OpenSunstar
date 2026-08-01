@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
  * 三个 Tab 共用 `KanbanPage` 里那一整段内容区：换的是里面渲染什么，面板本身
  * 不换。所以三个 Tab 的 `aria-controls` 都指向同一个 id，而面板的
  * `aria-labelledby` 指向**当前选中**的那个 Tab —— 读屏器进入面板时念
- * 「今日工作台，标签面板」，跟着切换走。
+ * 「今日告警，标签面板」，跟着切换走。
  *
  * id 由这里导出而不是两边各写一遍字符串：`aria-controls` 指向一个不存在的
  * id 是最常见的 a11y bug，而且它静悄悄——读屏器只是找不到面板，界面上什么
@@ -33,7 +33,7 @@ const TABS: {
     id: "dashboard",
     icon: LayoutDashboard,
     labelKey: "workspace.tabs.dashboard",
-    defaultLabel: "今日工作台",
+    defaultLabel: "今日告警",
   },
   /**
    * 「项目看板」吸收了原「AI 资产总览」（工作区重构 2026-07-30）：治理面板

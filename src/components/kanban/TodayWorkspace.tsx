@@ -30,7 +30,7 @@ import { AGENT_READINESS_MAX, isReadinessOk } from "@/lib/readinessConstants";
 const MVP_PROGRESS_WARN = 50;
 
 /**
- * 「今日工作台」的摘要区：一句话交代范围 + 一排指标卡。
+ * 「今日告警」的摘要区：一句话交代范围 + 一排指标卡。
  *
  * 它以前还挂着一份「建议优先处理」列表 —— 而同一个 Tab 里 `PortfolioHealthSummary`
  * 已经在画一份「需要动手的项目」列表。两份列表读同一个 `agentReadinessMap`，却
@@ -212,8 +212,8 @@ export function TodayWorkspace({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           {/*
-           * 这里原来还有一个 `<h3>今日工作台</h3>`，正上方的 Tab 按钮已经写着
-           * 「今日工作台」—— 同一个词在一屏里连着出现两次，第二次不带任何新
+           * 这里原来还有一个 `<h3>今日告警</h3>`，正上方的 Tab 按钮已经写着
+           * 「今日告警」—— 同一个词在一屏里连着出现两次，第二次不带任何新
            * 信息。留下副标题：它说的是「范围」，Tab 名说的是「你在哪儿」。
            */}
           <p className="text-xs text-muted-foreground max-w-xl">

@@ -12,47 +12,58 @@ interface Step {
   titleDefault: string;
   descKey: string;
   descDefault: string;
+  /** 步骤附带动作按钮时传入点击回调。 */
+  actionLabel?: string;
 }
 
-const STEPS: Step[] = [
-  {
-    emoji: "🟢",
-    titleKey: "onboarding.step1.title",
-    titleDefault: "告警制首屏 — 今天有没有事",
-    descKey: "onboarding.step1.desc",
-    descDefault:
-      "今日工作台只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息，别给没病的人看体检报告。",
-  },
-  {
-    emoji: "🔴🟡🔧",
-    titleKey: "onboarding.step2.title",
-    titleDefault: "命 / 钱 / 事 — 三类告警",
-    descKey: "onboarding.step2.desc",
-    descDefault:
-      "命（红）= 供应商故障转移，会丢上下文；钱（黄）= 预算超限 critical/emergency；事（蓝）= 配置缺口或漂移。命永远排最前。",
-  },
-  {
-    emoji: "🛠️",
-    titleKey: "onboarding.step3.title",
-    titleDefault: "动作按钮 — 一次点击落到能修的页面",
-    descKey: "onboarding.step3.desc",
-    descDefault:
-      "每条告警卡都带动作按钮：「去修复」「去配置」「调整预算」。一次点击直接落在「项目资产配置」对应区，不用再翻 Tab。",
-  },
-  {
-    emoji: "📊",
-    titleKey: "onboarding.step4.title",
-    titleDefault: "巡视类内容 — 切到「项目看板」",
-    descKey: "onboarding.step4.desc",
-    descDefault:
-      "聚合指标卡、阶段分布、健康清单、资产矩阵都在「项目看板」Tab。今日只放需要动手的，巡视内容不占开机第一眼。",
-  },
-];
+function buildSteps(t: ReturnType<typeof useTranslation>["t"]): Step[] {
+  return [
+    {
+      emoji: "📁",
+      titleKey: "onboarding.step1.title",
+      titleDefault: "添加项目",
+      descKey: "onboarding.step1.desc",
+      descDefault:
+        "所有功能围绕项目展开。点击侧边栏「我的项目 → 添加项目」，把你的代码仓库加进来，OpenSunstar 会自动扫描 AI 配置状态。",
+      actionLabel: t("sidebar.addProject", { defaultValue: "添加项目" }),
+    },
+    {
+      emoji: "🚀",
+      titleKey: "onboarding.step2.title",
+      titleDefault: "项目驾驶舱 — 今天有没有事",
+      descKey: "onboarding.step2.desc",
+      descDefault:
+        "「今日告警」只回答一个问题：今天有没有事。没事就显示「今天没事」—— 没事就是最好的消息。「项目看板」放聚合指标与资产矩阵，巡视内容不占开机第一眼。",
+    },
+    {
+      emoji: "✨",
+      titleKey: "onboarding.step3.title",
+      titleDefault: "AI资产配置 — 为项目落地资产",
+      descKey: "onboarding.step3.desc",
+      descDefault:
+        "在「项目配置 → AI资产配置」里为项目关联 MCP 服务器、Skills、Prompts 等资产。侧栏「Agent 配置」管全局库，这里管它们在项目上的关联。",
+    },
+    {
+      emoji: "🔧",
+      titleKey: "onboarding.step4.title",
+      titleDefault: "工作流编排 — 建立可执行流程",
+      descKey: "onboarding.step4.desc",
+      descDefault:
+        "在「项目配置 → 工作流编排」里为项目配置阶段、预设与变更执行方案。方法论识别、预设编排、自定义编排、设计合约——四个独立维度，按需选用，无先后依赖。",
+    },
+  ];
+}
 
-export function DashboardOnboarding() {
+interface DashboardOnboardingProps {
+  onAddProject?: () => void;
+}
+
+export function DashboardOnboarding({ onAddProject }: DashboardOnboardingProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);
+
+  const steps = buildSteps(t);
 
   useEffect(() => {
     try {
@@ -75,9 +86,15 @@ export function DashboardOnboarding() {
 
   if (!visible) return null;
 
-  const current = STEPS[step];
+  const current = steps[step];
   const isFirst = step === 0;
-  const isLast = step === STEPS.length - 1;
+  const isLast = step === steps.length - 1;
+
+  const handleStepAction = () => {
+    if (step === 0 && onAddProject) {
+      onAddProject();
+    }
+  };
 
   return (
     <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3 relative">
@@ -95,10 +112,10 @@ export function DashboardOnboarding() {
       <div className="flex items-center gap-2">
         <Sparkles className="w-4 h-4 text-primary shrink-0" />
         <h3 className="text-sm font-semibold text-foreground">
-          {t("onboarding.title", { defaultValue: "欢迎使用工作区" })}
+          {t("onboarding.title", { defaultValue: "快速上手" })}
         </h3>
         <span className="text-[10px] text-muted-foreground tabular-nums">
-          {step + 1}/{STEPS.length}
+          {step + 1}/{steps.length}
         </span>
       </div>
 
@@ -112,6 +129,18 @@ export function DashboardOnboarding() {
           {t(current.descKey, { defaultValue: current.descDefault })}
         </p>
       </div>
+
+      {/* Step action button (only step 0: 添加项目) */}
+      {current.actionLabel && step === 0 && (
+        <Button
+          variant="default"
+          size="sm"
+          className="h-7 text-xs"
+          onClick={handleStepAction}
+        >
+          {current.actionLabel}
+        </Button>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
@@ -127,7 +156,7 @@ export function DashboardOnboarding() {
         </Button>
 
         <div className="flex items-center gap-1.5">
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <span
               key={i}
               className={cn(

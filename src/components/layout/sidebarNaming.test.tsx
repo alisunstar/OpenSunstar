@@ -32,14 +32,12 @@ import { renderWithProviders } from "../../../tests/renderWithProviders";
  */
 
 const NAMES = {
-  /** 回到 `docs/kanban.md` 规格：规格里没有「跨项目」三个字。 */
-  workspace: "工作区",
-  /** 与 `GovernanceDashboard` 的「治理」解耦，各自说清自己是什么。 */
-  methodology: "流程与方法论",
+  /** 项目驾驶舱：项目级巡视与告警的入口。 */
+  workspace: "项目驾驶舱",
+  /** 工作流编排：为项目建立可执行流程。 */
+  methodology: "工作流编排",
   /**
-   * 全局 CRUD 作用域。§2.5 建议改名「资产库」，产品决定留旧名，只去掉
-   * 「跨Agent配置」的「跨」字前缀 —— 它和「跨项目工作区」的「跨」一样，
-   * 描述的是实现而不是用户的事。
+   * 全局 CRUD 作用域。
    *
    * 注意不能写成「侧栏里没有任何名字以『跨』开头」：「跨设备云同步」的
    * 「跨」说的是用户真会做的事（在两台机器间同步），该留。所以这里靠下面
@@ -47,11 +45,9 @@ const NAMES = {
    */
   assetLibrary: "Agent 配置",
   /**
-   * 原「AI 资产总览」项已并入「项目看板」（工作区重构 2026-07-30）——
-   * 治理面板与资产矩阵同为项目维度巡视内容，不再单列一个侧栏入口。
-   * 作用域的接力棒交给「项目资产配置」：它才是项目级关联的唯一入口。
+   * AI资产配置：项目级 AI 资产关联的唯一入口。
    */
-  projectLanding: "项目资产配置",
+  projectLanding: "AI资产配置",
 } as const;
 
 const ALPHA: Project = {
@@ -80,26 +76,29 @@ function renderSidebar({
   );
 }
 
-describe("项目资产配置归入工作区", () => {
-  it("作为工作区常驻二级入口，并保留当前项目徽标", () => {
+describe("AI资产配置归入项目配置", () => {
+  it("作为项目配置常驻二级入口，并保留当前项目徽标", () => {
     renderSidebar({
       activeView: "projectAiConfig",
       projects: [ALPHA],
       activeProjectId: ALPHA.id,
     });
 
-    const workspaceButton = screen.getByRole("button", { name: "工作区" });
-    const workspaceContentId = workspaceButton.getAttribute("aria-controls");
-    const workspaceGroup = workspaceContentId
-      ? document.getElementById(workspaceContentId)
-      : null;
     const projectConfigButton = screen.getByRole("button", {
-      name: /项目资产配置.*alpha/,
+      name: /项目配置/,
     });
-    const dashboardButton = screen.getByRole("button", { name: "今日工作台" });
+    const projectConfigContentId =
+      projectConfigButton.getAttribute("aria-controls");
+    const projectConfigGroup = projectConfigContentId
+      ? document.getElementById(projectConfigContentId)
+      : null;
+    const aiAssetButton = screen.getByRole("button", {
+      name: /AI资产配置.*alpha/,
+    });
+    const dashboardButton = screen.getByRole("button", { name: "今日告警" });
 
-    expect(workspaceGroup).toContainElement(projectConfigButton);
-    expect(projectConfigButton).toHaveClass("bg-primary/10");
+    expect(projectConfigGroup).toContainElement(aiAssetButton);
+    expect(aiAssetButton).toHaveClass("bg-primary/10");
     expect(dashboardButton).not.toHaveClass("bg-primary/10");
     expect(screen.queryByText("项目：alpha")).not.toBeInTheDocument();
   });

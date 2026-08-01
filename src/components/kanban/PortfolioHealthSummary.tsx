@@ -34,7 +34,7 @@ interface PortfolioHealthSummaryProps {
    * 是「去配 AI 资产」。现在两件事拆成两个回调，名字各自对得上。
    */
   onOpenProject: (project: Project) => void;
-  /** 去「项目资产配置」页配这个项目。 */
+  /** 去「AI资产配置」页配这个项目。 */
   onOpenProjectAiConfig?: (
     project: Project,
     intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
@@ -363,7 +363,7 @@ export function PortfolioHealthSummary({
                 // 名字由 `projectScoreTitle` 统一给：在此之前这里是一个光秃秃
                 // 的数字加一个盾牌图标，悬停什么也不说，读屏器念出来就是
                 // 「42」——「一个分数三个名字」的第二处（§5.2）。
-                // 点击分数直接跳到「项目资产配置」的 readiness tab，落点精确。
+                // 点击分数直接跳到「AI资产配置」的 readiness tab，落点精确。
                 <button
                   type="button"
                   className={cn(

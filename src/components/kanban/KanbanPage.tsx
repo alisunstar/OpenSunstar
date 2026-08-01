@@ -507,7 +507,7 @@ export function KanbanPage({
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <LayoutGrid className="w-5 h-5 text-primary shrink-0" />
-                {t("workspace.title", { defaultValue: "工作区" })}
+                {t("workspace.title", { defaultValue: "项目驾驶舱" })}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
                 {scanning
@@ -544,7 +544,7 @@ export function KanbanPage({
             <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
               {/* 智能周报不再常驻这里 —— 它是一份组合级摘要，却压在三个 Tab
                   头上，在「AI 资产总览」顶部尤其突兀（审查报告 §3.3）。
-                  已随「今日工作台」下沉。 */}
+                  已随「今日告警」下沉。 */}
               {!empty && aiConfigured && (
                 <Button
                   variant="outline"
@@ -749,13 +749,13 @@ export function KanbanPage({
           )}
 
           {!empty && workspaceTab === "dashboard" && (
-            // 「今日工作台」只回答一个问题：今天有没有事（工作区重构
+            // 「今日告警」只回答一个问题：今天有没有事（工作区重构
             // 2026-07-30）。告警制首屏：命（故障转移）/钱（预算）/事（缺口）
             // 三类告警卡，全健康时只显示「今天没事」。原来的聚合指标卡、
             // 健康清单、阶段分布全部搬去「项目看板」——巡视类内容不占开机
             // 第一眼。
             <div className="px-6 pb-6 space-y-4">
-              <DashboardOnboarding />
+              <DashboardOnboarding onAddProject={onAddProject} />
               {/*
               成本条归这里而不是项目看板：它答的是「本期烧了多少、还剩多少
               预算」，是每天开机第一眼要扫的数，跟「今天该动哪个项目」同一
@@ -787,7 +787,7 @@ export function KanbanPage({
 
           {!empty && workspaceTab === "board" && (
             // 「项目看板」= 项目维度全部巡视内容的家（工作区重构 2026-07-30）：
-            // 原「AI 资产总览」Tab 并入这里，原「今日工作台」的聚合指标卡、
+            // 原「AI 资产总览」Tab 并入这里，原「今日告警」的聚合指标卡、
             // 阶段分布、健康清单也迁到这里 —— 首屏告警制之后，它们不再占
             // 开机第一眼，但都还有用，统一收在项目维度这一屏。
             <div className="px-6 pb-8 space-y-4">
@@ -804,7 +804,7 @@ export function KanbanPage({
                   scoreKind={portfolioScoreKind}
                 />
               )}
-              {/* 聚合指标卡（从「今日工作台」迁入）：出数不出列表，是这一屏
+              {/* 聚合指标卡（从「今日告警」迁入）：出数不出列表，是这一屏
                   的抬头。窗口切换器跟着它一起走。 */}
               <TodayWorkspace
                 projects={projects}
@@ -871,7 +871,7 @@ export function KanbanPage({
                   ))}
                 </div>
               </div>
-              {/* 完整待办清单（从「今日工作台」迁入）：「今日」告警卡只出
+              {/* 完整待办清单（从「今日告警」迁入）：「今日」告警卡只出
                   top 5，「查看项目全景」的落点就是这里。 */}
               <PortfolioHealthSummary
                 projects={projects}

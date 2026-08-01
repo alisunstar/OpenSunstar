@@ -94,7 +94,7 @@ describe("AgentReadinessPanel compact 摘要", () => {
       screen.queryByRole("button", { name: "去配置" }),
     ).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "打开项目资产配置" }));
+    await user.click(screen.getByRole("button", { name: "打开AI资产配置" }));
     expect(onOpenProjectAssets).toHaveBeenCalledTimes(1);
   });
 

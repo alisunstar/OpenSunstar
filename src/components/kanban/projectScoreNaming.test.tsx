@@ -29,7 +29,7 @@ import { renderWithProviders } from "../../../tests/renderWithProviders";
  * 能区分「说清楚了」和「没说清楚」的只有那个名字。
  *
  * ── 曾经是四处，现在是三处 ──
- * 第四处是「今日工作台」里的待办行。它整块被删了（§3.1）：那份「建议优先处理」
+ * 第四处是「今日告警」里的待办行。它整块被删了（§3.1）：那份「建议优先处理」
  * 和同一屏的 `PortfolioHealthSummary` 读同一个 `agentReadinessMap`，却各算各的
  * 理由、各排各的序，于是同一个项目在上下两块里能给出不一样的说法。少一处画这个
  * 分数是**修好了**，不是丢了覆盖 —— 剩下三处仍然共用同一个 `PROJECT_SCORE_META`，

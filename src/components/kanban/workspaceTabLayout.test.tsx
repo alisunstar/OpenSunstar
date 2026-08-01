@@ -11,10 +11,10 @@ import { renderWithProviders } from "../../../tests/renderWithProviders";
 /**
  * 两个 Tab 的职责归属（工作区重构 2026-07-30，三砍二版）。
  *
- * 第一版职责划分（审查报告 §3.3）把「今日工作台 / 项目看板 / AI 资产总览」
+ * 第一版职责划分（审查报告 §3.3）把「今日告警 / 项目看板 / AI 资产总览」
  * 按「今天 / 项目关系 / 配置落地」切开；重构再进一步：
  *
- * - 「今日工作台」改告警制首屏 —— 只回答「今天有没有事」：问答栏、成本条、
+ * - 「今日告警」改告警制首屏 —— 只回答「今天有没有事」：问答栏、成本条、
  *   周报留下，聚合指标卡、健康清单、阶段分布全部搬走；
  * - 「项目看板」吸收「AI 资产总览」—— 四象限、指标卡、待办清单、治理面板、
  *   资产矩阵同在这一屏，项目维度的巡视内容不再分两个 Tab。
@@ -211,7 +211,7 @@ function renderTab(tab: WorkspaceTab, onWorkspaceTabChange = vi.fn()) {
   );
 }
 
-describe("今日工作台只回答「今天有没有事」", () => {
+describe("今日告警只回答「今天有没有事」", () => {
   it("留下成本条、周报与告警区，交出指标、清单与矩阵", async () => {
     renderTab("dashboard");
 
@@ -233,17 +233,17 @@ describe("今日工作台只回答「今天有没有事」", () => {
   });
 });
 
-describe("今日工作台只报一次自己的名字", () => {
-  it("P0 回归：「今日工作台」在这一屏里只出现一次 —— Tab 按钮上那次", async () => {
+describe("今日告警只报一次自己的名字", () => {
+  it("P0 回归：「今日告警」在这一屏里只出现一次 —— Tab 按钮上那次", async () => {
     renderTab("dashboard");
 
     await waitFor(() =>
       expect(screen.getByText(ANCHOR.allClear)).toBeInTheDocument(),
     );
 
-    // 面板自己曾经再写一个 <h3>今日工作台</h3>，紧贴在 Tab 按钮下方，
+    // 面板自己曾经再写一个 <h3>今日告警</h3>，紧贴在 Tab 按钮下方，
     // 第二次不带任何新信息。锚点是 WorkspaceTabBar 的 defaultLabel。
-    expect(screen.getAllByText("今日工作台")).toHaveLength(1);
+    expect(screen.getAllByText("今日告警")).toHaveLength(1);
   });
 
   it("P0 回归：不得再出现「建议优先处理」清单", async () => {
@@ -272,7 +272,7 @@ describe("项目看板吸收 AI 资产总览，是项目维度的家", () => {
     // 完整待办清单也从「今日」迁入：告警卡只出 top 5，全景在这里。
     expect(screen.getByText(ANCHOR.healthSummary)).toBeInTheDocument();
 
-    // 重复挂载的两份都已删（§3.1），成本条现在只活在「今日工作台」。
+    // 重复挂载的两份都已删（§3.1），成本条现在只活在「今日告警」。
     expect(screen.queryByText(ANCHOR.costStrip)).not.toBeInTheDocument();
     // 周报与「配置落地」语义无关，不许再压到这一屏顶部。
     expect(screen.queryByText(ANCHOR.weeklyReport)).not.toBeInTheDocument();
@@ -330,7 +330,7 @@ describe("两个 Tab 的 ARIA 契约", () => {
       expect(screen.getByText(ANCHOR.allClear)).toBeInTheDocument(),
     );
 
-    screen.getByRole("tab", { name: /今日工作台/ }).focus();
+    screen.getByRole("tab", { name: /今日告警/ }).focus();
     await userEvent.keyboard("{ArrowRight}");
     expect(onChange).toHaveBeenCalledWith("board");
 
