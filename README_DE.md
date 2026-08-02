@@ -4,7 +4,7 @@
 
 ### Local-first All-in-One-Plattform für AI-Coding-Workflow-Engineering
 
-[![Version](https://img.shields.io/badge/version-v1.2.0-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
+[![Version](https://img.shields.io/badge/version-v1.2.1-blue.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](https://github.com/alisunstar/OpenSunstar/releases)
 [![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-orange.svg)](https://tauri.app/)

@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.2.1] - 2026-08-02
+
+### Fixed
+
+- **Windows startup stability:** prevent project metric Git scans from opening visible Terminal/PowerShell windows during startup and dashboard refresh actions
+- **Desktop window lifecycle:** guard single-instance startup and unify main-window reveal/focus paths to prevent duplicate layered windows
+- **Windows window restoration:** avoid stale saved geometry from recreating oversized or layered startup windows while preserving state restoration on macOS and Linux
+
 ## [1.2.0] - 2026-07-28
 
 ### Added
