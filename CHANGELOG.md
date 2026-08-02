@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **AI and portfolio states:** preserve query failures instead of presenting them as zero values, remove conditional Hook paths, and improve keyboard access to the asset matrix
 - **Team control-plane errors:** surface server denial reasons instead of replacing them with misleading local messages
+- **Cross-platform release builds:** scope Windows-only toast dependencies to Windows so macOS and Linux builds do not compile the Windows notification stack
 
 ## [1.1.9] - 2026-07-17
 

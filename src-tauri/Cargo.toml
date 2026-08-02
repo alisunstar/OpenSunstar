@@ -42,7 +42,6 @@ tauri-plugin-dialog = "2.7"
 tauri-plugin-store = "2"
 tauri-plugin-deep-link = "2"
 tauri-plugin-window-state = "2"
-tauri-winrt-notification = "0.7"
 dirs = "5.0"
 toml = "0.8"
 toml_edit = "0.22"
@@ -108,6 +107,7 @@ tauri-plugin-single-instance = "2"
 webkit2gtk = { version = "2.0.1", features = ["v2_16"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+tauri-winrt-notification = "0.7"
 winreg = "0.52"
 windows-sys = { version = "0.61", features = ["Win32_Globalization", "Win32_UI_Shell"] }
 
