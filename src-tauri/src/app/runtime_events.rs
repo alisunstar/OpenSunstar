@@ -9,7 +9,7 @@ use super::shutdown::{
 #[cfg(target_os = "linux")]
 use crate::linux_fix;
 #[cfg(target_os = "macos")]
-use crate::{lightweight, tray};
+use crate::tray;
 use tauri::RunEvent;
 #[cfg(target_os = "macos")]
 use tauri::{Emitter, Manager};
@@ -80,14 +80,7 @@ pub(super) fn handle(app_handle: &tauri::AppHandle, event: RunEvent) {
         match event {
             // macOS 在 Dock 图标被点击并重新激活应用时会触发 Reopen 事件，这里手动恢复主窗口
             RunEvent::Reopen { .. } => {
-                if let Some(window) = app_handle.get_webview_window("main") {
-                    #[cfg(target_os = "windows")]
-                    {
-                        let _ = window.set_skip_taskbar(false);
-                    }
-                    let _ = window.unminimize();
-                    let _ = window.show();
-                    let _ = window.set_focus();
+                if crate::lightweight::show_main_window(app_handle) {
                     tray::apply_tray_policy(app_handle, true);
                 } else if crate::lightweight::is_lightweight_mode() {
                     if let Err(e) = crate::lightweight::exit_lightweight_mode(app_handle) {
@@ -143,11 +136,7 @@ pub(super) fn handle(app_handle: &tauri::AppHandle, event: RunEvent) {
                         }
 
                         // 确保主窗口可见
-                        if let Some(window) = app_handle.get_webview_window("main") {
-                            let _ = window.unminimize();
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
+                        let _ = crate::lightweight::show_main_window(app_handle);
                     }
                 }
             }

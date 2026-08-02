@@ -5,6 +5,19 @@ use std::path::Path;
 use std::process::Command;
 use tokei::{Config, Languages};
 
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+fn hidden_command(program: &str) -> Command {
+    let mut command = Command::new(program);
+    #[cfg(target_os = "windows")]
+    {
+        use std::os::windows::process::CommandExt;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    command
+}
+
 // ── tokei 代码行数统计 ─────────────────────────
 
 #[derive(Debug, Serialize, Clone)]
@@ -137,7 +150,7 @@ pub fn read_package_version(root: &Path) -> Result<Option<String>, String> {
 // ── Git CLI 辅助 ───────────────────────────────
 
 fn git_command_output(dir: &Path, args: &[&str]) -> Option<String> {
-    Command::new("git")
+    hidden_command("git")
         .args(args)
         .current_dir(dir)
         .output()

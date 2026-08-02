@@ -7,6 +7,7 @@ mod invoke;
 mod runtime_events;
 mod setup;
 mod shutdown;
+mod startup_mutex;
 mod startup_recovery;
 
 pub(crate) use shutdown::remove_tray_icon_before_exit;
@@ -15,8 +16,6 @@ pub use shutdown::{
     save_window_state_before_exit,
 };
 
-#[cfg(target_os = "linux")]
-use crate::linux_fix;
 use crate::store::AppState;
 use crate::{panic_hook, tray};
 #[cfg(target_os = "macos")]
@@ -105,14 +104,7 @@ fn handle_deeplink_url(
             }
 
             if focus_main_window {
-                if let Some(window) = app.get_webview_window("main") {
-                    let _ = window.unminimize();
-                    let _ = window.show();
-                    let _ = window.set_focus();
-                    #[cfg(target_os = "linux")]
-                    {
-                        linux_fix::nudge_main_window(window.clone());
-                    }
+                if crate::lightweight::show_main_window(app) {
                     log::info!("✓ Window shown and focused");
                 }
             }
@@ -173,6 +165,10 @@ fn macos_tray_icon() -> Option<Image<'static>> {
 pub fn run() {
     // 设置 panic hook，在应用崩溃时记录日志到 <app_config_dir>/crash.log（默认 ~/.OpenSunstar/crash.log）
     panic_hook::setup_panic_hook();
+    let _startup_mutex_guard = match startup_mutex::acquire() {
+        Some(guard) => guard,
+        None => return,
+    };
 
     let mut builder = tauri::Builder::default();
 
@@ -205,15 +201,7 @@ pub fn run() {
             }
 
             // Show and focus window regardless
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-                #[cfg(target_os = "linux")]
-                {
-                    linux_fix::nudge_main_window(window.clone());
-                }
-            }
+            let _ = crate::lightweight::show_main_window(app);
         }));
     }
 
@@ -249,12 +237,17 @@ pub fn run() {
         // 故障转移走系统级通知 —— 窗口关了也能响，托盘才是这个产品的家。
         // 使用 tauri-winrt-notification 直接发送 Windows toast 通知。
         .plugin(tauri_plugin_store::Builder::new().build())
-        .plugin(
-            tauri_plugin_window_state::Builder::default()
-                .with_state_flags(shutdown::window_state_flags())
-                .build(),
-        )
         .setup(setup::run);
+
+    #[cfg(not(target_os = "windows"))]
+    let builder = builder.plugin(
+        tauri_plugin_window_state::Builder::default()
+            .with_state_flags(shutdown::window_state_flags())
+            .build(),
+    );
+
+    #[cfg(target_os = "windows")]
+    let builder = builder;
 
     let builder = invoke::register(builder);
 

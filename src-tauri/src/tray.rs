@@ -789,23 +789,9 @@ pub fn handle_tray_menu_event(app: &tauri::AppHandle, event_id: &str) {
 
     match event_id {
         "show_main" => {
-            if let Some(window) = app.get_webview_window("main") {
-                #[cfg(target_os = "windows")]
-                {
-                    let _ = window.set_skip_taskbar(false);
-                }
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-                #[cfg(target_os = "linux")]
-                {
-                    crate::linux_fix::nudge_main_window(window.clone());
-                }
-                #[cfg(target_os = "macos")]
-                {
-                    apply_tray_policy(app, true);
-                }
-            } else if crate::lightweight::is_lightweight_mode() {
+            if !crate::lightweight::show_main_window(app)
+                && crate::lightweight::is_lightweight_mode()
+            {
                 if let Err(e) = crate::lightweight::exit_lightweight_mode(app) {
                     log::error!("退出轻量模式重建窗口失败: {e}");
                 }
@@ -813,19 +799,9 @@ pub fn handle_tray_menu_event(app: &tauri::AppHandle, event_id: &str) {
         }
         TRAY_ALERT_ITEM_ID => {
             // 告警条目点击：打开主窗口 + 通知前端跳转到今日告警面板
-            if let Some(window) = app.get_webview_window("main") {
-                #[cfg(target_os = "windows")]
-                {
-                    let _ = window.set_skip_taskbar(false);
-                }
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-                #[cfg(target_os = "macos")]
-                {
-                    apply_tray_policy(app, true);
-                }
-            } else if crate::lightweight::is_lightweight_mode() {
+            if !crate::lightweight::show_main_window(app)
+                && crate::lightweight::is_lightweight_mode()
+            {
                 if let Err(e) = crate::lightweight::exit_lightweight_mode(app) {
                     log::error!("退出轻量模式重建窗口失败: {e}");
                 }

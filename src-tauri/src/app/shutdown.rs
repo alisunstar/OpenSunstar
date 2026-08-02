@@ -2,6 +2,7 @@
 
 use crate::{store, tray};
 use tauri::Manager;
+#[cfg(not(target_os = "windows"))]
 use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 // ============================================================
@@ -104,6 +105,7 @@ pub(super) fn classify_exit_request(code: Option<i32>) -> ExitRequestAction {
 // 在应用主动退出前显式持久化窗口状态
 // ============================================================
 
+#[cfg(not(target_os = "windows"))]
 pub(super) fn window_state_flags() -> StateFlags {
     StateFlags::POSITION | StateFlags::SIZE | StateFlags::MAXIMIZED
 }
@@ -111,6 +113,13 @@ pub(super) fn window_state_flags() -> StateFlags {
 /// 当前应用的退出路径会拦截 `ExitRequested` 并最终直接 `std::process::exit(0)`，
 /// 这里需要在真正结束进程前手动落盘，避免 window-state 插件的默认退出钩子被绕过。
 pub fn save_window_state_before_exit(app_handle: &tauri::AppHandle) {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = app_handle;
+        return;
+    }
+
+    #[cfg(not(target_os = "windows"))]
     if let Err(err) = app_handle.save_window_state(window_state_flags()) {
         log::error!("退出前保存窗口状态失败: {err}");
     } else {
