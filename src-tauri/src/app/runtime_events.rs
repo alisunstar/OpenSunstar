@@ -10,9 +10,9 @@ use super::shutdown::{
 use crate::linux_fix;
 #[cfg(target_os = "macos")]
 use crate::{lightweight, tray};
-#[cfg(target_os = "macos")]
-use tauri::Manager;
 use tauri::RunEvent;
+#[cfg(target_os = "macos")]
+use tauri::{Emitter, Manager};
 #[cfg(target_os = "macos")]
 use tauri_plugin_deep_link::DeepLinkExt;
 

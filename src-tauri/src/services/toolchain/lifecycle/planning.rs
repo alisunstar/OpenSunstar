@@ -31,6 +31,12 @@ pub(in crate::services::toolchain) fn parent_dir(p: &str) -> String {
     }
 }
 
+/// POSIX 单引号转义辅助：给生命周期规划生成可展示、可执行的锚定命令。
+#[cfg(not(target_os = "windows"))]
+pub(in crate::services::toolchain) fn shell_single_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "'\"'\"'"))
+}
+
 /// 从 canonicalize 后的真身路径提取 Homebrew formula 名：
 /// `/opt/homebrew/Cellar/gemini-cli/0.13.0/...` → `Some("gemini-cli")`。
 /// 非 Cellar 路径（= 不是 formula，可能是 Homebrew 的 node 装的 npm 全局包）返回 None。
@@ -86,6 +92,7 @@ pub(in crate::services::toolchain) fn quote_path_if_spaced(p: &str) -> String {
 ///
 /// 镜像 POSIX `quote_path_if_spaced` 的"轻量条件包装"语义:不含任何特殊字符就保持
 /// 裸路径(命令展示更干净),否则用 `win_double_quote` 包并做必要转义。
+#[cfg(target_os = "windows")]
 pub(in crate::services::toolchain) fn win_quote_path_for_batch(p: &str) -> String {
     // `%` 经历两轮 expansion:.bat parser 一轮 + `call` 二轮(Microsoft `call /?`:
     // "percent (%) expansion is performed on each parameter")。要让 call 最终看到

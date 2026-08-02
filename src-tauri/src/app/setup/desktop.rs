@@ -6,6 +6,8 @@ use super::super::{handle_deeplink_url, redact_url_for_log};
 use crate::store::AppState;
 use crate::{app_store, tray};
 use tauri::tray::{TrayIconBuilder, TrayIconEvent};
+#[cfg(target_os = "linux")]
+use tauri::Manager;
 use tauri_plugin_deep_link::DeepLinkExt;
 
 pub(super) fn configure(

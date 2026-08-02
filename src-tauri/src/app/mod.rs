@@ -159,7 +159,7 @@ async fn update_tray_menu(
 
 #[cfg(target_os = "macos")]
 fn macos_tray_icon() -> Option<Image<'static>> {
-    const ICON_BYTES: &[u8] = include_bytes!("../icons/tray/macos/statusbar_template_3x.png");
+    const ICON_BYTES: &[u8] = include_bytes!("../../icons/tray/macos/statusbar_template_3x.png");
 
     match Image::from_bytes(ICON_BYTES) {
         Ok(icon) => Some(icon),
