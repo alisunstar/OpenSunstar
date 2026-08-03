@@ -206,9 +206,10 @@ fn provider_name_coalesce(log_alias: &str, provider_alias: &str) -> String {
         "COALESCE({provider_alias}.name, CASE {log_alias}.provider_id \
          WHEN '_session' THEN 'Claude (Session)' \
          WHEN '_codex_session' THEN 'Codex (Session)' \
-         WHEN '_gemini_session' THEN 'Gemini (Session)' \
-         WHEN '_opencode_session' THEN 'OpenCode (Session)' \
-         ELSE {log_alias}.provider_id END)"
+        WHEN '_gemini_session' THEN 'Gemini (Session)' \
+        WHEN '_opencode_session' THEN 'OpenCode (Session)' \
+        WHEN '_grok_session' THEN 'Grok Build (Session)' \
+        ELSE {log_alias}.provider_id END)"
     )
 }
 
@@ -223,12 +224,36 @@ fn data_source_expr(log_alias: &str) -> String {
     format!("COALESCE({log_alias}.data_source, 'proxy')")
 }
 
+/// Detect whether Grok Build traffic was recently recorded through the local
+/// proxy. Grok's `turn_completed` event is a per-turn aggregate, so token
+/// fingerprint matching is not reliable for cross-source deduplication.
+pub(crate) fn has_recent_grokbuild_proxy_activity(
+    conn: &Connection,
+    created_at: i64,
+) -> Result<bool, AppError> {
+    let data_source = data_source_expr("l");
+    let sql = format!(
+        "SELECT EXISTS(
+            SELECT 1 FROM proxy_request_logs l
+            WHERE {data_source} = 'proxy'
+              AND l.app_type = 'grokbuild'
+              AND l.created_at BETWEEN ?1 - ?2 AND ?1 + ?2
+        )"
+    );
+    conn.query_row(
+        &sql,
+        params![created_at, SESSION_PROXY_DEDUP_WINDOW_SECONDS],
+        |row| row.get::<_, bool>(0),
+    )
+    .map_err(|e| AppError::Database(format!("查询 Grok Build 接管活动失败: {e}")))
+}
+
 pub(crate) fn effective_usage_log_filter(log_alias: &str) -> String {
     let data_source = data_source_expr(log_alias);
     let proxy_data_source = data_source_expr("proxy_dedup");
     format!(
         "NOT (
-            {data_source} IN ('session_log', 'codex_session', 'gemini_session', 'opencode_session')
+            {data_source} IN ('session_log', 'codex_session', 'gemini_session', 'opencode_session', 'grok_session')
             AND EXISTS (
                 SELECT 1
                 FROM proxy_request_logs proxy_dedup
@@ -243,7 +268,7 @@ pub(crate) fn effective_usage_log_filter(log_alias: &str) -> String {
                       proxy_dedup.cache_creation_tokens = {log_alias}.cache_creation_tokens
                       OR (
                           {log_alias}.cache_creation_tokens = 0
-                          AND {data_source} IN ('codex_session', 'gemini_session', 'opencode_session')
+                          AND {data_source} IN ('codex_session', 'gemini_session', 'opencode_session', 'grok_session')
                       )
                   )
                   AND proxy_dedup.created_at BETWEEN

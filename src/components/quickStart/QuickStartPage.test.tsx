@@ -10,18 +10,27 @@ const runQuickStartApplyPipeline = vi.fn();
 const getQuickStartOperationEvents = vi.fn();
 
 vi.mock("@/lib/quickStart", () => ({
-  getCuratedPresetGroups: () => [
+  getCuratedPresetGroups: (appId: string) => [
     {
       category: "official",
       presets: [
-        {
-          name: "Claude Official",
-          websiteUrl: "https://claude.ai",
-          category: "official",
-          icon: "claude",
-          isOfficial: true,
-          raw: {},
-        },
+        appId === "grokbuild"
+          ? {
+              name: "Grok Official",
+              websiteUrl: "https://x.ai/grok",
+              category: "official",
+              icon: "grok",
+              isOfficial: true,
+              raw: {},
+            }
+          : {
+              name: "Claude Official",
+              websiteUrl: "https://claude.ai",
+              category: "official",
+              icon: "claude",
+              isOfficial: true,
+              raw: {},
+            },
       ],
     },
     {
@@ -92,6 +101,10 @@ vi.mock("@/components/providers/forms/CodexOAuthSection", () => ({
   CodexOAuthSection: () => <div>Codex 设备授权流程</div>,
 }));
 
+vi.mock("@/components/providers/forms/XaiOAuthSection", () => ({
+  XaiOAuthSection: () => <div>xAI 设备授权流程</div>,
+}));
+
 vi.mock("./QuickStartProviderList", () => ({
   QuickStartProviderList: () => <div>API Key 接入</div>,
 }));
@@ -136,6 +149,13 @@ describe("QuickStartPage single-page provider workbench", () => {
     expect(
       screen.getByRole("button", { name: /Claude Code/ }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /OpenCode/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /OpenClaw/ }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Hermes/ })).toBeInTheDocument();
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
     expect(screen.queryByTestId("quick-start-stepper")).not.toBeInTheDocument();
   });
@@ -198,6 +218,29 @@ describe("QuickStartPage single-page provider workbench", () => {
     expect(onOpenAuthSettings).toHaveBeenLastCalledWith({
       tab: "auth",
       targetId: "codex-oauth",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /Grok Build/ }));
+    expect(
+      await screen.findByRole("heading", { name: /Grok Official/ }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Grok 订阅登录" }),
+    );
+    expect(
+      await screen.findByRole("dialog", { name: "Grok 订阅登录" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("xAI 设备授权流程")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "关闭" }));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: "Grok 订阅登录" }),
+      ).not.toBeInTheDocument();
+    });
+    fireEvent.click(await screen.findByRole("button", { name: "账号管理" }));
+    expect(onOpenAuthSettings).toHaveBeenLastCalledWith({
+      tab: "auth",
+      targetId: "xai-oauth",
     });
   });
 

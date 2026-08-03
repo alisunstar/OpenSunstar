@@ -2,6 +2,10 @@ import type { ProviderPreset } from "@/config/claudeProviderPresets";
 import type { ClaudeDesktopProviderPreset } from "@/config/claudeDesktopProviderPresets";
 import type { CodexProviderPreset } from "@/config/codexProviderPresets";
 import type { GeminiProviderPreset } from "@/config/geminiProviderPresets";
+import type { OpenCodeProviderPreset } from "@/config/opencodeProviderPresets";
+import type { OpenClawProviderPreset } from "@/config/openclawProviderPresets";
+import type { HermesProviderPreset } from "@/config/hermesProviderPresets";
+import type { GrokBuildProviderPreset } from "@/config/grokBuildProviderPresets";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
 import { fetchModelsForConfig, type FetchedModel } from "@/lib/api/model-fetch";
 import { providersApi, type VerifyProtocol } from "@/lib/api";
@@ -33,6 +37,9 @@ export function inferVerifyProtocol(
     }
     if (appId === "gemini") {
       return "gemini";
+    }
+    if (appId === "grokbuild") {
+      return "openai";
     }
     return "openai";
   }
@@ -68,6 +75,28 @@ export function inferVerifyProtocol(
     case "gemini":
       return (preset.raw as GeminiProviderPreset).apiFormat === "gemini_native"
         ? "gemini"
+        : "openai";
+    case "opencode": {
+      const npm = (preset.raw as OpenCodeProviderPreset).settingsConfig.npm;
+      return npm === "@ai-sdk/anthropic"
+        ? "anthropic"
+        : npm === "@ai-sdk/google"
+          ? "gemini"
+          : "openai";
+    }
+    case "openclaw": {
+      const protocol = (preset.raw as OpenClawProviderPreset).settingsConfig
+        .api;
+      return protocol === "anthropic-messages"
+        ? "anthropic"
+        : protocol === "google-generative-ai"
+          ? "gemini"
+          : "openai";
+    }
+    case "hermes":
+      return (preset.raw as HermesProviderPreset).settingsConfig.api_mode ===
+        "anthropic_messages"
+        ? "anthropic"
         : "openai";
     default:
       return "anthropic";
@@ -132,6 +161,34 @@ export function resolveVerifyBaseUrl(
         .trim()
         .replace(/\/+$/, "");
     }
+    case "grokbuild": {
+      const raw = preset.raw as GrokBuildProviderPreset;
+      return (
+        raw.endpointCandidates?.[0] ??
+        raw.config.match(/base_url\s*=\s*["']([^"']+)["']/)?.[1] ??
+        ""
+      )
+        .trim()
+        .replace(/\/+$/, "");
+    }
+    case "opencode": {
+      const raw = preset.raw as OpenCodeProviderPreset;
+      return (raw.settingsConfig.options?.baseURL ?? "")
+        .trim()
+        .replace(/\/+$/, "");
+    }
+    case "openclaw":
+      return (
+        (preset.raw as OpenClawProviderPreset).settingsConfig.baseUrl ?? ""
+      )
+        .trim()
+        .replace(/\/+$/, "");
+    case "hermes":
+      return (
+        (preset.raw as HermesProviderPreset).settingsConfig.base_url ?? ""
+      )
+        .trim()
+        .replace(/\/+$/, "");
     default:
       return "";
   }

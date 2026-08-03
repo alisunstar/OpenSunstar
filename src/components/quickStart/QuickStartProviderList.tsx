@@ -101,7 +101,7 @@ export function QuickStartProviderList({
   };
 
   return (
-    <div className="w-full max-w-4xl space-y-3 text-left">
+    <div className="w-full space-y-3 text-left">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h3 className="text-sm font-medium">

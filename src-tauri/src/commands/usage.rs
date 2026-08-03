@@ -322,6 +322,16 @@ pub fn sync_session_usage(
         }
     }
 
+    // 同步 Grok Build 使用数据
+    match crate::services::session_usage_grokbuild::sync_grokbuild_usage(&state.db) {
+        Ok(grok_result) => {
+            result.merge(grok_result);
+        }
+        Err(e) => {
+            result.errors.push(format!("Grok Build 同步失败: {e}"));
+        }
+    }
+
     Ok(result)
 }
 

@@ -16,6 +16,12 @@ export function QuickStartCustomFields({
   onChange,
 }: QuickStartCustomFieldsProps) {
   const { t } = useTranslation();
+  const supportsAdvanced = [
+    "claude",
+    "claude-desktop",
+    "codex",
+    "gemini",
+  ].includes(appId);
 
   const modelLabel =
     appId === "gemini"
@@ -69,10 +75,15 @@ export function QuickStartCustomFields({
               defaultValue:
                 "填写名称、Gemini Native Base URL 与模型；Gemini CLI 原生协议在高级选项中展示。",
             })
-          : t("quickStart.custom.hint", {
-              defaultValue:
-                "填写名称、Base URL 与默认模型；API 格式、认证字段和模型映射可在下方高级选项中调整。",
-            })}
+          : !supportsAdvanced
+            ? t("quickStart.custom.agentHint", {
+                defaultValue:
+                  "填写名称、Base URL 与默认模型；OpenSunstar 会按该客户端的原生配置格式写入本地配置。",
+              })
+            : t("quickStart.custom.hint", {
+                defaultValue:
+                  "填写名称、Base URL 与默认模型；API 格式、认证字段和模型映射可在下方高级选项中调整。",
+              })}
       </p>
       <div className="space-y-2">
         <Label htmlFor="quickstart-custom-name">

@@ -7,6 +7,7 @@
 //! - `src/config/claudeProviderPresets.ts`（"Claude Official"）
 //! - `src/config/codexProviderPresets.ts`（"OpenAI Official"）
 //! - `src/config/geminiProviderPresets.ts`（"Google Official"）
+//! - `src/config/grokBuildProviderPresets.ts`（"Grok Official"）
 
 use crate::app_config::AppType;
 
@@ -67,6 +68,16 @@ pub(crate) const OFFICIAL_SEEDS: &[OfficialProviderSeed] = &[
         icon_color: "#4285F4",
         // 空 env + 空 config 让用户走 Google OAuth
         settings_config_json: r#"{"env":{},"config":{}}"#,
+    },
+    OfficialProviderSeed {
+        id: "grokbuild-official",
+        app_type: AppType::GrokBuild,
+        name: "Grok Official",
+        website_url: "https://x.ai/grok",
+        icon: "grok",
+        icon_color: "#111827",
+        // 空 config 让 Grok Build 使用 CLI 自带的 xAI OAuth 登录流程。
+        settings_config_json: r#"{"config":""}"#,
     },
 ];
 

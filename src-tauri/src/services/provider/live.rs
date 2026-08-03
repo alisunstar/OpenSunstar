@@ -348,7 +348,11 @@ fn settings_contain_common_config(app_type: &AppType, settings: &Value, snippet:
             }
             _ => false,
         },
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes | AppType::ClaudeDesktop => false,
+        AppType::GrokBuild
+        | AppType::OpenCode
+        | AppType::OpenClaw
+        | AppType::Hermes
+        | AppType::ClaudeDesktop => false,
     }
 }
 
@@ -418,7 +422,11 @@ pub(crate) fn remove_common_config_from_settings(
             }
             Ok(result)
         }
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes | AppType::ClaudeDesktop => {
+        AppType::GrokBuild
+        | AppType::OpenCode
+        | AppType::OpenClaw
+        | AppType::Hermes
+        | AppType::ClaudeDesktop => {
             Ok(settings.clone())
         }
     }
@@ -475,7 +483,11 @@ fn apply_common_config_to_settings(
             }
             Ok(result)
         }
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes | AppType::ClaudeDesktop => {
+        AppType::GrokBuild
+        | AppType::OpenCode
+        | AppType::OpenClaw
+        | AppType::Hermes
+        | AppType::ClaudeDesktop => {
             Ok(settings.clone())
         }
     }
@@ -677,6 +689,9 @@ pub(crate) enum LiveSnapshot {
         env: Option<HashMap<String, String>>,
         config: Option<Value>,
     },
+    GrokBuild {
+        config: Option<String>,
+    },
 }
 
 impl LiveSnapshot {
@@ -734,6 +749,14 @@ impl LiveSnapshot {
                     _ => {}
                 }
             }
+            LiveSnapshot::GrokBuild { config } => {
+                let path = crate::grok_config::get_grok_config_path();
+                if let Some(text) = config {
+                    crate::config::write_text_file(&path, text)?;
+                } else if path.exists() {
+                    delete_file(&path)?;
+                }
+            }
         }
         Ok(())
     }
@@ -780,6 +803,15 @@ pub(crate) fn capture_live_snapshot(app_type: &AppType) -> Result<LiveSnapshot, 
                 .then(|| read_json_file(&settings_path))
                 .transpose()?;
             Ok(LiveSnapshot::Gemini { env, config })
+        }
+        AppType::GrokBuild => {
+            let path = crate::grok_config::get_grok_config_path();
+            let config = path
+                .exists()
+                .then(|| std::fs::read_to_string(&path))
+                .transpose()
+                .map_err(|e| AppError::io(&path, e))?;
+            Ok(LiveSnapshot::GrokBuild { config })
         }
         _ => Err(AppError::InvalidInput(format!(
             "Live snapshot is unsupported for {}",
@@ -851,6 +883,9 @@ pub(crate) fn write_live_snapshot(app_type: &AppType, provider: &Provider) -> Re
         AppType::Gemini => {
             // Delegate to write_gemini_live which handles env file writing correctly
             write_gemini_live(provider)?;
+        }
+        AppType::GrokBuild => {
+            crate::grok_config::write_grok_provider_live(provider)?;
         }
         AppType::OpenCode => {
             // OpenCode uses additive mode - write provider to config
@@ -1162,6 +1197,7 @@ pub fn read_live_settings(app_type: AppType) -> Result<Value, AppError> {
                 "config": config_obj
             }))
         }
+        AppType::GrokBuild => crate::grok_config::read_grok_live_settings(),
         AppType::OpenCode => {
             use crate::opencode_config::{get_opencode_config_path, read_opencode_config};
 
@@ -1321,6 +1357,7 @@ pub fn import_default_config(state: &AppState, app_type: AppType) -> Result<bool
                 "config": config_obj
             })
         }
+        AppType::GrokBuild => crate::grok_config::read_grok_live_settings()?,
         // OpenCode, OpenClaw and Hermes use additive mode and are handled by early return above
         AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => {
             unreachable!("additive mode apps are handled by early return")

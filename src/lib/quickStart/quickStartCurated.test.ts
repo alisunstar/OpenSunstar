@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { QUICKSTART_CURATED } from "@/config/quickStartCurated";
+import {
+  QUICKSTART_APP_IDS,
+  QUICKSTART_CURATED,
+} from "@/config/quickStartCurated";
 import {
   getCuratedPresetGroups,
   resolvePresetByName,
@@ -31,13 +34,67 @@ const expectedChina = [
   "BaiLing",
 ];
 
+const expectedAgentInternational = [
+  "Shengsuanyun",
+  "火山Agentplan",
+  "BytePlus",
+  "DouBaoSeed",
+  "CCSub",
+  "Unity2.ai",
+];
+
+const expectedAgentChina = [
+  "DeepSeek",
+  "Zhipu GLM",
+  "MiniMax",
+  "Xiaomi MiMo",
+  "StepFun",
+  "Longcat",
+  "BaiLing",
+];
+
 describe("quickStartCurated", () => {
+  it("exposes all eight locally supported coding clients", () => {
+    expect(QUICKSTART_APP_IDS).toEqual([
+      "claude",
+      "claude-desktop",
+      "codex",
+      "gemini",
+      "grokbuild",
+      "opencode",
+      "openclaw",
+      "hermes",
+    ]);
+  });
+
+  it("exposes Grok Build's official, aggregation, and relay presets", () => {
+    const groups = getCuratedPresetGroups("grokbuild", "");
+    expect(groups.map((group) => group.category)).toEqual([
+      "official",
+      "ai_global",
+      "ai_china",
+      "relay",
+      "custom",
+    ]);
+    expect(groups[1]?.presets.map((preset) => preset.displayName)).toEqual([
+      "xAI (Grok)",
+      "OpenRouter",
+      "AiHubMix",
+      "Amux",
+      "Shengsuanyun",
+    ]);
+    expect(resolvePresetByName("grokbuild", "Grok Official")).toMatchObject({
+      isOfficial: true,
+      authMode: "oauth",
+    });
+  });
+
   it("all curated preset names resolve in their app libraries", () => {
     const errors = validateCuratedPresetNames();
     expect(errors).toEqual([]);
   });
 
-  it.each(Object.keys(QUICKSTART_CURATED))(
+  it.each(["claude", "claude-desktop", "codex", "gemini"] as const)(
     "%s keeps the required Chinese group order and provider order",
     (appId) => {
       const groups = getCuratedPresetGroups(
@@ -61,6 +118,36 @@ describe("quickStartCurated", () => {
         "硅基流动中国",
         "OpenRouter",
       ]);
+    },
+  );
+
+  it.each(["opencode", "openclaw", "hermes"] as const)(
+    "%s exposes compatible preset groups for API key quick start",
+    (appId) => {
+      const groups = getCuratedPresetGroups(appId, "").filter(
+        (group) => group.category !== "official",
+      );
+
+      expect(groups.map((group) => group.category)).toEqual([
+        "ai_global",
+        "ai_china",
+        "relay",
+        "custom",
+      ]);
+      expect(groups[0]?.presets.map((preset) => preset.displayName)).toEqual(
+        expectedAgentInternational,
+      );
+      expect(groups[1]?.presets.map((preset) => preset.displayName)).toEqual(
+        expectedAgentChina,
+      );
+      expect(groups[2]?.presets.map((preset) => preset.displayName)).toEqual([
+        "OpenRouter",
+      ]);
+      expect(groups.flatMap((group) => group.presets)).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ name: "__quickstart_custom__" }),
+        ]),
+      );
     },
   );
 

@@ -437,6 +437,14 @@ pub(super) fn import_and_migrate(app_state: &AppState) {
             Ok(_) => log::debug!("○ No Hermes MCP servers found to import"),
             Err(e) => log::warn!("✗ Failed to import Hermes MCP: {e}"),
         }
+
+        match crate::services::mcp::McpService::import_from_grokbuild(app_state) {
+            Ok(count) if count > 0 => {
+                log::info!("✓ Imported {count} MCP server(s) from Grok Build");
+            }
+            Ok(_) => log::debug!("○ No Grok Build MCP servers found to import"),
+            Err(e) => log::warn!("✗ Failed to import Grok Build MCP: {e}"),
+        }
     }
 
     // 4. 导入提示词文件（按应用独立检查，已有提示词的应用自动跳过）
@@ -450,6 +458,7 @@ pub(super) fn import_and_migrate(app_state: &AppState) {
             crate::app_config::AppType::OpenCode,
             crate::app_config::AppType::OpenClaw,
             crate::app_config::AppType::Hermes,
+            crate::app_config::AppType::GrokBuild,
         ] {
             match crate::services::prompt::PromptService::import_from_file_on_first_launch(
                 app_state, &app,

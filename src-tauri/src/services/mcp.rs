@@ -66,6 +66,9 @@ impl McpService {
         if prev_apps.hermes && !server.apps.hermes {
             Self::remove_server_from_app(state, &server.id, &AppType::Hermes)?;
         }
+        if prev_apps.grokbuild && !server.apps.grokbuild {
+            Self::remove_server_from_app(state, &server.id, &AppType::GrokBuild)?;
+        }
 
         // 同步到各个启用的应用
         Self::sync_server_to_apps(state, &persisted)?;
@@ -145,6 +148,9 @@ impl McpService {
             AppType::Gemini => {
                 mcp::sync_single_server_to_gemini(&Default::default(), &server.id, &server.server)?;
             }
+            AppType::GrokBuild => {
+                mcp::sync_single_server_to_grokbuild(&Default::default(), &server.id, &server.server)?;
+            }
             AppType::OpenCode => {
                 mcp::sync_single_server_to_opencode(
                     &Default::default(),
@@ -185,6 +191,7 @@ impl McpService {
             }
             AppType::Codex => mcp::remove_server_from_codex(id)?,
             AppType::Gemini => mcp::remove_server_from_gemini(id)?,
+            AppType::GrokBuild => mcp::remove_server_from_grokbuild(id)?,
             AppType::OpenCode => {
                 mcp::remove_server_from_opencode(id)?;
             }
@@ -451,6 +458,33 @@ impl McpService {
 
                     // 导入是读取已有配置，不应反向写回任何应用的 live 配置。
                     // 显式编辑、启用/禁用或手动同步时再执行写回。
+                }
+            }
+        }
+
+        Ok(new_count)
+    }
+
+    /// 从 Grok Build 导入全局 MCP 配置
+    pub fn import_from_grokbuild(state: &AppState) -> Result<usize, AppError> {
+        let mut temp_config = crate::app_config::MultiAppConfig::default();
+        let count = crate::mcp::import_from_grokbuild(&mut temp_config)?;
+        let mut new_count = 0;
+
+        if count > 0 {
+            if let Some(servers) = &temp_config.mcp.servers {
+                let mut existing = state.db.get_all_mcp_servers()?;
+                for server in servers.values() {
+                    let to_save = if let Some(existing_server) = existing.get(&server.id) {
+                        let mut merged = existing_server.clone();
+                        merged.apps.grokbuild = true;
+                        merged
+                    } else {
+                        new_count += 1;
+                        server.clone()
+                    };
+                    state.db.save_mcp_server(&to_save)?;
+                    existing.insert(to_save.id.clone(), to_save);
                 }
             }
         }

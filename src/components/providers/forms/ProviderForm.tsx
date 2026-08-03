@@ -45,9 +45,15 @@ import {
   hermesProviderPresets,
   type HermesProviderPreset,
 } from "@/config/hermesProviderPresets";
+import {
+  grokBuildProviderPresets,
+  grokBuildOfficialPreset,
+  type GrokBuildProviderPreset,
+} from "@/config/grokBuildProviderPresets";
 import { OpenCodeFormFields } from "./OpenCodeFormFields";
 import { OpenClawFormFields } from "./OpenClawFormFields";
 import { HermesFormFields } from "./HermesFormFields";
+import { GrokBuildFormFields } from "./GrokBuildFormFields";
 import type { UniversalProviderPreset } from "@/config/universalProviderPresets";
 import {
   applyTemplateValues,
@@ -118,6 +124,7 @@ import { HERMES_DEFAULT_CONFIG } from "./hooks/useHermesFormState";
 import { resolveManagedAccountId } from "@/lib/authBinding";
 import { useOpenClawLiveProviderIds } from "@/hooks/useOpenClaw";
 import { useHermesLiveProviderIds } from "@/hooks/useHermes";
+import { buildGrokBuildConfig } from "@/utils/grokBuildConfig";
 
 type PresetEntry = {
   id: string;
@@ -127,7 +134,8 @@ type PresetEntry = {
     | GeminiProviderPreset
     | OpenCodeProviderPreset
     | OpenClawProviderPreset
-    | HermesProviderPreset;
+    | HermesProviderPreset
+    | GrokBuildProviderPreset;
 };
 
 const codexApiFormatFromWireApi = (
@@ -389,7 +397,9 @@ function ProviderFormFull({
                 ? OPENCLAW_DEFAULT_CONFIG
                 : appId === "hermes"
                   ? HERMES_DEFAULT_CONFIG
-                  : CLAUDE_DEFAULT_CONFIG,
+                  : appId === "grokbuild"
+                    ? JSON.stringify({ config: "" }, null, 2)
+                    : CLAUDE_DEFAULT_CONFIG,
       icon: initialData?.icon ?? "",
       iconColor: initialData?.iconColor ?? "",
     }),
@@ -642,6 +652,14 @@ function ProviderFormFull({
     } else if (appId === "hermes") {
       return hermesProviderPresets.map<PresetEntry>((preset, index) => ({
         id: `hermes-${index}`,
+        preset,
+      }));
+    } else if (appId === "grokbuild") {
+      return [
+        grokBuildOfficialPreset,
+        ...grokBuildProviderPresets,
+      ].map<PresetEntry>((preset, index) => ({
+        id: `grokbuild-${index}`,
         preset,
       }));
     }
@@ -1586,6 +1604,12 @@ function ProviderFormFull({
       if (appId === "hermes") {
         hermesForm.resetHermesState();
       }
+      if (appId === "grokbuild") {
+        form.setValue(
+          "settingsConfig",
+          JSON.stringify({ config: "" }, null, 2),
+        );
+      }
       return;
     }
 
@@ -1708,6 +1732,31 @@ function ProviderFormFull({
         websiteUrl: preset.websiteUrl ?? "",
         settingsConfig: JSON.stringify(config, null, 2),
         icon: preset.icon ?? "",
+        iconColor: preset.iconColor ?? "",
+      });
+      return;
+    }
+
+    if (appId === "grokbuild") {
+      const preset = entry.preset as GrokBuildProviderPreset;
+      const config = preset.isOfficial
+        ? ""
+        : buildGrokBuildConfig({
+            profile: "custom",
+            model:
+              preset.config.match(/^model\s*=\s*["']([^"']+)["']/m)?.[1] ??
+              "grok-4.5",
+            baseUrl:
+              preset.endpointCandidates?.[0] ??
+              preset.config.match(/base_url\s*=\s*["']([^"']+)["']/)?.[1] ??
+              "",
+            name: preset.name,
+          });
+      form.reset({
+        name: preset.nameKey ? t(preset.nameKey) : preset.name,
+        websiteUrl: preset.websiteUrl ?? "",
+        settingsConfig: JSON.stringify({ config }, null, 2),
+        icon: preset.icon ?? "grok",
         iconColor: preset.iconColor ?? "",
       });
       return;
@@ -2206,6 +2255,13 @@ function ProviderFormFull({
             />
           )}
 
+          {appId === "grokbuild" && (
+            <GrokBuildFormFields
+              value={form.watch("settingsConfig")}
+              onChange={(config) => form.setValue("settingsConfig", config)}
+            />
+          )}
+
           {/* 配置编辑器：Codex、Claude、Gemini 分别使用不同的编辑器 */}
           {appId === "codex" ? (
             <>
@@ -2330,6 +2386,8 @@ function ProviderFormFull({
                 )}
               />
             </>
+          ) : appId === "grokbuild" ? (
+            <>{settingsConfigErrorField}</>
           ) : (
             <>
               <CommonConfigEditor

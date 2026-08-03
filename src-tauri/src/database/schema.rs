@@ -67,7 +67,7 @@ impl Database {
             description TEXT, homepage TEXT, docs TEXT, tags TEXT NOT NULL DEFAULT '[]',
             enabled_claude BOOLEAN NOT NULL DEFAULT 0, enabled_codex BOOLEAN NOT NULL DEFAULT 0,
             enabled_gemini BOOLEAN NOT NULL DEFAULT 0, enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
-            enabled_hermes BOOLEAN NOT NULL DEFAULT 0
+            enabled_hermes BOOLEAN NOT NULL DEFAULT 0, enabled_grokbuild BOOLEAN NOT NULL DEFAULT 0
         )",
             [],
         )
@@ -101,6 +101,7 @@ impl Database {
             enabled_gemini BOOLEAN NOT NULL DEFAULT 0,
             enabled_opencode BOOLEAN NOT NULL DEFAULT 0,
             enabled_hermes BOOLEAN NOT NULL DEFAULT 0,
+            enabled_grokbuild BOOLEAN NOT NULL DEFAULT 0,
             installed_at INTEGER NOT NULL DEFAULT 0,
             content_hash TEXT,
             updated_at INTEGER NOT NULL DEFAULT 0
@@ -694,6 +695,18 @@ impl Database {
                         );
                         Self::migrate_v42_to_v43(conn)?;
                         Self::set_user_version(conn, 43)?;
+                    }
+                    43 => {
+                        log::info!(
+                            "Migrating database from v43 to v44 (QuickStart additive client support)"
+                        );
+                        Self::migrate_v43_to_v44(conn)?;
+                        Self::set_user_version(conn, 44)?;
+                    }
+                    44 => {
+                        log::info!("Migrating database from v44 to v45 (Grok Build MCP/Skills support)");
+                        Self::migrate_v44_to_v45(conn)?;
+                        Self::set_user_version(conn, 45)?;
                     }
                     _ => {
                         return Err(AppError::Database(format!(
@@ -2235,7 +2248,7 @@ impl Database {
                 id                   TEXT PRIMARY KEY,
                 idempotency_key      TEXT NOT NULL UNIQUE,
                 request_fingerprint  TEXT NOT NULL,
-                app_type             TEXT NOT NULL CHECK(app_type IN ('claude','claude-desktop','codex','gemini')),
+                app_type             TEXT NOT NULL CHECK(app_type IN ('claude','claude-desktop','codex','gemini','opencode','openclaw','hermes')),
                 provider_id          TEXT,
                 previous_provider_id TEXT,
                 status               TEXT NOT NULL CHECK(status IN ('pending','applying','verifying','succeeded','failed','rolling_back','rolled_back','rollback_failed')),
@@ -2315,6 +2328,105 @@ impl Database {
             "applied_live_fingerprint",
             "TEXT",
         )?;
+        Ok(())
+    }
+
+    fn migrate_v43_to_v44(conn: &Connection) -> Result<(), AppError> {
+        if !Self::table_exists(conn, "quick_start_operations")? {
+            return Ok(());
+        }
+
+        conn.execute_batch(
+            "DROP INDEX IF EXISTS idx_quick_start_operations_status_updated;
+             DROP INDEX IF EXISTS idx_quick_start_operations_active_app;
+             ALTER TABLE quick_start_operation_events RENAME TO quick_start_operation_events_legacy;
+             ALTER TABLE quick_start_operations RENAME TO quick_start_operations_legacy;
+             CREATE TABLE quick_start_operations (
+                id                   TEXT PRIMARY KEY,
+                idempotency_key      TEXT NOT NULL UNIQUE,
+                request_fingerprint  TEXT NOT NULL,
+                app_type             TEXT NOT NULL CHECK(app_type IN ('claude','claude-desktop','codex','gemini','opencode','openclaw','hermes')),
+                provider_id          TEXT,
+                previous_provider_id TEXT,
+                live_snapshot        TEXT,
+                status               TEXT NOT NULL CHECK(status IN ('pending','applying','verifying','succeeded','failed','rolling_back','rolled_back','rollback_failed')),
+                current_step         TEXT NOT NULL,
+                revision             INTEGER NOT NULL DEFAULT 0,
+                provider_created     INTEGER NOT NULL DEFAULT 0,
+                provider_switched    INTEGER NOT NULL DEFAULT 0,
+                takeover_enabled     INTEGER NOT NULL DEFAULT 0,
+                proxy_started        INTEGER NOT NULL DEFAULT 0,
+                post_verified        INTEGER NOT NULL DEFAULT 0,
+                takeover_was_enabled INTEGER NOT NULL DEFAULT 0,
+                proxy_was_running    INTEGER NOT NULL DEFAULT 0,
+                error_code           TEXT,
+                error_message        TEXT,
+                created_at           TEXT NOT NULL,
+                updated_at           TEXT NOT NULL,
+                completed_at         TEXT,
+                applied_live_fingerprint TEXT
+             );
+             INSERT INTO quick_start_operations
+             SELECT id, idempotency_key, request_fingerprint, app_type, provider_id,
+                    previous_provider_id, live_snapshot, status, current_step, revision,
+                    provider_created, provider_switched, takeover_enabled, proxy_started,
+                    post_verified, takeover_was_enabled, proxy_was_running, error_code,
+                    error_message, created_at, updated_at, completed_at, applied_live_fingerprint
+             FROM quick_start_operations_legacy;
+             CREATE TABLE quick_start_operation_events (
+                id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                operation_id  TEXT NOT NULL REFERENCES quick_start_operations(id) ON DELETE CASCADE,
+                sequence      INTEGER NOT NULL,
+                event_type    TEXT NOT NULL,
+                from_status   TEXT,
+                to_status     TEXT,
+                step          TEXT NOT NULL,
+                error_code    TEXT,
+                error_message TEXT,
+                detail_json   TEXT,
+                created_at    TEXT NOT NULL,
+                UNIQUE(operation_id, sequence)
+             );
+             INSERT INTO quick_start_operation_events
+             SELECT id, operation_id, sequence, event_type, from_status, to_status, step,
+                    error_code, error_message, detail_json, created_at
+             FROM quick_start_operation_events_legacy;
+             DROP TABLE quick_start_operation_events_legacy;
+             DROP TABLE quick_start_operations_legacy;
+             CREATE INDEX idx_quick_start_operations_status_updated
+                ON quick_start_operations(status, updated_at DESC);
+             CREATE UNIQUE INDEX idx_quick_start_operations_active_app
+                ON quick_start_operations(app_type)
+                WHERE status IN ('pending','applying','verifying','rolling_back','rollback_failed');
+             CREATE INDEX IF NOT EXISTS idx_quick_start_events_operation
+                ON quick_start_operation_events(operation_id, sequence);",
+        )
+        .map_err(|error| {
+            AppError::Database(format!(
+                "Upgrade QuickStart operation table for additive clients failed: {error}"
+            ))
+        })?;
+        Ok(())
+    }
+
+    fn migrate_v44_to_v45(conn: &Connection) -> Result<(), AppError> {
+        if Self::table_exists(conn, "mcp_servers")? {
+            Self::add_column_if_missing(
+                conn,
+                "mcp_servers",
+                "enabled_grokbuild",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+        }
+        if Self::table_exists(conn, "skills")? {
+            Self::add_column_if_missing(
+                conn,
+                "skills",
+                "enabled_grokbuild",
+                "BOOLEAN NOT NULL DEFAULT 0",
+            )?;
+        }
+        log::info!("v44 -> v45 migration complete: added Grok Build MCP/Skills flags");
         Ok(())
     }
 
@@ -3596,6 +3708,9 @@ impl Database {
             ("qwq-32b", "QwQ 32B", "0.20", "0.60", "0", "0"),
             ("qwen3-32b", "Qwen3 32B", "0.16", "0.64", "0", "0"),
             // Grok 系列 (xAI)
+            ("grok-4.5", "Grok 4.5", "2", "6", "0.50", "0"),
+            // Grok Build OAuth 会话中的内部别名；cache read 按实测 0.30 计价。
+            ("grok-4.5-build", "Grok 4.5 Build", "2", "6", "0.30", "0"),
             ("grok-4.3", "Grok 4.3", "1.25", "2.50", "0.20", "0"),
             (
                 "grok-4.20-0309-reasoning",

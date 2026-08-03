@@ -1,9 +1,16 @@
 import type { AppId } from "@/lib/api";
 
-/** QuickStart 支持的四个应用（与产品规格一致） */
+/** QuickStart 支持的本地 AI 编程客户端。 */
 export type QuickStartAppId = Extract<
   AppId,
-  "claude" | "claude-desktop" | "codex" | "gemini"
+  | "claude"
+  | "claude-desktop"
+  | "codex"
+  | "gemini"
+  | "grokbuild"
+  | "opencode"
+  | "openclaw"
+  | "hermes"
 >;
 
 export const QUICKSTART_APP_IDS: QuickStartAppId[] = [
@@ -11,6 +18,10 @@ export const QUICKSTART_APP_IDS: QuickStartAppId[] = [
   "claude-desktop",
   "codex",
   "gemini",
+  "grokbuild",
+  "opencode",
+  "openclaw",
+  "hermes",
 ];
 
 export const QUICKSTART_CUSTOM_PRESET_ID = "__quickstart_custom__";
@@ -147,6 +158,34 @@ const relayPresets = (): QuickStartPresetRef[] => [
   ref("OpenRouter"),
 ];
 
+const agentInternationalPresets = (): QuickStartPresetRef[] => [
+  ref("Shengsuanyun"),
+  ref("火山Agentplan"),
+  ref("BytePlus"),
+  ref("DouBaoSeed"),
+  ref("CCSub"),
+  ref("Unity2.ai"),
+];
+
+const agentChinaPresets = (): QuickStartPresetRef[] => [
+  ref("DeepSeek"),
+  ref("Zhipu GLM"),
+  ref("MiniMax"),
+  ref("Xiaomi MiMo"),
+  ref("StepFun"),
+  ref("Longcat"),
+  ref("BaiLing"),
+];
+
+const agentRelayPresets = (): QuickStartPresetRef[] => [ref("OpenRouter")];
+
+const agentApiKeyGroups = (): QuickStartCategorySpec[] => [
+  { category: "ai_global", presets: agentInternationalPresets() },
+  { category: "ai_china", presets: agentChinaPresets() },
+  { category: "relay", presets: agentRelayPresets() },
+  { category: "custom", presets: [] },
+];
+
 export const QUICKSTART_CURATED: Record<
   QuickStartAppId,
   QuickStartCategorySpec[]
@@ -185,6 +224,37 @@ export const QUICKSTART_CURATED: Record<
     },
     { category: "custom", presets: [] },
   ],
+  grokbuild: [
+    { category: "official", presets: [ref("Grok Official")] },
+    {
+      category: "ai_global",
+      presets: [
+        ref("xAI (Grok)"),
+        ref("OpenRouter"),
+        ref("AiHubMix"),
+        ref("Amux"),
+        ref("Shengsuanyun"),
+      ],
+    },
+    {
+      category: "ai_china",
+      presets: [
+        ref("PackyCode"),
+        ref("ZetaAPI"),
+        ref("APINebula"),
+        ref("PatewayAI"),
+        ref("CCSub"),
+      ],
+    },
+    {
+      category: "relay",
+      presets: [ref("SubRouter"), ref("TheRouter"), ref("AICodeMirror")],
+    },
+    { category: "custom", presets: [] },
+  ],
+  opencode: agentApiKeyGroups(),
+  openclaw: agentApiKeyGroups(),
+  hermes: agentApiKeyGroups(),
 };
 
 export const QUICKSTART_CATEGORY_LABEL_KEYS: Record<

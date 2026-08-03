@@ -67,7 +67,7 @@ impl ToolPermission {
             AppType::OpenCode => self.enabled_opencode = enabled,
             AppType::Hermes => self.enabled_hermes = enabled,
             AppType::OpenClaw => self.enabled_openclaw = enabled,
-            AppType::ClaudeDesktop => {}
+            AppType::GrokBuild | AppType::ClaudeDesktop => {}
         }
     }
 
@@ -79,7 +79,7 @@ impl ToolPermission {
             AppType::OpenCode => self.enabled_opencode,
             AppType::Hermes => self.enabled_hermes,
             AppType::OpenClaw => self.enabled_openclaw,
-            AppType::ClaudeDesktop => false,
+            AppType::GrokBuild | AppType::ClaudeDesktop => false,
         }
     }
 }

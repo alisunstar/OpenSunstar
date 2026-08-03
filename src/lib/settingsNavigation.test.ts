@@ -3,6 +3,7 @@ import {
   buildCodexOauthIntent,
   buildLocalCliAuthIntent,
   buildSubscriptionAccountsIntent,
+  buildXaiOauthIntent,
 } from "@/lib/settingsNavigation";
 
 describe("subscription account navigation", () => {
@@ -21,6 +22,10 @@ describe("subscription account navigation", () => {
     expect(buildCodexOauthIntent()).toEqual({
       tab: "auth",
       targetId: "codex-oauth",
+    });
+    expect(buildXaiOauthIntent()).toEqual({
+      tab: "auth",
+      targetId: "xai-oauth",
     });
   });
 });

@@ -1,5 +1,16 @@
 # AGENTS.md — AI Agent Integration Guide
 
+## 商业控制面隔离与发版边界
+
+账号、订阅与计费、多租户团队服务及云端运维属于独立维护的私有商业控制面，是 OpenSunstar 核心商业化许可边界。本公开仓库仅包含 Apache-2.0 授权的公共客户端、`os` CLI、本地配置与工作流能力，以及展示或调用可选控制面能力的客户端侧集成。
+
+发版、README/website 同步、tag、GitHub Release、npm 发布与远程推送时，必须保持以下隔离：
+
+- 私有商业控制面源码、服务端实现、计费系统、多租户服务、云端运维配置与部署脚本，必须保留在独立私有远程仓库和本地私有仓库。
+- 本仓库发版内容不得包含 `opensunstar-control-plane`、`control-plane` 私有目录、`@opensunstar/control-plane` 包，或 `E:\projects\opensunstar-control-plane` 本地路径内容。
+- 若商业控制面有更新，必须独立安排私有仓库提交、推送、部署与发版，不与本公开仓库发版混合。
+- 公共客户端中保留的订阅账号、团队配置等 UI / API 适配仅代表客户端入口，不等同于私有商业控制面源码授权。
+
 ## CLI 治理与编排工具 (os)
 
 当检测到 AI 编程工具配置异常时，可运行以下命令诊断：

@@ -85,7 +85,7 @@ impl CommandService {
             AppType::OpenCode => get_opencode_dir().join("commands").join(&safe_name),
             AppType::Hermes => get_hermes_dir().join("commands").join(&safe_name),
             AppType::Codex => get_codex_config_dir().join("commands").join(&safe_name),
-            AppType::OpenClaw | AppType::ClaudeDesktop => {
+            AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
                 return Err(AppError::Config(format!("{app:?} 不支持 slash 命令同步")));
             }
         };

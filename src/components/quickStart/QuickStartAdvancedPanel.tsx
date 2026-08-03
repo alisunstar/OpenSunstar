@@ -39,6 +39,9 @@ export function QuickStartAdvancedPanel({
   const [open, setOpen] = useState(false);
 
   if (selection.mode === "official") return null;
+  if (!["claude", "claude-desktop", "codex", "gemini"].includes(appId)) {
+    return null;
+  }
 
   const protocolEditable = selection.mode === "custom";
 

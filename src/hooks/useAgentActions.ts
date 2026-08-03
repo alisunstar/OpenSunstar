@@ -20,6 +20,7 @@ const APP_FIELD_MAP: Record<
   "claude-desktop": null,
   codex: "enabledCodex",
   gemini: "enabledGemini",
+  grokbuild: null,
   opencode: "enabledOpencode",
   openclaw: null,
   hermes: null,

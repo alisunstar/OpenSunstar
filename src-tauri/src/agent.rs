@@ -52,7 +52,7 @@ impl Agent {
             AppType::Gemini => self.enabled_gemini = enabled,
             AppType::OpenCode => self.enabled_opencode = enabled,
             AppType::Hermes => {}
-            AppType::OpenClaw | AppType::ClaudeDesktop => {}
+            AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {}
         }
     }
 
@@ -62,7 +62,7 @@ impl Agent {
             AppType::Codex => self.enabled_codex,
             AppType::Gemini => self.enabled_gemini,
             AppType::OpenCode => self.enabled_opencode,
-            AppType::Hermes | AppType::OpenClaw | AppType::ClaudeDesktop => false,
+            AppType::GrokBuild | AppType::Hermes | AppType::OpenClaw | AppType::ClaudeDesktop => false,
         }
     }
 

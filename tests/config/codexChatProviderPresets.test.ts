@@ -45,14 +45,14 @@ const expectedChatPresets = new Map<
     "Zhipu GLM",
     {
       baseUrl: "https://open.bigmodel.cn/api/coding/paas/v4",
-      contextWindows: { "glm-5.1": 200000 },
+      contextWindows: { "glm-5.2": 200000 },
     },
   ],
   [
     "Zhipu GLM en",
     {
       baseUrl: "https://api.z.ai/api/coding/paas/v4",
-      contextWindows: { "glm-5.1": 200000 },
+      contextWindows: { "glm-5.2": 200000 },
     },
   ],
   [
@@ -76,7 +76,10 @@ const expectedChatPresets = new Map<
     "Kimi",
     {
       baseUrl: "https://api.moonshot.cn/v1",
-      contextWindows: { "kimi-k2.6": 262144 },
+      contextWindows: {
+        "kimi-k2.7-code": 262144,
+        "kimi-k3": 1048576,
+      },
     },
   ],
   [
@@ -84,6 +87,7 @@ const expectedChatPresets = new Map<
     {
       baseUrl: "https://api.stepfun.com/step_plan/v1",
       contextWindows: {
+        "step-3.7-flash": 262144,
         "step-3.5-flash-2603": 262144,
         "step-3.5-flash": 262144,
       },
@@ -94,6 +98,7 @@ const expectedChatPresets = new Map<
     {
       baseUrl: "https://api.stepfun.ai/step_plan/v1",
       contextWindows: {
+        "step-3.7-flash": 262144,
         "step-3.5-flash-2603": 262144,
         "step-3.5-flash": 262144,
       },
@@ -110,35 +115,38 @@ const expectedChatPresets = new Map<
     "Longcat",
     {
       baseUrl: "https://api.longcat.chat/openai/v1",
-      contextWindows: { "LongCat-Flash-Chat": 262144 },
+      contextWindows: { "LongCat-2.0": 1048576 },
     },
   ],
   [
     "MiniMax",
     {
       baseUrl: "https://api.minimaxi.com/v1",
-      contextWindows: { "MiniMax-M2.7": 200000 },
+      contextWindows: { "MiniMax-M3": 1000000 },
     },
   ],
   [
     "MiniMax en",
     {
       baseUrl: "https://api.minimax.io/v1",
-      contextWindows: { "MiniMax-M2.7": 200000 },
+      contextWindows: { "MiniMax-M3": 1000000 },
     },
   ],
   [
     "BaiLing",
     {
       baseUrl: "https://api.tbox.cn/api/llm/v1",
-      contextWindows: { "Ling-2.5-1T": 131072 },
+      contextWindows: { "Ling-2.6-1T": 262144 },
     },
   ],
   [
     "Xiaomi MiMo",
     {
       baseUrl: "https://api.xiaomimimo.com/v1",
-      contextWindows: { "mimo-v2.5-pro": 1048576 },
+      contextWindows: {
+        "mimo-v2.5-pro": 1048576,
+        "mimo-v2.5": 1048576,
+      },
     },
   ],
   [
@@ -179,12 +187,20 @@ const expectedChatPresets = new Map<
 ]);
 
 describe("Codex Chat provider presets", () => {
-  it("marks migrated Chat Completions presets for local routing", () => {
+  it("marks migrated coding presets for local routing", () => {
+    const responsesApiPresets = new Set([
+      "Longcat",
+      "MiniMax",
+      "MiniMax en",
+      "Xiaomi MiMo",
+    ]);
     for (const [name, expected] of expectedChatPresets) {
       const preset = codexProviderPresets.find((item) => item.name === name);
 
       expect(preset, `${name} preset`).toBeDefined();
-      expect(preset?.apiFormat).toBe("openai_chat");
+      expect(preset?.apiFormat).toBe(
+        responsesApiPresets.has(name) ? "openai_responses" : "openai_chat",
+      );
       expect(extractCodexBaseUrl(preset?.config)).toBe(expected.baseUrl);
       expect(extractCodexWireApi(preset?.config)).toBe("responses");
       expect(preset?.endpointCandidates).toContain(expected.baseUrl);

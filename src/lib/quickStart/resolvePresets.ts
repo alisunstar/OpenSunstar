@@ -2,6 +2,14 @@ import { providerPresets } from "@/config/claudeProviderPresets";
 import { claudeDesktopProviderPresets } from "@/config/claudeDesktopProviderPresets";
 import { codexProviderPresets } from "@/config/codexProviderPresets";
 import { geminiProviderPresets } from "@/config/geminiProviderPresets";
+import { opencodeProviderPresets } from "@/config/opencodeProviderPresets";
+import { openclawProviderPresets } from "@/config/openclawProviderPresets";
+import { hermesProviderPresets } from "@/config/hermesProviderPresets";
+import {
+  grokBuildProviderPresets,
+  grokBuildOfficialPreset,
+  type GrokBuildProviderPreset,
+} from "@/config/grokBuildProviderPresets";
 import {
   quickStartClaudePresets,
   quickStartCodexPresets,
@@ -37,6 +45,26 @@ function findCodexPreset(name: string) {
 function findGeminiPreset(name: string) {
   return [...geminiProviderPresets, ...quickStartGeminiPresets].find(
     (p) => p.name === name,
+  );
+}
+
+function findOpenCodePreset(name: string) {
+  return opencodeProviderPresets.find((preset) => preset.name === name);
+}
+
+function findOpenClawPreset(name: string) {
+  return openclawProviderPresets.find((preset) => preset.name === name);
+}
+
+function findHermesPreset(name: string) {
+  return hermesProviderPresets.find((preset) => preset.name === name);
+}
+
+function findGrokBuildPreset(
+  name: string,
+): GrokBuildProviderPreset | undefined {
+  return [grokBuildOfficialPreset, ...grokBuildProviderPresets].find(
+    (preset) => preset.name === name,
   );
 }
 
@@ -114,6 +142,74 @@ export function resolvePresetByName(
         raw: p,
       };
     }
+    case "grokbuild": {
+      const p = findGrokBuildPreset(name);
+      if (!p) return null;
+      return {
+        name: p.name,
+        nameKey: p.nameKey,
+        websiteUrl: p.websiteUrl,
+        apiKeyUrl: p.apiKeyUrl,
+        category: p.category,
+        icon: p.icon,
+        iconColor: p.iconColor,
+        isOfficial: p.isOfficial,
+        isPartner: p.isPartner,
+        authMode: p.isOfficial ? "oauth" : "api_key",
+        raw: p,
+      };
+    }
+    case "opencode": {
+      const p = findOpenCodePreset(name);
+      if (!p) return null;
+      return {
+        name: p.name,
+        nameKey: p.nameKey,
+        websiteUrl: p.websiteUrl,
+        apiKeyUrl: p.apiKeyUrl,
+        category: p.category,
+        icon: p.icon,
+        iconColor: p.iconColor,
+        isOfficial: p.isOfficial,
+        isPartner: p.isPartner,
+        authMode: "api_key",
+        raw: p,
+      };
+    }
+    case "openclaw": {
+      const p = findOpenClawPreset(name);
+      if (!p) return null;
+      return {
+        name: p.name,
+        nameKey: p.nameKey,
+        websiteUrl: p.websiteUrl,
+        apiKeyUrl: p.apiKeyUrl,
+        category: p.category,
+        icon: p.icon,
+        iconColor: p.iconColor,
+        isOfficial: p.isOfficial,
+        isPartner: p.isPartner,
+        authMode: "api_key",
+        raw: p,
+      };
+    }
+    case "hermes": {
+      const p = findHermesPreset(name);
+      if (!p) return null;
+      return {
+        name: p.name,
+        nameKey: p.nameKey,
+        websiteUrl: p.websiteUrl,
+        apiKeyUrl: p.apiKeyUrl,
+        category: p.category,
+        icon: p.icon,
+        iconColor: p.iconColor,
+        isOfficial: p.isOfficial,
+        isPartner: p.isPartner,
+        authMode: "api_key",
+        raw: p,
+      };
+    }
     default:
       return null;
   }
@@ -149,8 +245,7 @@ export function customPresetCard(
     name: QUICKSTART_CUSTOM_PRESET_ID,
     websiteUrl: "",
     category: "custom",
-    icon:
-      appId === "codex" ? "openai" : appId === "gemini" ? "gemini" : "claude",
+    icon: appId === "codex" ? "openai" : appId === "gemini" ? "gemini" : appId,
     raw: null,
   };
 }

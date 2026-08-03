@@ -32,6 +32,8 @@ pub struct QuickStartApplyRequest {
     pub idempotency_key: String,
     pub app_type: String,
     pub provider: Provider,
+    #[serde(default)]
+    pub openclaw_suggested_defaults: Option<crate::openclaw_config::OpenClawAgentsDefaults>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -119,7 +121,13 @@ impl QuickStartService {
         let app_type = AppType::from_str(&request.app_type)?;
         if !matches!(
             app_type,
-            AppType::Claude | AppType::ClaudeDesktop | AppType::Codex | AppType::Gemini
+            AppType::Claude
+                | AppType::ClaudeDesktop
+                | AppType::Codex
+                | AppType::Gemini
+                | AppType::OpenCode
+                | AppType::OpenClaw
+                | AppType::Hermes
         ) {
             return Err(AppError::InvalidInput(format!(
                 "Unsupported QuickStart app type: {}",
@@ -296,6 +304,11 @@ impl QuickStartService {
                 None,
             )?;
             ProviderService::switch(state, app_type.clone(), &request.provider.id)?;
+            if matches!(app_type, AppType::OpenClaw) {
+                if let Some(defaults) = request.openclaw_suggested_defaults.as_ref() {
+                    apply_openclaw_suggested_defaults(defaults)?;
+                }
+            }
             fail_if_requested(
                 fault_at,
                 QuickStartFaultPoint::AfterProviderSwitchedBeforeReceipt,
@@ -450,6 +463,14 @@ fn ensure_operation_still_owns_current_provider(
             "QUICKSTART_ROLLBACK_CONFLICT: operation has no applied provider".to_string(),
         )
     })?;
+    if app_type.is_additive_mode() {
+        if crate::services::provider::provider_exists_in_live_config(app_type, expected_provider_id)? {
+            return Ok(());
+        }
+        return Err(AppError::Message(format!(
+            "QUICKSTART_ROLLBACK_CONFLICT: operation provider '{expected_provider_id}' is no longer present in live config"
+        )));
+    }
     let current_provider_id = ProviderService::current(state, app_type.clone())?;
     if current_provider_id != expected_provider_id {
         return Err(AppError::Message(format!(
@@ -633,11 +654,19 @@ async fn verify_applied_state(
     app_type: &AppType,
     provider_id: &str,
 ) -> Result<Provider, AppError> {
-    let current = ProviderService::current(state, app_type.clone())?;
-    if current != provider_id {
-        return Err(AppError::Message(format!(
-            "Current provider mismatch: expected {provider_id}, got {current}"
-        )));
+    if app_type.is_additive_mode() {
+        if !crate::services::provider::provider_exists_in_live_config(app_type, provider_id)? {
+            return Err(AppError::Message(format!(
+                "Applied provider is missing from live config: {provider_id}"
+            )));
+        }
+    } else {
+        let current = ProviderService::current(state, app_type.clone())?;
+        if current != provider_id {
+            return Err(AppError::Message(format!(
+                "Current provider mismatch: expected {provider_id}, got {current}"
+            )));
+        }
     }
     let stored_provider = state
         .db
@@ -693,6 +722,27 @@ async fn verify_applied_state(
         }
     }
     Ok(resolved_provider)
+}
+
+fn apply_openclaw_suggested_defaults(
+    defaults: &crate::openclaw_config::OpenClawAgentsDefaults,
+) -> Result<(), AppError> {
+    let mut merged = crate::openclaw_config::get_agents_defaults()?.unwrap_or(
+        crate::openclaw_config::OpenClawAgentsDefaults {
+            model: None,
+            models: None,
+            extra: Default::default(),
+        },
+    );
+    if let Some(model) = defaults.model.as_ref() {
+        merged.model = Some(model.clone());
+    }
+    if let Some(models) = defaults.models.as_ref() {
+        let catalog = merged.models.get_or_insert_with(Default::default);
+        catalog.extend(models.clone());
+    }
+    crate::openclaw_config::set_agents_defaults(&merged)?;
+    Ok(())
 }
 
 async fn verify_upstream_provider(
@@ -912,6 +962,23 @@ mod tests {
         Provider::with_id(id.to_string(), id.to_string(), json!({}), None)
     }
 
+    fn opencode_provider(id: &str, key: &str) -> Provider {
+        Provider::with_id(
+            id.to_string(),
+            id.to_string(),
+            json!({
+                "npm": "@ai-sdk/openai-compatible",
+                "name": id,
+                "options": {
+                    "baseURL": "https://example.test/v1",
+                    "apiKey": key,
+                },
+                "models": { "gpt-5": { "name": "gpt-5" } },
+            }),
+            None,
+        )
+    }
+
     #[test]
     fn request_fingerprint_ignores_retry_timestamp_but_not_configuration() {
         let mut first_provider = codex_provider("provider", "sk-same");
@@ -922,11 +989,13 @@ mod tests {
             idempotency_key: "retry-key".to_string(),
             app_type: "codex".to_string(),
             provider: first_provider,
+            openclaw_suggested_defaults: None,
         };
         let mut second = QuickStartApplyRequest {
             idempotency_key: "retry-key".to_string(),
             app_type: "codex".to_string(),
             provider: second_provider,
+            openclaw_suggested_defaults: None,
         };
         assert_eq!(
             request_fingerprint(&first).expect("first fingerprint"),
@@ -982,6 +1051,7 @@ mod tests {
                 idempotency_key: "fault-after-switch".to_string(),
                 app_type: "codex".to_string(),
                 provider: codex_provider("created", "sk-created"),
+                openclaw_suggested_defaults: None,
             },
             QuickStartFaultPoint::AfterProviderSwitchedBeforeReceipt,
         )
@@ -1011,6 +1081,75 @@ mod tests {
 
     #[tokio::test]
     #[serial]
+    async fn additive_client_quick_start_writes_live_config_and_compensates_faults() {
+        let _home = TempHome::new();
+        crate::settings::reload_settings().expect("reload settings");
+        let state = AppState::new(Arc::new(Database::memory().expect("database")));
+
+        let result = QuickStartService::apply_with_fault(
+            &state,
+            QuickStartApplyRequest {
+                idempotency_key: "opencode-quick-start".to_string(),
+                app_type: "opencode".to_string(),
+                provider: opencode_provider("quickstart-opencode", "sk-opencode"),
+                openclaw_suggested_defaults: None,
+            },
+            QuickStartFaultPoint::AfterProviderSwitched,
+        )
+        .await
+        .expect("operation result");
+
+        assert_eq!(result.status, QuickStartOperationStatus::RolledBack);
+        assert!(state
+            .db
+            .get_provider_by_id("quickstart-opencode", "opencode")
+            .expect("provider lookup")
+            .is_none());
+        assert!(!crate::opencode_config::get_providers()
+            .expect("live providers")
+            .contains_key("quickstart-opencode"));
+    }
+
+    #[test]
+    #[serial]
+    fn openclaw_suggested_defaults_merge_into_agents_defaults() {
+        let _home = TempHome::new();
+        let defaults = crate::openclaw_config::OpenClawAgentsDefaults {
+            model: Some(crate::openclaw_config::OpenClawDefaultModel {
+                primary: "quickstart-openclaw/deepseek-chat".to_string(),
+                fallbacks: vec![],
+                extra: Default::default(),
+            }),
+            models: Some(std::collections::HashMap::from([(
+                "quickstart-openclaw/deepseek-chat".to_string(),
+                crate::openclaw_config::OpenClawModelCatalogEntry {
+                    alias: Some("DeepSeek".to_string()),
+                    extra: Default::default(),
+                },
+            )])),
+            extra: Default::default(),
+        };
+
+        apply_openclaw_suggested_defaults(&defaults).expect("apply defaults");
+        let written = crate::openclaw_config::get_agents_defaults()
+            .expect("read defaults")
+            .expect("defaults exist");
+        assert_eq!(
+            written.model.expect("default model").primary,
+            "quickstart-openclaw/deepseek-chat"
+        );
+        assert_eq!(
+            written
+                .models
+                .expect("model catalog")
+                .get("quickstart-openclaw/deepseek-chat")
+                .and_then(|entry| entry.alias.as_deref()),
+            Some("DeepSeek")
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
     async fn first_provider_failure_clears_current_selection_and_removes_provider() {
         let _home = TempHome::new();
         crate::settings::reload_settings().expect("reload settings");
@@ -1022,6 +1161,7 @@ mod tests {
                 idempotency_key: "first-provider-failure".to_string(),
                 app_type: "codex".to_string(),
                 provider: codex_provider("first", "sk-first"),
+                openclaw_suggested_defaults: None,
             },
             QuickStartFaultPoint::AfterProviderCreatedBeforeReceipt,
         )
@@ -1142,6 +1282,7 @@ mod tests {
                 idempotency_key: "invalid-provider-create".to_string(),
                 app_type: "codex".to_string(),
                 provider: invalid_codex_provider("invalid"),
+                openclaw_suggested_defaults: None,
             },
         )
         .await
@@ -1179,6 +1320,7 @@ mod tests {
                 idempotency_key: "fault-after-takeover".to_string(),
                 app_type: "codex".to_string(),
                 provider: codex_provider("created", "sk-created"),
+                openclaw_suggested_defaults: None,
             },
             QuickStartFaultPoint::AfterTakeoverEnabledBeforeReceipt,
         )
@@ -1222,6 +1364,7 @@ mod tests {
                 idempotency_key: "fault-after-proxy-start-before-receipt".to_string(),
                 app_type: "codex".to_string(),
                 provider: codex_provider("created", "sk-created"),
+                openclaw_suggested_defaults: None,
             },
             QuickStartFaultPoint::AfterProxyStartedBeforeReceipt,
         )

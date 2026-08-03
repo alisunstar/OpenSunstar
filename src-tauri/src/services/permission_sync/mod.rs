@@ -79,7 +79,7 @@ pub fn sync_app(state: &AppState, app: &AppType) -> Result<(), AppError> {
         AppType::OpenCode => opencode::sync_permissions(&lists),
         AppType::OpenClaw => openclaw::sync_permissions(&lists),
         AppType::Hermes => hermes::sync_permissions(&lists),
-        AppType::ClaudeDesktop => Err(AppError::Config(
+        AppType::GrokBuild | AppType::ClaudeDesktop => Err(AppError::Config(
             "Claude Desktop 不支持 Permissions 同步".into(),
         )),
     }
@@ -96,7 +96,7 @@ pub fn sync_permissions_at_path(
         AppType::Gemini => gemini::sync_permissions_at_path(lists, config_path),
         AppType::OpenCode => opencode::sync_permissions_at_path(lists, config_path),
         AppType::Hermes => hermes::sync_permissions_at_path(lists, config_path),
-        AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(format!(
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(format!(
             "{app:?} 不支持项目级 Permissions 同步"
         ))),
     }

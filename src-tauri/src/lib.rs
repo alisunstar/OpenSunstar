@@ -19,6 +19,7 @@ mod database;
 mod deeplink;
 mod error;
 mod gemini_config;
+mod grok_config;
 mod gemini_mcp;
 pub mod hermes_config;
 mod hook;

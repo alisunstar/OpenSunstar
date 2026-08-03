@@ -10,6 +10,14 @@ import {
 } from "@/config/codexProviderPresets";
 import { getCodexBaseUrl } from "@/utils/providerConfigUtils";
 import type { GeminiProviderPreset } from "@/config/geminiProviderPresets";
+import type { OpenCodeProviderPreset } from "@/config/opencodeProviderPresets";
+import {
+  rebaseOpenClawSuggestedDefaults,
+  type OpenClawProviderPreset,
+} from "@/config/openclawProviderPresets";
+import type { HermesProviderPreset } from "@/config/hermesProviderPresets";
+import type { GrokBuildProviderPreset } from "@/config/grokBuildProviderPresets";
+import { GROK_BUILD_DEFAULT_MODEL } from "@/utils/grokBuildConfig";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
 import type {
   ClaudeDesktopModelRoute,
@@ -19,6 +27,44 @@ import type {
 } from "@/types";
 import type { QuickStartFormFields, QuickStartSelection } from "./types";
 import { resolvePresetByName } from "./resolvePresets";
+
+export interface QuickStartOpenClawSuggestedDefaults {
+  model?: { primary: string; fallbacks?: string[] };
+  models?: Record<string, { alias?: string }>;
+}
+
+export type QuickStartProviderInput = Omit<Provider, "id"> & {
+  ensureClaudeDesktopOfficialSeed?: boolean;
+  openclawSuggestedDefaults?: QuickStartOpenClawSuggestedDefaults;
+};
+
+function grokTomlString(value: string): string {
+  return JSON.stringify(value);
+}
+
+function buildGrokConfig(
+  providerName: string,
+  baseUrl: string,
+  model: string,
+  apiKey: string,
+): string {
+  const profile = "custom";
+  return `[models]\ndefault = ${grokTomlString(profile)}\n\n[model.${profile}]\nmodel = ${grokTomlString(model || GROK_BUILD_DEFAULT_MODEL)}\nbase_url = ${grokTomlString(baseUrl)}\nname = ${grokTomlString(providerName)}\napi_key = ${grokTomlString(apiKey)}\napi_backend = "responses"\ncontext_window = 500000\n`;
+}
+
+function parseGrokPreset(preset: GrokBuildProviderPreset): {
+  baseUrl: string;
+  model: string;
+} {
+  const baseUrl =
+    preset.endpointCandidates?.[0] ??
+    preset.config.match(/base_url\s*=\s*["']([^"']+)["']/)?.[1] ??
+    "";
+  const model =
+    preset.config.match(/^model\s*=\s*["']([^"']+)["']/m)?.[1] ??
+    GROK_BUILD_DEFAULT_MODEL;
+  return { baseUrl, model };
+}
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
@@ -59,14 +105,39 @@ function buildMetaCustomEndpoints(urls: string[]): ProviderMeta | undefined {
   return { custom_endpoints };
 }
 
+function openCodeApiFormat(
+  preset: OpenCodeProviderPreset,
+): NonNullable<ProviderMeta["apiFormat"]> {
+  if (preset.settingsConfig.npm === "@ai-sdk/anthropic") return "anthropic";
+  if (preset.settingsConfig.npm === "@ai-sdk/google") return "gemini_native";
+  return "openai_chat";
+}
+
+function openClawApiFormat(
+  preset: OpenClawProviderPreset,
+): NonNullable<ProviderMeta["apiFormat"]> {
+  if (preset.settingsConfig.api === "anthropic-messages") return "anthropic";
+  if (preset.settingsConfig.api === "google-generative-ai") {
+    return "gemini_native";
+  }
+  return "openai_chat";
+}
+
+function hermesApiFormat(
+  preset: HermesProviderPreset,
+): NonNullable<ProviderMeta["apiFormat"]> {
+  return preset.settingsConfig.api_mode === "anthropic_messages"
+    ? "anthropic"
+    : "openai_chat";
+}
+
 export function buildQuickStartProviderInput(
   appId: QuickStartAppId,
   selection: QuickStartSelection,
   fields: QuickStartFormFields,
   displayName: string,
-): Omit<Provider, "id"> & {
-  ensureClaudeDesktopOfficialSeed?: boolean;
-} {
+  providerId?: string,
+): QuickStartProviderInput {
   if (selection.mode === "official" && appId === "claude-desktop") {
     return {
       name: displayName,
@@ -116,9 +187,153 @@ export function buildQuickStartProviderInput(
         fields,
         displayName,
       );
+    case "grokbuild":
+      return buildGrokBuildFromPreset(
+        preset.raw as GrokBuildProviderPreset,
+        fields,
+        displayName,
+      );
+    case "opencode":
+      return buildOpenCodeFromPreset(
+        preset.raw as OpenCodeProviderPreset,
+        fields,
+        displayName,
+      );
+    case "openclaw":
+      return buildOpenClawFromPreset(
+        preset.raw as OpenClawProviderPreset,
+        fields,
+        displayName,
+        providerId,
+      );
+    case "hermes":
+      return buildHermesFromPreset(
+        preset.raw as HermesProviderPreset,
+        fields,
+        displayName,
+      );
     default:
       throw new Error(`Unsupported app: ${appId}`);
   }
+}
+
+function buildGrokBuildFromPreset(
+  preset: GrokBuildProviderPreset,
+  fields: QuickStartFormFields,
+  displayName: string,
+): Omit<Provider, "id"> {
+  const { baseUrl, model } = parseGrokPreset(preset);
+  return {
+    name: displayName,
+    settingsConfig: {
+      config: buildGrokConfig(
+        displayName,
+        baseUrl,
+        model,
+        fields.apiKey.trim(),
+      ),
+    },
+    websiteUrl: preset.websiteUrl,
+    category: (preset.category ?? "third_party") as ProviderCategory,
+    createdAt: Date.now(),
+    icon: preset.icon ?? "grok",
+    iconColor: preset.iconColor,
+    isPartner: preset.isPartner,
+    meta: {
+      apiFormat: "openai_responses",
+      ...buildMetaCustomEndpoints([
+        baseUrl,
+        ...(preset.endpointCandidates ?? []),
+      ]),
+    },
+  };
+}
+
+function buildOpenCodeFromPreset(
+  preset: OpenCodeProviderPreset,
+  fields: QuickStartFormFields,
+  displayName: string,
+): Omit<Provider, "id"> {
+  const settingsConfig = cloneJson(preset.settingsConfig) as Record<
+    string,
+    any
+  >;
+  settingsConfig.options = {
+    ...(settingsConfig.options ?? {}),
+    apiKey: fields.apiKey.trim(),
+  };
+  return {
+    name: displayName,
+    settingsConfig,
+    websiteUrl: preset.websiteUrl,
+    category: (preset.category ?? "third_party") as ProviderCategory,
+    createdAt: Date.now(),
+    icon: preset.icon,
+    iconColor: preset.iconColor,
+    isPartner: preset.isPartner,
+    meta: { apiFormat: openCodeApiFormat(preset) },
+  };
+}
+
+function buildOpenClawFromPreset(
+  preset: OpenClawProviderPreset,
+  fields: QuickStartFormFields,
+  displayName: string,
+  providerId?: string,
+): QuickStartProviderInput {
+  const settingsConfig = cloneJson(preset.settingsConfig) as Record<
+    string,
+    any
+  >;
+  settingsConfig.apiKey = fields.apiKey.trim();
+  const suggestedDefaults = preset.suggestedDefaults
+    ? rebaseOpenClawSuggestedDefaults(
+        preset.suggestedDefaults,
+        providerId ?? "",
+      )
+    : undefined;
+  return {
+    name: displayName,
+    settingsConfig,
+    websiteUrl: preset.websiteUrl,
+    category: (preset.category ?? "third_party") as ProviderCategory,
+    createdAt: Date.now(),
+    icon: preset.icon,
+    iconColor: preset.iconColor,
+    isPartner: preset.isPartner,
+    meta: { apiFormat: openClawApiFormat(preset) },
+    ...(suggestedDefaults
+      ? {
+          openclawSuggestedDefaults: {
+            model: suggestedDefaults.model,
+            models: suggestedDefaults.modelCatalog,
+          },
+        }
+      : {}),
+  };
+}
+
+function buildHermesFromPreset(
+  preset: HermesProviderPreset,
+  fields: QuickStartFormFields,
+  displayName: string,
+): Omit<Provider, "id"> {
+  const settingsConfig = cloneJson(preset.settingsConfig) as Record<
+    string,
+    any
+  >;
+  settingsConfig.api_key = fields.apiKey.trim();
+  return {
+    name: displayName,
+    settingsConfig,
+    websiteUrl: preset.websiteUrl,
+    category: (preset.category ?? "third_party") as ProviderCategory,
+    createdAt: Date.now(),
+    icon: preset.icon,
+    iconColor: preset.iconColor,
+    isPartner: preset.isPartner,
+    meta: { apiFormat: hermesApiFormat(preset) },
+  };
 }
 
 function buildClaudeFromPreset(
@@ -583,6 +798,73 @@ function buildCustomProvider(
         },
       };
     }
+    case "opencode":
+      return {
+        name,
+        settingsConfig: {
+          npm: "@ai-sdk/openai-compatible",
+          name,
+          options: { baseURL: baseUrl, apiKey: fields.apiKey.trim() },
+          models: model ? { [model]: { name: model } } : {},
+        },
+        category: "custom",
+        createdAt: Date.now(),
+        meta: {
+          apiFormat: "openai_chat",
+          ...buildMetaCustomEndpoints([baseUrl]),
+        },
+      };
+    case "openclaw":
+      return {
+        name,
+        settingsConfig: {
+          baseUrl,
+          apiKey: fields.apiKey.trim(),
+          api: "openai-completions",
+          models: model ? [{ id: model, name: model }] : [],
+        },
+        category: "custom",
+        createdAt: Date.now(),
+        meta: {
+          apiFormat: "openai_chat",
+          ...buildMetaCustomEndpoints([baseUrl]),
+        },
+      };
+    case "hermes":
+      return {
+        name,
+        settingsConfig: {
+          name,
+          base_url: baseUrl,
+          api_key: fields.apiKey.trim(),
+          api_mode: "chat_completions",
+          models: model ? [{ id: model, name: model }] : [],
+        },
+        category: "custom",
+        createdAt: Date.now(),
+        meta: {
+          apiFormat: "openai_chat",
+          ...buildMetaCustomEndpoints([baseUrl]),
+        },
+      };
+    case "grokbuild":
+      return {
+        name,
+        settingsConfig: {
+          config: buildGrokConfig(
+            name,
+            baseUrl,
+            model || GROK_BUILD_DEFAULT_MODEL,
+            fields.apiKey.trim(),
+          ),
+        },
+        category: "custom",
+        createdAt: Date.now(),
+        meta: {
+          apiFormat: "openai_responses",
+          ...buildMetaCustomEndpoints([baseUrl]),
+        },
+      };
     default:
       throw new Error(`Unsupported custom app: ${appId}`);
   }
@@ -599,7 +881,9 @@ export function defaultAdvancedFields(
         ? "gpt-5.6-sol"
         : appId === "gemini"
           ? "gemini-3.6-flash"
-          : "deepseek-v4-pro";
+          : appId === "grokbuild"
+            ? GROK_BUILD_DEFAULT_MODEL
+            : "deepseek-v4-pro";
     const common = {
       customName: "",
       customBaseUrl: "",
@@ -661,6 +945,12 @@ export function defaultAdvancedFields(
             model: customModel,
           },
         };
+      case "grokbuild":
+        return common;
+      case "opencode":
+      case "openclaw":
+      case "hermes":
+        return common;
     }
   }
   if (selection.mode !== "preset") return {};
@@ -757,6 +1047,18 @@ export function defaultAdvancedFields(
         },
       };
     }
+    case "grokbuild": {
+      const raw = preset.raw as GrokBuildProviderPreset;
+      const parsed = parseGrokPreset(raw);
+      return {
+        customBaseUrl: parsed.baseUrl,
+        customModel: parsed.model,
+      };
+    }
+    case "opencode":
+    case "openclaw":
+    case "hermes":
+      return {};
     default:
       return {};
   }

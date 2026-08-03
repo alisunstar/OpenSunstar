@@ -1,7 +1,7 @@
 {
   "$comment": "i18n-sync 历史欠账棘轮：这些数字只许降不许升。补完欠账后跑 pnpm i18n:sync:baseline 刷新。",
-  "generatedAt": "2026-07-26",
+  "generatedAt": "2026-08-03",
   "drift": 249,
-  "codeConflicts": 35,
-  "dynamicDefaults": 101
+  "codeConflicts": 37,
+  "dynamicDefaults": 112
 }

@@ -73,7 +73,7 @@ impl Hook {
             AppType::Gemini => self.enabled_gemini = enabled,
             AppType::OpenCode => self.enabled_opencode = enabled,
             AppType::Hermes => self.enabled_hermes = enabled,
-            AppType::OpenClaw | AppType::ClaudeDesktop => {}
+            AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {}
         }
     }
 
@@ -84,7 +84,7 @@ impl Hook {
             AppType::Gemini => self.enabled_gemini,
             AppType::OpenCode => self.enabled_opencode,
             AppType::Hermes => self.enabled_hermes,
-            AppType::OpenClaw | AppType::ClaudeDesktop => false,
+            AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => false,
         }
     }
 }

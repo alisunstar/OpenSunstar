@@ -56,6 +56,15 @@
       "confirm": "確認初始化",
       "success": "Wiki 初始化完成，已建立 {{count}} 個檔案",
       "blocked": "安全稽核阻斷"
+    },
+    "accept": {
+      "success": "Wiki 已驗收，並已建立 Commit 同步基線"
+    },
+    "candidates": {
+      "importSuccess": "已匯入 {{count}} 個檔案，正式 Wiki 已進入待驗收狀態"
+    },
+    "generator": {
+      "success": "專案 Wiki 已生成並匯入，共 {{count}} 個頁面，請繼續驗收"
     }
   },
   "app": {
@@ -377,7 +386,8 @@
       "managedAccountsTitle": "託管帳號",
       "managedAccountsDescription": "由 OpenSunstar 管理的帳號登入，可綁定到對應 Provider 或本地代理鏈路。",
       "copilotDescription": "管理 GitHub Copilot 帳號",
-      "codexOauthDescription": "管理 ChatGPT 帳號"
+      "codexOauthDescription": "管理 ChatGPT 帳號",
+      "xaiOauthDescription": "管理 xAI / Grok 帳號"
     },
     "advanced": {
       "configDir": {
@@ -932,6 +942,7 @@
     "claude-desktop": "Claude Desktop",
     "codex": "Codex",
     "gemini": "Gemini",
+    "grokBuild": "Grok Build",
     "opencode": "OpenCode",
     "openclaw": "OpenClaw",
     "hermes": "Hermes"
@@ -1053,6 +1064,10 @@
     "omoHint": "OMO 設定管理 Agent 模型指派，相容 oh-my-openagent.jsonc / oh-my-opencode.jsonc",
     "officialHint": "官方供應商使用瀏覽器登入，無需設定 API Key",
     "getApiKey": "取得 API Key",
+    "apiKey": "API Key",
+    "envKey": "環境變數名稱（選填）",
+    "grokBuildHint": "設定會寫入 ~/.grok/config.toml；僅管理 Grok Build 原生模型設定。",
+    "model": "預設模型",
     "partnerPromotion": {
       "packycode": "PackyCode 是 OpenSunstar 的官方合作夥伴，使用此連結註冊並在儲值時填寫「OpenSunstar」優惠碼，可以享受 9 折優惠",
       "apikeyfun": "APIKEY.FUN 為 OpenSunstar 的使用者提供了特別優惠，透過專屬連結註冊，可享受最高儲值永久 95 折優惠。",
@@ -3674,7 +3689,10 @@
       "claude": "Claude Code",
       "claudeDesktop": "Claude Desktop",
       "codex": "Codex",
-      "gemini": "Gemini"
+      "gemini": "Gemini",
+      "opencode": "OpenCode",
+      "openclaw": "OpenClaw",
+      "hermes": "Hermes"
     },
     "category": {
       "custom": "自定義",
@@ -3691,6 +3709,7 @@
       "cardSubtitle": "自填 Base URL 與模型",
       "hint": "填寫名稱、Base URL 與默認模型；API 格式、認證字段和模型映射可在下方高級選項中調整。",
       "geminiHint": "填寫名稱、Gemini Native Base URL 與模型；Gemini CLI 原生協議會在進階選項中顯示。",
+      "agentHint": "填寫名稱、Base URL 與默認模型；OpenSunstar 會按該客戶端的原生配置格式寫入本機設定。",
       "name": "供應商名稱",
       "namePlaceholder": "例如：我的 DeepSeek 網關",
       "baseUrl": "Base URL",
@@ -3698,6 +3717,7 @@
       "geminiModel": "模型 ID",
       "defaultName": "自定義供應商"
     },
+    "apiKeyOnlyHint": "此客戶端透過 API Key 接入供應商；選擇預設或新增自定義閘道後即可啟用。",
     "advanced": {
       "title": "高級選項",
       "subtitle": "大多數場景保持默認即可",
@@ -3774,8 +3794,15 @@
         "title": "Gemini 帳號登入",
         "description": "憑據由 Gemini CLI 管理；OpenSunstar 讀取狀態和額度。",
         "action": "Gemini 登入指引"
+      },
+      "grokbuild": {
+        "title": "Grok 訂閱登入",
+        "description": "登入由 OpenSunstar 託管；用於 xAI / Grok 官方帳號。API Key 接入仍使用下方供應商設定。",
+        "action": "Grok 訂閱登入",
+        "dialogHint": "依裝置授權流程連接 xAI / Grok 帳號。"
       }
-    }
+    },
+    "accessModeGrid": "接入方式"
   },
   "kanban": {
     "subtitle": "以 AI 驅動的全局多視角，多項目組合矩陣：全生命週期管理、項目健康評估、動態成本監控",
@@ -4216,5 +4243,54 @@
       "windowDays": "{{days}}天",
       "windowHint": "· 近 {{days}} 天資料"
     }
+  },
+  "alerts": {
+    "action": {
+      "budget": "調整預算",
+      "configure": "前往設定",
+      "hintAssets": "→ 專案資產設定 · 資產關聯",
+      "hintReadiness": "→ 專案資產設定 · 就緒與生效",
+      "repair": "前往修復",
+      "setup": "前往設定"
+    },
+    "dismiss": "知道了",
+    "empty": {
+      "desc": "沒有故障、沒有超支、沒有待修復。回去寫程式吧。",
+      "title": "今天沒事"
+    },
+    "money": {
+      "critical": "預算超限",
+      "emergency": "嚴重超限",
+      "warning": "預算預警"
+    },
+    "onlyTasks": "狀態與花費都沒問題，其餘事項可以排程。",
+    "task": {
+      "driftDesc": "設定與預期不一致，可預覽後一鍵修復",
+      "gapDesc": "就緒檢查尚未完成，請前往「專案資產設定」補齊"
+    },
+    "viewAll": "查看專案全景"
+  },
+  "xaiOauth": {
+    "authStatus": "xAI OAuth 驗證",
+    "accountCount": "{{count}} 個可用帳號",
+    "reauthRequired": "需要重新登入",
+    "notAuthenticated": "未驗證",
+    "selectAccount": "選擇帳號",
+    "selectAccountPlaceholder": "選擇 xAI 帳號",
+    "useDefaultAccount": "使用預設帳號",
+    "accounts": "xAI 帳號",
+    "expired": "憑證已失效",
+    "defaultAccount": "預設",
+    "setAsDefault": "設為預設",
+    "removeAccount": "移除帳號",
+    "addOrReauth": "新增帳號或重新登入",
+    "login": "使用 xAI 登入",
+    "waitingForAuth": "等待 xAI 授權中…",
+    "enterCode": "若瀏覽器未自動填入，請輸入：",
+    "retry": "重試",
+    "logoutAll": "移除所有 xAI 帳號",
+    "loginRequired": "請先登入 xAI 帳號",
+    "selectedAccountNeedsReauth": "已綁定帳號不存在或需要重新登入",
+    "selectedAccountUnavailable": "已綁定帳號不存在或需要重新登入，請重新選擇帳號"
   }
 }

@@ -57,9 +57,11 @@ import { QuickStartCustomFields } from "./QuickStartCustomFields";
 import { QuickStartProviderList } from "./QuickStartProviderList";
 import { QuickStartVerifyBlock } from "./QuickStartVerifyBlock";
 import { CodexOAuthSection } from "@/components/providers/forms/CodexOAuthSection";
+import { XaiOAuthSection } from "@/components/providers/forms/XaiOAuthSection";
 import {
   buildCodexOauthIntent,
   buildLocalCliAuthIntent,
+  buildXaiOauthIntent,
   type SettingsNavIntent,
 } from "@/lib/settingsNavigation";
 
@@ -307,15 +309,16 @@ export function QuickStartPage({ onOpenAuthSettings }: QuickStartPageProps) {
             : selectedPreset?.nameKey
               ? String(t(selectedPreset.nameKey))
               : (selectedPreset?.name ?? "供应商");
+      const identity =
+        attemptIdentityRef.current ?? createQuickStartAttemptIdentity();
+      attemptIdentityRef.current = identity;
       const providerInput = buildQuickStartProviderInput(
         activeApp,
         selection,
         fields,
         displayName,
+        identity.providerId,
       );
-      const identity =
-        attemptIdentityRef.current ?? createQuickStartAttemptIdentity();
-      attemptIdentityRef.current = identity;
 
       const { operation } = await runQuickStartApplyPipeline(
         { appId: activeApp, queryClient },
@@ -406,7 +409,7 @@ export function QuickStartPage({ onOpenAuthSettings }: QuickStartPageProps) {
   return (
     <div
       data-testid="quick-start-workbench"
-      className="mx-auto max-w-4xl space-y-8 p-6"
+      className="mx-auto max-w-6xl space-y-8 p-6"
     >
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
@@ -428,24 +431,48 @@ export function QuickStartPage({ onOpenAuthSettings }: QuickStartPageProps) {
 
       <QuickStartAppTabs activeApp={activeApp} onChange={handleAppChange} />
 
-      <section className="space-y-3">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold">
-            {t("quickStart.officialConnection", { defaultValue: "订阅账号" })}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {t("quickStart.officialConnectionHint", {
-              defaultValue: "按客户端完成订阅登录。",
-            })}
-          </p>
+      <section
+        aria-label={t("quickStart.accessModeGrid", {
+          defaultValue: "接入方式",
+        })}
+        className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]"
+      >
+        <div className="space-y-3 rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm">
+          <div className="space-y-1">
+            <h2 className="text-base font-semibold">
+              {t("quickStart.officialConnection", {
+                defaultValue: "订阅账号",
+              })}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {t("quickStart.officialConnectionHint", {
+                defaultValue: "按客户端完成订阅登录。",
+              })}
+            </p>
+          </div>
+          {officialPreset && (
+            <OfficialAccountPanel
+              appId={activeApp}
+              preset={officialPreset}
+              onOpenAuthSettings={onOpenAuthSettings}
+            />
+          )}
+          {!officialPreset && (
+            <p className="rounded-lg border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+              {t("quickStart.apiKeyOnlyHint", {
+                defaultValue:
+                  "该客户端通过 API Key 接入供应商；选择预设或添加自定义网关后即可启用。",
+              })}
+            </p>
+          )}
         </div>
-        {officialPreset && (
-          <OfficialAccountPanel
+
+        <div className="rounded-2xl border border-border/70 bg-card/60 p-4 shadow-sm">
+          <QuickStartProviderList
             appId={activeApp}
-            preset={officialPreset}
-            onOpenAuthSettings={onOpenAuthSettings}
+            onAddProvider={handleOpenAddProvider}
           />
-        )}
+        </div>
       </section>
 
       {recoverableOperations.length > 0 && (
@@ -643,13 +670,6 @@ export function QuickStartPage({ onOpenAuthSettings }: QuickStartPageProps) {
           )}
         </section>
       )}
-
-      <section>
-        <QuickStartProviderList
-          appId={activeApp}
-          onAddProvider={handleOpenAddProvider}
-        />
-      </section>
 
       <Dialog
         open={isAddProviderOpen}
@@ -905,12 +925,24 @@ function OfficialAccountPanel({
 }) {
   const { t } = useTranslation();
   const [codexLoginOpen, setCodexLoginOpen] = useState(false);
+  const [xaiLoginOpen, setXaiLoginOpen] = useState(false);
   const providerTitle = preset.displayName
     ? preset.displayName
     : preset.nameKey
       ? String(t(preset.nameKey))
       : preset.name;
-  const copy = {
+  const copy: Partial<
+    Record<
+      QuickStartAppId,
+      {
+        title: string;
+        description: string;
+        primary: string;
+        href: string | null;
+        manage: string | null;
+      }
+    >
+  > = {
     claude: {
       title: t("quickStart.subscription.claude.title", {
         defaultValue: "Claude 订阅登录",
@@ -969,12 +1001,43 @@ function OfficialAccountPanel({
         defaultValue: "登录状态",
       }),
     },
-  }[appId];
+    grokbuild: {
+      title: t("quickStart.subscription.grokbuild.title", {
+        defaultValue: "Grok 订阅登录",
+      }),
+      description: t("quickStart.subscription.grokbuild.description", {
+        defaultValue:
+          "登录由 OpenSunstar 托管；用于 xAI / Grok 官方账号。API Key 接入仍使用下方供应商配置。",
+      }),
+      primary: t("quickStart.subscription.grokbuild.action", {
+        defaultValue: "Grok 订阅登录",
+      }),
+      href: null,
+      manage: t("quickStart.subscription.accountManagement", {
+        defaultValue: "账号管理",
+      }),
+    },
+  };
+  const appCopy = copy[appId];
+
+  if (!appCopy) return null;
 
   const openManagement = () => {
     onOpenAuthSettings?.(
-      appId === "codex" ? buildCodexOauthIntent() : buildLocalCliAuthIntent(),
+      appId === "codex"
+        ? buildCodexOauthIntent()
+        : appId === "grokbuild"
+          ? buildXaiOauthIntent()
+          : buildLocalCliAuthIntent(),
     );
+  };
+
+  const openLoginDialog = () => {
+    if (appId === "grokbuild") {
+      setXaiLoginOpen(true);
+      return;
+    }
+    setCodexLoginOpen(true);
   };
 
   return (
@@ -990,25 +1053,23 @@ function OfficialAccountPanel({
         <div className="min-w-0 flex-1">
           <h3 className="font-semibold">{providerTitle}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            {copy.description}
+            {appCopy.description}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
-          {copy.href ? (
+          {appCopy.href ? (
             <Button asChild>
-              <a href={copy.href} target="_blank" rel="noreferrer">
-                {copy.primary}
+              <a href={appCopy.href} target="_blank" rel="noreferrer">
+                {appCopy.primary}
                 <ExternalLink className="ml-1.5 h-4 w-4" />
               </a>
             </Button>
           ) : (
-            <Button onClick={() => setCodexLoginOpen(true)}>
-              {copy.primary}
-            </Button>
+            <Button onClick={openLoginDialog}>{appCopy.primary}</Button>
           )}
-          {copy.manage && onOpenAuthSettings && (
+          {appCopy.manage && onOpenAuthSettings && (
             <Button variant="outline" onClick={openManagement}>
-              {copy.manage}
+              {appCopy.manage}
             </Button>
           )}
         </div>
@@ -1041,6 +1102,38 @@ function OfficialAccountPanel({
             </DialogHeader>
             <div className="min-h-0 overflow-y-auto px-6 py-5">
               <CodexOAuthSection />
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {appId === "grokbuild" && (
+        <Dialog open={xaiLoginOpen} onOpenChange={setXaiLoginOpen}>
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-hidden">
+            <DialogHeader className="relative pr-14">
+              <DialogTitle>
+                {t("quickStart.subscription.grokbuild.title", {
+                  defaultValue: "Grok 订阅登录",
+                })}
+              </DialogTitle>
+              <DialogDescription>
+                {t("quickStart.subscription.grokbuild.dialogHint", {
+                  defaultValue: "按设备授权流程连接 xAI / Grok 账号。",
+                })}
+              </DialogDescription>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-3 top-3"
+                aria-label={t("common.close", { defaultValue: "关闭" })}
+                onClick={() => setXaiLoginOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogHeader>
+            <div className="min-h-0 overflow-y-auto px-6 py-5">
+              <XaiOAuthSection />
             </div>
           </DialogContent>
         </Dialog>

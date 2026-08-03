@@ -5,6 +5,7 @@ use crate::codex_config::get_codex_auth_path;
 use crate::config::get_claude_settings_path;
 use crate::error::AppError;
 use crate::gemini_config::get_gemini_dir;
+use crate::grok_config::get_grok_config_dir;
 use crate::openclaw_config::get_openclaw_dir;
 use crate::opencode_config::get_opencode_dir;
 
@@ -22,6 +23,7 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Claude => get_base_dir_with_fallback(get_claude_settings_path(), ".claude")?,
         AppType::Codex => get_base_dir_with_fallback(get_codex_auth_path(), ".codex")?,
         AppType::Gemini => get_gemini_dir(),
+        AppType::GrokBuild => get_grok_config_dir(),
         AppType::OpenCode => get_opencode_dir(),
         AppType::OpenClaw => get_openclaw_dir(),
         AppType::Hermes => crate::hermes_config::get_hermes_dir(),
@@ -32,7 +34,7 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Claude => "CLAUDE.md",
         AppType::Codex => "AGENTS.md",
         AppType::Gemini => "GEMINI.md",
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
+        AppType::GrokBuild | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
         AppType::ClaudeDesktop => unreachable!("handled above"),
     };
 
@@ -41,6 +43,9 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
 
 /// 项目根目录下的 Prompt 文件名（各 CLI 约定）
 pub fn project_prompt_filename(app: &AppType) -> Result<&'static str, AppError> {
+    if matches!(app, AppType::GrokBuild) {
+        return Err(AppError::Config("Grok Build 项目级 Prompt 路径暂未定义".to_string()));
+    }
     if matches!(app, AppType::ClaudeDesktop) {
         return Err(AppError::localized(
             "claude_desktop.prompts_unsupported",
@@ -52,7 +57,7 @@ pub fn project_prompt_filename(app: &AppType) -> Result<&'static str, AppError> 
         AppType::Claude => "CLAUDE.md",
         AppType::Codex => "AGENTS.md",
         AppType::Gemini => "GEMINI.md",
-        AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
+        AppType::GrokBuild | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
         AppType::ClaudeDesktop => unreachable!(),
     })
 }
@@ -85,7 +90,7 @@ pub fn project_cli_dot_dir(app: &AppType) -> Result<&'static str, AppError> {
         AppType::Gemini => ".gemini",
         AppType::OpenCode => ".opencode",
         AppType::Hermes => ".hermes",
-        AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
             return Err(AppError::Config(format!(
                 "{app:?} 不支持项目级 Commands 目录"
             )));
@@ -194,7 +199,7 @@ pub fn project_ignore_file_path(
         AppType::Gemini => ".geminiignore",
         AppType::OpenCode => ".opencodeignore",
         AppType::Hermes => ".hermesignore",
-        AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
             return Err(AppError::Config(format!(
                 "{app:?} 不支持项目级 ignore 文件同步"
             )));

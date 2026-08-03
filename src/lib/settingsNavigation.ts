@@ -5,7 +5,11 @@ export interface SettingsNavIntent {
   /** ProxyTabContent accordion values, e.g. `proxy`, `failover` */
   openSections?: string[];
   /** Optional section anchor inside the selected tab. */
-  targetId?: "subscription-accounts" | "local-cli-auth" | "codex-oauth";
+  targetId?:
+    | "subscription-accounts"
+    | "local-cli-auth"
+    | "codex-oauth"
+    | "xai-oauth";
 }
 
 export function setSettingsNavIntent(intent: SettingsNavIntent): void {
@@ -54,4 +58,8 @@ export function buildLocalCliAuthIntent(): SettingsNavIntent {
 
 export function buildCodexOauthIntent(): SettingsNavIntent {
   return { tab: "auth", targetId: "codex-oauth" };
+}
+
+export function buildXaiOauthIntent(): SettingsNavIntent {
+  return { tab: "auth", targetId: "xai-oauth" };
 }

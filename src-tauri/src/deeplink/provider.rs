@@ -145,6 +145,7 @@ pub(crate) fn build_provider_from_request(
         AppType::Claude | AppType::ClaudeDesktop => build_claude_settings(request),
         AppType::Codex => build_codex_settings(request),
         AppType::Gemini => build_gemini_settings(request),
+        AppType::GrokBuild => build_grok_settings(request),
         AppType::OpenCode => build_opencode_settings(request),
         AppType::OpenClaw => build_additive_app_settings(request),
         AppType::Hermes => build_hermes_settings(request),
@@ -408,6 +409,24 @@ fn build_gemini_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
     }
 
     json!({ "env": env })
+}
+
+fn build_grok_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
+    let profile = request
+        .model
+        .as_deref()
+        .unwrap_or(crate::grok_config::DEFAULT_MODEL);
+    let model = request
+        .model
+        .as_deref()
+        .unwrap_or(crate::grok_config::DEFAULT_MODEL);
+    let base_url = get_primary_endpoint(request).trim_end_matches('/').to_string();
+    let name = request.name.as_deref().unwrap_or("Grok Provider");
+    let key = request.api_key.clone().unwrap_or_default();
+    let config = format!(
+        "[models]\ndefault = {profile:?}\n\n[model.{profile:?}]\nmodel = {model:?}\nbase_url = {base_url:?}\nname = {name:?}\napi_key = {key:?}\napi_backend = \"responses\"\ncontext_window = 500000\n"
+    );
+    json!({ "config": config })
 }
 
 /// Build OpenCode settings configuration

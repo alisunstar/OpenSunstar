@@ -173,6 +173,7 @@ const UnifiedSkillsPanel = React.forwardRef<
       "claude-desktop": 0,
       codex: 0,
       gemini: 0,
+      grokbuild: 0,
       opencode: 0,
       openclaw: 0,
       hermes: 0,

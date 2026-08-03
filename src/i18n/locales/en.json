@@ -56,6 +56,15 @@
       "confirm": "Confirm init",
       "success": "Wiki initialized, {{count}} files created",
       "blocked": "Safety audit blocked"
+    },
+    "accept": {
+      "success": "Wiki accepted and Commit sync baseline created"
+    },
+    "candidates": {
+      "importSuccess": "Imported {{count}} files; the formal Wiki is ready for acceptance"
+    },
+    "generator": {
+      "success": "Project Wiki generated and imported: {{count}} pages. Continue acceptance"
     }
   },
   "app": {
@@ -377,7 +386,8 @@
       "managedAccountsTitle": "Managed Accounts",
       "managedAccountsDescription": "Accounts managed by OpenSunstar can be bound to Providers or local proxy routes.",
       "copilotDescription": "Manage GitHub Copilot accounts",
-      "codexOauthDescription": "Manage ChatGPT accounts"
+      "codexOauthDescription": "Manage ChatGPT accounts",
+      "xaiOauthDescription": "Manage xAI / Grok accounts"
     },
     "advanced": {
       "configDir": {
@@ -931,6 +941,7 @@
     "claude-desktop": "Claude Desktop",
     "codex": "Codex",
     "gemini": "Gemini",
+    "grokBuild": "Grok Build",
     "opencode": "OpenCode",
     "openclaw": "OpenClaw",
     "hermes": "Hermes"
@@ -1052,6 +1063,10 @@
     "omoHint": "💡 OMO config manages Agent model assignments and supports both oh-my-openagent.jsonc and oh-my-opencode.jsonc",
     "officialHint": "💡 Official provider uses browser login, no API Key needed",
     "getApiKey": "Get API Key",
+    "apiKey": "API Key",
+    "envKey": "Environment variable name (optional)",
+    "grokBuildHint": "Writes to ~/.grok/config.toml and manages only the native Grok Build model configuration.",
+    "model": "Default model",
     "partnerPromotion": {
       "packycode": "PackyCode is an official partner of OpenSunstar. Register using this link and enter \"OpenSunstar\" promo code during recharge to get 10% off",
       "apikeyfun": "APIKEY.FUN offers a special deal for OpenSunstar users. Register through the exclusive link to enjoy up to permanent 5% off top-ups.",
@@ -2834,7 +2849,10 @@
       "claude": "Claude Code",
       "claudeDesktop": "Claude Desktop",
       "codex": "Codex",
-      "gemini": "Gemini"
+      "gemini": "Gemini",
+      "opencode": "OpenCode",
+      "openclaw": "OpenClaw",
+      "hermes": "Hermes"
     },
     "category": {
       "custom": "Custom",
@@ -2851,6 +2869,7 @@
       "cardSubtitle": "Enter Base URL and model yourself",
       "hint": "Enter a name, Base URL, and default model. API format, credential field, and model mapping are available under Advanced below.",
       "geminiHint": "Enter a name, Gemini Native Base URL, and model. The fixed Gemini CLI native protocol is shown under Advanced.",
+      "agentHint": "Enter a name, Base URL, and default model. OpenSunstar writes the native local configuration format for this client.",
       "name": "Provider name",
       "namePlaceholder": "e.g. My DeepSeek gateway",
       "baseUrl": "Base URL",
@@ -2858,6 +2877,7 @@
       "geminiModel": "Model ID",
       "defaultName": "Custom provider"
     },
+    "apiKeyOnlyHint": "This client connects through API keys. Choose a preset or add a custom gateway to enable it.",
     "advanced": {
       "title": "Advanced",
       "subtitle": "Defaults work for most cases",
@@ -2934,8 +2954,15 @@
         "title": "Gemini Account Login",
         "description": "Gemini CLI manages credentials; OpenSunstar reads status and quota.",
         "action": "Gemini Login Guide"
+      },
+      "grokbuild": {
+        "title": "Grok subscription sign-in",
+        "description": "Sign-in is managed by OpenSunstar for official xAI / Grok accounts. API Key connections still use the provider settings below.",
+        "action": "Grok sign-in",
+        "dialogHint": "Connect an xAI / Grok account with the device authorization flow."
       }
-    }
+    },
+    "accessModeGrid": "Access methods"
   },
   "migration": {
     "success": "Configuration migrated successfully",
@@ -4175,5 +4202,54 @@
       "windowDays": "{{days}}d",
       "windowHint": "· last {{days}} days"
     }
+  },
+  "alerts": {
+    "action": {
+      "budget": "Adjust budget",
+      "configure": "Configure",
+      "hintAssets": "→ Project asset configuration · Asset linking",
+      "hintReadiness": "→ Project asset configuration · Readiness & activation",
+      "repair": "Repair",
+      "setup": "Set up"
+    },
+    "dismiss": "Got it",
+    "empty": {
+      "desc": "No failures, no overspending, no pending fixes. Get back to coding.",
+      "title": "Nothing to report today"
+    },
+    "money": {
+      "critical": "Budget limit exceeded",
+      "emergency": "Severely over budget",
+      "warning": "Budget warning"
+    },
+    "onlyTasks": "No issues with health or spend — the rest can be scheduled.",
+    "task": {
+      "driftDesc": "Configuration differs from expectations; preview and repair in one click",
+      "gapDesc": "Readiness is not complete; open Project Asset Configuration to fill the gaps"
+    },
+    "viewAll": "View project overview"
+  },
+  "xaiOauth": {
+    "authStatus": "xAI OAuth authentication",
+    "accountCount": "{{count}} usable accounts",
+    "reauthRequired": "Re-authentication required",
+    "notAuthenticated": "Not authenticated",
+    "selectAccount": "Select account",
+    "selectAccountPlaceholder": "Select xAI account",
+    "useDefaultAccount": "Use default account",
+    "accounts": "xAI accounts",
+    "expired": "Credential expired",
+    "defaultAccount": "Default",
+    "setAsDefault": "Set default",
+    "removeAccount": "Remove account",
+    "addOrReauth": "Add account or sign in again",
+    "login": "Sign in with xAI",
+    "waitingForAuth": "Waiting for xAI authorization…",
+    "enterCode": "If the browser does not fill the code automatically, enter:",
+    "retry": "Retry",
+    "logoutAll": "Remove all xAI accounts",
+    "loginRequired": "Sign in to an xAI account first",
+    "selectedAccountNeedsReauth": "The bound account is missing or needs re-authentication",
+    "selectedAccountUnavailable": "The bound account is missing or needs re-authentication. Select another account."
   }
 }

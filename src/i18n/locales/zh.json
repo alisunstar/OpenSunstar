@@ -68,6 +68,15 @@
       "coldStart": "冷启动态",
       "title": "变更映射",
       "unmapped": "未映射"
+    },
+    "accept": {
+      "success": "Wiki 已验收，并已建立 Commit 同步基线"
+    },
+    "candidates": {
+      "importSuccess": "已导入 {{count}} 个文件，正式 Wiki 已进入待验收状态"
+    },
+    "generator": {
+      "success": "项目 Wiki 已生成并导入，共 {{count}} 个页面，请继续验收"
     }
   },
   "app": {
@@ -413,7 +422,8 @@
       "subscriptionAccountsDescription": "查看官方订阅的额度、重置时间与健康状态。仅托管的多账号支持默认标记；这里不绑定项目或第三方 API Key。",
       "subscriptionAccountsFailed": "无法读取订阅账号状态，请刷新后重试。",
       "subscriptionAccountsLoading": "正在并发读取订阅账号状态…",
-      "subscriptionAccountsTitle": "订阅账号"
+      "subscriptionAccountsTitle": "订阅账号",
+      "xaiOauthDescription": "管理 xAI / Grok 账号"
     },
     "advanced": {
       "configDir": {
@@ -971,6 +981,7 @@
     "claude-desktop": "Claude Desktop",
     "codex": "Codex",
     "gemini": "Gemini",
+    "grokBuild": "Grok Build",
     "opencode": "OpenCode",
     "openclaw": "OpenClaw",
     "hermes": "Hermes"
@@ -1223,7 +1234,11 @@
     "fetchModelsNotSupported": "该供应商不支持获取模型列表",
     "fetchModelsEndpointNotFound": "未找到可用的模型列表端点，请检查 Base URL 或确认供应商是否开放该接口",
     "fetchModelsTimeout": "请求超时，请检查网络连接",
-    "providerKeyStatusLoading": "正在加载供应商标识状态，请稍后再试"
+    "providerKeyStatusLoading": "正在加载供应商标识状态，请稍后再试",
+    "apiKey": "API Key",
+    "envKey": "环境变量名（可选）",
+    "grokBuildHint": "配置会写入 ~/.grok/config.toml；仅维护 Grok Build 原生模型配置。",
+    "model": "默认模型"
   },
   "copilot": {
     "authSection": "GitHub Copilot 认证",
@@ -3002,7 +3017,10 @@
       "claude": "Claude Code",
       "claudeDesktop": "Claude Desktop",
       "codex": "Codex",
-      "gemini": "Gemini"
+      "gemini": "Gemini",
+      "opencode": "OpenCode",
+      "openclaw": "OpenClaw",
+      "hermes": "Hermes"
     },
     "category": {
       "custom": "自定义",
@@ -3019,6 +3037,7 @@
       "cardSubtitle": "自填 Base URL 与模型",
       "hint": "填写名称、Base URL 与默认模型；API 格式、认证字段和模型映射可在下方高级选项中调整。",
       "geminiHint": "填写名称、Gemini Native Base URL 与模型；Gemini CLI 原生协议在高级选项中展示。",
+      "agentHint": "填写名称、Base URL 与默认模型；OpenSunstar 会按该客户端的原生配置格式写入本地配置。",
       "name": "供应商名称",
       "namePlaceholder": "例如：我的 DeepSeek 网关",
       "baseUrl": "Base URL",
@@ -3026,6 +3045,7 @@
       "geminiModel": "模型 ID",
       "defaultName": "自定义供应商"
     },
+    "apiKeyOnlyHint": "该客户端通过 API Key 接入供应商；选择预设或添加自定义网关后即可启用。",
     "advanced": {
       "title": "高级选项",
       "subtitle": "大多数场景保持默认即可",
@@ -3127,8 +3147,15 @@
         "title": "Gemini 账号登录",
         "description": "凭据由 Gemini CLI 管理；OpenSunstar 读取状态和额度。",
         "action": "Gemini 登录指引"
+      },
+      "grokbuild": {
+        "title": "Grok 订阅登录",
+        "description": "登录由 OpenSunstar 托管；用于 xAI / Grok 官方账号。API Key 接入仍使用下方供应商配置。",
+        "action": "Grok 订阅登录",
+        "dialogHint": "按设备授权流程连接 xAI / Grok 账号。"
       }
-    }
+    },
+    "accessModeGrid": "接入方式"
   },
   "migration": {
     "success": "配置迁移成功",
@@ -4483,5 +4510,54 @@
       "windowDays": "{{days}}天",
       "windowHint": "· 近 {{days}} 天数据"
     }
+  },
+  "alerts": {
+    "action": {
+      "budget": "调整预算",
+      "configure": "去配置",
+      "hintAssets": "→ 项目资产配置 · 资产关联",
+      "hintReadiness": "→ 项目资产配置 · 就绪与生效",
+      "repair": "去修复",
+      "setup": "去配置"
+    },
+    "dismiss": "知道了",
+    "empty": {
+      "desc": "没有故障、没有超支、没有待修复。去写代码吧。",
+      "title": "今天没事"
+    },
+    "money": {
+      "critical": "预算超限",
+      "emergency": "严重超限",
+      "warning": "预算预警"
+    },
+    "onlyTasks": "命和钱都没事——剩下的都是可以排期的事。",
+    "task": {
+      "driftDesc": "配置与预期不一致，可预览后一键修复",
+      "gapDesc": "就绪检查未满分，去「项目资产配置」补齐"
+    },
+    "viewAll": "查看项目全景"
+  },
+  "xaiOauth": {
+    "authStatus": "xAI OAuth 认证",
+    "accountCount": "{{count}} 个可用账号",
+    "reauthRequired": "需要重新登录",
+    "notAuthenticated": "未认证",
+    "selectAccount": "选择账号",
+    "selectAccountPlaceholder": "选择 xAI 账号",
+    "useDefaultAccount": "使用默认账号",
+    "accounts": "xAI 账号",
+    "expired": "凭据已失效",
+    "defaultAccount": "默认",
+    "setAsDefault": "设为默认",
+    "removeAccount": "移除账号",
+    "addOrReauth": "添加账号或重新登录",
+    "login": "使用 xAI 登录",
+    "waitingForAuth": "等待 xAI 授权中…",
+    "enterCode": "若浏览器未自动填入，请输入：",
+    "retry": "重试",
+    "logoutAll": "移除所有 xAI 账号",
+    "loginRequired": "请先登录 xAI 账号",
+    "selectedAccountNeedsReauth": "已绑定账号不存在或需要重新登录",
+    "selectedAccountUnavailable": "已绑定账号不存在或需要重新登录，请重新选择账号"
   }
 }

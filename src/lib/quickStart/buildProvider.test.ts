@@ -24,6 +24,99 @@ describe("QuickStart advanced configuration", () => {
     }
   });
 
+  it("builds OpenCode, OpenClaw, and Hermes providers with their native config shapes", () => {
+    const openCode = buildQuickStartProviderInput(
+      "opencode",
+      {
+        mode: "preset",
+        appId: "opencode",
+        presetName: "DeepSeek",
+        isOfficial: false,
+      },
+      {
+        apiKey: "sk-opencode",
+        customName: "",
+        customBaseUrl: "",
+        customModel: "",
+      },
+      "DeepSeek",
+    );
+    expect(openCode.settingsConfig).toMatchObject({
+      options: { apiKey: "sk-opencode" },
+    });
+    expect(openCode.meta?.apiFormat).toBe("openai_chat");
+
+    const openClaw = buildQuickStartProviderInput(
+      "openclaw",
+      {
+        mode: "preset",
+        appId: "openclaw",
+        presetName: "Shengsuanyun",
+        isOfficial: false,
+      },
+      {
+        apiKey: "sk-openclaw",
+        customName: "",
+        customBaseUrl: "",
+        customModel: "",
+      },
+      "Shengsuanyun",
+      "quickstart-openclaw",
+    );
+    expect(openClaw.settingsConfig).toMatchObject({ apiKey: "sk-openclaw" });
+    expect(openClaw.openclawSuggestedDefaults).toMatchObject({
+      model: { primary: "quickstart-openclaw/anthropic/claude-opus-4.8" },
+      models: {
+        "quickstart-openclaw/anthropic/claude-opus-4.8": { alias: "Opus" },
+      },
+    });
+    expect(openClaw.meta?.apiFormat).toBe("anthropic");
+
+    const hermes = buildQuickStartProviderInput(
+      "hermes",
+      { mode: "custom", appId: "hermes" },
+      {
+        apiKey: "sk-hermes",
+        customName: "Hermes gateway",
+        customBaseUrl: "https://hermes.example/v1/",
+        customModel: "gpt-5.5",
+      },
+      "Hermes gateway",
+    );
+    expect(hermes.settingsConfig).toMatchObject({
+      name: "Hermes gateway",
+      base_url: "https://hermes.example/v1",
+      api_key: "sk-hermes",
+      api_mode: "chat_completions",
+      models: [{ id: "gpt-5.5" }],
+    });
+  });
+
+  it("builds Grok Build with native config.toml and API key credentials", () => {
+    const provider = buildQuickStartProviderInput(
+      "grokbuild",
+      {
+        mode: "custom",
+        appId: "grokbuild",
+      },
+      {
+        apiKey: "xai-test-key",
+        customName: "xAI gateway",
+        customBaseUrl: "https://api.x.ai/v1",
+        customModel: "grok-4.5",
+      },
+      "xAI gateway",
+    );
+
+    expect(String(provider.settingsConfig.config)).toContain(
+      'base_url = "https://api.x.ai/v1"',
+    );
+    expect(String(provider.settingsConfig.config)).toContain(
+      'api_key = "xai-test-key"',
+    );
+    expect(provider.meta?.apiFormat).toBe("openai_responses");
+  });
+
   it("persists Claude API format, credential field, and per-role model mapping", () => {
     const selection: QuickStartSelection = {
       mode: "custom",

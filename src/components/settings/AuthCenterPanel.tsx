@@ -2,8 +2,10 @@ import { Github, ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { CodexIcon } from "@/components/BrandIcons";
+import { ProviderIcon } from "@/components/ProviderIcon";
 import { CopilotAuthSection } from "@/components/providers/forms/CopilotAuthSection";
 import { CodexOAuthSection } from "@/components/providers/forms/CodexOAuthSection";
+import { XaiOAuthSection } from "@/components/providers/forms/XaiOAuthSection";
 import { LocalCliAuthStatusPanel } from "@/components/settings/LocalCliAuthStatusPanel";
 import { SubscriptionAccountsPanel } from "@/components/settings/SubscriptionAccountsPanel";
 
@@ -91,6 +93,27 @@ export function AuthCenterPanel() {
         </div>
 
         <CodexOAuthSection />
+      </section>
+
+      <section
+        id="xai-oauth"
+        className="scroll-mt-6 rounded-xl border border-border/60 bg-card/60 p-6"
+      >
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+            <ProviderIcon icon="xai" name="xAI" size={20} />
+          </div>
+          <div>
+            <h4 className="font-medium">xAI (Grok OAuth)</h4>
+            <p className="text-sm text-muted-foreground">
+              {t("settings.authCenter.xaiOauthDescription", {
+                defaultValue: "管理 xAI / Grok 账号",
+              })}
+            </p>
+          </div>
+        </div>
+
+        <XaiOAuthSection />
       </section>
     </div>
   );

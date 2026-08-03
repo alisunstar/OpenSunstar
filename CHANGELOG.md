@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.2.2] - 2026-08-03
+
+### Added
+
+- **Quick Start, seven coding clients:** expand API Key onboarding from Claude Code, Claude Desktop, Codex, and Gemini to OpenCode, OpenClaw, and Hermes; each new client supports reviewed presets and custom gateways
+- **Native client configuration:** Quick Start now writes OpenCode, OpenClaw, and Hermes native provider formats, including OpenClaw suggested default models and model catalog entries
+- **Grok Build access:** add xAI / Grok subscription OAuth alongside API Key providers, with account management, default-account selection, re-authentication state, and local `~/.grok/config.toml` synchronization
+- **Unified onboarding:** present subscription login and API Key access as parallel cards so users can choose the connection method per client
+
+### Fixed
+
+- **Database compatibility:** ship Schema v44 support with the corresponding application release, preventing a locally migrated database from being opened by an older Schema v43 build
+- **Hermes API verification:** read Hermes native `api_key` and `base_url` fields during credential verification
+
 ## [1.2.1] - 2026-08-02
 
 ### Fixed

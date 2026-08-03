@@ -258,7 +258,7 @@ fn ignore_file_path(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Gemini => get_gemini_dir().join(".geminiignore"),
         AppType::OpenCode => get_opencode_dir().join(".opencodeignore"),
         AppType::Hermes => get_hermes_dir().join(".hermesignore"),
-        AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
             return Err(AppError::Config(format!("{app:?} 不支持 ignore 文件同步")));
         }
     };

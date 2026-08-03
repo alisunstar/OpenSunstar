@@ -37,7 +37,7 @@ pub fn sync_app(state: &AppState, app: &AppType) -> Result<(), AppError> {
         AppType::Codex => codex::sync_hooks(&hooks),
         AppType::Gemini => gemini::sync_hooks(&hooks),
         AppType::Hermes => hermes::sync_hooks(&hooks),
-        AppType::OpenCode | AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenCode | AppType::OpenClaw | AppType::ClaudeDesktop => {
             Err(AppError::Config(format!("{app:?} 不支持 Hooks 同步")))
         }
     }
@@ -53,7 +53,7 @@ pub fn sync_hooks_at_path(
         AppType::Codex => codex::sync_hooks_at_path(hooks, config_path),
         AppType::Gemini => gemini::sync_hooks_at_path(hooks, config_path),
         AppType::Hermes => hermes::sync_hooks_at_path(hooks, config_path),
-        AppType::OpenCode | AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenCode | AppType::OpenClaw | AppType::ClaudeDesktop => {
             Err(AppError::Config(format!("{app:?} 不支持项目级 Hooks 同步")))
         }
     }

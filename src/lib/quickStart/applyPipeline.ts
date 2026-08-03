@@ -3,6 +3,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import type { Provider } from "@/types";
 import type { QuickStartAppId } from "@/config/quickStartCurated";
 import { generateUUID } from "@/utils/uuid";
+import type { QuickStartProviderInput } from "./buildProvider";
 
 export type QuickStartOperationStatus =
   | "pending"
@@ -75,14 +76,15 @@ export function createQuickStartAttemptIdentity(): QuickStartAttemptIdentity {
 
 export async function runQuickStartApplyPipeline(
   deps: QuickStartApplyDeps,
-  providerInput: Omit<Provider, "id"> & {
-    ensureClaudeDesktopOfficialSeed?: boolean;
-  },
+  providerInput: QuickStartProviderInput,
   attemptIdentity = createQuickStartAttemptIdentity(),
 ): Promise<QuickStartApplyResult> {
   const { appId, queryClient } = deps;
-  const { ensureClaudeDesktopOfficialSeed: _ignoredSeed, ...providerFields } =
-    providerInput;
+  const {
+    ensureClaudeDesktopOfficialSeed: _ignoredSeed,
+    openclawSuggestedDefaults,
+    ...providerFields
+  } = providerInput;
   const provider: Provider = {
     ...providerFields,
     id: attemptIdentity.providerId,
@@ -93,6 +95,7 @@ export async function runQuickStartApplyPipeline(
       idempotencyKey: attemptIdentity.idempotencyKey,
       appType: appId,
       provider,
+      openclawSuggestedDefaults,
     },
   });
   operation = await waitForTerminalOperation(operation);

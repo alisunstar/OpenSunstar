@@ -25,13 +25,22 @@ use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
 /// 同步结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSyncResult {
     pub imported: u32,
     pub skipped: u32,
     pub files_scanned: u32,
     pub errors: Vec<String>,
+}
+
+impl SessionSyncResult {
+    pub fn merge(&mut self, other: Self) {
+        self.imported += other.imported;
+        self.skipped += other.skipped;
+        self.files_scanned += other.files_scanned;
+        self.errors.extend(other.errors);
+    }
 }
 
 /// 数据来源分布

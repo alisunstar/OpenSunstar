@@ -184,7 +184,7 @@ fn apply_mcp_convert(
         AppType::Codex => apply_mcp_to_codex(content, overwrite),
         AppType::OpenCode => apply_mcp_to_opencode(content, overwrite),
         AppType::Hermes => apply_mcp_to_hermes(content, overwrite),
-        AppType::ClaudeDesktop | AppType::OpenClaw => {
+        AppType::GrokBuild | AppType::ClaudeDesktop | AppType::OpenClaw => {
             Err(AppError::Config("该目标工具暂不支持 MCP 转换写入".into()))
         }
     }
@@ -516,7 +516,7 @@ fn read_mcp_source(app: &AppType) -> Result<(PathBuf, bool, Option<String>), App
             let text = fs::read_to_string(&path).map_err(|e| AppError::io(&path, e))?;
             Ok((path, true, Some(text)))
         }
-        AppType::ClaudeDesktop | AppType::OpenClaw => {
+        AppType::GrokBuild | AppType::ClaudeDesktop | AppType::OpenClaw => {
             Err(AppError::Config("该源工具暂不支持 MCP 检测".into()))
         }
     }
@@ -582,7 +582,7 @@ fn agents_dir_for_app(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::Gemini => Ok(crate::gemini_config::get_gemini_dir().join("agents")),
         AppType::OpenCode => Ok(crate::opencode_config::get_opencode_dir().join("agents")),
         AppType::Codex => Ok(crate::codex_config::get_codex_config_dir().join("agents")),
-        AppType::Hermes | AppType::ClaudeDesktop | AppType::OpenClaw => {
+        AppType::GrokBuild | AppType::Hermes | AppType::ClaudeDesktop | AppType::OpenClaw => {
             Err(AppError::Config(format!("{app:?} 不支持 Subagent 检测")))
         }
     }
@@ -794,7 +794,7 @@ fn commands_dir_for_app(app: &AppType) -> Result<PathBuf, AppError> {
         AppType::OpenCode => Ok(crate::opencode_config::get_opencode_dir().join("commands")),
         AppType::Hermes => Ok(crate::hermes_config::get_hermes_dir().join("commands")),
         AppType::Codex => Ok(get_codex_config_dir().join("commands")),
-        AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
             Err(AppError::Config(format!("{app:?} 不支持 slash 命令检测")))
         }
     }
@@ -1012,7 +1012,7 @@ fn prompt_filename(app: &AppType) -> &'static str {
     match app {
         AppType::Claude => "CLAUDE.md",
         AppType::Gemini => "GEMINI.md",
-        AppType::Codex | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
+        AppType::GrokBuild | AppType::Codex | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
         AppType::ClaudeDesktop => "N/A",
     }
 }

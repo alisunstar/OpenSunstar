@@ -276,7 +276,7 @@ fn ignore_file_path(app: &AppType) -> Result<std::path::PathBuf, AppError> {
         AppType::Gemini => get_gemini_dir().join(".geminiignore"),
         AppType::OpenCode => get_opencode_dir().join(".opencodeignore"),
         AppType::Hermes => get_hermes_dir().join(".hermesignore"),
-        AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => {
             return Err(AppError::Config(format!("{app:?} 不支持 ignore 文件同步")));
         }
     };
@@ -364,6 +364,7 @@ fn read_live_mcp_map(app: &AppType) -> Result<HashMap<String, Value>, AppError> 
             let map = crate::opencode_config::get_mcp_servers()?;
             Ok(map.into_iter().collect())
         }
+        AppType::GrokBuild => crate::mcp::read_grokbuild_servers_map(),
         AppType::Codex | AppType::Hermes | AppType::OpenClaw | AppType::ClaudeDesktop => {
             Ok(HashMap::new())
         }
@@ -967,7 +968,7 @@ fn command_file_path(name: &str, app: &AppType) -> Result<std::path::PathBuf, Ap
         AppType::Gemini => get_gemini_dir().join("commands").join(&safe_name),
         AppType::OpenCode => get_opencode_dir().join("commands").join(&safe_name),
         AppType::Hermes => get_hermes_dir().join("commands").join(&safe_name),
-        AppType::Codex | AppType::OpenClaw | AppType::ClaudeDesktop => {
+        AppType::GrokBuild | AppType::Codex | AppType::OpenClaw | AppType::ClaudeDesktop => {
             return Err(AppError::Config(format!(
                 "{app:?} 不支持 slash 命令文件路径"
             )));

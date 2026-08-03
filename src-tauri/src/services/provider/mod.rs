@@ -2010,6 +2010,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(&provider.settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(&provider.settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
+            AppType::GrokBuild => Ok(String::new()),
         }
     }
 
@@ -2026,6 +2027,7 @@ impl ProviderService {
             AppType::OpenCode => Self::extract_opencode_common_config(settings_config),
             AppType::OpenClaw => Self::extract_openclaw_common_config(settings_config),
             AppType::Hermes => Ok(String::new()), // Hermes doesn't use common config snippets
+            AppType::GrokBuild => Ok(String::new()),
         }
     }
 
@@ -2382,6 +2384,24 @@ impl ProviderService {
                 use crate::gemini_config::validate_gemini_settings;
                 validate_gemini_settings(&provider.settings_config)?
             }
+            AppType::GrokBuild => {
+                let config = provider
+                    .settings_config
+                    .get("config")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| {
+                        AppError::localized(
+                            "provider.grokbuild.config.missing",
+                            "Grok Build 配置缺少 config 字段",
+                            "Grok Build configuration is missing the config field",
+                        )
+                    })?;
+                if provider.category.as_deref() != Some("official") {
+                    crate::grok_config::validate_config_toml(config)?;
+                } else {
+                    crate::grok_config::validate_config_toml_syntax(config)?;
+                }
+            }
             AppType::OpenCode => {
                 // OpenCode uses a different config structure: { npm, options, models }
                 // Basic validation - must be an object
@@ -2561,6 +2581,28 @@ impl ProviderService {
 
                 Ok((api_key, base_url))
             }
+            AppType::GrokBuild => {
+                let config = provider
+                    .settings_config
+                    .get("config")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| {
+                        AppError::localized(
+                            "provider.grokbuild.config.missing",
+                            "Grok Build 配置缺少 config 字段",
+                            "Grok Build configuration is missing the config field",
+                        )
+                    })?;
+                let (base_url, api_key) = crate::grok_config::extract_credentials(config)
+                    .ok_or_else(|| {
+                        AppError::localized(
+                            "provider.grokbuild.credentials.missing",
+                            "缺少 Grok Build API Key 或 env_key",
+                            "Grok Build API key or env_key is missing",
+                        )
+                    })?;
+                Ok((api_key, base_url))
+            }
             AppType::OpenCode => {
                 // OpenCode uses options.apiKey and options.baseURL
                 let options = provider
@@ -2595,8 +2637,8 @@ impl ProviderService {
 
                 Ok((api_key, base_url))
             }
-            AppType::OpenClaw | AppType::Hermes => {
-                // OpenClaw/Hermes use apiKey and baseUrl directly on the object
+            AppType::OpenClaw => {
+                // OpenClaw uses apiKey and baseUrl directly on the object.
                 let api_key = provider
                     .settings_config
                     .get("apiKey")
@@ -2617,6 +2659,27 @@ impl ProviderService {
                     .unwrap_or("")
                     .to_string();
 
+                Ok((api_key, base_url))
+            }
+            AppType::Hermes => {
+                let api_key = provider
+                    .settings_config
+                    .get("api_key")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| {
+                        AppError::localized(
+                            "provider.hermes.api_key.missing",
+                            "缺少 API Key",
+                            "API key is missing",
+                        )
+                    })?
+                    .to_string();
+                let base_url = provider
+                    .settings_config
+                    .get("base_url")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
                 Ok((api_key, base_url))
             }
         }

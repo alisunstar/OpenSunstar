@@ -812,6 +812,7 @@ mod tests {
                 gemini: true,
                 opencode: true,
                 hermes: true,
+                grokbuild: false,
             },
             description: None,
             homepage: None,

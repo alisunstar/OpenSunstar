@@ -56,6 +56,15 @@
       "confirm": "初期化を確認",
       "success": "Wiki 初期化完了、{{count}} 個のファイルを作成",
       "blocked": "安全監査でブロック"
+    },
+    "accept": {
+      "success": "Wiki を承認し、Commit 同期ベースラインを作成しました"
+    },
+    "candidates": {
+      "importSuccess": "{{count}} ファイルをインポートしました。正式 Wiki の承認に進めます"
+    },
+    "generator": {
+      "success": "プロジェクト Wiki を生成・インポートしました（{{count}} ページ）。承認を続けてください"
     }
   },
   "app": {
@@ -377,7 +386,8 @@
       "managedAccountsTitle": "管理対象アカウント",
       "managedAccountsDescription": "OpenSunstar が管理するアカウントは、対応する Provider またはローカルプロキシ経路に紐づけられます。",
       "copilotDescription": "GitHub Copilot アカウントを管理します",
-      "codexOauthDescription": "ChatGPT アカウントを管理します"
+      "codexOauthDescription": "ChatGPT アカウントを管理します",
+      "xaiOauthDescription": "xAI / Grok アカウントを管理します"
     },
     "advanced": {
       "configDir": {
@@ -931,6 +941,7 @@
     "claude-desktop": "Claude Desktop",
     "codex": "Codex",
     "gemini": "Gemini",
+    "grokBuild": "Grok Build",
     "opencode": "OpenCode",
     "openclaw": "OpenClaw",
     "hermes": "Hermes"
@@ -1048,6 +1059,10 @@
     "omoHint": "💡 OMO 設定は Agent のモデル割り当てを管理し、oh-my-openagent.jsonc / oh-my-opencode.jsonc の両方に対応します",
     "officialHint": "💡 公式プロバイダーはブラウザログインで、API Key は不要です",
     "getApiKey": "API Key を取得",
+    "apiKey": "API Key",
+    "envKey": "環境変数名（任意）",
+    "grokBuildHint": "~/.grok/config.toml に書き込み、このクライアントのネイティブな Grok Build モデル設定だけを管理します。",
+    "model": "既定モデル",
     "partnerPromotion": {
       "packycode": "PackyCode は OpenSunstar の公式パートナーです。登録後チャージ時に \"OpenSunstar\" を入力すると 10% オフ",
       "apikeyfun": "APIKEY.FUN は OpenSunstar ユーザー向けに特別優待を提供しています。専用リンクから登録すると、最大でチャージ永久 5% オフを受けられます。",
@@ -2464,7 +2479,10 @@
       "claude": "Claude Code",
       "claudeDesktop": "Claude Desktop",
       "codex": "Codex",
-      "gemini": "Gemini"
+      "gemini": "Gemini",
+      "opencode": "OpenCode",
+      "openclaw": "OpenClaw",
+      "hermes": "Hermes"
     },
     "category": {
       "custom": "カスタム",
@@ -2481,6 +2499,7 @@
       "cardSubtitle": "Base URL とモデルを自分で入力",
       "hint": "名前、Base URL、既定モデルを入力します。API 形式、認証フィールド、モデルマッピングは下の詳細オプションで調整できます。",
       "geminiHint": "名前、Gemini Native Base URL、モデルを入力します。Gemini CLI の固定ネイティブプロトコルは詳細オプションに表示されます。",
+      "agentHint": "名前、Base URL、既定モデルを入力します。OpenSunstar がこのクライアントのネイティブなローカル設定形式で書き込みます。",
       "name": "プロバイダー名",
       "namePlaceholder": "例：My DeepSeek ゲートウェイ",
       "baseUrl": "Base URL",
@@ -2488,6 +2507,7 @@
       "geminiModel": "モデル ID",
       "defaultName": "カスタムプロバイダー"
     },
+    "apiKeyOnlyHint": "このクライアントは API Key で接続します。プリセットを選ぶかカスタムゲートウェイを追加して有効化してください。",
     "advanced": {
       "title": "詳細オプション",
       "subtitle": "多くの場合は既定値のままで問題ありません",
@@ -2564,8 +2584,15 @@
         "title": "Gemini アカウントログイン",
         "description": "資格情報は Gemini CLI が管理し、OpenSunstar は状態と使用量を読み取ります。",
         "action": "Gemini ログインガイド"
+      },
+      "grokbuild": {
+        "title": "Grok サブスクリプションログイン",
+        "description": "公式 xAI / Grok アカウントのログインは OpenSunstar が管理します。API Key 接続は下のプロバイダー設定を使います。",
+        "action": "Grok ログイン",
+        "dialogHint": "デバイス認証フローで xAI / Grok アカウントを接続します。"
       }
-    }
+    },
+    "accessModeGrid": "接続方法"
   },
   "migration": {
     "success": "設定の移行が完了しました",
@@ -3592,5 +3619,54 @@
       "windowDays": "{{days}}日",
       "windowHint": "· 過去 {{days}} 日のデータ"
     }
+  },
+  "alerts": {
+    "action": {
+      "budget": "予算を調整",
+      "configure": "設定する",
+      "hintAssets": "→ プロジェクトアセット設定 · アセット関連付け",
+      "hintReadiness": "→ プロジェクトアセット設定 · 準備状況と有効化",
+      "repair": "修復する",
+      "setup": "設定する"
+    },
+    "dismiss": "了解",
+    "empty": {
+      "desc": "障害、予算超過、保留中の修復はありません。コーディングに戻りましょう。",
+      "title": "今日は問題ありません"
+    },
+    "money": {
+      "critical": "予算超過",
+      "emergency": "大幅な予算超過",
+      "warning": "予算アラート"
+    },
+    "onlyTasks": "状態と支出に問題はありません。残りはスケジュールできます。",
+    "task": {
+      "driftDesc": "設定が期待値と異なります。プレビュー後にワンクリックで修復できます",
+      "gapDesc": "準備状況が未完了です。プロジェクトアセット設定で不足を補ってください"
+    },
+    "viewAll": "プロジェクト全体を見る"
+  },
+  "xaiOauth": {
+    "authStatus": "xAI OAuth 認証",
+    "accountCount": "{{count}} 件の利用可能なアカウント",
+    "reauthRequired": "再ログインが必要",
+    "notAuthenticated": "未認証",
+    "selectAccount": "アカウントを選択",
+    "selectAccountPlaceholder": "xAI アカウントを選択",
+    "useDefaultAccount": "既定アカウントを使用",
+    "accounts": "xAI アカウント",
+    "expired": "認証情報の期限切れ",
+    "defaultAccount": "既定",
+    "setAsDefault": "既定に設定",
+    "removeAccount": "アカウントを削除",
+    "addOrReauth": "アカウントを追加または再ログイン",
+    "login": "xAI でログイン",
+    "waitingForAuth": "xAI 認証待機中…",
+    "enterCode": "ブラウザに自動入力されない場合は入力：",
+    "retry": "再試行",
+    "logoutAll": "すべての xAI アカウントを削除",
+    "loginRequired": "先に xAI アカウントでログインしてください",
+    "selectedAccountNeedsReauth": "紐づけたアカウントが見つからないか再ログインが必要です",
+    "selectedAccountUnavailable": "紐づけたアカウントが見つからないか再ログインが必要です。別のアカウントを選択してください。"
   }
 }

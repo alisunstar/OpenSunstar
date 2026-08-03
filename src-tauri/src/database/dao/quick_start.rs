@@ -147,7 +147,10 @@ impl Database {
                 "QuickStart idempotency key must contain 1-128 characters".to_string(),
             ));
         }
-        if !matches!(app_type, "claude" | "claude-desktop" | "codex" | "gemini") {
+        if !matches!(
+            app_type,
+            "claude" | "claude-desktop" | "codex" | "gemini" | "opencode" | "openclaw" | "hermes"
+        ) {
             return Err(AppError::InvalidInput(format!(
                 "Unsupported QuickStart app type: {app_type}"
             )));

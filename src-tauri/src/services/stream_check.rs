@@ -254,7 +254,7 @@ impl StreamCheckService {
                 )
                 .await
             }
-            AppType::Codex => {
+            AppType::Codex | AppType::GrokBuild => {
                 Self::check_codex_stream(
                     &client,
                     &base_url,
@@ -1449,6 +1449,15 @@ impl StreamCheckService {
             }
             AppType::Gemini => Self::extract_env_model(provider, "GEMINI_MODEL")
                 .unwrap_or_else(|| config.gemini_model.clone()),
+            AppType::GrokBuild => crate::grok_config::extract_model_config(
+                provider
+                    .settings_config
+                    .get("config")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or(""),
+            )
+            .map(|model| model.model)
+            .unwrap_or_else(|| "grok-4.5".to_string()),
             AppType::OpenCode => {
                 // OpenCode uses models map in settings_config
                 // Try to extract first model from the models object

@@ -37,6 +37,26 @@ const APP_META: Record<
     labelKey: "quickStart.apps.gemini",
     defaultLabel: "Gemini",
   },
+  grokbuild: {
+    icon: "grok",
+    labelKey: "quickStart.apps.grokBuild",
+    defaultLabel: "Grok Build",
+  },
+  opencode: {
+    icon: "opencode",
+    labelKey: "quickStart.apps.opencode",
+    defaultLabel: "OpenCode",
+  },
+  openclaw: {
+    icon: "openclaw",
+    labelKey: "quickStart.apps.openclaw",
+    defaultLabel: "OpenClaw",
+  },
+  hermes: {
+    icon: "hermes",
+    labelKey: "quickStart.apps.hermes",
+    defaultLabel: "Hermes",
+  },
 };
 
 interface QuickStartAppTabsProps {
