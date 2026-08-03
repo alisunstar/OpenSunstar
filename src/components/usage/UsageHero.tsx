@@ -68,6 +68,10 @@ const TITLE_THEMES: Record<AppType | "all", TitleTheme> = {
     accent: "text-purple-600 dark:text-purple-400",
     iconBg: "bg-purple-500/10",
   },
+  grokbuild: {
+    accent: "text-cyan-600 dark:text-cyan-400",
+    iconBg: "bg-cyan-500/10",
+  },
 };
 
 /**

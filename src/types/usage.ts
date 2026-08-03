@@ -163,6 +163,7 @@ export type AppType =
   | "claude-desktop"
   | "codex"
   | "gemini"
+  | "grokbuild"
   | "opencode";
 
 export type AppTypeFilter = "all" | AppType;
@@ -172,6 +173,7 @@ export const KNOWN_APP_TYPES: ReadonlyArray<AppType> = [
   "claude-desktop",
   "codex",
   "gemini",
+  "grokbuild",
   "opencode",
 ];
 

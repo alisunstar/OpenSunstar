@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { UsageHero } from "./UsageHero";
 import { UsageTrendChart } from "./UsageTrendChart";
@@ -35,6 +35,7 @@ import { getUsageRangePresetLabel, resolveUsageRange } from "@/lib/usageRange";
 import { UsageDateRangePicker } from "./UsageDateRangePicker";
 import { ExportMenu } from "./ExportMenu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usageApi } from "@/lib/api/usage";
 
 const APP_FILTER_OPTIONS: AppTypeFilter[] = ["all", ...KNOWN_APP_TYPES];
 
@@ -44,6 +45,24 @@ export function UsageDashboard() {
   const [range, setRange] = useState<UsageRangeSelection>({ preset: "today" });
   const [appType, setAppType] = useState<AppTypeFilter>("all");
   const [refreshIntervalMs, setRefreshIntervalMs] = useState(30000);
+  const hasSyncedOnMount = useRef(false);
+
+  const syncSessionUsage = useCallback(async () => {
+    try {
+      await usageApi.syncSessionUsage();
+      await queryClient.invalidateQueries({ queryKey: usageKeys.all });
+    } catch (error) {
+      // Usage data remains available from the proxy database when a local
+      // client session log is temporarily unavailable.
+      console.warn("同步本地会话用量失败", error);
+    }
+  }, [queryClient]);
+
+  useEffect(() => {
+    if (hasSyncedOnMount.current) return;
+    hasSyncedOnMount.current = true;
+    void syncSessionUsage();
+  }, [syncSessionUsage]);
 
   // 后端写入新日志时 emit `usage-log-recorded`，本 hook 立刻 invalidate 所有
   // usage 查询，实现实时刷新（仅在 Dashboard 挂载时生效，离开页面自动取消监听）
@@ -58,7 +77,7 @@ export function UsageDashboard() {
     const nextIndex = (safeIndex + 1) % refreshIntervalOptionsMs.length;
     const next = refreshIntervalOptionsMs[nextIndex];
     setRefreshIntervalMs(next);
-    queryClient.invalidateQueries({ queryKey: usageKeys.all });
+    void syncSessionUsage();
   };
 
   const language = i18n.resolvedLanguage || i18n.language || "en";
