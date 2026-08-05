@@ -1024,6 +1024,8 @@ mod tests {
     struct TempHome {
         #[allow(dead_code)] // 字段通过 Drop trait 管理临时目录生命周期
         dir: TempDir,
+        // 全局测试 env 锁：与 sync_test_support 一族互斥，消除并行竞态
+        _lock: std::sync::MutexGuard<'static, ()>,
         original_home: Option<String>,
         original_userprofile: Option<String>,
         original_test_home: Option<String>,
@@ -1031,6 +1033,9 @@ mod tests {
 
     impl TempHome {
         fn new() -> Self {
+            let lock = crate::services::sync_test_support::sync_env_lock()
+                .lock()
+                .unwrap_or_else(|e| e.into_inner());
             let dir = TempDir::new().expect("failed to create temp home");
             let original_home = env::var("HOME").ok();
             let original_userprofile = env::var("USERPROFILE").ok();
@@ -1042,6 +1047,7 @@ mod tests {
 
             Self {
                 dir,
+                _lock: lock,
                 original_home,
                 original_userprofile,
                 original_test_home,

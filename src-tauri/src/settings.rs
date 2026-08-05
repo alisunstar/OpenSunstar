@@ -1195,6 +1195,9 @@ mod tests {
         let test_home = std::env::temp_dir().join("OpenSunstar-settings-webdav-keychain-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         update_settings(AppSettings::default()).expect("reset settings");
@@ -1234,6 +1237,9 @@ mod tests {
         let test_home = std::env::temp_dir().join("OpenSunstar-settings-s3-keychain-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         update_settings(AppSettings::default()).expect("reset settings");
@@ -1277,6 +1283,9 @@ mod tests {
         let settings_path = settings_dir.join("settings.json");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&settings_dir).expect("create settings dir");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         let legacy = serde_json::json!({

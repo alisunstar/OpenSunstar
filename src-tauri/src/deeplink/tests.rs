@@ -13,6 +13,8 @@ use std::{env, ffi::OsString, sync::Arc};
 
 struct TestHomeGuard {
     _dir: tempfile::TempDir,
+    // 全局测试 env 锁：与 sync_test_support 一族互斥，消除并行竞态
+    _lock: std::sync::MutexGuard<'static, ()>,
     original_home: Option<OsString>,
     original_userprofile: Option<OsString>,
     original_test_home: Option<OsString>,
@@ -20,6 +22,9 @@ struct TestHomeGuard {
 
 impl TestHomeGuard {
     fn new() -> Self {
+        let lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         let dir = tempfile::tempdir().expect("create isolated test home");
         let original_home = env::var_os("HOME");
         let original_userprofile = env::var_os("USERPROFILE");
@@ -31,6 +36,7 @@ impl TestHomeGuard {
 
         Self {
             _dir: dir,
+            _lock: lock,
             original_home,
             original_userprofile,
             original_test_home,

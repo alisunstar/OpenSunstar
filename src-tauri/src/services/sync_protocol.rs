@@ -492,31 +492,8 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::{Mutex, OnceLock};
-    use tempfile::{tempdir, TempDir};
-
-    fn sync_roundtrip_mutex() -> &'static Mutex<()> {
-        static MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
-        MUTEX.get_or_init(|| Mutex::new(()))
-    }
-
-    fn prepare_sync_test_home(name: &str) -> TempDir {
-        let home = tempdir().expect("create sync test home");
-        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", home.path());
-        std::env::set_var("HOME", home.path());
-        #[cfg(windows)]
-        std::env::set_var("USERPROFILE", home.path());
-        crate::settings::update_settings(crate::settings::AppSettings::default())
-            .expect("reset settings");
-        let skills_dir =
-            crate::services::skill::SkillService::get_ssot_dir().expect("create skills ssot dir");
-        std::fs::write(
-            skills_dir.join(format!("{name}.md")),
-            format!("# {name}\n\nsync test skill\n"),
-        )
-        .expect("write test skill");
-        home
-    }
+    use crate::services::sync_test_support::prepare_sync_test_home;
+    use serial_test::serial;
 
     fn seeded_memory_db(marker_value: &str) -> crate::database::Database {
         let db = crate::database::Database::memory().expect("memory db");
@@ -728,8 +705,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn plaintext_snapshot_roundtrip_applies_db_and_skills() {
-        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
         let _home = prepare_sync_test_home("plaintext-roundtrip");
         crate::keychain::delete_secret("sync/master_key").expect("clear test sync key");
 
@@ -755,8 +732,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn encrypted_snapshot_roundtrip_applies_with_matching_master_key() {
-        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
         let _home = prepare_sync_test_home("encrypted-roundtrip");
         let master_key = vec![42u8; 32];
         crate::keychain::store_sync_master_key(&master_key).expect("store sync key");
@@ -790,8 +767,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn encrypted_snapshot_roundtrip_rejects_wrong_master_key() {
-        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
         let _home = prepare_sync_test_home("wrong-key-roundtrip");
         crate::keychain::store_sync_master_key(&[1u8; 32]).expect("store source sync key");
 
@@ -820,8 +797,8 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn encrypted_snapshot_roundtrip_rejects_damaged_manifest_without_kdf_salt() {
-        let _guard = sync_roundtrip_mutex().lock().expect("lock sync test");
         let _home = prepare_sync_test_home("damaged-manifest-roundtrip");
         crate::keychain::store_sync_master_key(&[3u8; 32]).expect("store sync key");
 

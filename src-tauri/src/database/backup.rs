@@ -956,6 +956,9 @@ mod tests {
             std::env::temp_dir().join("OpenSunstar-periodic-maintenance-backup-disabled-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         let settings = AppSettings {

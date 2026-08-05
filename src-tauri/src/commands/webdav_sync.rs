@@ -267,6 +267,9 @@ mod tests {
         let test_home = std::env::temp_dir().join("OpenSunstar-sync-error-status-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         crate::settings::update_settings(AppSettings::default()).expect("reset settings");
@@ -312,6 +315,9 @@ mod tests {
         let test_home = std::env::temp_dir().join("OpenSunstar-sync-enabled-disabled-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         crate::settings::update_settings(AppSettings::default()).expect("reset settings");
@@ -337,6 +343,9 @@ mod tests {
         let test_home = std::env::temp_dir().join("OpenSunstar-sync-enabled-ok-test");
         let _ = std::fs::remove_dir_all(&test_home);
         std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
         std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
 
         crate::settings::update_settings(AppSettings::default()).expect("reset settings");
