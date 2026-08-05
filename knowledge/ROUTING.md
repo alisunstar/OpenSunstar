@@ -1,0 +1,52 @@
+# ROUTING — project 知识渐进式加载路由
+
+> 生成时间：2026-08-05
+> 本文件是知识库的入口：通过关键词/业务身份/Topic/接口/状态/模型定位候选域→候选应用→知识入口→仓库路径，实现渐进式加载。
+> 核心原则：KB 提供稳定上下文，当前代码仍然是实现事实；错误知识比没有知识更危险。
+
+## 路由规则
+
+按以下顺序匹配，命中即加载对应知识，未命中则继续向下：
+
+### 1. 业务身份路由
+
+| 业务身份 | 候选域 | 候选应用 | 知识入口 |
+|---------|--------|---------|---------|
+| {{business_identity}} | {{domain}} | {{application}} | applications/{{application}}/INDEX.md |
+
+### 2. 关键词路由
+
+| 关键词 | 候选域 | 知识入口 |
+|--------|--------|---------|
+| {{keyword}} | {{domain}} | main/{{domain}}.md |
+
+### 3. 接口/Topic 路由
+
+| 接口/Topic | 候选应用 | 知识入口 |
+|-----------|---------|---------|
+| {{topic}} | {{application}} | applications/{{application}}/domain/{{topic}}.md |
+
+### 4. 状态路由
+
+| 状态 | 加载策略 |
+|------|---------|
+| 新需求 | 先读 main/ 全局语境 → ROUTING 定位应用 → 应用 INDEX → domain/tech |
+| 变更需求 | 先读 applications/{{app}}/requirement.md → 对照变更映射 |
+| 故障排查 | 先读 applications/{{app}}/runbooks/ |
+
+## 渐进式加载层级
+
+1. **应用职责** — applications/{{app}}/INDEX.md（这个应用管什么）
+2. **product 主干** — applications/{{app}}/domain/product/（业务主干）
+3. **solution 差异** — applications/{{app}}/domain/solution/（方案差异）
+4. **base 索引** — applications/{{app}}/domain/base/（基础索引）
+5. **tech 规范** — applications/{{app}}/tech/（技术规范）
+6. **回当前代码核对** — 知识提供上下文，代码是事实
+
+## 候选区加载
+
+- candidate/ 下的知识标 source/evidence/confidence，未经验证不进正式区
+- personal/ 下的个人经验仅作参考，不作为契约
+
+---
+*此模板由 knowledge-baseline recipe 生成，落盘到 knowledge/ROUTING.md*

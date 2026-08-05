@@ -91,3 +91,9 @@ os recipe plan --project-path . --name my-recipe --json
 # Recipe 安装到项目
 os recipe install --project-path . --name my-recipe --yes --json
 ```
+
+<!-- opensunstar:orchestration-context -->
+## OpenSunstar Project Workflow Context
+
+Agents must read `.opensunstar/agent-context.md` before making project changes. It points to workflow, specs, design and gate artifacts that define the current execution contract.
+<!-- /opensunstar:orchestration-context -->

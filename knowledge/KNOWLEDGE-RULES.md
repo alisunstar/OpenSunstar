@@ -1,0 +1,61 @@
+# Knowledge Rules — project
+
+> 生成时间：2026-08-05
+> 知识库治理规则：生命周期、质量要求、回补约定。
+
+## 五层目录
+
+| 层 | 用途 | 准入 |
+|----|------|------|
+| `main/` | 业务域公共语境 | owner review 后可写入 |
+| `applications/` | 应用范围知识（product/solution/base/tech） | owner review 后可写入 |
+| `candidate/` | 候选暂存 | 任何人可写，标来源/证据/可信度 |
+| `personal/` | 个人经验 | 个人维护，不作为契约 |
+| `template/` | 强约束写作模板 | 变更需评审 |
+
+## 知识生命周期
+
+```
+personal → candidate（标来源/证据/可信度）
+  → owner review → official（main/applications）
+    → 被引用 → 代码变化后 update/deprecated
+```
+
+## 模板 YAML frontmatter 约定
+
+每篇正式知识含以下元数据：
+
+```yaml
+---
+id: {{knowledge_id}}
+type: {{product|solution|base|tech|runbook}}
+domain: {{business_domain}}
+application: {{app_name}}
+appType: {{backend|frontend|cli}}
+status: {{draft|official|deprecated}}
+sourceType: {{manual|backfill|imported}}
+owner: {{owner}}
+version: {{version}}
+confidence: {{high|medium|low}}
+stability: {{stable|evolving|volatile}}
+evidence: {{commit|pr|test|doc}}
+tags: [{{tags}}]
+anchors: [{{file_path:block_range}}]
+---
+```
+
+## 质量要求
+
+- 错误知识比没有知识更危险——不确定的标 `confidence: low`，放 candidate/
+- `anchors` 必须指向真实代码路径，代码变化时触发漂移检测
+- 正式区知识变更需经 owner review
+
+## 回补约定
+
+- rd-loop preset 的 backfill 阶段产 KNOWLEDGE-BACKFILL.md
+- 回补候选写入 candidate/，标 sourceType: backfill
+- GUI 验收导入后进 official，建立基线
+- 下一需求 ROUTING 命中已回补知识
+
+---
+*此模板由 knowledge-baseline recipe 生成，落盘到 knowledge/KNOWLEDGE-RULES.md*
