@@ -1,4 +1,4 @@
-//! Agent 配置就绪度 100 分模型（8 类资产 + 近 90 天更新）
+//! Agent 配置就绪度 100 分模型（8 类资产 + 近 90 天更新 = 93；P1-8 交付维度 wiki 基线健康 4 + RD 工件完整度 3 = 7）
 
 use crate::ai::asset_app_support::{
     app_display_label, asset_support, check_name_to_asset_type, normalize_target_app, AssetSupport,
@@ -117,16 +117,16 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
     let mut details = Vec::with_capacity(9);
     let mut total_score = 0u32;
 
-    // MCP 15
+    // MCP 13（P1-8 重平衡：让出 2 分给交付维度）
     let (mcp_score, mcp_status, mcp_detail) = if input.mcp_project_count > 0 {
         (
-            15,
+            13,
             STATUS_READY,
             format!("项目已关联 {} 个 MCP 服务器", input.mcp_project_count),
         )
     } else if input.has_repo_mcp {
         (
-            6,
+            5,
             STATUS_DETECTED_ONLY,
             "项目目录检测到 .mcp.json（尚未在 OpenSunstar 中关联）".to_string(),
         )
@@ -142,20 +142,20 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         &mut total_score,
         "mcp_enabled",
         "MCP 服务器",
-        15,
+        13,
         mcp_score,
         mcp_detail,
         mcp_status,
     );
 
-    // Skills 12
-    let skills_score = if input.skills_count > 0 { 12 } else { 0 };
+    // Skills 11（P1-8 重平衡）
+    let skills_score = if input.skills_count > 0 { 11 } else { 0 };
     push_item(
         &mut details,
         &mut total_score,
         "skills_configured",
         "Skills",
-        12,
+        11,
         skills_score,
         if input.skills_count > 0 {
             format!("项目已启用 {} 个 Skills", input.skills_count)
@@ -169,11 +169,11 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         },
     );
 
-    // Prompts 12
+    // Prompts 11（P1-8 重平衡）
     let has_db = input.prompt_db_count > 0;
     let has_files = !input.prompt_files.is_empty();
     let prompt_score = if has_db {
-        12
+        11
     } else if has_files {
         5
     } else {
@@ -204,7 +204,7 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         &mut total_score,
         "prompt_files",
         "Prompt / AGENTS",
-        12,
+        11,
         prompt_score,
         prompt_detail,
         prompt_status,
@@ -315,14 +315,14 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         perm_status,
     );
 
-    // Subagents 12
-    let sub_score = if input.subagents_count > 0 { 12 } else { 0 };
+    // Subagents 11（P1-8 重平衡）
+    let sub_score = if input.subagents_count > 0 { 11 } else { 0 };
     push_item(
         &mut details,
         &mut total_score,
         "subagents_configured",
         "Subagents",
-        12,
+        11,
         sub_score,
         if input.subagents_count > 0 {
             format!("项目已启用 {} 个 Subagents", input.subagents_count)
@@ -336,14 +336,14 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
         },
     );
 
-    // 近 90 天项目资产关联更新 9
-    let update_score = if input.recent_update_within_90d { 9 } else { 0 };
+    // 近 90 天项目资产关联更新 7（P1-8 重平衡）
+    let update_score = if input.recent_update_within_90d { 7 } else { 0 };
     push_item(
         &mut details,
         &mut total_score,
         "recent_updates",
         "近 90 天项目资产关联更新",
-        9,
+        7,
         update_score,
         if input.recent_update_within_90d {
             "近 90 天内有项目级 AI 资产配置变更".to_string()
@@ -376,6 +376,122 @@ pub fn compute_readiness_items(input: &ReadinessCheckInput) -> (u32, Vec<AgentRe
     }
 
     (total_score, details)
+}
+
+/// 交付维度两项（P1-8 扩容）：wiki 基线健康 4 分 + RD 工件完整度 3 分。
+///
+/// 未采纳（项目无 wiki/ 与 .opensunstar/wiki、无 .specs/）时记 not_required 满分，
+/// 保持 100 分制与未采纳项目的评分语义不变。确定性、无 LLM（K1/K2/K3）。
+pub fn compute_delivery_dimensions(project_path: &str) -> Vec<AgentReadinessItem> {
+    use std::path::Path;
+    let pp = Path::new(project_path);
+    let mut details: Vec<AgentReadinessItem> = Vec::with_capacity(2);
+    let mut total = 0u32;
+
+    // wiki 基线健康 4
+    let wiki_adopted = pp.join("wiki").is_dir() || pp.join(".opensunstar/wiki").is_dir();
+    let (wiki_score, wiki_status, wiki_detail) = if !wiki_adopted {
+        (
+            4,
+            STATUS_NOT_REQUIRED,
+            "项目未采纳 Wiki 知识基线（可从「项目环境 & Wiki」初始化）".to_string(),
+        )
+    } else {
+        match crate::services::project_wiki::scan_project_wiki(project_path, "cli") {
+            Ok(scan) => match scan.base_status.as_str() {
+                "healthy" => (4, STATUS_READY, "Wiki 基线健康（与源码基线一致）".to_string()),
+                "drifted" => (
+                    2,
+                    STATUS_PARTIAL,
+                    "Wiki 基线已漂移（run `os wiki changed` 映射变更）".to_string(),
+                ),
+                _ => (1, STATUS_UNHEALTHY, "Wiki 基线无效或未评级（run `os wiki lint`）".to_string()),
+            },
+            Err(_) => (1, STATUS_UNHEALTHY, "Wiki 扫描失败".to_string()),
+        }
+    };
+    push_item(
+        &mut details,
+        &mut total,
+        "wiki_baseline_health",
+        "Wiki 知识基线健康",
+        4,
+        wiki_score,
+        wiki_detail,
+        wiki_status,
+    );
+
+    // RD 工件完整度 3
+    let specs = pp.join(".specs");
+    let (rd_score, rd_status, rd_detail) = if !specs.is_dir() {
+        (
+            3,
+            STATUS_NOT_REQUIRED,
+            "项目未采纳 .specs/ RD 过程资产（可选 rd-loop 档位）".to_string(),
+        )
+    } else {
+        let mut s = 0u32;
+        let mut parts: Vec<String> = Vec::new();
+        if pp.join("STATE.md").is_file() {
+            s += 1;
+            parts.push("STATE.md".into());
+        }
+        // 活跃 change 目录含 ≥2 工件
+        let active_change = std::fs::read_to_string(pp.join("STATE.md"))
+            .ok()
+            .and_then(|c| {
+                c.lines().find_map(|l| {
+                    l.trim()
+                        .strip_prefix("active_change:")
+                        .map(|v| v.trim().to_string())
+                })
+            });
+        let active_ok = active_change.as_ref().is_some_and(|id| {
+            specs
+                .join(id)
+                .read_dir()
+                .map(|d| d.count() >= 2)
+                .unwrap_or(false)
+        });
+        if active_ok {
+            s += 1;
+            parts.push("active change artifacts".into());
+        }
+        if let Some(id) = active_change.as_ref() {
+            if crate::services::rd_validate::validate_implementation_check(project_path, id)
+                .map(|r| r.schema_valid)
+                .unwrap_or(false)
+            {
+                s += 1;
+                parts.push("implementation-check schema".into());
+            }
+        }
+        let status = if s >= 3 {
+            STATUS_READY
+        } else if s > 0 {
+            STATUS_PARTIAL
+        } else {
+            STATUS_MISSING
+        };
+        (
+            s,
+            status,
+            format!("RD 工件完整度 {s}/3（{}）", parts.join(" + ")),
+        )
+    };
+    push_item(
+        &mut details,
+        &mut total,
+        "rd_artifact_completeness",
+        "RD 工件完整度",
+        3,
+        rd_score,
+        rd_detail,
+        rd_status,
+    );
+
+    let _ = total;
+    details
 }
 
 /// Reclassify a discovery-only repository that has not been adopted into OpenSunstar.
@@ -445,8 +561,16 @@ mod tests {
             ..Default::default()
         };
         let (score, items) = compute_readiness_items(&input);
-        assert_eq!(score, 100);
+        assert_eq!(score, 93); // P1-8 重平衡：legacy 九维 93 分
         assert_eq!(items.len(), 9);
+        // 交付维度未采纳 → not_required 满分 7，合计仍 100 分制
+        let tmp = std::env::temp_dir().join("opensunstar-readiness-empty");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+        let delivery = compute_delivery_dimensions(tmp.to_str().unwrap());
+        let delivery_score: u32 = delivery.iter().map(|i| i.score).sum();
+        assert_eq!(delivery_score, 7);
+        assert_eq!(score + delivery_score, 100);
     }
 
     #[test]
@@ -463,7 +587,7 @@ mod tests {
             .unwrap();
         assert_eq!(ignore.score, 6);
         assert_eq!(ignore.status.as_deref(), Some(STATUS_GLOBAL_ONLY));
-        assert_eq!(score, 15); // ignore 6 + recent 9
+        assert_eq!(score, 13); // ignore 6 + recent 7（P1-8 重平衡）
     }
 
     #[test]
@@ -480,7 +604,7 @@ mod tests {
             .unwrap();
         assert_eq!(prompt.score, 5);
         assert_eq!(prompt.status.as_deref(), Some(STATUS_DETECTED_ONLY));
-        assert_eq!(score, 14); // prompt 5 + recent 9
+        assert_eq!(score, 12); // prompt 5 + recent 7（P1-8 重平衡）
     }
 
     #[test]
@@ -507,7 +631,7 @@ mod tests {
             .find(|i| i.check_name == "permissions")
             .unwrap();
         assert_eq!(perms.score, 0);
-        assert_eq!(score, 9);
+        assert_eq!(score, 7);
     }
 
     #[test]
@@ -524,7 +648,7 @@ mod tests {
             .unwrap();
         assert_eq!(hooks.score, 0);
         assert_eq!(hooks.status.as_deref(), Some(STATUS_MISSING));
-        assert_eq!(score, 9);
+        assert_eq!(score, 7);
     }
 
     #[test]
@@ -557,7 +681,7 @@ mod tests {
             );
         }
         // Only recent_updates contributes to score
-        assert_eq!(score, 9);
+        assert_eq!(score, 7);
     }
 
     #[test]
