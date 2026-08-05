@@ -1,0 +1,7 @@
+{
+  "engine": "rd-backfill-auto",
+  "created_at": 1785949200,
+  "source_commit": "419eda9",
+  "model": "rd-protocol-1.1.0 (protocol-driven, no LLM)",
+  "generation_seconds": 0
+}

@@ -1,3 +1,11 @@
+---
+title: Applications — 应用范围知识
+type: index
+status: active
+anchors:
+  - APPLICATION:opensunstar
+---
+
 # Applications — 应用范围知识
 
 > 每个应用一个子目录，含 INDEX + domain/(product/solution/base) + tech/。

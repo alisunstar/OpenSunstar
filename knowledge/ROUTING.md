@@ -50,3 +50,14 @@
 
 ---
 *此模板由 knowledge-baseline recipe 生成，落盘到 knowledge/ROUTING.md*
+
+
+<!-- opensunstar:routing-auto -->
+## 自动路由表（os wiki routing 合并）
+
+| 锚点类型 | 锚点 | 知识入口 |
+|---------|------|---------|
+| APPLICATION | `APPLICATION:opensunstar` | applications/INDEX.md |
+| BIZ_IDENTITY | `BIZ_IDENTITY:knowledge-baseline` | main/INDEX.md |
+| BIZ_IDENTITY | `BIZ_IDENTITY:rd-delivery` | main/INDEX.md |
+<!-- /opensunstar:routing-auto -->
