@@ -78,6 +78,8 @@ pub use mcp::{
 };
 pub use provider::{Provider, ProviderMeta};
 pub use services::project_wiki;
+pub use services::knowledge_routing;
+pub use services::rd_validate;
 pub use services::{
     simple_connect,
     skill::{migrate_skills_to_ssot, ImportSkillSelection},

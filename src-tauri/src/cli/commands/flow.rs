@@ -319,6 +319,14 @@ fn run_validate(
                 }
             }
         }
+
+        // ── rd-loop governance rules (G-RD1—G-RD4, preset-scoped) ──
+        if preset_id == "rd-loop" {
+            governance_warnings.extend(rd_loop_governance_checks(
+                project_path,
+                change_id,
+            ));
+        }
     }
 
     if json {
@@ -384,6 +392,74 @@ fn run_validate(
     }
 
     Ok(())
+}
+
+/// rd-loop 独立治理规则集（G-RD1—G-RD4，P1-5）。
+/// 仅 preset=rd-loop 且 --strict 时生效；warn-only，退出码 2 语义沿用 strict 治理门禁。
+/// 确定性、无 LLM、无外部数据源（K1/K2/K3）。
+fn rd_loop_governance_checks(project_path: &str, change_id: &str) -> Vec<String> {
+    use std::path::Path;
+    let mut w: Vec<String> = Vec::new();
+    let pp = Path::new(project_path);
+
+    // G-RD1：knowledge ROUTING 就位
+    if !pp.join("knowledge/ROUTING.md").is_file() {
+        w.push("G-RD1: knowledge/ROUTING.md missing (install knowledge-baseline recipe, then run `os wiki routing`)".to_string());
+    }
+
+    // G-RD2：rd-protocol 可安装性（项目级或全局 SSOT，任一即可）
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .unwrap_or_default();
+    let candidates = [
+        pp.join(".claude/skills/rd-protocol/SKILL.md"),
+        pp.join(".agents/skills/rd-protocol/SKILL.md"),
+        Path::new(&home).join(".OpenSunstar/skills/rd-protocol/SKILL.md"),
+        Path::new(&home).join(".agents/skills/rd-protocol/SKILL.md"),
+    ];
+    if !candidates.iter().any(|p| p.is_file()) {
+        w.push("G-RD2: rd-protocol skill pack not installed (install distrib zip via Skills, or place at ~/.agents/skills/rd-protocol/)".to_string());
+    }
+
+    // G-RD3：STATE.md active change 与 --change-id 一致
+    let state = pp.join("STATE.md");
+    if !state.is_file() {
+        w.push("G-RD3: STATE.md missing (cross-session state not on disk)".to_string());
+    } else if let Ok(content) = std::fs::read_to_string(&state) {
+        let active = content.lines().find_map(|l| {
+            let t = l.trim();
+            for key in ["active_change:", "change_id:", "change-id:"] {
+                if let Some(v) = t.strip_prefix(key) {
+                    return Some(v.trim().to_string());
+                }
+            }
+            None
+        });
+        match active {
+            Some(a) if a == change_id => {}
+            Some(a) => w.push(format!(
+                "G-RD3: STATE.md active change ({a}) != --change-id ({change_id})"
+            )),
+            None => w.push("G-RD3: STATE.md does not declare an active change (active_change:)".to_string()),
+        }
+    }
+
+    // G-RD4：IMPLEMENTATION-CHECK schema（存在才校验；缺失由工件门禁阻断）
+    let ic = pp.join(".specs").join(change_id).join("IMPLEMENTATION-CHECK.md");
+    if ic.is_file() {
+        match open_sunstar_lib::rd_validate::validate_implementation_check(
+            project_path,
+            change_id,
+        ) {
+            Ok(r) if !r.schema_valid => w.push(format!(
+                "G-RD4: IMPLEMENTATION-CHECK schema invalid ({} issue(s); run `os rd validate`)",
+                r.issues.len()
+            )),
+            Err(e) => w.push(format!("G-RD4: {e}")),
+            _ => {}
+        }
+    }
+    w
 }
 
 fn run_export(

@@ -65,6 +65,12 @@ pub enum WikiAction {
         #[arg(long)]
         changed_files: Option<String>,
     },
+    /// 合并 knowledge/ 正式区锚点到 ROUTING.md 受管表区（确定性，幂等）
+    Routing {
+        /// 项目路径
+        #[arg(long)]
+        project_path: String,
+    },
 }
 
 pub fn run(args: WikiArgs, json: bool) -> Result<(), String> {
@@ -86,6 +92,24 @@ pub fn run(args: WikiArgs, json: bool) -> Result<(), String> {
             project_path,
             changed_files,
         } => run_changed(&project_path, changed_files, json),
+        WikiAction::Routing { project_path } => {
+            let report = open_sunstar_lib::knowledge_routing::merge_routing_index(
+                &project_path,
+            )?;
+            if json {
+                crate::output::print_result(&report, true);
+            } else {
+                crate::output::header("Knowledge ROUTING Merge");
+                println!("  Pages scanned: {}", report.pages_scanned);
+                println!("  Anchors:       {}", report.anchors);
+                if report.routing_written {
+                    crate::output::success("ROUTING.md 受管表区已更新");
+                } else {
+                    crate::output::success("ROUTING.md 已是最新（幂等）");
+                }
+            }
+            Ok(())
+        }
     }
 }
 

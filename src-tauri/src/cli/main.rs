@@ -93,6 +93,9 @@ pub enum Commands {
 
     /// 项目 Wiki / 知识基线管理
     Wiki(commands::wiki::WikiArgs),
+
+    /// RD 过程资产层工具（对账确定性段等）
+    Rd(commands::rd::RdArgs),
 }
 
 /// CLI 错误：携带可选 hint（Agent-Native 契约）
@@ -150,6 +153,7 @@ fn run_command(command: Commands, json: bool) -> Result<(), String> {
         Commands::Flow(args) => commands::flow::run(args, json),
         Commands::Recipe(args) => commands::recipe::run(args, json),
         Commands::Design(args) => commands::design::run(args, json),
+        Commands::Rd(args) => commands::rd::run(args, json),
 
         // ── 需要数据库的命令 ──
         Commands::Drift(args) => {
