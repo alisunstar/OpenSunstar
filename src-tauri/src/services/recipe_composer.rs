@@ -128,6 +128,20 @@ pub struct RecipeRule {
     pub description: String,
 }
 
+/// A project-level template carried by the recipe (e.g. knowledge baseline pages).
+///
+/// The installer is a pure carrier for these assets: it writes the declared
+/// content to the declared relative path and never overwrites existing files.
+/// No business logic, search, or data-source behavior is implied (boundary K1).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecipeProjectTemplate {
+    /// Safe relative path from the project root (e.g. `knowledge/ROUTING.md`).
+    pub path: String,
+    /// Template content; `{{project_name}}` / `{{date}}` are substituted at install time.
+    pub content: String,
+}
+
 /// Full composition recipe — the user's intent declaration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -143,6 +157,9 @@ pub struct CompositionRecipe {
     pub excluded_stages: Vec<String>,
     pub artifacts: Vec<RecipeArtifact>,
     pub rules: Vec<RecipeRule>,
+    /// Project-level templates carried by the recipe (safe-install, skip if exists).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub project_templates: Vec<RecipeProjectTemplate>,
     pub notes: String,
     pub generated_at: String,
     pub opensunstar_version: String,
@@ -565,6 +582,7 @@ pub fn compose_recipe(
         modules,
         stages: recipe_stages,
         excluded_stages: excluded,
+        project_templates: Vec::new(),
         artifacts,
         rules,
         notes: params.notes.clone().unwrap_or_default(),
@@ -844,6 +862,29 @@ fn recipe_dir(project_path: &str) -> PathBuf {
 
 fn recipe_filename(name: &str) -> String {
     format!("{}.recipe.md", slugify(name))
+}
+
+/// Validate that a carried template path is a safe relative path inside the project root.
+fn is_safe_template_rel_path(path: &str) -> bool {
+    let normalized = path.replace('\\', "/");
+    if normalized.is_empty() || normalized.starts_with('/') || normalized.contains(':') {
+        return false;
+    }
+    !normalized
+        .split('/')
+        .any(|seg| seg.is_empty() || seg == ".." || seg == ".")
+}
+
+/// Render a carried project template: deterministic placeholder substitution only.
+fn render_project_template(content: &str, project_path: &str) -> String {
+    let project_name = std::path::Path::new(project_path)
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "project".to_string());
+    let date = Utc::now().format("%Y-%m-%d").to_string();
+    content
+        .replace("{{project_name}}", &project_name)
+        .replace("{{date}}", &date)
 }
 
 fn ensure_recipe_content_passes_audit(
@@ -1164,6 +1205,21 @@ pub fn preview_recipe_install_plan(
         }
     }
 
+    // Carried project templates (A2): validate paths, include in audit scan
+    for tpl in &recipe.project_templates {
+        if !is_safe_template_rel_path(&tpl.path) {
+            return Err(AppError::Message(format!(
+                "recipe projectTemplates 含不安全路径: {}",
+                tpl.path
+            )));
+        }
+        let path = temp_dir.path().join(&tpl.path);
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).ok();
+        }
+        write_text_file(&path, &render_project_template(&tpl.content, project_path))?;
+    }
+
     let recipe_content = generate_recipe_hybrid(recipe)?;
     let filename = recipe_filename(&recipe.name);
     let temp_recipe_path = temp_dir
@@ -1227,6 +1283,26 @@ pub fn preview_recipe_install_plan(
                 "create".into()
             },
             new_content: Some(content.to_string()),
+            existing_content: existing,
+        });
+    }
+
+    // Carried project templates (A2)
+    for tpl in &recipe.project_templates {
+        let target = root.join(&tpl.path);
+        let existing = if target.is_file() {
+            fs::read_to_string(&target).ok()
+        } else {
+            None
+        };
+        files.push(InstallFileEntry {
+            path: tpl.path.clone(),
+            status: if existing.is_some() {
+                "skip".into()
+            } else {
+                "create".into()
+            },
+            new_content: Some(render_project_template(&tpl.content, project_path)),
             existing_content: existing,
         });
     }
@@ -1375,6 +1451,26 @@ pub fn install_recipe(
             }
             write_text_file(&path, content)?;
             files_created.push(rel_path.to_string());
+        }
+    }
+
+    // 2.5 Carried project templates (A2): pure carrier, never overwrite
+    for tpl in &recipe.project_templates {
+        if !is_safe_template_rel_path(&tpl.path) {
+            return Err(AppError::Message(format!(
+                "recipe projectTemplates 含不安全路径: {}",
+                tpl.path
+            )));
+        }
+        let path = root.join(&tpl.path);
+        if path.is_file() {
+            files_skipped.push(tpl.path.clone());
+        } else {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent).map_err(|e| AppError::io(parent, e))?;
+            }
+            write_text_file(&path, &render_project_template(&tpl.content, project_path))?;
+            files_created.push(tpl.path.clone());
         }
     }
 
@@ -2000,6 +2096,87 @@ mod tests {
         assert_eq!(slugify("My Recipe 2025"), "my-recipe-2025");
         assert_eq!(slugify("前端 / Backend"), "前端-backend");
         assert_eq!(slugify("  spaces  "), "spaces");
+    }
+
+    #[test]
+    fn project_templates_carried_install_and_safe_skip() {
+        let root = temp_project();
+        let preset = sample_preset();
+        let modules = sample_modules();
+        let params = RecipeComposeParams {
+            preset_id: "standard".into(),
+            project_type: "backend".into(),
+            name: "KB Carry Test".into(),
+            description: None,
+            selected_modules: None,
+            disabled_stages: None,
+            notes: None,
+            stage_docs: None,
+        };
+        let mut recipe = compose_recipe(&preset, &params, &modules).unwrap();
+        recipe.project_templates = vec![RecipeProjectTemplate {
+            path: "knowledge/ROUTING.md".into(),
+            content: "# ROUTING — {{project_name}}\n> generated {{date}}".into(),
+        }];
+
+        let result = install_recipe(root.to_str().unwrap(), &recipe, "chg-kb").unwrap();
+        assert!(result.files_created.contains(&"knowledge/ROUTING.md".to_string()));
+        let written = fs::read_to_string(root.join("knowledge/ROUTING.md")).unwrap();
+        assert!(!written.contains("{{project_name}}"));
+        assert!(!written.contains("{{date}}"));
+        assert!(written.contains("ROUTING — "));
+
+        // Safe install: second run must skip, never overwrite
+        let result2 = install_recipe(root.to_str().unwrap(), &recipe, "chg-kb").unwrap();
+        assert!(result2.files_skipped.contains(&"knowledge/ROUTING.md".to_string()));
+    }
+
+    #[test]
+    fn project_templates_unsafe_path_rejected() {
+        let root = temp_project();
+        let preset = sample_preset();
+        let modules = sample_modules();
+        let params = RecipeComposeParams {
+            preset_id: "standard".into(),
+            project_type: "backend".into(),
+            name: "Unsafe Path Test".into(),
+            description: None,
+            selected_modules: None,
+            disabled_stages: None,
+            notes: None,
+            stage_docs: None,
+        };
+        let mut recipe = compose_recipe(&preset, &params, &modules).unwrap();
+        recipe.project_templates = vec![RecipeProjectTemplate {
+            path: "../evil.md".into(),
+            content: "x".into(),
+        }];
+        assert!(install_recipe(root.to_str().unwrap(), &recipe, "chg-x").is_err());
+    }
+
+    #[test]
+    fn parse_recipe_frontmatter_roundtrips_project_templates() {
+        let preset = sample_preset();
+        let modules = sample_modules();
+        let params = RecipeComposeParams {
+            preset_id: "standard".into(),
+            project_type: "backend".into(),
+            name: "Roundtrip Test".into(),
+            description: None,
+            selected_modules: None,
+            disabled_stages: None,
+            notes: None,
+            stage_docs: None,
+        };
+        let mut recipe = compose_recipe(&preset, &params, &modules).unwrap();
+        recipe.project_templates = vec![RecipeProjectTemplate {
+            path: "knowledge/INDEX.md".into(),
+            content: "# INDEX".into(),
+        }];
+        let hybrid = generate_recipe_hybrid(&recipe).unwrap();
+        let parsed = parse_recipe_frontmatter(&hybrid).unwrap();
+        assert_eq!(parsed.project_templates.len(), 1);
+        assert_eq!(parsed.project_templates[0].path, "knowledge/INDEX.md");
     }
 
     #[test]
