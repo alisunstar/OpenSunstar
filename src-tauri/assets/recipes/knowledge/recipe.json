@@ -1,0 +1,69 @@
+{
+  "name": "knowledge-baseline",
+  "version": "1.0.0",
+  "description": "Knowledge 五层目录约定脚手架：main/applications/candidate/personal/template 五层 + ROUTING.md 渐进式加载路由 + KNOWLEDGE-RULES.md 治理规则。补全知识资产层业务语义。",
+  "mode": "repo",
+  "templates": [
+    {
+      "source": "ROUTING.md.tmpl",
+      "target": "knowledge/ROUTING.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "KNOWLEDGE-RULES.md.tmpl",
+      "target": "knowledge/KNOWLEDGE-RULES.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "INDEX.md.tmpl",
+      "target": "knowledge/INDEX.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "main/INDEX.md.tmpl",
+      "target": "knowledge/main/INDEX.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "applications/INDEX.md.tmpl",
+      "target": "knowledge/applications/INDEX.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "candidate/README.md.tmpl",
+      "target": "knowledge/candidate/README.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "personal/README.md.tmpl",
+      "target": "knowledge/personal/README.md",
+      "required": true,
+      "overwrite": false
+    },
+    {
+      "source": "template/application.md.tmpl",
+      "target": "knowledge/template/application.md",
+      "required": true,
+      "overwrite": false
+    }
+  ],
+  "variables": [
+    {
+      "name": "project_name",
+      "description": "项目名称",
+      "required": true
+    },
+    {
+      "name": "date",
+      "description": "当前日期（YYYY-MM-DD）",
+      "required": true,
+      "default": "auto"
+    }
+  ]
+}

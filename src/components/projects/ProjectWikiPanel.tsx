@@ -42,6 +42,7 @@ import { ProjectWikiViewer } from "@/components/projects/ProjectWikiViewer";
 import { useAIConfig } from "@/hooks/useAIConfig";
 import { cn } from "@/lib/utils";
 import { projectWikiApi } from "@/lib/api/projectWiki";
+import { flowOrchestratorApi } from "@/lib/api/flowOrchestrator";
 import {
   useProjectWikiScan,
   useProjectWikiInit,
@@ -144,6 +145,20 @@ export function ProjectWikiPanel({
 }: ProjectWikiPanelProps) {
   const { t } = useTranslation();
   const { data, loading, refresh } = useProjectWikiScan(projectId);
+  const [rdLoopActive, setRdLoopActive] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    flowOrchestratorApi
+      .scanProject(projectId)
+      .then((idx) => {
+        if (!cancelled)
+          setRdLoopActive(idx.savedProfile?.presetId === "rd-loop");
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [projectId]);
   const { plan, preview, confirm, installing } = useProjectWikiInit(projectId);
   const {
     result: lintResult,
@@ -337,6 +352,7 @@ export function ProjectWikiPanel({
               aiConfigLoading={aiConfigLoading}
               onOpenAiProviderSettings={onOpenAiProviderSettings}
               onPreview={handleOpenDocument}
+              rdLoopActive={rdLoopActive}
             />
           )}
           <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border/50 p-3">
@@ -409,6 +425,7 @@ export function ProjectWikiPanel({
           aiConfigLoading={aiConfigLoading}
           onOpenAiProviderSettings={onOpenAiProviderSettings}
           onPreview={handleOpenDocument}
+          rdLoopActive={rdLoopActive}
         />
 
         {data.lifecycle.phase === "pendingAcceptance" && (
@@ -570,6 +587,7 @@ function CandidateBlock({
   aiConfigLoading,
   onOpenAiProviderSettings,
   onPreview,
+  rdLoopActive = false,
 }: {
   lifecycle: WikiLifecycle;
   candidates: WikiCandidate[];
@@ -586,7 +604,9 @@ function CandidateBlock({
   aiConfigLoading: boolean;
   onOpenAiProviderSettings?: () => void;
   onPreview: (candidateId: string) => void;
+  rdLoopActive?: boolean;
 }) {
+  const { t } = useTranslation();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmingGenerate, setConfirmingGenerate] = useState(false);
   const waitingForCandidate = [
@@ -715,6 +735,14 @@ function CandidateBlock({
             OpenSunstar 会读取隔离源码快照、调用已配置的 AI Provider、校验页面
             Schema，并把结果安全导入为待验收版本。
           </p>
+          {rdLoopActive && (
+            <p className="mt-1 text-muted-foreground/80">
+              {t("projectWiki.backfillRdLoopHint", {
+                defaultValue:
+                  "采用「RD 交付流程」档位时，需求收尾的知识回补产物也会作为候选进入这里，经你验收后并入知识基线。",
+              })}
+            </p>
+          )}
         </div>
       ) : (
         <div className="space-y-1.5">

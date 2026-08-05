@@ -1,0 +1,126 @@
+{
+  "id": "rd-loop",
+  "name": "RD Loop",
+  "nameZh": "RD 交付流程",
+  "description": "面向复杂业务的 AI 研发交付闭环：需求验证→知识加载→拆解→契约→实现→校验→回补，七步全链路。补全三层资产的业务语义层，挂载既有扩展点，核心 Rust 零改动。治理声明：rd-loop 采用业务语义阶段命名，不适用 standard preset 的 S1—S5 语义规则；门禁强制以工件必选性为准，独立语义规则集于 P1 定义。",
+  "r3Tier": "release",
+  "modules": [
+    "openspec-change",
+    "spec-kit-cascade",
+    "bmad-context",
+    "gstack-conductor",
+    "taskmaster-tasks",
+    "superpowers-tdd",
+    "gstack-roles",
+    "skills-entry"
+  ],
+  "stages": [
+    {
+      "id": "0-verify-prd",
+      "name": "Verify PRD",
+      "prompt": "rd-verify-prd.md",
+      "artifacts": [
+        { "file": "CHANGE.md", "scope": "change", "optional": false }
+      ]
+    },
+    {
+      "id": "1-clarify-analyze",
+      "name": "Clarify & Analyze",
+      "prompt": "rd-clarify-analyze.md",
+      "dependsOn": ["0-verify-prd"],
+      "artifacts": [
+        { "file": "ANALYSIS.md", "scope": "change", "optional": false }
+      ]
+    },
+    {
+      "id": "2-decompose",
+      "name": "Decompose",
+      "prompt": "rd-decompose.md",
+      "dependsOn": ["1-clarify-analyze"],
+      "artifacts": [
+        { "file": "DECOMPOSITION.md", "scope": "change", "optional": false },
+        { "file": "REQUIREMENT.md", "scope": "change", "optional": false }
+      ]
+    },
+    {
+      "id": "3-verify-requirement",
+      "name": "Verify Requirement",
+      "prompt": "rd-verify-requirement.md",
+      "dependsOn": ["2-decompose"],
+      "artifacts": []
+    },
+    {
+      "id": "4-apply",
+      "name": "Apply",
+      "prompt": "rd-apply.md",
+      "dependsOn": ["3-verify-requirement"],
+      "artifacts": []
+    },
+    {
+      "id": "5-validate",
+      "name": "Validate",
+      "prompt": "rd-validate.md",
+      "dependsOn": ["4-apply"],
+      "artifacts": [
+        { "file": "IMPLEMENTATION-CHECK.md", "scope": "change", "optional": false },
+        { "file": "CONTINUE-PROMPT.md", "scope": "change", "optional": false }
+      ]
+    },
+    {
+      "id": "6-review-release",
+      "name": "Review & Release",
+      "prompt": "rd-code-review.md",
+      "dependsOn": ["5-validate"],
+      "artifacts": [
+        { "file": "REVIEW.md", "scope": "change", "optional": false }
+      ]
+    },
+    {
+      "id": "7-backfill",
+      "name": "Knowledge Backfill",
+      "prompt": "rd-backfill.md",
+      "dependsOn": ["6-review-release"],
+      "artifacts": [
+        { "file": "KNOWLEDGE-BACKFILL.md", "scope": "change", "optional": false }
+      ]
+    }
+  ],
+  "paths": {
+    "frontend": [
+      "0-verify-prd",
+      "1-clarify-analyze",
+      "2-decompose",
+      "3-verify-requirement",
+      "4-apply",
+      "5-validate",
+      "6-review-release",
+      "7-backfill"
+    ],
+    "backend": [
+      "0-verify-prd",
+      "1-clarify-analyze",
+      "2-decompose",
+      "3-verify-requirement",
+      "4-apply",
+      "5-validate",
+      "6-review-release",
+      "7-backfill"
+    ],
+    "cli": [
+      "0-verify-prd",
+      "1-clarify-analyze",
+      "2-decompose",
+      "3-verify-requirement",
+      "4-apply",
+      "5-validate",
+      "6-review-release",
+      "7-backfill"
+    ],
+    "mvp": [
+      "0-verify-prd",
+      "2-decompose",
+      "4-apply",
+      "5-validate"
+    ]
+  }
+}

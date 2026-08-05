@@ -1,8 +1,15 @@
 {
+  "flowOrchestrator": {
+    "rdLoopRelation": "RD delivery loop relations",
+    "rdLoopRelationSkills": "The RD protocol pack (/rd:* command chain) is an independently published skill pack: install it via Skills (ZIP/repo), then it syncs to target CLIs",
+    "rdLoopRelationWiki": "See the \"Project Environment & Wiki\" tab for the knowledge baseline and ROUTING",
+    "rdLoopRelationBackfill": "Backfill candidates enter the Wiki candidate pipeline; after your acceptance they join the knowledge baseline for the next requirement's ROUTING hits"
+  },
   "projectWiki": {
     "title": "Project Wiki / Knowledge Baseline",
     "subtitle": "Engineering knowledge baseline consumable by humans and agents",
     "loading": "Scanning Wiki…",
+    "backfillRdLoopHint": "When the \"RD delivery loop\" preset is selected, knowledge backfill artifacts from requirement wrap-up also enter here as candidates and join the knowledge baseline after your acceptance.",
     "notInitialized": "No wiki/index.md detected",
     "pageCount": "{{count}} pages",
     "sourceRefs": "{{count}} source refs",
@@ -3811,6 +3818,7 @@
     "presetStandard": "Standard workflow",
     "presetMvp": "MVP workflow",
     "presetReviewOnly": "Review only",
+    "presetRdLoop": "RD delivery loop",
     "noDescriptors": "Framework catalog is empty. Please confirm the database is initialized.",
     "detectionMatrix": "Detection Matrix",
     "detectionMatrixHint": "Project × framework detection results (✓ detected / ? possibly used / ✗ not detected / — not scanned)",

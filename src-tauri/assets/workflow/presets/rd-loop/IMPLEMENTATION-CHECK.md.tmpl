@@ -1,0 +1,33 @@
+# Implementation Check — {{change_id}}
+
+> 五状态对账：对照 requirement 契约，校验实现完成度。
+> 生成时间：{{date}}
+
+## 对账状态定义
+
+- **done** — 已实现且符合契约
+- **partial** — 部分实现，有缺口
+- **todo** — 未开始
+- **changed** — 实现偏离契约（需确认是否更新契约）
+- **blocked** — 被阻塞，需外部输入
+
+## 对账结果
+
+| 应用 | 契约项 | 状态 | 证据 | 缺口/偏离说明 |
+|------|--------|------|------|-------------|
+| {{app_name}} | {{contract_item}} | {{status}} | {{evidence}} | {{gap}} |
+
+## 汇总
+
+- done: {{done_count}}
+- partial: {{partial_count}}
+- todo: {{todo_count}}
+- changed: {{changed_count}}
+- blocked: {{blocked_count}}
+
+## 后续行动
+
+<!-- partial/todo/changed/blocked 项的处理计划 -->
+
+---
+*此产物由 rd-loop preset 的 validate 阶段生成，落盘到 .specs/{{change_id}}/IMPLEMENTATION-CHECK.md*

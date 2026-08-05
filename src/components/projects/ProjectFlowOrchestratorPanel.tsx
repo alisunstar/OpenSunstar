@@ -763,6 +763,39 @@ export function ProjectFlowOrchestratorPanel({
         </label>
       </div>
 
+      {selectedPreset?.id === "rd-loop" && (
+        <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1.5">
+          <p className="text-[11px] font-medium text-primary">
+            {t("flowOrchestrator.rdLoopRelation", {
+              defaultValue: "RD 交付闭环关联",
+            })}
+          </p>
+          <ul className="text-[11px] text-muted-foreground space-y-1">
+            <li>
+              ·{" "}
+              {t("flowOrchestrator.rdLoopRelationSkills", {
+                defaultValue:
+                  "RD 协议包（/rd:* 命令链）为独立发布的 skill 包：经 Skills 安装（ZIP/仓库）后同步到目标 CLI",
+              })}
+            </li>
+            <li>
+              ·{" "}
+              {t("flowOrchestrator.rdLoopRelationWiki", {
+                defaultValue:
+                  "知识基线与 ROUTING 见「项目环境 & Wiki」Tab",
+              })}
+            </li>
+            <li>
+              ·{" "}
+              {t("flowOrchestrator.rdLoopRelationBackfill", {
+                defaultValue:
+                  "回补候选经 Wiki 候选管道验收导入，建立基线后供下一需求 ROUTING 命中",
+              })}
+            </li>
+          </ul>
+        </div>
+      )}
+
       {/* Delivery loop guidance */}
       <div className="rounded-lg border border-border/60 bg-background/35 p-3 space-y-3">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1,0 +1,28 @@
+# Knowledge Backfill — {{change_id}}
+
+> 知识回补：把本次需求过程中产生的新知识回补到知识库候选区。
+> 生成时间：{{date}}
+
+## 回补候选清单
+
+| 候选 | 类型 | 来源 | 可信度 | 目标域 | 目标应用 |
+|------|------|------|--------|--------|---------|
+| {{candidate}} | {{type}} | {{source}} | {{confidence}} | {{domain}} | {{application}} |
+
+## 回补路径
+
+1. 本文件记录回补候选
+2. 候选写入 `.opensunstar/wiki/candidates/` 目录
+3. GUI 验收导入候选到正式 wiki
+4. 建立知识基线（baseline synced）
+5. 下一需求 ROUTING 命中已回补的知识
+
+## 候选内容
+
+### {{candidate_id}}
+
+{{candidate_content}}
+
+---
+*此产物由 rd-loop preset 的 backfill 阶段生成，落盘到 .specs/{{change_id}}/KNOWLEDGE-BACKFILL.md*
+*回补候选经 Wiki 候选管道验收导入，建立基线后供下一需求 ROUTING 命中*

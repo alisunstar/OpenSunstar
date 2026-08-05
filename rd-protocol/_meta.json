@@ -1,0 +1,29 @@
+{
+  "id": "rd-protocol",
+  "name": "RD Protocol",
+  "nameZh": "RD 交付协议",
+  "version": "1.0.0",
+  "description": "AI 研发交付命令协议——/rd:* 命令链定义需求验证→知识加载→拆解→契约→实现→校验→回补全流程。补全三层资产的命令协议层业务语义。",
+  "type": "skill",
+  "category": "rd-delivery",
+  "entry": "SKILL.md",
+  "license": "Apache-2.0",
+  "commands": [
+    "work",
+    "verify-prd",
+    "clarify",
+    "analyze",
+    "decompose",
+    "verify-requirement",
+    "apply",
+    "validate",
+    "code-review",
+    "release-plan",
+    "backfill"
+  ],
+  "constraints": {
+    "noAgentRuntime": true,
+    "noExecutableCode": true,
+    "markdownOnly": true
+  }
+}

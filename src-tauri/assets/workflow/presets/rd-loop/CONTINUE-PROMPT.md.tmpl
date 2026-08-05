@@ -1,0 +1,25 @@
+# Continue Prompt — {{change_id}}
+
+> 跨会话接续产物：上下文压缩后，新会话据此恢复进度。
+> 生成时间：{{date}}
+
+## 当前进度
+
+- 已完成阶段：{{completed_stages}}
+- 当前阶段：{{current_stage}}
+- 下一动作：{{next_action}}
+
+## 关键上下文
+
+<!-- 压缩后必须保留的关键信息：契约要点、已做决策、未决问题 -->
+
+## 未决问题
+
+<!-- 需在新会话中继续处理的问题 -->
+
+## 接续指令
+
+<!-- 新会话启动时应执行的第一步 -->
+
+---
+*此产物由 rd-loop preset 的 validate 阶段生成，落盘到 .specs/{{change_id}}/CONTINUE-PROMPT.md*

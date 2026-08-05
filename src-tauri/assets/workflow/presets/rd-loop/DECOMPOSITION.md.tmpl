@@ -1,0 +1,27 @@
+# Decomposition — {{change_id}}
+
+> 按应用拆解需求，产 by-application requirement。每个应用一份独立开发契约。
+> 生成时间：{{date}}
+
+## 拆解原则
+
+- 一个需求可能跨多个应用，每个应用单独拆出一份 REQUIREMENT.md
+- 应用级 requirement 是最核心产物——它是该应用的开发契约
+- 拆解粒度：每个应用能独立实现、独立验证
+
+## 应用清单
+
+| 应用 | 责任范围 | requirement 路径 | 优先级 |
+|------|---------|----------------|--------|
+| {{app_name}} | {{app_scope}} | applications/{{app_name}}/requirement.md | P0 |
+
+## 依赖关系
+
+<!-- 跨应用依赖、顺序约束 -->
+
+## 风险与前置条件
+
+<!-- 拆解中发现的风险、需前置确认的事项 -->
+
+---
+*此产物由 rd-loop preset 的 decompose 阶段生成，落盘到 .specs/{{change_id}}/DECOMPOSITION.md*

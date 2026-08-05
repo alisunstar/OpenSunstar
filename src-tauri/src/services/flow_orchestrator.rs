@@ -31,6 +31,7 @@ const PRESET_FULL: &str = include_str!("../../assets/workflow/presets/full.json"
 const PRESET_BROWNFIELD: &str =
     include_str!("../../assets/workflow/presets/brownfield-intake.json");
 const PRESET_REVIEW: &str = include_str!("../../assets/workflow/presets/review-only.json");
+const PRESET_RD_LOOP: &str = include_str!("../../assets/workflow/presets/rd-loop.json");
 
 const PRESET_BUILTINS: &[&str] = &[
     PRESET_MVP,
@@ -38,6 +39,7 @@ const PRESET_BUILTINS: &[&str] = &[
     PRESET_FULL,
     PRESET_BROWNFIELD,
     PRESET_REVIEW,
+    PRESET_RD_LOOP,
 ];
 
 const RESERVED_SPECS_ENTRIES: &[&str] = &["archive", "health", "adr"];

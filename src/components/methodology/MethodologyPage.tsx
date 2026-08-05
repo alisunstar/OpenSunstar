@@ -109,6 +109,8 @@ function presetLabelKey(presetId: string): string {
       return "methodology.presetMvp";
     case "review-only":
       return "methodology.presetReviewOnly";
+    case "rd-loop":
+      return "methodology.presetRdLoop";
     default:
       return presetId;
   }

@@ -3,6 +3,7 @@
     "title": "项目 Wiki / 知识基线",
     "subtitle": "可被人类与 Agent 共同消费的工程知识基线",
     "loading": "正在扫描 Wiki…",
+    "backfillRdLoopHint": "采用「RD 交付流程」档位时，需求收尾的知识回补产物也会作为候选进入这里，经你验收后并入知识基线。",
     "notInitialized": "未检测到 wiki/index.md",
     "pageCount": "{{count}} 个页面",
     "sourceRefs": "{{count}} 个源码引用",
@@ -4031,6 +4032,7 @@
     "presetStandard": "标准流程",
     "presetMvp": "MVP 流程",
     "presetReviewOnly": "仅审查",
+    "presetRdLoop": "RD 交付流程",
     "noDescriptors": "框架目录为空。请确认数据库已初始化。",
     "detectionMatrix": "检测矩阵",
     "detectionMatrixHint": "项目 × 框架检测结果（✓ 已检测到 / ? 可能使用 / ✗ 未检测到 / — 未扫描）",
@@ -4308,6 +4310,10 @@
     "title": "AI 提供方"
   },
   "flowOrchestrator": {
+    "rdLoopRelation": "RD 交付闭环关联",
+    "rdLoopRelationSkills": "RD 协议包（/rd:* 命令链）为独立发布的 skill 包：经 Skills 安装（ZIP/仓库）后同步到目标 CLI",
+    "rdLoopRelationWiki": "知识基线与 ROUTING 见「项目环境 & Wiki」Tab",
+    "rdLoopRelationBackfill": "回补候选经 Wiki 候选管道验收导入，建立基线后供下一需求 ROUTING 命中",
     "activity": "最近编排操作",
     "advancedDetails": "高级详情：CI 命令与生成文件",
     "checkGate": "检查",
@@ -4401,7 +4407,7 @@
   "projectAiConfig": {
     "emptyProjects": "还没有添加项目，先添加一个再来配置 AI 资产。",
     "openWorkflow": "配置项目工作流",
-    "orchestrationHint": "阶段、预设与变更执行方案在「流程与方法论」里配置，会带着当前项目跳过去。",
+    "orchestrationHint": "阶段、预设与变更执行方案在「工作流编排」里配置，会带着当前项目跳过去。",
     "orchestrationLink": "工作流编排",
     "subtitle": "为单个项目落地 AI 资产：套用蓝图、检查就绪度、勾选生效的资产。侧栏「Agent 配置」管的是全局库，这里管它们在本项目上的关联。",
     "switcher": "当前配置项目",

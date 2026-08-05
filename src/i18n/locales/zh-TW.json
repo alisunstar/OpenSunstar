@@ -1,8 +1,15 @@
 {
+  "flowOrchestrator": {
+    "rdLoopRelation": "RD 交付閉環關聯",
+    "rdLoopRelationSkills": "RD 協議包（/rd:* 命令鏈）為獨立發布的 skill 包：經 Skills 安裝（ZIP/倉庫）後同步到目標 CLI",
+    "rdLoopRelationWiki": "知識基線與 ROUTING 見「專案環境 & Wiki」Tab",
+    "rdLoopRelationBackfill": "回補候選經 Wiki 候選管道驗收匯入，建立基線後供下一需求 ROUTING 命中"
+  },
   "projectWiki": {
     "title": "專案 Wiki / 知識基線",
     "subtitle": "可被人類與 Agent 共同消費的工程知識基線",
     "loading": "正在掃描 Wiki…",
+    "backfillRdLoopHint": "採用「RD 交付流程」檔位時，需求收尾的知識回補產物也會作為候選進入這裡，經你驗收後併入知識基線。",
     "notInitialized": "未偵測到 wiki/index.md",
     "pageCount": "{{count}} 個頁面",
     "sourceRefs": "{{count}} 個原始碼參照",
@@ -3161,6 +3168,7 @@
     "presetStandard": "標準流程",
     "presetMvp": "MVP 流程",
     "presetReviewOnly": "僅審查",
+    "presetRdLoop": "RD 交付流程",
     "noDescriptors": "框架目錄為空。請確認資料庫已初始化。",
     "detectionMatrix": "偵測矩陣",
     "detectionMatrixHint": "專案 × 框架偵測結果（✓ 已偵測到 / ? 可能使用 / ✗ 未偵測到 / — 未掃描）",

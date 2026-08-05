@@ -1,8 +1,15 @@
 {
+  "flowOrchestrator": {
+    "rdLoopRelation": "RD -delivery loop related",
+    "rdLoopRelationSkills": "RD protocol pack (/rd:* command chain) is an independently published skill pack: install via Skills (ZIP/repo), then sync to target CLI",
+    "rdLoopRelationWiki": "Knowledge baseline and ROUTING are in the \"Project Environment & Wiki\" tab",
+    "rdLoopRelationBackfill": "Backfill candidates enter the Wiki candidate pipeline, and after acceptance join the knowledge baseline, hitting ROUTING for the next requirement"
+  },
   "projectWiki": {
-    "title": "プロジェクト Wiki / ナレッジベースライン",
-    "subtitle": "人間とエージェントが共に消費できるエンジニアリングナレッジベースライン",
-    "loading": "Wiki をスキャン中…",
+    "title": "Project Wiki / Knowledge Baseline",
+    "subtitle": "An engineering knowledge baseline that can be consumed by both humans and agents",
+    "loading": "Scanning Wiki…",
+    "backfillRdLoopHint": "When the \"RD delivery loop\" preset is selected, the knowledge backfill artifacts at requirement completion also enter here as candidates, and after your acceptance are merged into the knowledge baseline.",
     "notInitialized": "wiki/index.md が検出されません",
     "pageCount": "{{count}} ページ",
     "sourceRefs": "{{count}} 件のソース参照",
@@ -3204,6 +3211,7 @@
     "presetStandard": "標準ワークフロー",
     "presetMvp": "MVP ワークフロー",
     "presetReviewOnly": "レビューのみ",
+    "presetRdLoop": "RD デリバリーループ",
     "noDescriptors": "フレームワークカタログが空です。データベースが初期化されているか確認してください。",
     "detectionMatrix": "検出マトリックス",
     "detectionMatrixHint": "プロジェクト × フレームワーク検出結果（✓ 検出済み / ? 使用の可能性 / ✗ 未検出 / — 未スキャン）",
