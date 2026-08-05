@@ -3,13 +3,20 @@
     "rdLoopRelation": "RD -delivery loop related",
     "rdLoopRelationSkills": "RD protocol pack (/rd:* command chain) is an independently published skill pack: install via Skills (ZIP/repo), then sync to target CLI",
     "rdLoopRelationWiki": "Knowledge baseline and ROUTING are in the \"Project Environment & Wiki\" tab",
-    "rdLoopRelationBackfill": "Backfill candidates enter the Wiki candidate pipeline, and after acceptance join the knowledge baseline, hitting ROUTING for the next requirement"
+    "rdLoopRelationBackfill": "Backfill candidates enter the Wiki candidate pipeline, and after acceptance join the knowledge baseline, hitting ROUTING for the next requirement",
+    "rdLoopSteps": "RD -delivery seven-step loop",
+    "rdLoopArtifacts": "Gate artifact list (data-driven)",
+    "rdLoopRequired": "gate required"
   },
   "projectWiki": {
     "title": "Project Wiki / Knowledge Baseline",
     "subtitle": "An engineering knowledge baseline that can be consumed by both humans and agents",
     "loading": "Scanning Wiki…",
     "backfillRdLoopHint": "When the \"RD delivery loop\" preset is selected, the knowledge backfill artifacts at requirement completion also enter here as candidates, and after your acceptance are merged into the knowledge baseline.",
+    "engineLabel": "Generation engine",
+    "engineBuiltin": "Built-in engine",
+    "engineOpenwiki": "openwiki",
+    "engineOpenwikiHint": "Generate the business knowledge baseline using the knowledge five-layer convention + ROUTING templates",
     "notInitialized": "wiki/index.md が検出されません",
     "pageCount": "{{count}} ページ",
     "sourceRefs": "{{count}} 件のソース参照",

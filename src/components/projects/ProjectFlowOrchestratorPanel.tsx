@@ -793,6 +793,38 @@ export function ProjectFlowOrchestratorPanel({
               })}
             </li>
           </ul>
+          <p className="text-[11px] font-medium text-primary">
+            {t("flowOrchestrator.rdLoopSteps", {
+              defaultValue: "RD 交付七步闭环",
+            })}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            {(fullPreset?.stages ?? []).map((s) => s.name).join(" → ")}
+          </p>
+          <p className="text-[11px] font-medium text-primary">
+            {t("flowOrchestrator.rdLoopArtifacts", {
+              defaultValue: "门禁工件清单（数据驱动）",
+            })}
+          </p>
+          <ul className="text-[11px] text-muted-foreground space-y-1">
+            {(fullPreset?.stages ?? []).flatMap((s) =>
+              (s.artifacts ?? [])
+                .filter((a) => !a.optional)
+                .map((a) => (
+                  <li key={`${s.id}-${a.file}`}>
+                    · {a.file}
+                    <span className="text-[10px] text-muted-foreground/80">
+                      {" "}
+                      （{s.name} ·{" "}
+                      {t("flowOrchestrator.rdLoopRequired", {
+                        defaultValue: "门禁必选",
+                      })}
+                      ）
+                    </span>
+                  </li>
+                )),
+            )}
+          </ul>
         </div>
       )}
 

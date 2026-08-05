@@ -146,6 +146,9 @@ export function ProjectWikiPanel({
   const { t } = useTranslation();
   const { data, loading, refresh } = useProjectWikiScan(projectId);
   const [rdLoopActive, setRdLoopActive] = useState(false);
+  const [wikiEngine, setWikiEngine] = useState<"builtin" | "openwiki">(
+    "builtin",
+  );
   useEffect(() => {
     let cancelled = false;
     flowOrchestratorApi
@@ -249,7 +252,7 @@ export function ProjectWikiPanel({
   };
 
   const handleGenerateCandidate = async () => {
-    const result = await generate("builtin");
+    const result = await generate(wikiEngine);
     if (result) {
       await Promise.all([refresh(), refreshCandidates()]);
       onConfigChanged?.();
@@ -353,6 +356,8 @@ export function ProjectWikiPanel({
               onOpenAiProviderSettings={onOpenAiProviderSettings}
               onPreview={handleOpenDocument}
               rdLoopActive={rdLoopActive}
+              wikiEngine={wikiEngine}
+              onWikiEngineChange={setWikiEngine}
             />
           )}
           <div className="flex items-center justify-between gap-3 rounded-lg border border-dashed border-border/50 p-3">
@@ -426,6 +431,8 @@ export function ProjectWikiPanel({
           onOpenAiProviderSettings={onOpenAiProviderSettings}
           onPreview={handleOpenDocument}
           rdLoopActive={rdLoopActive}
+          wikiEngine={wikiEngine}
+          onWikiEngineChange={setWikiEngine}
         />
 
         {data.lifecycle.phase === "pendingAcceptance" && (
@@ -588,6 +595,8 @@ function CandidateBlock({
   onOpenAiProviderSettings,
   onPreview,
   rdLoopActive = false,
+  wikiEngine = "builtin",
+  onWikiEngineChange,
 }: {
   lifecycle: WikiLifecycle;
   candidates: WikiCandidate[];
@@ -605,6 +614,8 @@ function CandidateBlock({
   onOpenAiProviderSettings?: () => void;
   onPreview: (candidateId: string) => void;
   rdLoopActive?: boolean;
+  wikiEngine?: "builtin" | "openwiki";
+  onWikiEngineChange?: (engine: "builtin" | "openwiki") => void;
 }) {
   const { t } = useTranslation();
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
@@ -646,6 +657,34 @@ function CandidateBlock({
         <span className="text-[10px] text-muted-foreground">
           隔离快照 · 自动导入 · 人工验收后建基线
         </span>
+        {!confirmingGenerate && (
+          <select
+            className="h-6 rounded-md border border-border/60 bg-background/60 px-1.5 text-[10px] text-muted-foreground"
+            value={wikiEngine}
+            onChange={(e) =>
+              onWikiEngineChange?.(
+                e.target.value === "openwiki" ? "openwiki" : "builtin",
+              )
+            }
+            aria-label={t("projectWiki.engineLabel", {
+              defaultValue: "生成引擎",
+            })}
+          >
+            <option value="builtin">
+              {t("projectWiki.engineBuiltin", { defaultValue: "内置引擎" })}
+            </option>
+            <option value="openwiki">
+              {t("projectWiki.engineOpenwiki", { defaultValue: "openwiki" })}
+            </option>
+          </select>
+        )}
+        {!confirmingGenerate && wikiEngine === "openwiki" && (
+          <span className="max-w-40 truncate text-[10px] text-blue-600 dark:text-blue-400">
+            {t("projectWiki.engineOpenwikiHint", {
+              defaultValue: "使用 knowledge 五层目录约定 + ROUTING 模板生成业务知识基线",
+            })}
+          </span>
+        )}
         {!confirmingGenerate && aiConfigured && (
           <Button
             size="sm"
