@@ -32,6 +32,8 @@ verify-prd → clarify/analyze → decompose → verify-requirement → apply �
 | `/rd:code-review` | 代码审查 | REVIEW.md | 是 |
 | `/rd:release-plan` | 发布计划 | — | 是 |
 | `/rd:backfill` | 知识回补 | KNOWLEDGE-BACKFILL.md → candidates | 是 |
+| `/rd:extract-routing` | 源码锚点提取适配器（外置） | knowledge/candidate/anchors-*.md 草稿 | 是 |
+| `/rd:backfill-auto` | 回补生成器适配器（外置） | wiki 候选（engine=rd-backfill-auto） | 是 |
 
 ## 通用协议规则
 

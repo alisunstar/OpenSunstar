@@ -19,7 +19,9 @@
     "validate",
     "code-review",
     "release-plan",
-    "backfill"
+    "backfill",
+    "extract-routing",
+    "backfill-auto"
   ],
   "constraints": {
     "noAgentRuntime": true,
