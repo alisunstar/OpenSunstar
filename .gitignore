@@ -67,3 +67,6 @@ distrib/
 .workbuddy/
 .opensunstar/agent-context-hints.md
 .opensunstar/skill-registry.md
+.opensunstar/agent-context.md
+.opensunstar/backups/
+.opensunstar/orchestration.log.jsonl
