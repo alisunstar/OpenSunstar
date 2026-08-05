@@ -59,3 +59,11 @@ scripts/parse-gh-search.py
 scripts/i18n-fill-missing.mjs
 scripts/i18n-ja-missing.json
 scripts/i18n-ja-remaining.json
+
+# P1-0 local artifacts (do not commit)
+distrib/
+*.bak
+.atl/
+.workbuddy/
+.opensunstar/agent-context-hints.md
+.opensunstar/skill-registry.md
