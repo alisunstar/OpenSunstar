@@ -239,15 +239,14 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::new().build())
         .setup(setup::run);
 
-    #[cfg(not(target_os = "windows"))]
+    // 窗口尺寸/位置持久化：所有平台统一启用（含 Windows），重启后恢复上次几何。
+    // 退出落盘路径见 shutdown::save_window_state_before_exit 与
+    // runtime_events 中对重启路径的死锁规避说明（#3998）。
     let builder = builder.plugin(
         tauri_plugin_window_state::Builder::default()
             .with_state_flags(shutdown::window_state_flags())
             .build(),
     );
-
-    #[cfg(target_os = "windows")]
-    let builder = builder;
 
     let builder = invoke::register(builder);
 
