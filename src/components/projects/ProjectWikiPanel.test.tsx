@@ -152,7 +152,12 @@ describe("ProjectWikiPanel 内置生成闭环", () => {
     expect(
       screen.queryByRole("button", { name: "初始化 Wiki" }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText(/OpenWiki/i)).not.toBeInTheDocument();
+    // P1-b 引擎选择器（a7dd171）：pendingGeneration 阶段允许切换引擎，
+    // 但默认必须停在内置引擎，不主动把用户引向外部 openwiki。
+    // 旧断言 queryByText(/OpenWiki/i) 会误匹配选择器里的 openwiki 选项。
+    expect(
+      screen.getByRole("combobox", { name: "生成引擎" }),
+    ).toHaveValue("builtin");
   });
 
   it("未配置 Provider 时给出设置入口，不诱导安装 CLI", async () => {
