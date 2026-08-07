@@ -20,6 +20,7 @@ import { toast } from "sonner";
 import { SkillCard, type SkillSource } from "./SkillCard";
 import { RepoManagerPanel } from "./RepoManagerPanel";
 import { SkillsLeaderboardPanel } from "./SkillsLeaderboardPanel";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
   useDiscoverableSkills,
   useInstalledSkills,
@@ -32,6 +33,8 @@ import {
   useSearchClawHub,
   useInstallClawHubSkill,
   useSearchModelScope,
+  useUninstallSkill,
+  type InstalledSkill,
 } from "@/hooks/useSkills";
 import type { AppId } from "@/lib/api/types";
 import type {
@@ -46,6 +49,7 @@ import { formatSkillError } from "@/lib/errors/skillErrorParser";
 
 interface SkillsPageProps {
   initialApp?: AppId;
+  onViewInMainPanel?: (directory: string) => void;
 }
 
 export interface SkillsPageHandle {
@@ -100,7 +104,7 @@ interface UnifiedDisplaySkill {
  * 支持多源并发搜索：GitHub 仓库 / skills.sh / ClawHub
  */
 export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
-  ({ initialApp = "claude" }, ref) => {
+  ({ initialApp = "claude", onViewInMainPanel }, ref) => {
     const { t } = useTranslation();
     const [repoManagerOpen, setRepoManagerOpen] = useState(false);
     const [searchSource, setSearchSource] = useState<SearchSource>("all");
@@ -123,6 +127,20 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
     const [leaderboardRefreshKey, setLeaderboardRefreshKey] = useState(0);
 
     const currentApp = initialApp;
+
+    // 安装成功后用 Toast 动作按钮引导去主面板（不强制跳转，不打断批量安装）
+    const installSuccessToastOptions = (directory: string) =>
+      onViewInMainPanel
+        ? {
+            closeButton: true,
+            action: {
+              label: t("skills.viewInMainPanel", {
+                defaultValue: "去主面板查看",
+              }),
+              onClick: () => onViewInMainPanel(directory),
+            },
+          }
+        : { closeButton: true };
 
     // ===== 数据源 Hooks =====
     const {
@@ -279,9 +297,12 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
     // ===== Mutations =====
     const installMutation = useInstallSkill();
     const installClawHubMutation = useInstallClawHubSkill();
+    const uninstallMutation = useUninstallSkill();
     const addRepoMutation = useAddSkillRepo();
     const removeRepoMutation = useRemoveSkillRepo();
     const toggleRepoMutation = useToggleSkillRepo();
+    const [uninstallTarget, setUninstallTarget] =
+      useState<InstalledSkill | null>(null);
 
     // 已安装 skill 的唯一 key 集合
     const installedKeys = useMemo(() => {
@@ -552,7 +573,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                 name: skill.name,
                 defaultValue: `${skill.name} 安装成功`,
               }),
-              { closeButton: true },
+              installSuccessToastOptions(skill.directory),
             );
           } catch (error) {
             const errorMessage =
@@ -589,6 +610,7 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
               slug,
               defaultValue: `${slug} 安装成功`,
             }),
+            installSuccessToastOptions(slug.split("/").pop() || slug),
           );
         } catch (error) {
           toast.error(
@@ -620,9 +642,10 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
 
       try {
         await installMutation.mutateAsync({ skill, currentApp });
-        toast.success(t("skills.installSuccess", { name: skill.name }), {
-          closeButton: true,
-        });
+        toast.success(
+          t("skills.installSuccess", { name: skill.name }),
+          installSuccessToastOptions(skill.directory),
+        );
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : String(error);
@@ -636,8 +659,40 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
       }
     };
 
-    const handleUninstall = async (_directory: string) => {
-      toast.info(t("skills.uninstallInMainPanel"));
+    // 发现页直接卸载：与主面板同一套确认 + mutation + Toast 语义
+    const handleUninstall = (_key: string, directory: string) => {
+      const norm = (d: string) =>
+        d.split(/[/\\]/).pop()?.toLowerCase() || d.toLowerCase();
+      const target = installedSkills?.find(
+        (s) => norm(s.directory) === norm(directory),
+      );
+      if (!target) {
+        toast.info(t("skills.uninstallInMainPanel"));
+        return;
+      }
+      setUninstallTarget(target);
+    };
+
+    const confirmUninstall = async (skill: InstalledSkill) => {
+      try {
+        const installName =
+          skill.directory.split(/[/\\]/).pop()?.toLowerCase() ||
+          skill.directory.toLowerCase();
+        const skillKey = `${installName}:${skill.repoOwner?.toLowerCase() || ""}:${skill.repoName?.toLowerCase() || ""}`;
+        const result = await uninstallMutation.mutateAsync({
+          id: skill.id,
+          skillKey,
+        });
+        setUninstallTarget(null);
+        toast.success(t("skills.uninstallSuccess", { name: skill.name }), {
+          description: result.backupPath
+            ? t("skills.backup.location", { path: result.backupPath })
+            : undefined,
+          closeButton: true,
+        });
+      } catch (error) {
+        toast.error(t("common.error"), { description: String(error) });
+      }
     };
 
     const handleAddRepo = async (repo: SkillRepo) => {
@@ -1290,6 +1345,8 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
                 }
                 currentApp={currentApp}
                 refreshKey={leaderboardRefreshKey}
+                onViewInMainPanel={onViewInMainPanel}
+                onUninstallSkill={handleUninstall}
               />
             )}
           </div>
@@ -1304,6 +1361,21 @@ export const SkillsPage = forwardRef<SkillsPageHandle, SkillsPageProps>(
             onRemove={handleRemoveRepo}
             onToggle={handleToggleRepo}
             onClose={() => setRepoManagerOpen(false)}
+          />
+        )}
+
+        {/* 卸载确认弹窗（与主面板同一语义） */}
+        {uninstallTarget && (
+          <ConfirmDialog
+            isOpen
+            title={t("skills.uninstall")}
+            message={t("skills.uninstallConfirm", {
+              name: uninstallTarget.name,
+            })}
+            variant="destructive"
+            zIndex="top"
+            onConfirm={() => void confirmUninstall(uninstallTarget)}
+            onCancel={() => setUninstallTarget(null)}
           />
         )}
       </div>

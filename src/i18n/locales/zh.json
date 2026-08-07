@@ -2518,6 +2518,7 @@
     "noDescription": "暂无描述",
     "loadFailed": "加载失败",
     "installSuccess": "技能 {{name}} 已安装",
+    "viewInMainPanel": "去主面板查看",
     "installFailed": "安装失败",
     "uninstallSuccess": "技能 {{name}} 已卸载",
     "uninstallFailed": "卸载失败",

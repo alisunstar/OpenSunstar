@@ -29,6 +29,7 @@ import { AddProjectDialog } from "@/components/projects/AddProjectDialog";
 import { PageScopeBadge } from "@/components/shared/PageScopeBadge";
 import { ShortcutsHelp } from "@/components/ShortcutsHelp";
 import { Sidebar } from "@/components/layout/Sidebar";
+import type { SkillsFocusIntent } from "@/components/skills/UnifiedSkillsPanel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { useBudgetAlerts } from "@/hooks/useBudgetAlerts";
@@ -70,10 +71,19 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [settingsNavIntent, setSettingsNavIntent] =
     useState<SettingsNavIntent | null>(null);
+  const [skillsFocusIntent, setSkillsFocusIntent] =
+    useState<SkillsFocusIntent | null>(null);
 
   const handleNavigate = useCallback((view: PageView) => {
     setCurrentView(view);
   }, []);
+  const handleFocusSkillInMainPanel = useCallback(
+    (directory: string) => {
+      setSkillsFocusIntent({ directory, key: Date.now() });
+      handleNavigate("skills");
+    },
+    [handleNavigate],
+  );
   const openProjectWorkflow = useCallback(
     (projectId: string) => {
       setSelectedProjectId(projectId);
@@ -361,6 +371,9 @@ function App() {
                   onProjectAiConfigIntentConsumed={() =>
                     setProjectAiConfigIntent(null)
                   }
+                  skillsFocusIntent={skillsFocusIntent}
+                  onSkillsFocusConsumed={() => setSkillsFocusIntent(null)}
+                  onFocusSkillInMainPanel={handleFocusSkillInMainPanel}
                 />
               </div>
             </ErrorBoundary>

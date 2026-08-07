@@ -2387,6 +2387,7 @@
     "noDescription": "No description",
     "loadFailed": "Failed to load",
     "installSuccess": "Skill {{name}} installed",
+    "viewInMainPanel": "View in main panel",
     "installFailed": "Failed to install",
     "uninstallSuccess": "Skill {{name}} uninstalled",
     "uninstallFailed": "Failed to uninstall",

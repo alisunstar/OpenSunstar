@@ -2196,6 +2196,7 @@
     "noDescription": "説明なし",
     "loadFailed": "読み込みに失敗しました",
     "installSuccess": "スキル {{name}} をインストールしました",
+    "viewInMainPanel": "メインパネルで表示",
     "installFailed": "インストールに失敗しました",
     "uninstallSuccess": "スキル {{name}} をアンインストールしました",
     "uninstallFailed": "アンインストールに失敗しました",

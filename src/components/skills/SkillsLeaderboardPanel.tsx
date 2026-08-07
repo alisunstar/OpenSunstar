@@ -32,6 +32,8 @@ interface SkillsLeaderboardPanelProps {
   period: SkillsLeaderboardTabPeriod;
   currentApp: AppId;
   refreshKey?: number;
+  onViewInMainPanel?: (directory: string) => void;
+  onUninstallSkill?: (key: string, directory: string) => void;
 }
 
 function formatSyncedAt(ms: number, locale: string): string {
@@ -67,6 +69,8 @@ export function SkillsLeaderboardPanel({
   period,
   currentApp,
   refreshKey = 0,
+  onViewInMainPanel,
+  onUninstallSkill,
 }: SkillsLeaderboardPanelProps) {
   const { t, i18n } = useTranslation();
   const [forceNonce, setForceNonce] = useState(0);
@@ -125,9 +129,23 @@ export function SkillsLeaderboardPanel({
 
     try {
       await installMutation.mutateAsync({ skill, currentApp });
-      toast.success(t("skills.installSuccess", { name: item.name }), {
-        closeButton: true,
-      });
+      toast.success(
+        t("skills.installSuccess", { name: item.name }),
+        onViewInMainPanel
+          ? {
+              closeButton: true,
+              action: {
+                label: t("skills.viewInMainPanel", {
+                  defaultValue: "去主面板查看",
+                }),
+                onClick: () =>
+                  onViewInMainPanel(
+                    item.directory.split("/").pop() || item.directory,
+                  ),
+              },
+            }
+          : { closeButton: true },
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       const { title, description } = formatSkillError(
@@ -139,7 +157,11 @@ export function SkillsLeaderboardPanel({
     }
   };
 
-  const handleUninstall = async () => {
+  const handleUninstall = (key: string, directory: string) => {
+    if (onUninstallSkill) {
+      onUninstallSkill(key, directory);
+      return;
+    }
     toast.info(t("skills.uninstallInMainPanel"));
   };
 

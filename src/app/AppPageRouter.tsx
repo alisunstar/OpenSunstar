@@ -16,7 +16,9 @@ import { QuickStartPage } from "@/components/quickStart/QuickStartPage";
 import { SessionManagerPage } from "@/components/sessions/SessionManagerPage";
 import { SettingsPageContent } from "@/components/settings/SettingsPage";
 import { SkillsPage } from "@/components/skills/SkillsPage";
-import UnifiedSkillsPanel from "@/components/skills/UnifiedSkillsPanel";
+import UnifiedSkillsPanel, {
+  type SkillsFocusIntent,
+} from "@/components/skills/UnifiedSkillsPanel";
 import { CloudSyncDashboard } from "@/components/sync/CloudSyncDashboard";
 import { TeamCollaborationPage } from "@/components/team/TeamCollaborationPage";
 import { TokenStatsPage } from "@/components/usage/TokenStatsPage";
@@ -70,6 +72,10 @@ interface AppPageRouterProps {
   onMethodologyIntentConsumed: () => void;
   projectAiConfigIntent: ProjectAiConfigNavigationIntent | null;
   onProjectAiConfigIntentConsumed: () => void;
+  /** 发现页安装成功后「去主面板查看」的定位意图 */
+  skillsFocusIntent: SkillsFocusIntent | null;
+  onSkillsFocusConsumed: () => void;
+  onFocusSkillInMainPanel: (directory: string) => void;
 }
 
 export function AppPageRouter({
@@ -97,6 +103,9 @@ export function AppPageRouter({
   onMethodologyIntentConsumed,
   projectAiConfigIntent,
   onProjectAiConfigIntentConsumed,
+  skillsFocusIntent,
+  onSkillsFocusConsumed,
+  onFocusSkillInMainPanel,
 }: AppPageRouterProps) {
   const { t } = useTranslation();
   const effectiveTargetApp =
@@ -153,6 +162,8 @@ export function AppPageRouter({
           currentApp={
             effectiveTargetApp === "openclaw" ? "claude" : effectiveTargetApp
           }
+          focusIntent={skillsFocusIntent}
+          onFocusConsumed={onSkillsFocusConsumed}
         />
       );
     case "skillsDiscovery":
@@ -162,6 +173,7 @@ export function AppPageRouter({
           initialApp={
             effectiveTargetApp === "openclaw" ? "claude" : effectiveTargetApp
           }
+          onViewInMainPanel={onFocusSkillInMainPanel}
         />
       );
     case "sessions":

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-church": {
+      "version": "2.1.2",
+      "installedAt": 1786095500717,
+      "ownerHandle": "bitbrujo"
+    },
+    "agent-analytics": {
+      "version": "4.0.34",
+      "installedAt": 1786119923714,
+      "ownerHandle": "dannyshmueli"
+    }
+  }
+}

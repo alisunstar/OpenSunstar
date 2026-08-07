@@ -453,7 +453,39 @@ fn parse_leaderboard_api_json(
     ))
 }
 
-/// Fetch the leaderboard via the official site's internal JSON API.
+/// Fetch the leaderboard as rendered by the official site frontend.
+///
+/// The server-rendered HTML is the ranking users actually see on skills.sh
+/// (SSR includes ~100+ entries per view). The internal JSON API diverges from
+/// it (all-time returns a windowed metric; trending is spam-polluted), so HTML
+/// is the primary source and the API only a fallback.
+async fn fetch_leaderboard_via_html(
+    period: SkillsShLeaderboardPeriod,
+    source_url: &str,
+) -> Result<(Vec<SkillsShLeaderboardItem>, ParsedLeaderboardMeta)> {
+    let client = crate::proxy::http_client::get();
+    let html = client
+        .get(source_url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+             (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        )
+        .header("Accept", "text/html,application/xhtml+xml")
+        .timeout(std::time::Duration::from_secs(30))
+        .send()
+        .await
+        .with_context(|| format!("fetch skills.sh leaderboard: {source_url}"))?
+        .error_for_status()
+        .with_context(|| format!("skills.sh leaderboard HTTP error: {source_url}"))?
+        .text()
+        .await
+        .context("read skills.sh leaderboard response")?;
+
+    parse_leaderboard_html(&html, period)
+}
+
+/// Fetch the leaderboard via the official site's internal JSON API (fallback).
 async fn fetch_leaderboard_via_api(
     period: SkillsShLeaderboardPeriod,
 ) -> Result<(Vec<SkillsShLeaderboardItem>, ParsedLeaderboardMeta)> {
@@ -505,39 +537,27 @@ pub async fn get_skills_sh_leaderboard(
         }
     }
 
-    // Primary: official internal JSON API (stable, exact installs, no DOM scraping).
-    // Fallback: scrape the rendered HTML page if the API is unavailable/blocked.
-    let (skills, meta, source_url) = match fetch_leaderboard_via_api(period).await {
-        Ok((skills, meta)) => (
-            skills,
-            meta,
-            format!("https://skills.sh/api/skills/{}/1", api_view_slug(period)),
-        ),
-        Err(api_err) => {
+    // 主路径：官网前端实际渲染的榜单（SSR 含 100+ 条目，与官网显示对齐）。
+    // 兜底：内部 JSON API（排名口径与官网不一致，仅在 HTML 不可用时使用）。
+    let html_url = format!("https://skills.sh{}", period.fetch_path());
+    let (skills, meta, source_url) = match fetch_leaderboard_via_html(period, &html_url).await {
+        Ok((skills, meta)) => (skills, meta, html_url),
+        Err(html_err) => {
             log::warn!(
-                "skills.sh leaderboard API failed, falling back to HTML scrape: {api_err}"
+                "skills.sh HTML 主路径失败，回退内部 API: {html_err}"
             );
-            let source_url = format!("https://skills.sh{}", period.fetch_path());
-            let client = crate::proxy::http_client::get();
-            let html = client
-                .get(&source_url)
-                .header(
-                    "User-Agent",
-                    "OpenSunstar/1.0 (+https://github.com/alisunstar/OpenSunstar)",
-                )
-                .header("Accept", "text/html,application/xhtml+xml")
-                .timeout(std::time::Duration::from_secs(20))
-                .send()
-                .await
-                .with_context(|| format!("fetch skills.sh leaderboard: {source_url}"))?
-                .error_for_status()
-                .with_context(|| format!("skills.sh leaderboard HTTP error: {source_url}"))?
-                .text()
-                .await
-                .context("read skills.sh leaderboard response")?;
-
-            let (skills, meta) = parse_leaderboard_html(&html, period)?;
-            (skills, meta, source_url)
+            match fetch_leaderboard_via_api(period).await {
+                Ok((skills, meta)) => (
+                    skills,
+                    meta,
+                    format!("https://skills.sh/api/skills/{}/1", api_view_slug(period)),
+                ),
+                Err(api_err) => {
+                    return Err(anyhow!(
+                        "skills.sh 榜单 HTML 与 API 均失败: HTML={html_err}; API={api_err}"
+                    ))
+                }
+            }
         }
     };
     let synced_at = now_ms();

@@ -22,7 +22,7 @@ export type SkillSource = "repos" | "skillssh" | "clawhub" | "modelscope";
 interface SkillCardProps {
   skill: SkillCardSkill;
   onInstall: (key: string) => Promise<void>;
-  onUninstall: (key: string) => Promise<void>;
+  onUninstall: (key: string, directory: string) => Promise<void> | void;
   installs?: number;
   source?: SkillSource;
   stars?: number;
@@ -71,7 +71,7 @@ export function SkillCard({
   const handleUninstall = async () => {
     setLoading(true);
     try {
-      await onUninstall(skill.key);
+      await onUninstall(skill.key, skill.directory);
     } finally {
       setLoading(false);
     }
