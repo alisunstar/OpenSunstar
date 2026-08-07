@@ -2406,8 +2406,8 @@
     "leaderboard": {
       "allTimeTitle": "全站總榜",
       "trendingTitle": "24h 趨勢",
-      "allTimeDesc": "與 skills.sh 官網 All Time 排行榜 TOP50 對齊（歷史總安裝量）",
-      "trendingDesc": "與 skills.sh 官網 Trending (24h) 排行榜 TOP50 對齊",
+      "allTimeDesc": "與 skills.sh 官網 All Time 排行榜 TOP100 對齊（歷史總安裝量）",
+      "trendingDesc": "與 skills.sh 官網 Trending (24h) 排行榜 TOP100 對齊",
       "syncedAt": "同步於 {{time}}",
       "fromCache": "本地緩存",
       "registryTotal": "全站累計 {{count}} 次安裝",

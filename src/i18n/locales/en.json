@@ -2463,7 +2463,7 @@
       "leaderboardTrending": "24h Trending"
     },
     "leaderboard": {
-      "allTimeTitle": "All Time Top 50",
+      "allTimeTitle": "All Time Top 100",
       "trendingTitle": "24h Trending",
       "allTimeDesc": "Aligned with skills.sh official All Time leaderboard (total installs)",
       "trendingDesc": "Aligned with skills.sh official Trending (24h) leaderboard",

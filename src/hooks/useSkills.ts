@@ -443,7 +443,7 @@ export function useSearchModelScope(
 export type SkillsLeaderboardTabPeriod = "all_time" | "trending_24h";
 
 /**
- * skills.sh 官方排行榜（All Time / Trending 24h TOP50）
+ * skills.sh 官方排行榜（All Time / Trending 24h TOP100）
  * 数据由 Tauri 抓取 skills.sh 页面并本地缓存（默认 6h TTL）
  */
 export function useSkillsShLeaderboard(

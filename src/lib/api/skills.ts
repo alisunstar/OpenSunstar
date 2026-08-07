@@ -310,7 +310,7 @@ export const skillsApi = {
     return await invoke("search_skills_sh", { query, limit, offset });
   },
 
-  /** 获取 skills.sh 官方排行榜（All Time / Trending 24h TOP50） */
+  /** 获取 skills.sh 官方排行榜（All Time / Trending 24h TOP100） */
   async getSkillsShLeaderboard(
     period: SkillsShLeaderboardPeriod,
     forceRefresh = false,

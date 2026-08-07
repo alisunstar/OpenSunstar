@@ -2271,10 +2271,10 @@
       "leaderboardTrending": "24h トレンド"
     },
     "leaderboard": {
-      "allTimeTitle": "全期間 TOP50",
+      "allTimeTitle": "全期間 TOP100",
       "trendingTitle": "24h トレンド",
-      "allTimeDesc": "skills.sh 公式 All Time ランキング TOP50 と同期",
-      "trendingDesc": "skills.sh 公式 Trending (24h) ランキング TOP50 と同期",
+      "allTimeDesc": "skills.sh 公式 All Time ランキング TOP100 と同期",
+      "trendingDesc": "skills.sh 公式 Trending (24h) ランキング TOP100 と同期",
       "syncedAt": "同期 {{time}}",
       "fromCache": "ローカルキャッシュ",
       "registryTotal": "skills.sh 累計 {{count}} インストール",

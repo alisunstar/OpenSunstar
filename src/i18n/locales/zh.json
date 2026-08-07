@@ -2612,8 +2612,8 @@
     "leaderboard": {
       "allTimeTitle": "全站总榜",
       "trendingTitle": "24h 趋势",
-      "allTimeDesc": "与 skills.sh 官网 All Time 排行榜 TOP50 对齐（历史总安装量）",
-      "trendingDesc": "与 skills.sh 官网 Trending (24h) 排行榜 TOP50 对齐",
+      "allTimeDesc": "与 skills.sh 官网 All Time 排行榜 TOP100 对齐（历史总安装量）",
+      "trendingDesc": "与 skills.sh 官网 Trending (24h) 排行榜 TOP100 对齐",
       "syncedAt": "同步于 {{time}}",
       "fromCache": "本地缓存",
       "registryTotal": "全站累计 {{count}} 次安装",

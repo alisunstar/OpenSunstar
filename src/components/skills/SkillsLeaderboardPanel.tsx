@@ -25,8 +25,8 @@ import type { AppId } from "@/lib/api/types";
 import { formatSkillError } from "@/lib/errors/skillErrorParser";
 import { cn } from "@/lib/utils";
 
-/** 每页展示条数（TOP50 分 5 页，首屏约 2 行 × 3 列） */
-const LEADERBOARD_PAGE_SIZE = 12;
+/** 每页展示条数（TOP100 ÷ 20/页 = 5 页） */
+const LEADERBOARD_PAGE_SIZE = 20;
 
 interface SkillsLeaderboardPanelProps {
   period: SkillsLeaderboardTabPeriod;
@@ -152,10 +152,10 @@ export function SkillsLeaderboardPanel({
     period === "all_time"
       ? t("skills.leaderboard.allTimeDesc", {
           defaultValue:
-            "与 skills.sh 官网 All Time 排行榜 TOP50 对齐（历史总安装量）",
+            "与 skills.sh 官网 All Time 排行榜 TOP100 对齐（历史总安装量）",
         })
       : t("skills.leaderboard.trendingDesc", {
-          defaultValue: "与 skills.sh 官网 Trending (24h) 排行榜 TOP50 对齐",
+          defaultValue: "与 skills.sh 官网 Trending (24h) 排行榜 TOP100 对齐",
         });
 
   const PeriodIcon = period === "all_time" ? Trophy : TrendingUp;
@@ -182,7 +182,7 @@ export function SkillsLeaderboardPanel({
                   skills.sh
                 </span>
                 <span className="text-[10px] text-muted-foreground">
-                  TOP 50
+                  TOP 100
                 </span>
               </div>
               <p className="text-xs text-muted-foreground">{periodDesc}</p>
