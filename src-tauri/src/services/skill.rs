@@ -481,6 +481,40 @@ impl SkillService {
         Ok(dir)
     }
 
+    /// 获取当前设置未选中的「另一个」SSOT 目录（不创建）。
+    ///
+    /// 历史版本可能留下「设置指向 A、内容仍在 B」的分裂状态（默认位置变化
+    /// 而文件未迁移）。读侧操作把它作为回退源，migrate_storage 把它作为
+    /// 额外搬运源，确保分裂状态可收敛而不是永久卡死。
+    pub fn get_alternate_ssot_dir() -> Result<PathBuf> {
+        let location = crate::settings::get_skill_storage_location();
+        let dir = match location {
+            SkillStorageLocation::OpenSunstar => get_home_dir().join(".agents").join("skills"),
+            SkillStorageLocation::Unified => get_app_config_dir().join("skills"),
+        };
+        Ok(dir)
+    }
+
+    /// 解析 Skill 的同步源目录：优先当前 SSOT，缺失时回退备选 SSOT。
+    ///
+    /// 两处都不存在时返回当前 SSOT 路径，使后续 `validate_sync_source_dir`
+    /// 的报错（"Skill 不存在于 SSOT"）语义仍然成立。
+    fn resolve_sync_source_dir(directory: &str) -> Result<PathBuf> {
+        let primary = Self::get_ssot_dir()?.join(directory);
+        if primary.is_dir() {
+            return Ok(primary);
+        }
+        let alternate = Self::get_alternate_ssot_dir()?.join(directory);
+        if alternate.is_dir() {
+            log::debug!(
+                "Skill {directory} 不在当前 SSOT，回退备选存储目录: {}",
+                alternate.display()
+            );
+            return Ok(alternate);
+        }
+        Ok(primary)
+    }
+
     /// 获取 Skill 卸载备份目录（~/.OpenSunstar/skill-backups/）
     fn get_backup_dir() -> Result<PathBuf> {
         let dir = get_app_config_dir().join("skill-backups");
@@ -1233,6 +1267,7 @@ impl SkillService {
 
         // 2. 逐个移动 skill 目录
         let skills = db.get_all_installed_skills()?;
+        let alternate_old_dir = Self::get_alternate_ssot_dir()?;
         let mut result = MigrationResult {
             migrated_count: 0,
             skipped_count: 0,
@@ -1240,8 +1275,19 @@ impl SkillService {
         };
 
         for skill in skills.values() {
-            let src = old_dir.join(&skill.directory);
+            let mut src = old_dir.join(&skill.directory);
             let dst = new_dir.join(&skill.directory);
+
+            if !src.exists() {
+                // 分裂状态兜底：内容可能还在「另一个」SSOT 目录
+                let alt_src = alternate_old_dir.join(&skill.directory);
+                if alt_src != old_dir.join(&skill.directory)
+                    && alt_src != dst
+                    && alt_src.exists()
+                {
+                    src = alt_src;
+                }
+            }
 
             if !src.exists() {
                 result.skipped_count += 1;
@@ -1699,8 +1745,7 @@ impl SkillService {
         if !skills_root.exists() {
             fs::create_dir_all(skills_root)?;
         }
-        let ssot_dir = Self::get_ssot_dir()?;
-        let source = ssot_dir.join(directory);
+        let source = Self::resolve_sync_source_dir(directory)?;
         Self::validate_sync_source_dir(&source, directory)?;
         let dest = skills_root.join(directory);
         Self::replace_dest_with_copy(&source, &dest, directory)?;
@@ -1727,8 +1772,7 @@ impl SkillService {
             return Ok(());
         }
 
-        let ssot_dir = Self::get_ssot_dir()?;
-        let source = ssot_dir.join(directory);
+        let source = Self::resolve_sync_source_dir(directory)?;
 
         Self::validate_sync_source_dir(&source, directory)?;
 
@@ -3746,6 +3790,7 @@ pub fn auto_import_ssot_skills(db: &Arc<Database>) -> Result<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serial_test::serial;
     use tempfile::tempdir;
 
     fn write_skill(dir: &Path, name: &str) {
@@ -3811,5 +3856,63 @@ mod tests {
             dest.join("SKILL.md").is_file(),
             "existing destination skill should be preserved"
         );
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_sync_source_dir_falls_back_to_alternate_ssot() {
+        let test_home = std::env::temp_dir().join("OpenSunstar-skill-ssot-fallback-test");
+        let _ = std::fs::remove_dir_all(&test_home);
+        std::fs::create_dir_all(&test_home).expect("create test home");
+        let _env_lock = crate::services::sync_test_support::sync_env_lock()
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        let old_test_home = std::env::var_os("OPEN_SUNSTAR_TEST_HOME");
+        std::env::set_var("OPEN_SUNSTAR_TEST_HOME", &test_home);
+
+        // Windows 兼容回退：默认位置无 DB 时会回退到 $HOME 旧目录。
+        // 放一个空 DB 标记，确保 get_app_config_dir 落在测试 home。
+        let cfg_dir = test_home.join(".OpenSunstar");
+        std::fs::create_dir_all(&cfg_dir).expect("create config dir");
+        std::fs::write(cfg_dir.join("OpenSunstar.db"), b"").expect("marker db");
+
+        // 刷新设置缓存（默认存储位置 = OpenSunstar）
+        crate::settings::update_settings(crate::settings::AppSettings::default())
+            .expect("reset settings in test home");
+
+        // 内容只存在于备选目录（~/.agents/skills）→ 回退命中
+        write_skill(
+            &test_home.join(".agents").join("skills").join("orphan"),
+            "Orphan Skill",
+        );
+        let resolved = SkillService::resolve_sync_source_dir("orphan").expect("resolve orphan");
+        assert_eq!(
+            resolved,
+            test_home.join(".agents").join("skills").join("orphan")
+        );
+
+        // 当前 SSOT 优先
+        let primary = test_home
+            .join(".OpenSunstar")
+            .join("skills")
+            .join("orphan");
+        write_skill(&primary, "Orphan Skill");
+        let resolved =
+            SkillService::resolve_sync_source_dir("orphan").expect("resolve primary");
+        assert_eq!(resolved, primary);
+
+        // 两处都不存在 → 返回当前 SSOT 路径，交由校验报错
+        let resolved =
+            SkillService::resolve_sync_source_dir("missing").expect("resolve missing");
+        assert_eq!(
+            resolved,
+            test_home.join(".OpenSunstar").join("skills").join("missing")
+        );
+
+        match old_test_home {
+            Some(value) => std::env::set_var("OPEN_SUNSTAR_TEST_HOME", value),
+            None => std::env::remove_var("OPEN_SUNSTAR_TEST_HOME"),
+        }
+        let _ = std::fs::remove_dir_all(&test_home);
     }
 }
