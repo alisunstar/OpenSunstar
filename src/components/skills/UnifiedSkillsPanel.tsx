@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Sparkles,
@@ -10,6 +10,7 @@ import {
   X,
   Info,
   Clock,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,6 +42,11 @@ import { AppCountBar } from "@/components/common/AppCountBar";
 import { AppToggleGroup } from "@/components/common/AppToggleGroup";
 import { ListItemRow } from "@/components/common/ListItemRow";
 import {
+  type SkillCategory,
+  classifySkill,
+  SKILL_CATEGORIES,
+} from "@/lib/skillCategories";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -52,6 +58,14 @@ import {
 interface UnifiedSkillsPanelProps {
   onOpenDiscovery: () => void;
   currentApp: AppId;
+  focusIntent?: SkillsFocusIntent | null;
+  onFocusConsumed?: () => void;
+}
+
+/** 从发现页跳转主面板时携带的定位意图（key 用于重复触发同一目录） */
+export interface SkillsFocusIntent {
+  directory: string;
+  key: number;
 }
 
 export interface UnifiedSkillsPanelHandle {
@@ -72,7 +86,7 @@ function formatSkillBackupDate(unixSeconds: number): string {
 const UnifiedSkillsPanel = React.forwardRef<
   UnifiedSkillsPanelHandle,
   UnifiedSkillsPanelProps
->(({ onOpenDiscovery, currentApp }, ref) => {
+>(({ onOpenDiscovery, currentApp, focusIntent, onFocusConsumed }, ref) => {
   const { t } = useTranslation();
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -122,11 +136,6 @@ const UnifiedSkillsPanel = React.forwardRef<
     });
   };
 
-  const selectAll = () => {
-    if (!skills) return;
-    setSelectedIds(new Set(skills.map((s) => s.id)));
-  };
-
   const clearSelection = () => {
     setSelectedIds(new Set());
   };
@@ -135,6 +144,73 @@ const UnifiedSkillsPanel = React.forwardRef<
     setBatchMode(false);
     clearSelection();
   };
+
+  // ── 搜索 + 分类 + App 三重过滤 ──
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState<SkillCategory | null>(null);
+  const [activeAppFilter, setActiveAppFilter] = useState<AppId | null>(null);
+
+  /** 每个 Skill 的分类结果（随 skills 变化重新运算） */
+  const skillCategoryMap = useMemo(() => {
+    if (!skills) return new Map<string, SkillCategory>();
+    const map = new Map<string, SkillCategory>();
+    for (const s of skills) {
+      map.set(s.id, classifySkill(s.name, s.description));
+    }
+    return map;
+  }, [skills]);
+
+  /** 各分类的 Skill 数量（仅统计当前 App 过滤后的集合） */
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<SkillCategory, number>();
+    const list = activeAppFilter
+      ? skills?.filter((s) => s.apps[activeAppFilter]) ?? []
+      : skills ?? [];
+    for (const s of list) {
+      const cat = skillCategoryMap.get(s.id) ?? "other";
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    }
+    return counts;
+  }, [skills, skillCategoryMap, activeAppFilter]);
+
+  /** 三重过滤后的最终列表 */
+  const filteredSkills = useMemo(() => {
+    if (!skills) return [];
+    return skills.filter((s) => {
+      // 1. App 过滤
+      if (activeAppFilter && !s.apps[activeAppFilter]) return false;
+      // 2. 分类过滤
+      if (activeCategory) {
+        const cat = skillCategoryMap.get(s.id) ?? "other";
+        if (cat !== activeCategory) return false;
+      }
+      // 3. 搜索过滤
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const haystack = `${s.name} ${s.description ?? ""} ${s.directory}`.toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [skills, activeAppFilter, activeCategory, searchQuery, skillCategoryMap]);
+
+  const handleAppFilterClick = (app: AppId | null) => {
+    setActiveAppFilter((prev) => (prev === app ? null : app));
+  };
+
+  // 发现页跳转过来的定位意图：滚动到对应技能并短暂高亮
+  const [highlightDir, setHighlightDir] = useState<string | null>(null);
+  useEffect(() => {
+    if (!focusIntent || !skills) return;
+    const target = skills.find((s) => s.directory === focusIntent.directory);
+    if (!target) return; // 数据可能仍在加载，等 skills 就绪后重试
+    const el = document.getElementById(`skill-row-${focusIntent.directory}`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightDir(focusIntent.directory);
+    onFocusConsumed?.();
+    const timer = window.setTimeout(() => setHighlightDir(null), 2000);
+    return () => window.clearTimeout(timer);
+  }, [focusIntent, skills, onFocusConsumed]);
 
   const handleBatchToggle = async (app: AppId, enabled: boolean) => {
     const ids = Array.from(selectedIds);
@@ -457,6 +533,8 @@ const UnifiedSkillsPanel = React.forwardRef<
           totalLabel={t("skills.installed", { count: skills?.length || 0 })}
           counts={enabledCounts}
           appIds={SKILLS_APP_IDS}
+          onAppClick={handleAppFilterClick}
+          activeApp={activeAppFilter}
         />
         <div className="flex items-center gap-1.5">
           <div
@@ -543,6 +621,103 @@ const UnifiedSkillsPanel = React.forwardRef<
         </div>
       </div>
 
+      {/* 搜索框 + 分类过滤 */}
+      {skills && skills.length > 0 && (
+        <div className="mb-3 space-y-2">
+          {/* 搜索框 */}
+          <div className="relative">
+            <Search
+              size={14}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/50"
+            />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t("skills.searchPlaceholder", {
+                defaultValue: "搜索 Skill 名称、描述或目录...",
+              })}
+              className="w-full h-8 pl-9 pr-8 rounded-lg bg-muted/40 border border-border-default text-sm placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/40"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground"
+              >
+                <X size={12} />
+              </button>
+            )}
+          </div>
+
+          {/* 分类 Pill */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Badge
+              variant="secondary"
+              className={`cursor-pointer text-xs px-2 py-0.5 border-0 ${
+                activeCategory === null
+                  ? "bg-primary/15 text-primary ring-1 ring-primary/40 font-semibold"
+                  : "bg-muted/40 text-muted-foreground hover:bg-muted/60"
+              }`}
+              onClick={() => setActiveCategory(null)}
+            >
+              {t("skills.category.all", { defaultValue: "全部" })}
+              <span className="ml-1 opacity-60">
+                {activeAppFilter
+                  ? skills.filter((s) => s.apps[activeAppFilter]).length
+                  : skills.length}
+              </span>
+            </Badge>
+            {SKILL_CATEGORIES.map((cat) => {
+              const count = categoryCounts.get(cat.key) ?? 0;
+              if (count === 0) return null;
+              const isActive = activeCategory === cat.key;
+              return (
+                <Badge
+                  key={cat.key}
+                  variant="secondary"
+                  className={`cursor-pointer text-xs px-2 py-0.5 border-0 ${
+                    isActive ? cat.pillActiveClass + " font-semibold" : cat.pillClass
+                  }`}
+                  onClick={() =>
+                    setActiveCategory((prev) =>
+                      prev === cat.key ? null : cat.key,
+                    )
+                  }
+                >
+                  {t(cat.i18nKey, { defaultValue: cat.fallbackLabel })}
+                  <span className="ml-1 opacity-60">{count}</span>
+                </Badge>
+              );
+            })}
+          </div>
+
+          {/* 过滤结果摘要 */}
+          {(activeAppFilter || activeCategory || searchQuery) && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>
+                {t("skills.filterResultCount", {
+                  count: filteredSkills.length,
+                  total: skills.length,
+                  defaultValue: `显示 ${filteredSkills.length} / ${skills.length} 个`,
+                })}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory(null);
+                  setActiveAppFilter(null);
+                }}
+                className="text-primary hover:text-primary/80 underline underline-offset-2"
+              >
+                {t("skills.clearFilters", { defaultValue: "清除筛选" })}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto overflow-x-hidden pb-24">
         {isLoading ? (
           <div className="text-center py-12 text-muted-foreground">
@@ -563,45 +738,55 @@ const UnifiedSkillsPanel = React.forwardRef<
         ) : (
           <TooltipProvider delayDuration={300}>
             <div className="rounded-xl border border-border-default overflow-hidden">
-              {batchMode && skills.length > 0 && (
+              {batchMode && filteredSkills.length > 0 && (
                 <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border-default">
                   <input
                     type="checkbox"
-                    checked={selectedIds.size === skills.length}
+                    checked={selectedIds.size === filteredSkills.length && filteredSkills.length > 0}
                     onChange={() =>
-                      selectedIds.size === skills.length
+                      selectedIds.size === filteredSkills.length
                         ? clearSelection()
-                        : selectAll()
+                        : setSelectedIds(new Set(filteredSkills.map((s) => s.id)))
                     }
                     className="rounded border-border"
                   />
                   <span className="text-xs text-muted-foreground">
-                    {selectedIds.size === skills.length
+                    {selectedIds.size === filteredSkills.length && filteredSkills.length > 0
                       ? t("skills.deselectAll", { defaultValue: "取消全选" })
                       : t("skills.selectAll", { defaultValue: "全选" })}{" "}
-                    ({selectedIds.size}/{skills.length})
+                    ({selectedIds.size}/{filteredSkills.length})
                   </span>
                 </div>
               )}
-              {skills.map((skill, index) => (
-                <InstalledSkillListItem
-                  key={skill.id}
-                  skill={skill}
-                  hasUpdate={!!updatesMap[skill.id]}
-                  isUpdating={
-                    updateSkillMutation.isPending &&
-                    updateSkillMutation.variables === skill.id
-                  }
-                  onToggleApp={handleToggleApp}
-                  onUninstall={() => handleUninstall(skill)}
-                  onUpdate={() => handleUpdateSkill(skill)}
-                  onInfo={() => setInfoSkill(skill)}
-                  isLast={index === skills.length - 1}
-                  batchMode={batchMode}
-                  selected={selectedIds.has(skill.id)}
-                  onToggleSelect={() => toggleSelectSkill(skill.id)}
-                />
-              ))}
+              {filteredSkills.length === 0 ? (
+                <div className="text-center py-10 text-muted-foreground text-sm">
+                  {t("skills.noFilterResults", {
+                    defaultValue: "没有匹配的 Skill，请调整筛选条件",
+                  })}
+                </div>
+              ) : (
+                filteredSkills.map((skill, index) => (
+                  <InstalledSkillListItem
+                    key={skill.id}
+                    skill={skill}
+                    rowId={`skill-row-${skill.directory}`}
+                    highlighted={highlightDir === skill.directory}
+                    hasUpdate={!!updatesMap[skill.id]}
+                    isUpdating={
+                      updateSkillMutation.isPending &&
+                      updateSkillMutation.variables === skill.id
+                    }
+                    onToggleApp={handleToggleApp}
+                    onUninstall={() => handleUninstall(skill)}
+                    onUpdate={() => handleUpdateSkill(skill)}
+                    onInfo={() => setInfoSkill(skill)}
+                    isLast={index === filteredSkills.length - 1}
+                    batchMode={batchMode}
+                    selected={selectedIds.has(skill.id)}
+                    onToggleSelect={() => toggleSelectSkill(skill.id)}
+                  />
+                ))
+              )}
             </div>
           </TooltipProvider>
         )}
@@ -735,6 +920,8 @@ interface InstalledSkillListItemProps {
   batchMode?: boolean;
   selected?: boolean;
   onToggleSelect?: () => void;
+  rowId?: string;
+  highlighted?: boolean;
 }
 
 const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
@@ -749,6 +936,8 @@ const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
   batchMode,
   selected,
   onToggleSelect,
+  rowId,
+  highlighted,
 }) => {
   const { t } = useTranslation();
 
@@ -781,7 +970,7 @@ const InstalledSkillListItem: React.FC<InstalledSkillListItemProps> = ({
   }, [skill.repoOwner, skill.repoName, t]);
 
   return (
-    <ListItemRow isLast={isLast}>
+    <ListItemRow isLast={isLast} id={rowId} highlighted={highlighted}>
       {batchMode && (
         <input
           type="checkbox"
