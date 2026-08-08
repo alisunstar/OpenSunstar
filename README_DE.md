@@ -274,7 +274,7 @@ Siehe [CONTRIBUTING.md](CONTRIBUTING.md). Sponsoren: [SUPPORT.md](SUPPORT.md)
 
 ### Danksagung
 
-OpenSunstar baut auf dem Open-Source-Projekt [cc-switch](https://github.com/farion1231/cc-switch) auf. OpenSunstar wird unabhängig weiterentwickelt — verankert in strategischer Positionierung, Wertversprechen und Produktnarrative.
+Die Entwicklung von OpenSunstar wurde von Open-Source-Projekten wie [cc-switch](https://github.com/farion1231/cc-switch) inspiriert. OpenSunstar wird unabhängig weiterentwickelt — verankert in strategischer Positionierung, Wertversprechen und Produktnarrative. Als IDE/Agent-Begleitprodukt verfügt OpenSunstar über keine eigene Agent-Laufzeitumgebung; seine Rolle ist „AI Asset Manager + Orchestrator".
 
 ### Lizenz
 

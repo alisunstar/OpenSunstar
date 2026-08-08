@@ -358,7 +358,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Partner and sponsor info: [SUPPORT.md](S
 
 ### Acknowledgements
 
-OpenSunstar builds upon the open-source [cc-switch](https://github.com/farion1231/cc-switch) project. OpenSunstar will continue to evolve independently, anchored to its strategic positioning, value proposition, and product narrative.
+Developing OpenSunstar was inspired by open-source projects like [cc-switch](https://github.com/farion1231/cc-switch). OpenSunstar will continue to evolve independently, anchored to its strategic positioning, value proposition, and product narrative. As an IDE/Agent companion product, OpenSunstar does not include its own agent runtime; its role is "AI Asset Manager + Orchestrator".
 
 ### License
 

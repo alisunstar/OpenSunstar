@@ -258,7 +258,7 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 ### 謝辞
 
-OpenSunstar は [cc-switch](https://github.com/farion1231/cc-switch) オープンソースプロジェクトの上に成り立っています。OpenSunstar は戦略的定位・価値提案・プロダクト叙事に沿って、独立した進化とイテレーションを続けます。
+OpenSunstar の開発は、[cc-switch](https://github.com/farion1231/cc-switch) などのオープンソースプロジェクトからインスピレーションとヒントを得ています。OpenSunstar は戦略的定位・価値提案・プロダクト叙事に沿って、独立した進化とイテレーションを続けます。IDE/Agent コンパニオン製品として、OpenSunstar 自体はエージェントランタイムを持たず、その役割は「AI アセットマネージャー + オーケストレーター」です。
 
 ### ライセンス
 

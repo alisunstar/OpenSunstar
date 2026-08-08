@@ -356,7 +356,7 @@ pnpm typecheck && pnpm format:check && pnpm test:unit
 
 ### 致谢
 
-OpenSunstar 的诞生离不开 [cc-switch](https://github.com/farion1231/cc-switch) 开放源代码项目。OpenSunstar 将始终坚定独立演进和迭代，锚定战略定位、价值主张和产品叙事。
+开发 OpenSunstar 离不开 [cc-switch](https://github.com/farion1231/cc-switch) 等开源项目给予的灵感和启发。OpenSunstar 将始终坚定独立演进和迭代，锚定战略定位、价值主张和产品叙事。OpenSunstar 作为 IDE/Agent 伴侣产品定位，本身没有 agent 运行时；OpenSunstar 的角色是"AI 资产管理者 + 编排者"。
 
 ### 许可证
 
