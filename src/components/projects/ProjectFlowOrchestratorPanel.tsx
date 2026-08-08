@@ -781,8 +781,7 @@ export function ProjectFlowOrchestratorPanel({
             <li>
               ·{" "}
               {t("flowOrchestrator.rdLoopRelationWiki", {
-                defaultValue:
-                  "知识基线与 ROUTING 见「项目环境 & Wiki」Tab",
+                defaultValue: "知识基线与 ROUTING 见「项目环境 & Wiki」Tab",
               })}
             </li>
             <li>

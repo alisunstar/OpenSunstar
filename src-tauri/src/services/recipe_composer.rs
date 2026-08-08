@@ -2120,7 +2120,9 @@ mod tests {
         }];
 
         let result = install_recipe(root.to_str().unwrap(), &recipe, "chg-kb").unwrap();
-        assert!(result.files_created.contains(&"knowledge/ROUTING.md".to_string()));
+        assert!(result
+            .files_created
+            .contains(&"knowledge/ROUTING.md".to_string()));
         let written = fs::read_to_string(root.join("knowledge/ROUTING.md")).unwrap();
         assert!(!written.contains("{{project_name}}"));
         assert!(!written.contains("{{date}}"));
@@ -2128,7 +2130,9 @@ mod tests {
 
         // Safe install: second run must skip, never overwrite
         let result2 = install_recipe(root.to_str().unwrap(), &recipe, "chg-kb").unwrap();
-        assert!(result2.files_skipped.contains(&"knowledge/ROUTING.md".to_string()));
+        assert!(result2
+            .files_skipped
+            .contains(&"knowledge/ROUTING.md".to_string()));
     }
 
     #[test]

@@ -304,7 +304,14 @@ export function useWorkspaceAlerts({
         return commitsOf(b) - commitsOf(a);
       })
       .slice(0, 5);
-  }, [projects, agentReadinessMap, commitsInWindowMap, onOpenProjectAiConfig, onRepairProject, t]);
+  }, [
+    projects,
+    agentReadinessMap,
+    commitsInWindowMap,
+    onOpenProjectAiConfig,
+    onRepairProject,
+    t,
+  ]);
 
   const eventAlertList = useMemo<WorkspaceAlert[]>(
     () =>

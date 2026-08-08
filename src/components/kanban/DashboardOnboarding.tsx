@@ -58,7 +58,9 @@ interface DashboardOnboardingProps {
   onAddProject?: () => void;
 }
 
-export function DashboardOnboarding({ onAddProject }: DashboardOnboardingProps) {
+export function DashboardOnboarding({
+  onAddProject,
+}: DashboardOnboardingProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [step, setStep] = useState(0);

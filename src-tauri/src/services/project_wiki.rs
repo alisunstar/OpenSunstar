@@ -762,7 +762,7 @@ pub fn run_wiki_lint(
             "decision",
         ];
         if let Some(t) = map
-            .get(&serde_yaml::Value::String("type".into()))
+            .get(serde_yaml::Value::String("type".into()))
             .and_then(|v| v.as_str())
         {
             if !valid_types.contains(&t) {
@@ -779,7 +779,7 @@ pub fn run_wiki_lint(
         // S007: status 枚举
         let valid_statuses = ["active", "draft", "retired"];
         if let Some(s) = map
-            .get(&serde_yaml::Value::String("status".into()))
+            .get(serde_yaml::Value::String("status".into()))
             .and_then(|v| v.as_str())
         {
             if !valid_statuses.contains(&s) {
@@ -833,7 +833,7 @@ pub fn run_wiki_lint(
 
         // S010: source_files 指向文件不存在（跳过 glob 模式）
         if let Some(sources) = map
-            .get(&serde_yaml::Value::String("source_files".into()))
+            .get(serde_yaml::Value::String("source_files".into()))
             .and_then(|v| v.as_sequence())
         {
             for src in sources.iter().filter_map(|v| v.as_str()) {
@@ -844,7 +844,7 @@ pub fn run_wiki_lint(
                 if !resolved.exists() {
                     // retired decisions 豁免
                     let is_retired = map
-                        .get(&serde_yaml::Value::String("status".into()))
+                        .get(serde_yaml::Value::String("status".into()))
                         .and_then(|v| v.as_str())
                         == Some("retired");
                     if !is_retired {
@@ -877,7 +877,7 @@ pub fn run_wiki_lint(
         // Quality 模式检查（Q001-Q010）
         if quality_mode {
             let page_type = map
-                .get(&serde_yaml::Value::String("type".into()))
+                .get(serde_yaml::Value::String("type".into()))
                 .and_then(|v| v.as_str())
                 .unwrap_or("");
             check_quality_rules(page_type, &body, rel_path, &mut warnings);
@@ -1367,7 +1367,7 @@ pub fn list_wiki_candidates(project_path: &str) -> Result<Vec<WikiCandidate>, Ap
                 .and_then(|value| value.as_f64()),
         });
     }
-    candidates.sort_by(|left, right| right.created_at.cmp(&left.created_at));
+    candidates.sort_by_key(|candidate| std::cmp::Reverse(candidate.created_at));
     Ok(candidates)
 }
 
@@ -2207,7 +2207,7 @@ fn collect_builtin_source_files(
 }
 
 fn should_skip_builtin_dir(name: &str) -> bool {
-    SKIP_DIRS.iter().any(|value| name == *value)
+    SKIP_DIRS.contains(&name)
         || matches!(
             name,
             ".opensunstar"
@@ -2549,16 +2549,17 @@ fn check_quality_rules(page_type: &str, body: &str, file: &str, warnings: &mut V
                     });
                 }
             }
-            if file.contains("config-and-cache") {
-                if !body.to_lowercase().contains("default") && !has_section("Config And Defaults") {
-                    warnings.push(WikiLintIssue {
-                        rule_id: "Q006".to_string(),
-                        file: file.to_string(),
-                        line: None,
-                        message: "配置/缓存页面缺少 defaults".to_string(),
-                        severity: "warning".to_string(),
-                    });
-                }
+            if file.contains("config-and-cache")
+                && !body.to_lowercase().contains("default")
+                && !has_section("Config And Defaults")
+            {
+                warnings.push(WikiLintIssue {
+                    rule_id: "Q006".to_string(),
+                    file: file.to_string(),
+                    line: None,
+                    message: "配置/缓存页面缺少 defaults".to_string(),
+                    severity: "warning".to_string(),
+                });
             }
         }
         "flow" => {
@@ -3191,25 +3192,25 @@ fn parse_frontmatter_fields(frontmatter: &Option<String>) -> (String, String, Ve
     };
 
     let page_type = map
-        .get(&serde_yaml::Value::String("type".into()))
+        .get(serde_yaml::Value::String("type".into()))
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
     let status = map
-        .get(&serde_yaml::Value::String("status".into()))
+        .get(serde_yaml::Value::String("status".into()))
         .and_then(|v| v.as_str())
         .unwrap_or("draft")
         .to_string();
 
     let title = map
-        .get(&serde_yaml::Value::String("title".into()))
+        .get(serde_yaml::Value::String("title".into()))
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
 
     let source_files = map
-        .get(&serde_yaml::Value::String("source_files".into()))
+        .get(serde_yaml::Value::String("source_files".into()))
         .and_then(|v| v.as_sequence())
         .map(|seq| {
             seq.iter()

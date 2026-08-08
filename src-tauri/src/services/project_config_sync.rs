@@ -300,7 +300,9 @@ pub fn sync_asset_for_project_path(
     if !root.is_dir() {
         // 给操作者更可用的诊断：到底是路径不存在、不是目录，还是权限/链接问题。
         let detail = match std::fs::metadata(&root) {
-            Ok(m) if m.is_dir() => "路径存在但 stat/is_dir 不一致（可能符号链接或权限问题）".to_string(),
+            Ok(m) if m.is_dir() => {
+                "路径存在但 stat/is_dir 不一致（可能符号链接或权限问题）".to_string()
+            }
             Ok(m) => format!("路径存在但不是目录（file_type={:?}）", m.file_type()),
             Err(e) => format!("stat 失败: {e}"),
         };

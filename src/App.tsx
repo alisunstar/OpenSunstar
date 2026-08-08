@@ -191,10 +191,7 @@ function App() {
   const handleOpenProjectAssets = useCallback(
     (
       projectId: string,
-      intent?: Pick<
-        ProjectAiConfigNavigationIntent,
-        "tab" | "section"
-      > | null,
+      intent?: Pick<ProjectAiConfigNavigationIntent, "tab" | "section"> | null,
     ) => {
       setSelectedProjectId(projectId);
       if (intent) {

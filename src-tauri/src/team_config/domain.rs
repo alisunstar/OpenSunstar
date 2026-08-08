@@ -74,6 +74,7 @@ impl TargetApp {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Self {
         match s {
             "claude_code" | "claude" => Self::ClaudeCode,
@@ -115,6 +116,7 @@ impl AssetType {
         }
     }
 
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Option<Self> {
         match s {
             "prompt" => Some(Self::Prompt),
@@ -367,7 +369,7 @@ pub struct TeamToml {
     pub bindings: Option<toml::Value>,
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 pub struct TeamTomlMeta {
     pub name: Option<String>,
     pub version: Option<String>,
@@ -375,17 +377,6 @@ pub struct TeamTomlMeta {
     /// 兼容性声明
     #[serde(default)]
     pub compatibility: Vec<TomlCompatibility>,
-}
-
-impl Default for TeamTomlMeta {
-    fn default() -> Self {
-        Self {
-            name: None,
-            version: None,
-            description: None,
-            compatibility: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

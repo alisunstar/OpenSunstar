@@ -2514,6 +2514,11 @@
       "repo": "Filter by repo",
       "allRepos": "All repos"
     },
+    "category": {
+      "all": "All"
+    },
+    "clearFilters": "Clear filters",
+    "noFilterResults": "No matching skills. Adjust your filters.",
     "noResults": "No matching skills found",
     "noInstalled": "No skills installed",
     "noInstalledDescription": "Discover and install skills from repositories, or import existing skills",

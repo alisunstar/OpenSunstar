@@ -1012,7 +1012,11 @@ fn prompt_filename(app: &AppType) -> &'static str {
     match app {
         AppType::Claude => "CLAUDE.md",
         AppType::Gemini => "GEMINI.md",
-        AppType::GrokBuild | AppType::Codex | AppType::OpenCode | AppType::OpenClaw | AppType::Hermes => "AGENTS.md",
+        AppType::GrokBuild
+        | AppType::Codex
+        | AppType::OpenCode
+        | AppType::OpenClaw
+        | AppType::Hermes => "AGENTS.md",
         AppType::ClaudeDesktop => "N/A",
     }
 }

@@ -2726,7 +2726,12 @@
       "poweredBy": "数据来源：ModelScope 魔塔社区",
       "searchPlaceholder": "输入关键词搜索 ModelScope 技能中心..."
     },
-    "resync": "修复同步"
+    "resync": "修复同步",
+    "category": {
+      "all": "全部"
+    },
+    "clearFilters": "清除筛选",
+    "noFilterResults": "没有匹配的 Skill，请调整筛选条件"
   },
   "deeplink": {
     "confirmImport": "确认导入供应商配置",

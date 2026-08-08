@@ -31,7 +31,8 @@ pub fn run(args: RdArgs, json: bool) -> Result<(), String> {
             change_id,
         } => {
             let report = open_sunstar_lib::rd_validate::validate_implementation_check(
-                &project_path, &change_id,
+                &project_path,
+                &change_id,
             )?;
             let valid = report.schema_valid;
             if json {

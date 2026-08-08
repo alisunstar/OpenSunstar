@@ -19,7 +19,10 @@ import {
   buildAiProviderSettingsIntent,
   setSettingsNavIntent,
 } from "@/lib/settingsNavigation";
-import type { PageView, ProjectAiConfigNavigationIntent } from "@/app/navigation";
+import type {
+  PageView,
+  ProjectAiConfigNavigationIntent,
+} from "@/app/navigation";
 import type { AppId } from "@/lib/api";
 import type { ProjectAssetSection } from "@/lib/readinessActions";
 import type { Project } from "@/types/project";

@@ -247,10 +247,16 @@ fn emit_alert(handle: &AppHandle, alert: &BudgetAlert) {
     if alert.alert_level != AlertLevel::Warning {
         crate::services::sys_notify::notify_budget(handle, alert);
 
-        let period_label = if alert.period == "daily" { "日" } else { "月" };
+        let period_label = if alert.period == "daily" {
+            "日"
+        } else {
+            "月"
+        };
         let tray_text = format!(
             "⚠️ {} {}用量 {}%",
-            alert.provider_name, period_label, alert.percentage.round() as i64
+            alert.provider_name,
+            period_label,
+            alert.percentage.round() as i64
         );
         crate::tray::set_tray_alert(handle, &tray_text);
     }

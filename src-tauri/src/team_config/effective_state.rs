@@ -332,7 +332,7 @@ fn resolve_asset_group(
 
     // 按优先级排序（高 → 低）
     let mut sorted: Vec<&CandidateEntry> = candidates.iter().collect();
-    sorted.sort_by(|a, b| b.tier.cmp(&a.tier));
+    sorted.sort_by_key(|candidate| std::cmp::Reverse(candidate.tier));
 
     // 检查 deny 单调性
     let has_deny = sorted.iter().any(|c| c.action == PolicyAction::Denied);

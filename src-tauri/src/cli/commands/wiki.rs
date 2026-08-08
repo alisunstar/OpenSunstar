@@ -93,9 +93,7 @@ pub fn run(args: WikiArgs, json: bool) -> Result<(), String> {
             changed_files,
         } => run_changed(&project_path, changed_files, json),
         WikiAction::Routing { project_path } => {
-            let report = open_sunstar_lib::knowledge_routing::merge_routing_index(
-                &project_path,
-            )?;
+            let report = open_sunstar_lib::knowledge_routing::merge_routing_index(&project_path)?;
             if json {
                 crate::output::print_result(&report, true);
             } else {

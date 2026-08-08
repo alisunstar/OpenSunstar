@@ -45,6 +45,7 @@ pub fn extract_team_key_slug(value: &str) -> Option<&str> {
 /// The plaintext NEVER touches the database.
 ///
 /// W-2 修复：存储前校验 sha256(plaintext) == value_sha256，检测 MITM 篡改。
+#[allow(clippy::too_many_arguments)]
 pub fn store_team_key(
     db: &Database,
     org_id: &str,

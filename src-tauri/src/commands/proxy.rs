@@ -388,7 +388,13 @@ pub async fn reset_circuit_breaker(
                     let switch_manager =
                         crate::proxy::failover_switch::FailoverSwitchManager::new(db.clone());
                     if let Err(e) = switch_manager
-                        .try_switch(Some(&app_handle), &app_type, &provider_id, &provider_name, 0)
+                        .try_switch(
+                            Some(&app_handle),
+                            &app_type,
+                            &provider_id,
+                            &provider_name,
+                            0,
+                        )
                         .await
                     {
                         log::error!("[Recovery] 自动切换失败: {e}");

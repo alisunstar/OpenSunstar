@@ -288,6 +288,7 @@ impl Database {
 
     // ─── team_assignments (M1) ──────────────────────────────────────────────
 
+    #[allow(clippy::too_many_arguments)]
     pub fn upsert_team_assignment(
         &self,
         assignment_id: &str,
@@ -426,6 +427,7 @@ impl Database {
 
     // ─── team_audit_local (M8) ──────────────────────────────────────────────
 
+    #[allow(clippy::too_many_arguments)]
     pub fn insert_team_audit_event(
         &self,
         event_id: &str,

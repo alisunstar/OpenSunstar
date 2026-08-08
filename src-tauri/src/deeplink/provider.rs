@@ -420,7 +420,9 @@ fn build_grok_settings(request: &DeepLinkImportRequest) -> serde_json::Value {
         .model
         .as_deref()
         .unwrap_or(crate::grok_config::DEFAULT_MODEL);
-    let base_url = get_primary_endpoint(request).trim_end_matches('/').to_string();
+    let base_url = get_primary_endpoint(request)
+        .trim_end_matches('/')
+        .to_string();
     let name = request.name.as_deref().unwrap_or("Grok Provider");
     let key = request.api_key.clone().unwrap_or_default();
     let config = format!(

@@ -173,7 +173,9 @@ fn build_project_readiness_context(
         target_app: effective_target_app.clone(),
     });
     // P1-8：交付维度扩容（wiki 基线健康 + RD 工件完整度）
-    details.extend(crate::ai::agent_readiness::compute_delivery_dimensions(&project_path));
+    details.extend(crate::ai::agent_readiness::compute_delivery_dimensions(
+        &project_path,
+    ));
     if !managed {
         classify_unmanaged_readiness(&mut details);
     }

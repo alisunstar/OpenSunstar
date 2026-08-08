@@ -34,7 +34,7 @@ pub fn build_profiles(
             let assets = profile
                 .assets
                 .iter()
-                .map(|asset_ref| build_profile_asset(asset_ref))
+                .map(build_profile_asset)
                 .collect::<Result<Vec<_>, _>>()?;
 
             Ok(TeamProfile {
@@ -75,10 +75,11 @@ pub fn build_credential_slots(team_toml: &TeamToml) -> Vec<CredentialSlot> {
         .collect()
 }
 
+/// 一站式解析结果：profiles、policies、credential_slots。
+pub type ParsedTeamPackage = (Vec<TeamProfile>, Vec<PolicyRule>, Vec<CredentialSlot>);
+
 /// 一站式解析：team.toml 文本 → (profiles, policies, credential_slots)
-pub fn parse_team_package(
-    content: &str,
-) -> Result<(Vec<TeamProfile>, Vec<PolicyRule>, Vec<CredentialSlot>), TeamTomlError> {
+pub fn parse_team_package(content: &str) -> Result<ParsedTeamPackage, TeamTomlError> {
     let team_toml = parse_team_toml(content)?;
     let credential_slots = build_credential_slots(&team_toml);
     let profiles = build_profiles(&team_toml, &credential_slots)?;

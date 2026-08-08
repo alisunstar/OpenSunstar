@@ -138,8 +138,7 @@ fn parse_leaderboard_html_v2(
         .expect("valid name regex");
 
     // 4. Extract total skills count from tab label
-    let total_re = Regex::new(r#"All Time \(([0-9,]+)\)"#)
-        .expect("valid total regex");
+    let total_re = Regex::new(r#"All Time \(([0-9,]+)\)"#).expect("valid total regex");
 
     // Collect all positions in document order
     struct HrefMatch {
@@ -157,7 +156,11 @@ fn parse_leaderboard_html_v2(
 
     let mut hrefs: Vec<HrefMatch> = Vec::new();
     for cap in href_re.captures_iter(html) {
-        let path = cap.get(1).map(|m| m.as_str()).unwrap_or_default().to_string();
+        let path = cap
+            .get(1)
+            .map(|m| m.as_str())
+            .unwrap_or_default()
+            .to_string();
         let pos = cap.get(0).map(|m| m.start()).unwrap_or(0);
         hrefs.push(HrefMatch { path, pos });
     }
@@ -183,7 +186,11 @@ fn parse_leaderboard_html_v2(
 
     let mut names: Vec<NameMatch> = Vec::new();
     for cap in name_re.captures_iter(html) {
-        let name = cap.get(1).map(|m| m.as_str().trim()).unwrap_or("").to_string();
+        let name = cap
+            .get(1)
+            .map(|m| m.as_str().trim())
+            .unwrap_or("")
+            .to_string();
         let pos = cap.get(0).map(|m| m.start()).unwrap_or(0);
         names.push(NameMatch { name, pos });
     }
@@ -258,7 +265,9 @@ fn parse_leaderboard_html_v2(
     }
 
     if skills.is_empty() {
-        return Err(anyhow!("no leaderboard skills parsed from skills.sh page (v2)"));
+        return Err(anyhow!(
+            "no leaderboard skills parsed from skills.sh page (v2)"
+        ));
     }
 
     let total_skills = total_re
@@ -389,8 +398,6 @@ struct SkillsShApiSkill {
 struct SkillsShApiResponse {
     skills: Vec<SkillsShApiSkill>,
     total: u64,
-    has_more: bool,
-    page: u64,
 }
 
 fn api_view_slug(period: SkillsShLeaderboardPeriod) -> &'static str {
@@ -543,9 +550,7 @@ pub async fn get_skills_sh_leaderboard(
     let (skills, meta, source_url) = match fetch_leaderboard_via_html(period, &html_url).await {
         Ok((skills, meta)) => (skills, meta, html_url),
         Err(html_err) => {
-            log::warn!(
-                "skills.sh HTML 主路径失败，回退内部 API: {html_err}"
-            );
+            log::warn!("skills.sh HTML 主路径失败，回退内部 API: {html_err}");
             match fetch_leaderboard_via_api(period).await {
                 Ok((skills, meta)) => (
                     skills,
@@ -696,7 +701,8 @@ mod tests {
     #[test]
     fn parse_legacy_all_time_top3() {
         let (skills, meta) =
-            parse_leaderboard_html(FIXTURE_LEGACY_ALL_TIME, SkillsShLeaderboardPeriod::AllTime).unwrap();
+            parse_leaderboard_html(FIXTURE_LEGACY_ALL_TIME, SkillsShLeaderboardPeriod::AllTime)
+                .unwrap();
         assert_eq!(skills.len(), 3);
         assert_eq!(skills[0].rank, 1);
         assert_eq!(skills[0].key, "vercel-labs/skills/find-skills");
@@ -706,17 +712,20 @@ mod tests {
 
     #[test]
     fn parse_legacy_trending_preserves_order() {
-        let (skills, _) =
-            parse_leaderboard_html(FIXTURE_LEGACY_TRENDING, SkillsShLeaderboardPeriod::Trending24h)
-                .unwrap();
+        let (skills, _) = parse_leaderboard_html(
+            FIXTURE_LEGACY_TRENDING,
+            SkillsShLeaderboardPeriod::Trending24h,
+        )
+        .unwrap();
         assert_eq!(skills[0].key, "halt-catch-fire/skills/remotion-render");
         assert_eq!(skills[1].key, "vercel-labs/skills/find-skills");
     }
 
     #[test]
     fn rejects_wrong_view_marker() {
-        let err = parse_leaderboard_html(FIXTURE_LEGACY_TRENDING, SkillsShLeaderboardPeriod::AllTime)
-            .unwrap_err();
+        let err =
+            parse_leaderboard_html(FIXTURE_LEGACY_TRENDING, SkillsShLeaderboardPeriod::AllTime)
+                .unwrap_err();
         assert!(err.to_string().contains("view marker"));
     }
 
@@ -725,7 +734,8 @@ mod tests {
     #[test]
     fn parse_v2_all_time_top3() {
         let (skills, meta) =
-            parse_leaderboard_html(FIXTURE_V2_ALL_TIME, SkillsShLeaderboardPeriod::AllTime).unwrap();
+            parse_leaderboard_html(FIXTURE_V2_ALL_TIME, SkillsShLeaderboardPeriod::AllTime)
+                .unwrap();
         assert_eq!(skills.len(), 3);
         assert_eq!(skills[0].rank, 1);
         assert_eq!(skills[0].key, "vercel-labs/skills/find-skills");
@@ -743,7 +753,8 @@ mod tests {
     fn parse_v2_falls_back_to_legacy_for_old_format() {
         // Legacy fixture should still work via fallback
         let (skills, _) =
-            parse_leaderboard_html(FIXTURE_LEGACY_ALL_TIME, SkillsShLeaderboardPeriod::AllTime).unwrap();
+            parse_leaderboard_html(FIXTURE_LEGACY_ALL_TIME, SkillsShLeaderboardPeriod::AllTime)
+                .unwrap();
         assert_eq!(skills.len(), 3);
         assert_eq!(skills[0].installs, 2_233_252); // exact number from legacy
     }

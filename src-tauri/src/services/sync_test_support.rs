@@ -150,9 +150,7 @@ impl Drop for SyncHomeGuard {
 }
 
 pub(crate) fn prepare_sync_test_home(name: &str) -> SyncHomeGuard {
-    let lock = sync_env_lock()
-        .lock()
-        .unwrap_or_else(|e| e.into_inner());
+    let lock = sync_env_lock().lock().unwrap_or_else(|e| e.into_inner());
     let home = tempdir().expect("create sync test home");
     let original_home = std::env::var_os("HOME");
     #[cfg(windows)]

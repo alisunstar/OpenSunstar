@@ -2355,6 +2355,11 @@
       "repo": "儲存庫篩選",
       "allRepos": "全部儲存庫"
     },
+    "category": {
+      "all": "全部"
+    },
+    "clearFilters": "清除篩選條件",
+    "noFilterResults": "沒有符合的 Skill，請調整篩選條件。",
     "noResults": "未找到相符的技能",
     "noInstalled": "暫無已安裝的技能",
     "noInstalledDescription": "從儲存庫發現並安裝技能，或匯入已有的技能",

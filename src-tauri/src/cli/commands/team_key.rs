@@ -144,8 +144,8 @@ fn run_list(
         println!("本机暂无团队密钥。运行 `os team key sync --org-id <ID>` 从控制面同步。");
     } else {
         println!(
-            "{:<20} {:<12} {:<8} {:<10} {}",
-            "SLOT", "PROVIDER", "VERSION", "STATUS", "GRANT_EXPIRES"
+            "{:<20} {:<12} {:<8} {:<10} GRANT_EXPIRES",
+            "SLOT", "PROVIDER", "VERSION", "STATUS"
         );
         for key in &keys {
             let expires = chrono::DateTime::from_timestamp_millis(key.grant_expires)
@@ -346,6 +346,7 @@ fn run_sync(state: &open_sunstar_lib::AppState, org_id: &str, json: bool) -> Res
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn run_slot_create(
     _state: &open_sunstar_lib::AppState,
     org_id: &str,

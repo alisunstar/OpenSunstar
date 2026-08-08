@@ -54,9 +54,7 @@ const EVENT_TRAY_OPEN_ALERTS: &str = "tray-open-alerts";
 pub fn set_tray_alert(app: &tauri::AppHandle, text: &str) {
     let settings = crate::settings::get_settings();
     {
-        let mut guard = LAST_TRAY_ALERT
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
+        let mut guard = LAST_TRAY_ALERT.lock().unwrap_or_else(|p| p.into_inner());
         *guard = Some(text.to_string());
     }
     refresh_tray_menu(app);
@@ -75,18 +73,14 @@ pub fn set_tray_alert(app: &tauri::AppHandle, text: &str) {
 #[allow(dead_code)]
 pub fn clear_tray_alert(app: &tauri::AppHandle) {
     let already_clear = {
-        let guard = LAST_TRAY_ALERT
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
+        let guard = LAST_TRAY_ALERT.lock().unwrap_or_else(|p| p.into_inner());
         guard.is_none()
     };
     if already_clear {
         return;
     }
     {
-        let mut guard = LAST_TRAY_ALERT
-            .lock()
-            .unwrap_or_else(|p| p.into_inner());
+        let mut guard = LAST_TRAY_ALERT.lock().unwrap_or_else(|p| p.into_inner());
         *guard = None;
     }
     refresh_tray_menu(app);
@@ -571,9 +565,8 @@ pub fn create_tray_menu(
         .unwrap_or_else(|p| p.into_inner())
         .clone();
     if let Some(alert) = alert_text {
-        let alert_item =
-            MenuItem::with_id(app, TRAY_ALERT_ITEM_ID, &alert, true, None::<&str>)
-                .map_err(|e| AppError::Message(format!("创建告警菜单项失败: {e}")))?;
+        let alert_item = MenuItem::with_id(app, TRAY_ALERT_ITEM_ID, &alert, true, None::<&str>)
+            .map_err(|e| AppError::Message(format!("创建告警菜单项失败: {e}")))?;
         menu_builder = menu_builder.item(&alert_item).separator();
     } else {
         let all_good_item = MenuItem::with_id(

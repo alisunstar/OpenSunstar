@@ -638,7 +638,7 @@ fn create_backup(target: &Path, project_root: &Path) -> Result<String, String> {
     // W5: 追加 4 字节随机 hex 防止同秒碰撞
     let nonce: u32 = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| (d.subsec_nanos() ^ (d.as_secs() as u32)) & 0xFFFF_FFFF)
+        .map(|d| d.subsec_nanos() ^ (d.as_secs() as u32))
         .unwrap_or(0);
     let backup_name = format!("{timestamp}_{file_name}_{nonce:08x}");
     let backup_path = backup_dir.join(&backup_name);

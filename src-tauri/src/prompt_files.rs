@@ -44,7 +44,9 @@ pub fn prompt_file_path(app: &AppType) -> Result<PathBuf, AppError> {
 /// 项目根目录下的 Prompt 文件名（各 CLI 约定）
 pub fn project_prompt_filename(app: &AppType) -> Result<&'static str, AppError> {
     if matches!(app, AppType::GrokBuild) {
-        return Err(AppError::Config("Grok Build 项目级 Prompt 路径暂未定义".to_string()));
+        return Err(AppError::Config(
+            "Grok Build 项目级 Prompt 路径暂未定义".to_string(),
+        ));
     }
     if matches!(app, AppType::ClaudeDesktop) {
         return Err(AppError::localized(

@@ -399,13 +399,21 @@ pub fn compute_delivery_dimensions(project_path: &str) -> Vec<AgentReadinessItem
     } else {
         match crate::services::project_wiki::scan_project_wiki(project_path, "cli") {
             Ok(scan) => match scan.base_status.as_str() {
-                "healthy" => (4, STATUS_READY, "Wiki 基线健康（与源码基线一致）".to_string()),
+                "healthy" => (
+                    4,
+                    STATUS_READY,
+                    "Wiki 基线健康（与源码基线一致）".to_string(),
+                ),
                 "drifted" => (
                     2,
                     STATUS_PARTIAL,
                     "Wiki 基线已漂移（run `os wiki changed` 映射变更）".to_string(),
                 ),
-                _ => (1, STATUS_UNHEALTHY, "Wiki 基线无效或未评级（run `os wiki lint`）".to_string()),
+                _ => (
+                    1,
+                    STATUS_UNHEALTHY,
+                    "Wiki 基线无效或未评级（run `os wiki lint`）".to_string(),
+                ),
             },
             Err(_) => (1, STATUS_UNHEALTHY, "Wiki 扫描失败".to_string()),
         }

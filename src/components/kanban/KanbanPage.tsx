@@ -439,19 +439,17 @@ export function KanbanPage({
    * task 类复用 PortfolioHealthSummary 的六档分级口径，排序改为
    * 「最近使用加权」——三个月没动的项目不给今天添堵。
    */
-  const {
-    alerts: workspaceAlerts,
-    dismissEventAlert: dismissWorkspaceAlert,
-  } = useWorkspaceAlerts({
-    projects,
-    agentReadinessMap,
-    commitsInWindowMap,
-    onRepairProject: handleRepairProjectDrift,
-    onOpenProjectAiConfig: (projectId, intent) =>
-      onOpenProjectAiConfig(projectId, intent),
-    onOpenTokenStats: () => onNavigate?.("tokenStats"),
-    repairingProjectId,
-  });
+  const { alerts: workspaceAlerts, dismissEventAlert: dismissWorkspaceAlert } =
+    useWorkspaceAlerts({
+      projects,
+      agentReadinessMap,
+      commitsInWindowMap,
+      onRepairProject: handleRepairProjectDrift,
+      onOpenProjectAiConfig: (projectId, intent) =>
+        onOpenProjectAiConfig(projectId, intent),
+      onOpenTokenStats: () => onNavigate?.("tokenStats"),
+      repairingProjectId,
+    });
 
   const closeDetail = useCallback(() => {
     setInternalDetailId(null);

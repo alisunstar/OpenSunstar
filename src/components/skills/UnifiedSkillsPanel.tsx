@@ -147,7 +147,9 @@ const UnifiedSkillsPanel = React.forwardRef<
 
   // ── 搜索 + 分类 + App 三重过滤 ──
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<SkillCategory | null>(null);
+  const [activeCategory, setActiveCategory] = useState<SkillCategory | null>(
+    null,
+  );
   const [activeAppFilter, setActiveAppFilter] = useState<AppId | null>(null);
 
   /** 每个 Skill 的分类结果（随 skills 变化重新运算） */
@@ -164,8 +166,8 @@ const UnifiedSkillsPanel = React.forwardRef<
   const categoryCounts = useMemo(() => {
     const counts = new Map<SkillCategory, number>();
     const list = activeAppFilter
-      ? skills?.filter((s) => s.apps[activeAppFilter]) ?? []
-      : skills ?? [];
+      ? (skills?.filter((s) => s.apps[activeAppFilter]) ?? [])
+      : (skills ?? []);
     for (const s of list) {
       const cat = skillCategoryMap.get(s.id) ?? "other";
       counts.set(cat, (counts.get(cat) ?? 0) + 1);
@@ -187,7 +189,8 @@ const UnifiedSkillsPanel = React.forwardRef<
       // 3. 搜索过滤
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        const haystack = `${s.name} ${s.description ?? ""} ${s.directory}`.toLowerCase();
+        const haystack =
+          `${s.name} ${s.description ?? ""} ${s.directory}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
@@ -677,7 +680,9 @@ const UnifiedSkillsPanel = React.forwardRef<
                   key={cat.key}
                   variant="secondary"
                   className={`cursor-pointer text-xs px-2 py-0.5 border-0 ${
-                    isActive ? cat.pillActiveClass + " font-semibold" : cat.pillClass
+                    isActive
+                      ? cat.pillActiveClass + " font-semibold"
+                      : cat.pillClass
                   }`}
                   onClick={() =>
                     setActiveCategory((prev) =>
@@ -742,16 +747,22 @@ const UnifiedSkillsPanel = React.forwardRef<
                 <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-b border-border-default">
                   <input
                     type="checkbox"
-                    checked={selectedIds.size === filteredSkills.length && filteredSkills.length > 0}
+                    checked={
+                      selectedIds.size === filteredSkills.length &&
+                      filteredSkills.length > 0
+                    }
                     onChange={() =>
                       selectedIds.size === filteredSkills.length
                         ? clearSelection()
-                        : setSelectedIds(new Set(filteredSkills.map((s) => s.id)))
+                        : setSelectedIds(
+                            new Set(filteredSkills.map((s) => s.id)),
+                          )
                     }
                     className="rounded border-border"
                   />
                   <span className="text-xs text-muted-foreground">
-                    {selectedIds.size === filteredSkills.length && filteredSkills.length > 0
+                    {selectedIds.size === filteredSkills.length &&
+                    filteredSkills.length > 0
                       ? t("skills.deselectAll", { defaultValue: "取消全选" })
                       : t("skills.selectAll", { defaultValue: "全选" })}{" "}
                     ({selectedIds.size}/{filteredSkills.length})

@@ -151,13 +151,13 @@ export function useSettingsForm(): UseSettingsFormResult {
             useAppWindowControls: false,
             enableClaudePluginIntegration: false,
             skipClaudeOnboarding: false,
-          preserveCodexOfficialAuthOnSwitch: true,
-          notificationPreferences: {
-            budgetAlert: true,
-            failoverAlert: true,
-            trayBadge: true,
-          },
-          language: readPersistedLanguage(),
+            preserveCodexOfficialAuthOnSwitch: true,
+            notificationPreferences: {
+              budgetAlert: true,
+              failoverAlert: true,
+              trayBadge: true,
+            },
+            language: readPersistedLanguage(),
           } as SettingsFormState);
 
         const next: SettingsFormState = {

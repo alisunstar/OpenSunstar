@@ -1281,10 +1281,7 @@ impl SkillService {
             if !src.exists() {
                 // 分裂状态兜底：内容可能还在「另一个」SSOT 目录
                 let alt_src = alternate_old_dir.join(&skill.directory);
-                if alt_src != old_dir.join(&skill.directory)
-                    && alt_src != dst
-                    && alt_src.exists()
-                {
+                if alt_src != old_dir.join(&skill.directory) && alt_src != dst && alt_src.exists() {
                     src = alt_src;
                 }
             }
@@ -3892,21 +3889,19 @@ mod tests {
         );
 
         // 当前 SSOT 优先
-        let primary = test_home
-            .join(".OpenSunstar")
-            .join("skills")
-            .join("orphan");
+        let primary = test_home.join(".OpenSunstar").join("skills").join("orphan");
         write_skill(&primary, "Orphan Skill");
-        let resolved =
-            SkillService::resolve_sync_source_dir("orphan").expect("resolve primary");
+        let resolved = SkillService::resolve_sync_source_dir("orphan").expect("resolve primary");
         assert_eq!(resolved, primary);
 
         // 两处都不存在 → 返回当前 SSOT 路径，交由校验报错
-        let resolved =
-            SkillService::resolve_sync_source_dir("missing").expect("resolve missing");
+        let resolved = SkillService::resolve_sync_source_dir("missing").expect("resolve missing");
         assert_eq!(
             resolved,
-            test_home.join(".OpenSunstar").join("skills").join("missing")
+            test_home
+                .join(".OpenSunstar")
+                .join("skills")
+                .join("missing")
         );
 
         match old_test_home {

@@ -44,10 +44,7 @@ fn throttled(key: &str, window: Duration) -> bool {
 #[cfg(target_os = "windows")]
 fn notify(title: &str, body: &str) {
     use tauri_winrt_notification::Toast;
-    let result = Toast::new("OpenSunstar")
-        .title(title)
-        .text1(body)
-        .show();
+    let result = Toast::new("OpenSunstar").title(title).text1(body).show();
     if let Err(e) = result {
         log::warn!("[sys-notify] 发送系统通知失败: {e}");
     }

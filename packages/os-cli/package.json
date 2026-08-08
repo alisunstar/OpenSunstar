@@ -1,6 +1,6 @@
 {
   "name": "opensunstar-os",
-  "version": "1.2.1",
+  "version": "1.2.3",
   "description": "OpenSunstar CLI (os) — governance, provider switch, and TUI dashboard",
   "license": "Apache-2.0",
   "author": "Jason Young",

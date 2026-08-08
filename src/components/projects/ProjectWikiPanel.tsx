@@ -681,7 +681,8 @@ function CandidateBlock({
         {!confirmingGenerate && wikiEngine === "openwiki" && (
           <span className="max-w-40 truncate text-[10px] text-blue-600 dark:text-blue-400">
             {t("projectWiki.engineOpenwikiHint", {
-              defaultValue: "使用 knowledge 五层目录约定 + ROUTING 模板生成业务知识基线",
+              defaultValue:
+                "使用 knowledge 五层目录约定 + ROUTING 模板生成业务知识基线",
             })}
           </span>
         )}

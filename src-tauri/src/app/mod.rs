@@ -103,10 +103,8 @@ fn handle_deeplink_url(
                 log::info!("✓ Emitted deeplink-import event to frontend");
             }
 
-            if focus_main_window {
-                if crate::lightweight::show_main_window(app) {
-                    log::info!("✓ Window shown and focused");
-                }
+            if focus_main_window && crate::lightweight::show_main_window(app) {
+                log::info!("✓ Window shown and focused");
             }
         }
         Err(e) => {

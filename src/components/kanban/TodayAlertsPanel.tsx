@@ -125,7 +125,9 @@ export function TodayAlertsPanel({
               meta.stripe,
             )}
           >
-            <Icon className={cn("h-4.5 w-4.5 mt-0.5 shrink-0", meta.iconColor)} />
+            <Icon
+              className={cn("h-4.5 w-4.5 mt-0.5 shrink-0", meta.iconColor)}
+            />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground">
                 {alert.title}

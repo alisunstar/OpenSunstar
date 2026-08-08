@@ -464,7 +464,10 @@ fn ensure_operation_still_owns_current_provider(
         )
     })?;
     if app_type.is_additive_mode() {
-        if crate::services::provider::provider_exists_in_live_config(app_type, expected_provider_id)? {
+        if crate::services::provider::provider_exists_in_live_config(
+            app_type,
+            expected_provider_id,
+        )? {
             return Ok(());
         }
         return Err(AppError::Message(format!(

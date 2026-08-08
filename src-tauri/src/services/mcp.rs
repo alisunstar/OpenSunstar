@@ -149,7 +149,11 @@ impl McpService {
                 mcp::sync_single_server_to_gemini(&Default::default(), &server.id, &server.server)?;
             }
             AppType::GrokBuild => {
-                mcp::sync_single_server_to_grokbuild(&Default::default(), &server.id, &server.server)?;
+                mcp::sync_single_server_to_grokbuild(
+                    &Default::default(),
+                    &server.id,
+                    &server.server,
+                )?;
             }
             AppType::OpenCode => {
                 mcp::sync_single_server_to_opencode(

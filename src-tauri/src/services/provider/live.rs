@@ -426,9 +426,7 @@ pub(crate) fn remove_common_config_from_settings(
         | AppType::OpenCode
         | AppType::OpenClaw
         | AppType::Hermes
-        | AppType::ClaudeDesktop => {
-            Ok(settings.clone())
-        }
+        | AppType::ClaudeDesktop => Ok(settings.clone()),
     }
 }
 
@@ -487,9 +485,7 @@ fn apply_common_config_to_settings(
         | AppType::OpenCode
         | AppType::OpenClaw
         | AppType::Hermes
-        | AppType::ClaudeDesktop => {
-            Ok(settings.clone())
-        }
+        | AppType::ClaudeDesktop => Ok(settings.clone()),
     }
 }
 

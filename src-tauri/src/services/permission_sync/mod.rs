@@ -96,9 +96,9 @@ pub fn sync_permissions_at_path(
         AppType::Gemini => gemini::sync_permissions_at_path(lists, config_path),
         AppType::OpenCode => opencode::sync_permissions_at_path(lists, config_path),
         AppType::Hermes => hermes::sync_permissions_at_path(lists, config_path),
-        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(format!(
-            "{app:?} 不支持项目级 Permissions 同步"
-        ))),
+        AppType::GrokBuild | AppType::OpenClaw | AppType::ClaudeDesktop => Err(AppError::Config(
+            format!("{app:?} 不支持项目级 Permissions 同步"),
+        )),
     }
 }
 

@@ -19,8 +19,8 @@ mod database;
 mod deeplink;
 mod error;
 mod gemini_config;
-mod grok_config;
 mod gemini_mcp;
+mod grok_config;
 pub mod hermes_config;
 mod hook;
 mod ignore_rule;
@@ -77,8 +77,8 @@ pub use mcp::{
     sync_single_server_to_codex, sync_single_server_to_gemini,
 };
 pub use provider::{Provider, ProviderMeta};
-pub use services::project_wiki;
 pub use services::knowledge_routing;
+pub use services::project_wiki;
 pub use services::rd_validate;
 pub use services::{
     simple_connect,

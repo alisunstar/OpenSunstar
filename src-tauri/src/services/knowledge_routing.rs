@@ -169,7 +169,11 @@ mod tests {
             "---\nanchors:\n  - TOPIC:secret\n---\n# draft\n",
         )
         .unwrap();
-        fs::write(k.join("ROUTING.md"), "# ROUTING\n\n人工编辑区：渐进式加载层级说明。\n").unwrap();
+        fs::write(
+            k.join("ROUTING.md"),
+            "# ROUTING\n\n人工编辑区：渐进式加载层级说明。\n",
+        )
+        .unwrap();
 
         let r1 = merge_routing_index(dir.to_str().unwrap()).unwrap();
         assert_eq!(r1.pages_scanned, 2);

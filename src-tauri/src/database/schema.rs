@@ -704,7 +704,9 @@ impl Database {
                         Self::set_user_version(conn, 44)?;
                     }
                     44 => {
-                        log::info!("Migrating database from v44 to v45 (Grok Build MCP/Skills support)");
+                        log::info!(
+                            "Migrating database from v44 to v45 (Grok Build MCP/Skills support)"
+                        );
                         Self::migrate_v44_to_v45(conn)?;
                         Self::set_user_version(conn, 45)?;
                     }

@@ -565,7 +565,9 @@ export function Sidebar({
         )}
       >
         <SyncStatusBar collapsed={collapsed} />
-        <div className={cn("py-1.5", collapsed ? "px-1 space-y-0.5" : "px-2.5")}>
+        <div
+          className={cn("py-1.5", collapsed ? "px-1 space-y-0.5" : "px-2.5")}
+        >
           {collapsed ? (
             /* 折叠态：纵向排列图标 */
             <>

@@ -322,10 +322,7 @@ fn run_validate(
 
         // ── rd-loop governance rules (G-RD1—G-RD4, preset-scoped) ──
         if preset_id == "rd-loop" {
-            governance_warnings.extend(rd_loop_governance_checks(
-                project_path,
-                change_id,
-            ));
+            governance_warnings.extend(rd_loop_governance_checks(project_path, change_id));
         }
     }
 
@@ -440,17 +437,20 @@ fn rd_loop_governance_checks(project_path: &str, change_id: &str) -> Vec<String>
             Some(a) => w.push(format!(
                 "G-RD3: STATE.md active change ({a}) != --change-id ({change_id})"
             )),
-            None => w.push("G-RD3: STATE.md does not declare an active change (active_change:)".to_string()),
+            None => w.push(
+                "G-RD3: STATE.md does not declare an active change (active_change:)".to_string(),
+            ),
         }
     }
 
     // G-RD4：IMPLEMENTATION-CHECK schema（存在才校验；缺失由工件门禁阻断）
-    let ic = pp.join(".specs").join(change_id).join("IMPLEMENTATION-CHECK.md");
+    let ic = pp
+        .join(".specs")
+        .join(change_id)
+        .join("IMPLEMENTATION-CHECK.md");
     if ic.is_file() {
-        match open_sunstar_lib::rd_validate::validate_implementation_check(
-            project_path,
-            change_id,
-        ) {
+        match open_sunstar_lib::rd_validate::validate_implementation_check(project_path, change_id)
+        {
             Ok(r) if !r.schema_valid => w.push(format!(
                 "G-RD4: IMPLEMENTATION-CHECK schema invalid ({} issue(s); run `os rd validate`)",
                 r.issues.len()

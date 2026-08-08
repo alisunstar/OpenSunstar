@@ -70,7 +70,11 @@ pub fn validate_implementation_check(
     }
     for (idx, cols) in table_rows.iter().enumerate() {
         if cols.len() != 5 {
-            issues.push(format!("对账结果第 {} 行列数={}（应 5 列）", idx + 1, cols.len()));
+            issues.push(format!(
+                "对账结果第 {} 行列数={}（应 5 列）",
+                idx + 1,
+                cols.len()
+            ));
             continue;
         }
         let status = cols[2].trim().trim_matches('*').to_string();
@@ -152,7 +156,10 @@ fn extract_section_table(content: &str, name: &str) -> Vec<Vec<String>> {
                 .split('|')
                 .map(|c| c.trim().to_string())
                 .collect();
-            let is_sep = !cells.is_empty() && cells.iter().all(|c| !c.is_empty() && c.replace('-', "").is_empty());
+            let is_sep = !cells.is_empty()
+                && cells
+                    .iter()
+                    .all(|c| !c.is_empty() && c.replace('-', "").is_empty());
             let is_header = cells.first().map(|c| c.as_str()) == Some("应用");
             if is_sep || is_header {
                 in_table = true;
@@ -213,7 +220,7 @@ fn git_numstat(project_path: &str) -> Result<Vec<DiffStat>, String> {
             deleted: d.parse().unwrap_or(0),
         });
     }
-    stats.sort_by(|x, y| (y.added + y.deleted).cmp(&(x.added + x.deleted)));
+    stats.sort_by_key(|stat| std::cmp::Reverse(stat.added + stat.deleted));
     stats.truncate(20);
     Ok(stats)
 }

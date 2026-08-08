@@ -1,7 +1,13 @@
 import { useTranslation } from "react-i18next";
 import type { SettingsFormState } from "@/hooks/useSettings";
 import { useWorkspaceAlertFirst } from "@/hooks/useWorkspaceAlertFirst";
-import { Bell, Wallet, AlertTriangle, CircleDot, LayoutDashboard } from "lucide-react";
+import {
+  Bell,
+  Wallet,
+  AlertTriangle,
+  CircleDot,
+  LayoutDashboard,
+} from "lucide-react";
 import { ToggleRow } from "@/components/ui/toggle-row";
 
 interface NotificationSettingsProps {

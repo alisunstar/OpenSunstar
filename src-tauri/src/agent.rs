@@ -62,7 +62,9 @@ impl Agent {
             AppType::Codex => self.enabled_codex,
             AppType::Gemini => self.enabled_gemini,
             AppType::OpenCode => self.enabled_opencode,
-            AppType::GrokBuild | AppType::Hermes | AppType::OpenClaw | AppType::ClaudeDesktop => false,
+            AppType::GrokBuild | AppType::Hermes | AppType::OpenClaw | AppType::ClaudeDesktop => {
+                false
+            }
         }
     }
 
