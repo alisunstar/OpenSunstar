@@ -565,72 +565,87 @@ export function Sidebar({
         )}
       >
         <SyncStatusBar collapsed={collapsed} />
-        <div className={cn("px-2.5 py-1.5 space-y-1", collapsed && "px-1.5")}>
-          <SidebarItem
-            icon={<Settings className="w-4 h-4" />}
-            label={
-              collapsed ? "" : t("common.settings", { defaultValue: "设置" })
-            }
-            active={activeView === "settings"}
-            onClick={() => onNavigate("settings")}
-            collapsed={collapsed}
-            title={
-              collapsed
-                ? t("common.settings", { defaultValue: "设置" })
-                : undefined
-            }
-          />
-
-          {/* 折叠按钮 + 主题切换 */}
-          <div className={cn("flex gap-1", collapsed && "flex-col")}>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleCollapsed}
-              className={cn(
-                "rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                collapsed
-                  ? "flex-1 h-9 justify-center"
-                  : "flex-1 h-9 justify-start gap-3 pl-3",
-              )}
-              title={
-                collapsed
-                  ? t("sidebar.expand", { defaultValue: "展开侧边栏" })
-                  : `${t("sidebar.collapse", { defaultValue: "折叠侧边栏" })} (Ctrl+B)`
-              }
-            >
-              {collapsed ? (
-                <PanelLeftOpen className="w-4 h-4" />
-              ) : (
-                <>
-                  <PanelLeftClose className="w-4 h-4 shrink-0" />
-                  <span className="text-sm font-normal truncate">
-                    {t("sidebar.collapse", { defaultValue: "折叠" })}
-                  </span>
-                </>
-              )}
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className={cn(
-                "rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 shrink-0",
-                collapsed
-                  ? "h-9 w-full justify-center"
-                  : "h-9 w-9 justify-center",
-              )}
-              title={
-                theme === "dark"
-                  ? t("common.lightMode", { defaultValue: "切换浅色模式" })
-                  : t("common.darkMode", { defaultValue: "切换深色模式" })
-              }
-            >
-              <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-            </Button>
-          </div>
+        <div className={cn("py-1.5", collapsed ? "px-1 space-y-0.5" : "px-2.5")}>
+          {collapsed ? (
+            /* 折叠态：纵向排列图标 */
+            <>
+              <div className="flex justify-center">
+                <SidebarItem
+                  icon={<Settings className="w-4 h-4" />}
+                  label=""
+                  active={activeView === "settings"}
+                  onClick={() => onNavigate("settings")}
+                  collapsed
+                  title={t("common.settings", { defaultValue: "设置" })}
+                />
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  title={
+                    theme === "dark"
+                      ? t("common.lightMode", { defaultValue: "切换浅色模式" })
+                      : t("common.darkMode", { defaultValue: "切换深色模式" })
+                  }
+                >
+                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </Button>
+              </div>
+              <div className="flex justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleCollapsed}
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  title={t("sidebar.expand", { defaultValue: "展开侧边栏" })}
+                >
+                  <PanelLeftOpen className="w-4 h-4" />
+                </Button>
+              </div>
+            </>
+          ) : (
+            /* 展开态：设置左侧，图标右侧 */
+            <div className="flex items-center gap-1">
+              <div className="flex-1 min-w-0">
+                <SidebarItem
+                  icon={<Settings className="w-4 h-4" />}
+                  label={t("common.settings", { defaultValue: "设置" })}
+                  active={activeView === "settings"}
+                  onClick={() => onNavigate("settings")}
+                  collapsed={false}
+                />
+              </div>
+              <div className="flex items-center gap-0.5 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  title={
+                    theme === "dark"
+                      ? t("common.lightMode", { defaultValue: "切换浅色模式" })
+                      : t("common.darkMode", { defaultValue: "切换深色模式" })
+                  }
+                >
+                  <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={toggleCollapsed}
+                  className="h-8 w-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                  title={`${t("sidebar.collapse", { defaultValue: "折叠侧边栏" })} (Ctrl+B)`}
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </motion.aside>
